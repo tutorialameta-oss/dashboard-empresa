@@ -1,9 +1,9 @@
 <!doctype html>
 <html lang="es">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>La Meta | Dashboard de Alumnos</title>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>La Meta | Panel de Control</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 
   <style>
@@ -13,12 +13,14 @@
       --text:#0f172a;
       --muted:#64748b;
       --border:rgba(15,23,42,0.10);
-      --accent:#d10b0b;     /* rojo */
-      --accent2:#a40000;    /* rojo oscuro */
-      --soft:#fff5f5;       /* rojo suave */
+      --accent:#d10b0b;
+      --accent2:#a40000;
+      --soft:#fff5f5;
       --shadow: 0 14px 34px rgba(15,23,42,0.10);
+      --radius:16px;
     }
 
+    *{ box-sizing:border-box; }
     body{
       margin:0;
       font-family: system-ui,-apple-system,Segoe UI,Roboto,Arial;
@@ -26,131 +28,176 @@
       color: var(--text);
     }
 
-    /* Barra superior institucional */
-    .topbar{
-      height: 8px;
-      background: linear-gradient(90deg, var(--accent2), var(--accent));
+    .topbar{ height:8px; background:linear-gradient(90deg,var(--accent2),var(--accent)); }
+
+    .app{
+      display:grid;
+      grid-template-columns: 280px 1fr;
+      min-height: calc(100vh - 8px);
     }
 
-    .wrap{ max-width: 1220px; margin: 0 auto; padding: 18px 18px 28px; }
-
-    header{
-      display:flex;
-      align-items:flex-start;
-      justify-content:space-between;
-      gap: 16px;
-      flex-wrap: wrap;
-      margin-top: 14px;
-      margin-bottom: 10px;
+    /* Sidebar */
+    .sidebar{
+      border-right:1px solid var(--border);
+      padding:16px 14px;
+      position: sticky;
+      top: 0;
+      align-self: start;
+      height: calc(100vh - 8px);
+      overflow:auto;
+      background:#fff;
     }
 
     .brand{
-      display:flex;
-      align-items:center;
-      gap: 14px;
-    }
-
-    /* Logo más grande */
-    .brand-logo{
-      width: 74px;
-      height: 74px;
-      object-fit: contain;
-      border-radius: 16px;
-      border: 1px solid var(--border);
+      display:flex; gap:12px; align-items:center;
+      padding:10px;
+      border:1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
       background: #fff;
-      padding: 10px;
-      box-shadow: 0 10px 22px rgba(15,23,42,0.12);
     }
 
-    .titleblock{ display:flex; flex-direction:column; gap: 6px; }
+    .brand img{
+      width:58px; height:58px; object-fit:contain;
+      border-radius:14px; border:1px solid var(--border);
+      padding:8px; background:#fff;
+    }
 
-    .titleline{
+    .brand h1{
+      margin:0;
+      font-size:14px;
+      font-weight:950;
+      letter-spacing:.2px;
+      line-height:1.15;
+    }
+    .brand .sub{
+      margin-top:4px;
+      color:var(--muted);
+      font-size:12px;
+      font-weight:700;
+    }
+
+    .nav{
+      margin-top:14px;
       display:flex;
-      align-items:center;
-      gap: 10px;
-      flex-wrap: wrap;
+      flex-direction:column;
+      gap:8px;
     }
 
-    h1{
-      font-size: 18px;
-      margin: 0;
-      font-weight: 900;
-      letter-spacing: 0.2px;
+    .nav button{
+      width:100%;
+      text-align:left;
+      padding:10px 12px;
+      border-radius: 14px;
+      border:1px solid var(--border);
+      background:#fff;
+      cursor:pointer;
+      font-weight:900;
+      color: var(--text);
+    }
+    .nav button.active{
+      border-color: rgba(209,11,11,0.40);
+      box-shadow: 0 0 0 3px rgba(209,11,11,0.10);
+      background: var(--soft);
+      color: var(--accent2);
     }
 
+    .small{
+      margin-top:14px;
+      padding:12px;
+      border:1px solid var(--border);
+      border-radius: var(--radius);
+      background:#fff;
+    }
     .pill{
-      display:inline-flex;
-      align-items:center;
-      gap:6px;
-      padding: 6px 10px;
-      border-radius: 999px;
-      border: 1px solid rgba(209,11,11,0.25);
+      display:inline-flex; align-items:center; gap:6px;
+      padding:6px 10px;
+      border-radius:999px;
+      border:1px solid rgba(209,11,11,0.25);
       background: rgba(209,11,11,0.06);
       color: var(--accent2);
-      font-size: 12px;
-      font-weight: 800;
+      font-size:12px;
+      font-weight:900;
     }
-
-    .badges{ display:flex; gap:8px; flex-wrap:wrap; }
-
     .badge{
       display:inline-block;
-      padding: 6px 10px;
-      border-radius: 999px;
-      border: 1px solid var(--border);
-      background: #fafafa;
+      padding:6px 10px;
+      border-radius:999px;
+      border:1px solid var(--border);
+      background:#fafafa;
       color: var(--muted);
-      font-size: 12px;
-      font-weight: 800;
+      font-size:12px;
+      font-weight:900;
+      margin-top:8px;
+    }
+
+    .toggle{
+      display:flex; align-items:center; gap:10px;
+      margin-top:10px;
+      font-size:12px; color: var(--muted);
+      font-weight:800;
+    }
+
+    /* Main */
+    .main{
+      padding:18px 18px 28px;
+    }
+
+    .headerline{
+      display:flex; gap:10px; align-items:center; justify-content:space-between;
+      flex-wrap:wrap;
+    }
+
+    .title{
+      display:flex; flex-direction:column; gap:6px;
+    }
+    .title h2{
+      margin:0;
+      font-size:18px;
+      font-weight:950;
+      letter-spacing:.2px;
+    }
+    .title p{
+      margin:0;
+      color: var(--muted);
+      font-size:12px;
+      font-weight:700;
+      line-height:1.4;
+      max-width: 880px;
     }
 
     .controls{
-      display:flex;
-      gap: 10px;
-      align-items:center;
-      flex-wrap: wrap;
-      margin-top: 10px;
+      display:flex; gap:10px; align-items:center; flex-wrap:wrap;
     }
 
-    input, select, button{
-      background:#ffffff;
+    select, input, button{
+      background:#fff;
       border:1px solid var(--border);
-      color: var(--text);
       border-radius: 12px;
-      padding: 10px 12px;
-      font-size: 12px;
-      outline: none;
+      padding:10px 12px;
+      font-size:12px;
+      outline:none;
+      color: var(--text);
     }
-    input{ min-width: 290px; }
-    input::placeholder{ color: #94a3b8; }
-
-    input:focus, select:focus{
+    input{ min-width:260px; }
+    input::placeholder{ color:#94a3b8; }
+    select:focus, input:focus{
       border-color: rgba(209,11,11,0.40);
       box-shadow: 0 0 0 3px rgba(209,11,11,0.10);
     }
-
     button{
       cursor:pointer;
+      font-weight:950;
       border-color: rgba(209,11,11,0.25);
       background: var(--soft);
       color: var(--accent2);
-      font-weight: 900;
     }
-
     button:hover{
       border-color: rgba(209,11,11,0.45);
       background: rgba(209,11,11,0.10);
     }
 
-    .subnote{
-      margin-top: 8px;
-      color: var(--muted);
-      font-size: 12px;
-      line-height: 1.4;
-    }
-
-    /* Layout */
-    .row{
+    .grid{
       display:grid;
       grid-template-columns: repeat(12, 1fr);
       gap: 14px;
@@ -159,62 +206,65 @@
 
     .card{
       background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 14px;
+      border:1px solid var(--border);
+      border-radius: var(--radius);
+      padding:14px;
       box-shadow: var(--shadow);
     }
 
-    .kpi{ grid-column: span 3; min-height: 96px; }
-    .kpi .label{ color: var(--muted); font-size: 12px; font-weight: 800; }
-    .kpi .value{ font-size: 28px; margin-top: 6px; font-weight: 950; color: var(--accent2); }
-    .kpi .delta{ margin-top: 6px; font-size: 12px; color: var(--muted); font-weight: 650; }
+    .kpi{ grid-column: span 3; min-height: 94px; }
+    .kpi .label{ color: var(--muted); font-size:12px; font-weight:900; }
+    .kpi .value{ margin-top:6px; font-size:28px; font-weight:950; color: var(--accent2); }
+    .kpi .hint{ margin-top:6px; color: var(--muted); font-size:12px; font-weight:750; }
 
     .panel{ grid-column: span 6; }
-    .panel3{ grid-column: span 4; }
-    .table{ grid-column: span 12; overflow:auto; }
+    .panel4{ grid-column: span 4; }
+    .panel12{ grid-column: span 12; }
 
     .cardtitle{
-      font-size: 12px;
-      font-weight: 950;
       color: var(--muted);
-      margin-bottom: 8px;
-      letter-spacing: .2px;
+      font-size:12px;
+      font-weight:950;
+      letter-spacing:.2px;
       text-transform: uppercase;
+      margin-bottom:8px;
+      display:flex; align-items:center; justify-content:space-between; gap:10px;
+      flex-wrap:wrap;
     }
 
-    canvas{ width:100% !important; height: 300px !important; }
+    canvas{ width:100% !important; height:300px !important; }
 
-    table{ width: 100%; border-collapse: collapse; font-size: 12px; }
+    table{ width:100%; border-collapse: collapse; font-size:12px; }
     th, td{
-      padding: 10px;
-      border-bottom: 1px solid var(--border);
-      text-align: left;
-      white-space: nowrap;
+      padding:10px;
+      border-bottom:1px solid var(--border);
+      text-align:left;
+      white-space:nowrap;
     }
     th{
+      position:sticky;
+      top:0;
+      background:#fff;
+      z-index:1;
       color: var(--muted);
-      font-weight: 900;
-      position: sticky;
-      top: 0;
-      background: #ffffff;
-      z-index: 1;
+      font-weight:950;
     }
 
-    .pager{
-      display:flex;
-      gap: 10px;
-      align-items:center;
-      justify-content: space-between;
-      margin-top: 10px;
-      flex-wrap: wrap;
+    .footnote{
+      margin-top:10px;
+      color: var(--muted);
+      font-size:12px;
+      font-weight:700;
+      line-height:1.45;
     }
 
     @media (max-width: 980px){
+      .app{ grid-template-columns: 1fr; }
+      .sidebar{ position:relative; height:auto; }
       .kpi{ grid-column: span 6; }
-      .panel, .panel3{ grid-column: span 12; }
-      canvas{ height: 260px !important; }
-      input{ min-width: 220px; }
+      .panel, .panel4{ grid-column: span 12; }
+      canvas{ height:260px !important; }
+      input{ min-width: 200px; }
     }
   </style>
 </head>
@@ -222,126 +272,117 @@
 <body>
   <div class="topbar"></div>
 
-  <div class="wrap">
-    <header>
+  <div class="app">
+    <aside class="sidebar">
       <div class="brand">
-        <!-- Sube tu logo como logo.png al repo -->
-        <img class="brand-logo" src="logo.png" alt="La Meta" onerror="this.style.display='none'"/>
-        <div class="titleblock">
-          <div class="titleline">
-            <h1>La Meta · Dashboard de Alumnos</h1>
-            <span class="pill" id="statusPill">Conectando…</span>
-          </div>
-          <div class="badges">
-            <span class="badge">Fuente: Google Sheets</span>
-            <span class="badge">Auto-actualiza: 30s</span>
-            <span class="badge">Última actualización: <b id="lastLoad">—</b></span>
-          </div>
-
-          <div class="controls">
-            <select id="fUniversidad"></select>
-            <select id="fModalidad"></select>
-            <select id="fEstado"></select>
-            <input id="q" type="text" placeholder="Buscar: nombre / correo / DNI / celular">
-            <button id="btnNow">Actualizar ahora</button>
-          </div>
-
-          <div class="subnote" id="note"></div>
-        </div>
-      </div>
-    </header>
-
-    <div class="row">
-      <div class="card kpi">
-        <div class="label">Alumnos únicos (filtrados)</div>
-        <div class="value" id="kpiAlumnos">—</div>
-        <div class="delta" id="kpiAlumnos2">—</div>
-      </div>
-
-      <div class="card kpi">
-        <div class="label">Activos</div>
-        <div class="value" id="kpiActivos">—</div>
-        <div class="delta" id="kpiActivos2">—</div>
-      </div>
-
-      <div class="card kpi">
-        <div class="label">Retirados</div>
-        <div class="value" id="kpiRetirados">—</div>
-        <div class="delta" id="kpiRetirados2">—</div>
-      </div>
-
-      <div class="card kpi">
-        <div class="label">Universidades únicas</div>
-        <div class="value" id="kpiUni">—</div>
-        <div class="delta" id="kpiUni2">—</div>
-      </div>
-
-      <div class="card panel3">
-        <div class="cardtitle">Estado (Activos vs Retirados)</div>
-        <canvas id="chartEstado"></canvas>
-      </div>
-
-      <div class="card panel3">
-        <div class="cardtitle">Distribución por Modalidad</div>
-        <canvas id="chartMod"></canvas>
-      </div>
-
-      <div class="card panel3">
-        <div class="cardtitle">Top Universidades</div>
-        <canvas id="chartUni"></canvas>
-      </div>
-
-      <div class="card table">
-        <div class="cardtitle">Tabla de alumnos (únicos)</div>
-        <div id="tblWrap"></div>
-
-        <div class="pager">
-          <div id="countText" style="color:#64748b;font-size:12px;font-weight:700;">—</div>
-          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-            <button id="prev">◀</button>
-            <span style="color:#64748b;font-size:12px;">Página</span>
-            <b id="page">1</b>
-            <span style="color:#64748b;font-size:12px;">/</span>
-            <b id="pages">1</b>
-            <button id="next">▶</button>
-
-            <select id="pageSize">
-              <option value="25">25 filas</option>
-              <option value="50" selected>50 filas</option>
-              <option value="100">100 filas</option>
-            </select>
-          </div>
+        <img src="logo.png" alt="La Meta" onerror="this.style.display='none'"/>
+        <div>
+          <h1>La Meta<br/>Panel de Control</h1>
+          <div class="sub">Alumnos · Locales · Ciclos</div>
         </div>
       </div>
 
-    </div>
+      <div class="nav">
+        <button id="nav_overview" class="active">Resumen general</button>
+        <button id="nav_locales">Por local</button>
+        <button id="nav_salones">Por salón</button>
+        <button id="nav_tabla">Tabla de alumnos</button>
+      </div>
+
+      <div class="small">
+        <div class="pill" id="statusPill">Conectando…</div>
+        <div class="badge">Auto-actualiza: <b>30s</b></div>
+        <div class="badge">Última actualización: <b id="lastLoad">—</b></div>
+
+        <div class="toggle">
+          <input type="checkbox" id="autoOn" checked />
+          <label for="autoOn">Auto-actualización activa</label>
+        </div>
+        <button id="btnNow" style="width:100%; margin-top:10px;">Actualizar ahora</button>
+
+        <div class="footnote" id="note"></div>
+      </div>
+    </aside>
+
+    <main class="main">
+      <div class="headerline">
+        <div class="title">
+          <h2 id="viewTitle">Resumen general</h2>
+          <p id="viewDesc">
+            Panel consolidado de La Meta. Se actualiza desde Google Sheets sin reiniciar tus filtros.
+          </p>
+        </div>
+
+        <div class="controls">
+          <select id="fLocal"></select>
+          <select id="fCiclo"></select>
+          <select id="fSalon"></select>
+          <select id="fModalidad"></select>
+          <select id="fEstado"></select>
+          <input id="q" type="text" placeholder="Buscar por nombre (o parte del nombre)"/>
+        </div>
+      </div>
+
+      <div id="view_overview" class="grid"></div>
+      <div id="view_locales" class="grid" style="display:none;"></div>
+      <div id="view_salones" class="grid" style="display:none;"></div>
+      <div id="view_tabla" class="grid" style="display:none;"></div>
+    </main>
   </div>
 
 <script>
-  // ================= CONFIG =================
-  const SHEETS_CSV_URL =
-    "https://docs.google.com/spreadsheets/d/1nHCBQLuJ8RZNtLisvAqD916pcxbUmtqPrMnO4V0ewvs/export?format=csv&gid=115906280";
+  // ============================ CONFIG DE TUS SALONES ============================
+  const SPREADSHEET_ID = "1nHCBQLuJ8RZNtLisvAqD916pcxbUmtqPrMnO4V0ewvs";
 
-  const AUTO_REFRESH_MS = 30000; // 30s
+  const SALONES = [
+    // LA MOLINA
+    { local:"La Molina", ciclo:"Agraria", salon:"Agraria 1", gid:115906280 },
+    { local:"La Molina", ciclo:"Agraria", salon:"Agraria 2", gid:1576159193 },
+    { local:"La Molina", ciclo:"PUCP", salon:"PUCP", gid:1037962332 },
+    { local:"La Molina", ciclo:"U.Lima", salon:"U.Lima", gid:877886853 },
+    { local:"La Molina", ciclo:"ADELANTO", salon:"Adelanto", gid:1271606284 },
+    { local:"La Molina", ciclo:"PARALELO", salon:"Paralelo", gid:1863430245 },
 
-  // Encabezados esperados
-  const EXPECT = {
-    NOMBRES: "NOMBRES COMPLETOS",
+    // SAN BORJA
+    { local:"San Borja", ciclo:"Agraria", salon:"Agraria", gid:538377241 },
+    { local:"San Borja", ciclo:"PUCP", salon:"PUCP", gid:998068235 },
+    { local:"San Borja", ciclo:"U.Lima", salon:"U.Lima 1", gid:670800187 },
+    { local:"San Borja", ciclo:"U.Lima", salon:"U.Lima 2", gid:1856014712 },
+
+    // SAN MIGUEL
+    { local:"San Miguel", ciclo:"Agraria", salon:"Agraria", gid:513074883 },
+    { local:"San Miguel", ciclo:"PUCP", salon:"PUCP", gid:1531300183 },
+    { local:"San Miguel", ciclo:"U.Lima", salon:"U.Lima 1", gid:1080962628 },
+    { local:"San Miguel", ciclo:"U.Lima", salon:"U.Lima 2", gid:679583464 },
+    { local:"San Miguel", ciclo:"ADELANTO", salon:"Adelanto U.Lima (Mixto)", gid:2120250792 },
+    { local:"San Miguel", ciclo:"PARALELO", salon:"Paralelo", gid:721468852 },
+
+    // VIRTUAL
+    { local:"Virtual", ciclo:"Agraria", salon:"Agraria (Virtual)", gid:709062846 },
+    { local:"Virtual", ciclo:"ESCOLAR U.Lima", salon:"Escolar U.Lima", gid:315999969 },
+    { local:"Virtual", ciclo:"U.Lima", salon:"U.Lima (Virtual)", gid:1667430860 },
+  ];
+
+  const AUTO_REFRESH_MS = 30000;
+
+  // Encabezados (flexibles)
+  const HEAD = {
+    NOMBRES_A: "NOMBRES COMPLETOS",
+    NOMBRES_B: "NOMBRE COMPLETO",
+    MODALIDAD: "MODALIDAD",
+    ESTADO: "ESTADO",
+    UNIVERSIDAD: "UNIVERSIDAD",
     CORREO: "CORREO",
     DNI: "DNI",
-    CEL: "CELULAR",
-    UNI: "UNIVERSIDAD",
-    MOD: "MODALIDAD",
-    EST: "ESTADO",
+    CEL_A: "CELULAR",
+    CEL_B: "CEL"
   };
 
-  // Colores charts
-  const COLOR_RED = "rgba(209,11,11,0.88)";
-  const COLOR_RED_SOFT = "rgba(209,11,11,0.22)";
-  const GRID = "rgba(15,23,42,0.10)";
-  const TICK = "#64748b";
+  // ============================ UTIL ============================
+  function csvUrl(gid){
+    return `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/export?format=csv&gid=${gid}`;
+  }
 
-  // ================= UTIL =================
   function parseCSVLine(line){
     const out = [];
     let cur = "", inQ = false;
@@ -359,63 +400,80 @@
   }
 
   function norm(s){ return String(s ?? "").replace(/\s+/g," ").trim(); }
-  function safeLower(s){ return String(s ?? "").toLowerCase(); }
+  function low(s){ return norm(s).toLowerCase(); }
   function uniq(arr){ return [...new Set(arr)]; }
 
-  function escapeHtml(str){
-    return String(str ?? "")
-      .replaceAll("&","&amp;")
-      .replaceAll("<","&lt;")
-      .replaceAll(">","&gt;")
-      .replaceAll('"',"&quot;")
-      .replaceAll("'","&#039;");
-  }
-
-  function fillSelect(selId, values, labelAll){
+  function fillSelectKeep(selId, values, labelAll){
     const sel = document.getElementById(selId);
+    const prev = sel.value || "__ALL__";
     sel.innerHTML = "";
+
     const all = document.createElement("option");
     all.value = "__ALL__";
     all.textContent = labelAll;
     sel.appendChild(all);
+
     for (const v of values){
       const opt = document.createElement("option");
       opt.value = v;
       opt.textContent = v;
       sel.appendChild(opt);
     }
+
+    const exists = Array.from(sel.options).some(o => o.value === prev);
+    sel.value = exists ? prev : "__ALL__";
   }
 
-  // Interpreta estado
   function normalizeEstado(x){
-    const s = safeLower(norm(x));
+    const s = low(x);
     if (!s) return "Sin estado";
-    if (s.includes("retir")) return "Retirado";
+    if (s.includes("retir") || s.includes("inactiv")) return "Retirado";
     if (s.includes("activo") || s.includes("activa")) return "Activo";
-    if (s.includes("inactivo")) return "Retirado";
     return norm(x);
   }
 
-  // Conteos por categoría
-  function countBy(rows, key){
-    const m = new Map();
-    for (const r of rows){
-      const v = norm(r[key]);
-      if (!v) continue;
-      m.set(v, (m.get(v) || 0) + 1);
-    }
-    return [...m.entries()].sort((a,b)=> b[1]-a[1]);
+  function normalizeModalidad(x){
+    const s = low(x);
+    if (!s) return "Sin modalidad";
+    if (s.includes("virtual") || s.includes("online") || s.includes("remot")) return "Virtual";
+    if (s.includes("pres") || s.includes("aula")) return "Presencial";
+    if (s.includes("mixt")) return "Mixto";
+    return norm(x);
   }
 
-  // DEDUP: alumno único por DNI (si falta DNI, por correo)
-  function dedupeStudents(rows){
+  function escapeHtml(str){
+    return String(str ?? "")
+      .replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;")
+      .replaceAll('"',"&quot;").replaceAll("'","&#039;");
+  }
+
+  function groupBy(arr, keyFn){
+    const m = new Map();
+    for (const it of arr){
+      const k = keyFn(it);
+      if (!m.has(k)) m.set(k, []);
+      m.get(k).push(it);
+    }
+    return m;
+  }
+
+  function countBy(arr, keyFn){
+    const m = new Map();
+    for (const it of arr){
+      const k = keyFn(it);
+      if (!k) continue;
+      m.set(k, (m.get(k)||0)+1);
+    }
+    return [...m.entries()].sort((a,b)=>b[1]-a[1]);
+  }
+
+  // Deduplicación por NOMBRE (como pediste)
+  function dedupeByName(rows){
     const seen = new Set();
     const out = [];
     for (const r of rows){
-      const dni = norm(r.dni);
-      const correo = safeLower(norm(r.correo));
-      const key = dni ? `dni:${dni}` : (correo ? `mail:${correo}` : "");
-      if (!key) continue; // si no hay ni dni ni correo, no lo contamos como alumno
+      const key = low(r.nombre);
+      if (!key) continue;
       if (seen.has(key)) continue;
       seen.add(key);
       out.push(r);
@@ -423,324 +481,639 @@
     return out;
   }
 
-  // ================= STATE =================
-  let rawRows = [];      // filas leídas
-  let students = [];     // alumnos únicos (dedupe)
-  let filtered = [];     // alumnos únicos filtrados
+  // ============================ STATE ============================
+  const state = {
+    view: "overview",
+    rawRows: [],
+    students: [],      // alumnos únicos globales (por nombre)
+    filtered: [],      // alumnos únicos globales filtrados
+    autoOn: true,
 
-  let page = 1;
-  let pageSize = 50;
+    // charts
+    ch_over_est: null,
+    ch_over_mod: null,
+    ch_over_local: null,
 
-  let chartEstado, chartMod, chartUni;
+    ch_loc_estado: null,
+    ch_loc_mod: null,
+
+    ch_sal_estado: null,
+    ch_sal_mod: null,
+    ch_sal_top: null,
+  };
+
+  // ============================ UI NAV ============================
+  function setView(v){
+    state.view = v;
+    document.getElementById("nav_overview").classList.toggle("active", v==="overview");
+    document.getElementById("nav_locales").classList.toggle("active", v==="locales");
+    document.getElementById("nav_salones").classList.toggle("active", v==="salones");
+    document.getElementById("nav_tabla").classList.toggle("active", v==="tabla");
+
+    document.getElementById("view_overview").style.display = (v==="overview") ? "" : "none";
+    document.getElementById("view_locales").style.display = (v==="locales") ? "" : "none";
+    document.getElementById("view_salones").style.display = (v==="salones") ? "" : "none";
+    document.getElementById("view_tabla").style.display = (v==="tabla") ? "" : "none";
+
+    const titles = {
+      overview: ["Resumen general", "Indicadores totales de La Meta, consolidando todos los salones."],
+      locales: ["Por local", "Comparativos por La Molina, San Borja, San Miguel y Virtual."],
+      salones: ["Por salón", "Detalle por salón y ciclo (con indicadores y gráficos)."],
+      tabla: ["Tabla de alumnos", "Tabla operativa (sin datos sensibles). Usa filtros y búsqueda."]
+    };
+    document.getElementById("viewTitle").textContent = titles[v][0];
+    document.getElementById("viewDesc").textContent = titles[v][1];
+
+    render();
+  }
+
+  // ============================ FILTERS ============================
+  function initFilters(){
+    // opciones desde la configuración (no desde datos)
+    const locals = uniq(SALONES.map(s=>s.local)).sort();
+    const ciclos = uniq(SALONES.map(s=>s.ciclo)).sort();
+    const salons = uniq(SALONES.map(s=>`${s.local} · ${s.ciclo} · ${s.salon}`)).sort();
+
+    fillSelectKeep("fLocal", locals, "Local: Todos");
+    fillSelectKeep("fCiclo", ciclos, "Ciclo: Todos");
+    fillSelectKeep("fSalon", salons, "Salón: Todos");
+
+    // Modalidad/Estado salen de datos, pero conservando selección
+    const mods = uniq(state.students.map(r=>r.modalidad).filter(Boolean)).sort();
+    const ests = uniq(state.students.map(r=>r.estado).filter(Boolean)).sort();
+
+    fillSelectKeep("fModalidad", mods, "Modalidad: Todas");
+    fillSelectKeep("fEstado", ests, "Estado: Todos");
+  }
 
   function applyFilters(){
-    const u = document.getElementById("fUniversidad").value;
-    const m = document.getElementById("fModalidad").value;
-    const e = document.getElementById("fEstado").value;
-    const q = safeLower(document.getElementById("q").value);
+    const fLocal = document.getElementById("fLocal").value;
+    const fCiclo = document.getElementById("fCiclo").value;
+    const fSalon = document.getElementById("fSalon").value;
+    const fMod = document.getElementById("fModalidad").value;
+    const fEst = document.getElementById("fEstado").value;
+    const q = low(document.getElementById("q").value);
 
-    filtered = students.filter(r => {
-      if (u !== "__ALL__" && norm(r.universidad) !== u) return false;
-      if (m !== "__ALL__" && norm(r.modalidad) !== m) return false;
-      if (e !== "__ALL__" && norm(r.estado) !== e) return false;
+    // Base: alumnos únicos globales
+    let base = state.students;
+
+    // filtros
+    base = base.filter(r=>{
+      if (fLocal!=="__ALL__" && r.local!==fLocal) return false;
+      if (fCiclo!=="__ALL__" && r.ciclo!==fCiclo) return false;
+      if (fSalon!=="__ALL__" && `${r.local} · ${r.ciclo} · ${r.salon}`!==fSalon) return false;
+      if (fMod!=="__ALL__" && r.modalidad!==fMod) return false;
+      if (fEst!=="__ALL__" && r.estado!==fEst) return false;
 
       if (q){
-        const blob = [
-          r.nombres, r.correo, r.dni, r.celular,
-          r.universidad, r.modalidad, r.estado
-        ].map(safeLower).join(" | ");
+        const blob = low([r.nombre, r.universidad, r.modalidad, r.estado, r.local, r.ciclo, r.salon].join(" | "));
         if (!blob.includes(q)) return false;
       }
       return true;
     });
 
-    page = 1;
-    renderAll();
+    state.filtered = base;
   }
 
-  function renderKPIs(){
-    const total = filtered.length;
-    const activos = filtered.filter(r => r.estado === "Activo").length;
-    const retirados = filtered.filter(r => r.estado === "Retirado").length;
-    const unis = uniq(filtered.map(r => norm(r.universidad)).filter(Boolean)).length;
+  // ============================ CHARTS (helpers) ============================
+  const GRID = "rgba(15,23,42,0.10)";
+  const TICK = "#64748b";
+  const RED = "rgba(209,11,11,0.88)";
+  const RED_SOFT = "rgba(209,11,11,0.22)";
+  const DARK_SOFT = "rgba(15,23,42,0.12)";
 
-    document.getElementById("kpiAlumnos").textContent = total.toLocaleString("es-PE");
-    document.getElementById("kpiActivos").textContent = activos.toLocaleString("es-PE");
-    document.getElementById("kpiRetirados").textContent = retirados.toLocaleString("es-PE");
-    document.getElementById("kpiUni").textContent = unis.toLocaleString("es-PE");
-
-    document.getElementById("kpiAlumnos2").textContent =
-      `Registros en hoja: ${rawRows.length.toLocaleString("es-PE")} · Alumnos únicos: ${students.length.toLocaleString("es-PE")}`;
-    document.getElementById("kpiActivos2").textContent = "Según ESTADO";
-    document.getElementById("kpiRetirados2").textContent = "Según ESTADO";
-    document.getElementById("kpiUni2").textContent = "Según filtro aplicado";
-  }
-
-  function mkBar(existing, ctx, labels, values){
-    const baseOptions = {
-      responsive: true,
-      plugins: { legend: { display: false } },
-      scales: {
-        x: { ticks: { color: TICK }, grid: { color: GRID } },
-        y: { ticks: { color: TICK }, grid: { color: GRID }, beginAtZero: true }
+  function mkBar(existing, canvasId, labels, values, stacked=false, datasets=null){
+    const ctx = document.getElementById(canvasId);
+    const config = {
+      type: "bar",
+      data: {
+        labels,
+        datasets: datasets ?? [{
+          data: values,
+          backgroundColor: RED_SOFT,
+          borderColor: RED,
+          borderWidth: 1.5,
+          borderRadius: 10
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { display: !!datasets } },
+        scales: {
+          x: { ticks: { color: TICK }, grid: { color: GRID }, stacked },
+          y: { ticks: { color: TICK }, grid: { color: GRID }, beginAtZero: true, stacked }
+        }
       }
     };
 
-    if (!existing){
-      return new Chart(ctx, {
-        type: "bar",
-        data: {
-          labels,
-          datasets: [{
-            data: values,
-            backgroundColor: COLOR_RED_SOFT,
-            borderColor: COLOR_RED,
-            borderWidth: 1.5,
-            borderRadius: 10
-          }]
-        },
-        options: baseOptions
-      });
-    } else {
-      existing.data.labels = labels;
-      existing.data.datasets[0].data = values;
-      existing.update();
-      return existing;
-    }
+    if (!existing) return new Chart(ctx, config);
+    existing.data = config.data;
+    existing.options = config.options;
+    existing.update();
+    return existing;
   }
 
-  function mkDoughnut(existing, ctx, labels, values){
-    const opts = {
-      responsive: true,
-      plugins: { legend: { position: "bottom", labels:{ color:TICK, font:{ weight:"700" } } } }
+  function mkDoughnut(existing, canvasId, labels, values){
+    const ctx = document.getElementById(canvasId);
+    const colors = [RED, RED_SOFT, DARK_SOFT, "rgba(209,11,11,0.55)"];
+    const config = {
+      type: "doughnut",
+      data: {
+        labels,
+        datasets: [{
+          data: values,
+          backgroundColor: labels.map((_,i)=>colors[i%colors.length]),
+          borderColor: "rgba(15,23,42,0.06)",
+          borderWidth: 1
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: { position: "bottom", labels:{ color:TICK, font:{ weight:"800" } } }
+        }
+      }
     };
 
-    const colors = [
-      "rgba(209,11,11,0.85)",
-      "rgba(209,11,11,0.22)",
-      "rgba(15,23,42,0.12)"
-    ];
-
-    if (!existing){
-      return new Chart(ctx, {
-        type: "doughnut",
-        data: {
-          labels,
-          datasets: [{
-            data: values,
-            backgroundColor: labels.map((_,i)=>colors[i%colors.length]),
-            borderColor: "rgba(15,23,42,0.08)",
-            borderWidth: 1
-          }]
-        },
-        options: opts
-      });
-    } else {
-      existing.data.labels = labels;
-      existing.data.datasets[0].data = values;
-      existing.update();
-      return existing;
-    }
+    if (!existing) return new Chart(ctx, config);
+    existing.data = config.data;
+    existing.options = config.options;
+    existing.update();
+    return existing;
   }
 
-  function renderCharts(){
-    // Estado
-    const activos = filtered.filter(r => r.estado === "Activo").length;
-    const retirados = filtered.filter(r => r.estado === "Retirado").length;
-    const otros = Math.max(0, filtered.length - activos - retirados);
+  // ============================ RENDER VIEWS ============================
+  function renderOverview(){
+    const el = document.getElementById("view_overview");
+    const rows = state.filtered;
 
-    chartEstado = mkDoughnut(
-      chartEstado,
-      document.getElementById("chartEstado"),
-      ["Activo","Retirado","Otro/Sin estado"],
-      [activos, retirados, otros]
+    const total = rows.length;
+    const activos = rows.filter(r=>r.estado==="Activo").length;
+    const retirados = rows.filter(r=>r.estado==="Retirado").length;
+    const presencial = rows.filter(r=>r.modalidad==="Presencial").length;
+    const virtual = rows.filter(r=>r.modalidad==="Virtual").length;
+    const mixto = rows.filter(r=>r.modalidad==="Mixto").length;
+
+    const locals = uniq(rows.map(r=>r.local).filter(Boolean)).length;
+
+    el.innerHTML = `
+      <div class="card kpi">
+        <div class="label">Alumnos (filtrados)</div>
+        <div class="value">${total.toLocaleString("es-PE")}</div>
+        <div class="hint">Consolidado (únicos por nombre)</div>
+      </div>
+
+      <div class="card kpi">
+        <div class="label">Activos</div>
+        <div class="value">${activos.toLocaleString("es-PE")}</div>
+        <div class="hint">Según ESTADO</div>
+      </div>
+
+      <div class="card kpi">
+        <div class="label">Retirados</div>
+        <div class="value">${retirados.toLocaleString("es-PE")}</div>
+        <div class="hint">Según ESTADO</div>
+      </div>
+
+      <div class="card kpi">
+        <div class="label">Locales presentes</div>
+        <div class="value">${locals.toLocaleString("es-PE")}</div>
+        <div class="hint">La Molina / San Borja / San Miguel / Virtual</div>
+      </div>
+
+      <div class="card panel4">
+        <div class="cardtitle">Estado</div>
+        <canvas id="over_estado"></canvas>
+      </div>
+
+      <div class="card panel4">
+        <div class="cardtitle">Modalidad</div>
+        <canvas id="over_modalidad"></canvas>
+      </div>
+
+      <div class="card panel4">
+        <div class="cardtitle">Alumnos por local</div>
+        <canvas id="over_local"></canvas>
+      </div>
+
+      <div class="card panel12">
+        <div class="cardtitle">Lectura rápida</div>
+        <div class="footnote">
+          Presencial: <b>${presencial}</b> · Virtual: <b>${virtual}</b> · Mixto: <b>${mixto}</b><br/>
+          Consejo operativo: usa filtros (Local/Ciclo/Salón/Estado) y la búsqueda por nombre para auditoría.
+        </div>
+      </div>
+    `;
+
+    // Charts
+    const otrosE = Math.max(0, total - activos - retirados);
+    state.ch_over_est = mkDoughnut(state.ch_over_est, "over_estado",
+      ["Activo","Retirado","Otro/Sin estado"], [activos, retirados, otrosE]);
+
+    const otrosM = Math.max(0, total - presencial - virtual - mixto);
+    state.ch_over_mod = mkDoughnut(state.ch_over_mod, "over_modalidad",
+      ["Presencial","Virtual","Mixto","Otro"], [presencial, virtual, mixto, otrosM]);
+
+    const byLocal = countBy(rows, r=>r.local);
+    state.ch_over_local = mkBar(
+      state.ch_over_local, "over_local",
+      byLocal.map(x=>x[0]), byLocal.map(x=>x[1])
+    );
+  }
+
+  function renderLocales(){
+    const el = document.getElementById("view_locales");
+    const rows = state.filtered;
+
+    // métricas por local
+    const locals = uniq(SALONES.map(s=>s.local)).sort();
+    const agg = locals.map(L=>{
+      const rL = rows.filter(r=>r.local===L);
+      const total = rL.length;
+      const activos = rL.filter(r=>r.estado==="Activo").length;
+      const retirados = rL.filter(r=>r.estado==="Retirado").length;
+      const pres = rL.filter(r=>r.modalidad==="Presencial").length;
+      const virt = rL.filter(r=>r.modalidad==="Virtual").length;
+      const mix = rL.filter(r=>r.modalidad==="Mixto").length;
+      return { local:L, total, activos, retirados, pres, virt, mix };
+    });
+
+    el.innerHTML = `
+      <div class="card panel">
+        <div class="cardtitle">Activos vs Retirados por local</div>
+        <canvas id="loc_estado"></canvas>
+      </div>
+
+      <div class="card panel">
+        <div class="cardtitle">Presencial vs Virtual por local</div>
+        <canvas id="loc_mod"></canvas>
+      </div>
+
+      <div class="card panel12">
+        <div class="cardtitle">Resumen por local</div>
+        <div style="overflow:auto;">
+          <table>
+            <thead>
+              <tr>
+                <th>Local</th>
+                <th>Total</th>
+                <th>Activos</th>
+                <th>Retirados</th>
+                <th>Presencial</th>
+                <th>Virtual</th>
+                <th>Mixto</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${agg.map(a=>`
+                <tr>
+                  <td>${escapeHtml(a.local)}</td>
+                  <td>${a.total}</td>
+                  <td>${a.activos}</td>
+                  <td>${a.retirados}</td>
+                  <td>${a.pres}</td>
+                  <td>${a.virt}</td>
+                  <td>${a.mix}</td>
+                </tr>
+              `).join("")}
+            </tbody>
+          </table>
+        </div>
+        <div class="footnote">
+          Esta vista es ideal para dirección/administración: identifica rápidamente qué local concentra más alumnos,
+          y el balance de Estado y Modalidad.
+        </div>
+      </div>
+    `;
+
+    // Charts apilados
+    const labels = agg.map(a=>a.local);
+
+    state.ch_loc_estado = mkBar(
+      state.ch_loc_estado, "loc_estado",
+      labels, null, true,
+      [
+        { label:"Activos", data: agg.map(a=>a.activos), backgroundColor: RED, borderColor: RED, borderWidth:1 },
+        { label:"Retirados", data: agg.map(a=>a.retirados), backgroundColor: RED_SOFT, borderColor: RED, borderWidth:1 }
+      ]
     );
 
-    // Modalidad
-    const mod = countBy(filtered, "modalidad").slice(0, 8);
-    chartMod = mkBar(chartMod, document.getElementById("chartMod"), mod.map(x=>x[0]), mod.map(x=>x[1]));
-
-    // Universidades
-    const uni = countBy(filtered, "universidad").slice(0, 8);
-    chartUni = mkBar(chartUni, document.getElementById("chartUni"), uni.map(x=>x[0]), uni.map(x=>x[1]));
+    state.ch_loc_mod = mkBar(
+      state.ch_loc_mod, "loc_mod",
+      labels, null, true,
+      [
+        { label:"Presencial", data: agg.map(a=>a.pres), backgroundColor: RED, borderColor: RED, borderWidth:1 },
+        { label:"Virtual", data: agg.map(a=>a.virt), backgroundColor: RED_SOFT, borderColor: RED, borderWidth:1 },
+        { label:"Mixto", data: agg.map(a=>a.mix), backgroundColor: "rgba(15,23,42,0.12)", borderColor: "rgba(15,23,42,0.12)", borderWidth:1 }
+      ]
+    );
   }
 
-  function renderTable(){
-    pageSize = Number(document.getElementById("pageSize").value) || 50;
-    const total = filtered.length;
-    const totalPages = Math.max(1, Math.ceil(total / pageSize));
-    page = Math.min(page, totalPages);
+  function renderSalones(){
+    const el = document.getElementById("view_salones");
+    const rows = state.filtered;
 
-    const start = (page - 1) * pageSize;
-    const end = Math.min(total, start + pageSize);
-    const slice = filtered.slice(start, end);
+    // por salón (texto clave)
+    const bySalon = countBy(rows, r=>`${r.local} · ${r.ciclo} · ${r.salon}`);
+    const top = bySalon.slice(0, 10);
 
-    document.getElementById("page").textContent = page;
-    document.getElementById("pages").textContent = totalPages;
-    document.getElementById("countText").textContent =
-      total === 0 ? "Sin resultados con los filtros actuales." : `Mostrando ${start+1}-${end} de ${total} alumnos`;
+    // KPIs del salón filtrado (si eliges un salón específico)
+    const fSalon = document.getElementById("fSalon").value;
+    const scope = (fSalon==="__ALL__") ? "Todos los salones (según filtros)" : fSalon;
 
-    const html = `
-      <table>
-        <thead>
-          <tr>
-            <th>NOMBRES</th>
-            <th>CORREO</th>
-            <th>DNI</th>
-            <th>CELULAR</th>
-            <th>UNIVERSIDAD</th>
-            <th>MODALIDAD</th>
-            <th>ESTADO</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${slice.map(r => `
-            <tr>
-              <td>${escapeHtml(r.nombres)}</td>
-              <td>${escapeHtml(r.correo)}</td>
-              <td>${escapeHtml(r.dni)}</td>
-              <td>${escapeHtml(r.celular)}</td>
-              <td>${escapeHtml(r.universidad)}</td>
-              <td>${escapeHtml(r.modalidad)}</td>
-              <td>${escapeHtml(r.estado)}</td>
-            </tr>
-          `).join("")}
-        </tbody>
-      </table>
+    const total = rows.length;
+    const activos = rows.filter(r=>r.estado==="Activo").length;
+    const retirados = rows.filter(r=>r.estado==="Retirado").length;
+    const pres = rows.filter(r=>r.modalidad==="Presencial").length;
+    const virt = rows.filter(r=>r.modalidad==="Virtual").length;
+    const mix = rows.filter(r=>r.modalidad==="Mixto").length;
+
+    el.innerHTML = `
+      <div class="card panel12">
+        <div class="cardtitle">Alcance actual</div>
+        <div class="footnote"><b>${escapeHtml(scope)}</b></div>
+      </div>
+
+      <div class="card kpi">
+        <div class="label">Alumnos</div>
+        <div class="value">${total}</div>
+        <div class="hint">Únicos por nombre</div>
+      </div>
+
+      <div class="card kpi">
+        <div class="label">Activos</div>
+        <div class="value">${activos}</div>
+        <div class="hint">ESTADO</div>
+      </div>
+
+      <div class="card kpi">
+        <div class="label">Retirados</div>
+        <div class="value">${retirados}</div>
+        <div class="hint">ESTADO</div>
+      </div>
+
+      <div class="card kpi">
+        <div class="label">Presencial / Virtual</div>
+        <div class="value">${pres} / ${virt}</div>
+        <div class="hint">Mixto: ${mix}</div>
+      </div>
+
+      <div class="card panel">
+        <div class="cardtitle">Estado (en este alcance)</div>
+        <canvas id="sal_estado"></canvas>
+      </div>
+
+      <div class="card panel">
+        <div class="cardtitle">Modalidad (en este alcance)</div>
+        <canvas id="sal_mod"></canvas>
+      </div>
+
+      <div class="card panel12">
+        <div class="cardtitle">Top salones por alumnos (filtrado)</div>
+        <canvas id="sal_top"></canvas>
+      </div>
+
+      <div class="card panel12">
+        <div class="cardtitle">Tabla de salones (filtrados)</div>
+        <div style="overflow:auto;">
+          <table>
+            <thead>
+              <tr>
+                <th>Salón</th>
+                <th>Alumnos</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${bySalon.map(s=>`
+                <tr>
+                  <td>${escapeHtml(s[0])}</td>
+                  <td>${s[1]}</td>
+                </tr>
+              `).join("")}
+            </tbody>
+          </table>
+        </div>
+      </div>
     `;
-    document.getElementById("tblWrap").innerHTML = html;
+
+    const otrosE = Math.max(0, total - activos - retirados);
+    state.ch_sal_estado = mkDoughnut(state.ch_sal_estado, "sal_estado",
+      ["Activo","Retirado","Otro/Sin estado"], [activos, retirados, otrosE]);
+
+    const otrosM = Math.max(0, total - pres - virt - mix);
+    state.ch_sal_mod = mkDoughnut(state.ch_sal_mod, "sal_mod",
+      ["Presencial","Virtual","Mixto","Otro"], [pres, virt, mix, otrosM]);
+
+    state.ch_sal_top = mkBar(
+      state.ch_sal_top, "sal_top",
+      top.map(x=>x[0]), top.map(x=>x[1])
+    );
   }
 
-  function renderAll(){
-    renderKPIs();
-    renderCharts();
-    renderTable();
+  function renderTabla(){
+    const el = document.getElementById("view_tabla");
+    const rows = state.filtered;
+
+    // tabla operativa sin PII: (Nombre, Local, Ciclo, Salon, Universidad, Modalidad, Estado)
+    el.innerHTML = `
+      <div class="card panel12">
+        <div class="cardtitle">Tabla operativa (sin datos sensibles)</div>
+        <div style="overflow:auto;">
+          <table>
+            <thead>
+              <tr>
+                <th>NOMBRE</th>
+                <th>LOCAL</th>
+                <th>CICLO</th>
+                <th>SALÓN</th>
+                <th>UNIVERSIDAD</th>
+                <th>MODALIDAD</th>
+                <th>ESTADO</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rows.slice(0, 400).map(r=>`
+                <tr>
+                  <td>${escapeHtml(r.nombre)}</td>
+                  <td>${escapeHtml(r.local)}</td>
+                  <td>${escapeHtml(r.ciclo)}</td>
+                  <td>${escapeHtml(r.salon)}</td>
+                  <td>${escapeHtml(r.universidad)}</td>
+                  <td>${escapeHtml(r.modalidad)}</td>
+                  <td>${escapeHtml(r.estado)}</td>
+                </tr>
+              `).join("")}
+            </tbody>
+          </table>
+        </div>
+        <div class="footnote">
+          Mostrando hasta 400 filas para mantener velocidad. Filtra por Local/Ciclo/Salón/Estado/Modalidad y usa búsqueda.
+          <br/>Si deseas exportación a CSV o paginación, lo implemento en el siguiente ajuste.
+        </div>
+      </div>
+    `;
   }
 
-  function initFilters(){
-    const unis = uniq(students.map(r => norm(r.universidad)).filter(Boolean)).sort();
-    const mods = uniq(students.map(r => norm(r.modalidad)).filter(Boolean)).sort();
-    const ests = uniq(students.map(r => norm(r.estado)).filter(Boolean)).sort();
+  function render(){
+    applyFilters();
 
-    fillSelect("fUniversidad", unis, "Universidad: Todas");
-    fillSelect("fModalidad", mods, "Modalidad: Todas");
-    fillSelect("fEstado", ests, "Estado: Todos");
+    if (state.view==="overview") renderOverview();
+    if (state.view==="locales") renderLocales();
+    if (state.view==="salones") renderSalones();
+    if (state.view==="tabla") renderTabla();
   }
 
-  // ================= LOAD DATA =================
-  async function loadData(){
-    const url = SHEETS_CSV_URL + (SHEETS_CSV_URL.includes("?") ? "&" : "?") + "v=" + Date.now();
+  // ============================ DATA LOAD ============================
+  async function loadOneSalon(salon){
+    const url = csvUrl(salon.gid) + "&v=" + Date.now();
+    const res = await fetch(url, { cache:"no-store" });
+    if (!res.ok) throw new Error(`HTTP ${res.status} (${salon.local} / ${salon.ciclo} / ${salon.salon})`);
+
+    const text = await res.text();
+    const lines = text.split(/\r?\n/).filter(l=>l.trim().length>0);
+
+    // Encontrar fila de encabezado (flexible)
+    let headerIdx = -1;
+    let header = null;
+
+    for (let i=0;i<Math.min(lines.length, 120);i++){
+      const cells = parseCSVLine(lines[i]).map(norm);
+      const okNombre = cells.includes(HEAD.NOMBRES_A) || cells.includes(HEAD.NOMBRES_B);
+      const okMod = cells.includes(HEAD.MODALIDAD);
+      const okEst = cells.includes(HEAD.ESTADO);
+      if (okNombre && okMod && okEst){
+        headerIdx = i; header = cells; break;
+      }
+    }
+
+    if (headerIdx === -1){
+      // Si alguna hoja estuviera mal, no tumbamos todo: devolvemos vacío y nota
+      return { salon, rows: [], error: "No se encontró fila de encabezado (NOMBRES + MODALIDAD + ESTADO)." };
+    }
+
+    const idx = (name) => header.findIndex(h => norm(h) === name);
+    const iNombreA = idx(HEAD.NOMBRES_A);
+    const iNombreB = idx(HEAD.NOMBRES_B);
+    const iNombre = (iNombreA>=0) ? iNombreA : iNombreB;
+
+    const iMod = idx(HEAD.MODALIDAD);
+    const iEst = idx(HEAD.ESTADO);
+    const iUni = idx(HEAD.UNIVERSIDAD);
+
+    // opcionales
+    const iCorreo = idx(HEAD.CORREO);
+    const iDni = idx(HEAD.DNI);
+    const iCelA = idx(HEAD.CEL_A);
+    const iCelB = idx(HEAD.CEL_B);
+    const iCel = (iCelA>=0) ? iCelA : iCelB;
+
+    const out = [];
+    for (let i=headerIdx+1; i<lines.length; i++){
+      const cells = parseCSVLine(lines[i]);
+      const any = cells.some(v=>norm(v).length>0);
+      if (!any) continue;
+
+      const nombre = norm(cells[iNombre]);
+      if (!nombre) continue;
+
+      out.push({
+        nombre,
+        correo: (iCorreo>=0) ? norm(cells[iCorreo]) : "",
+        dni: (iDni>=0) ? norm(cells[iDni]) : "",
+        cel: (iCel>=0) ? norm(cells[iCel]) : "",
+        universidad: (iUni>=0) ? norm(cells[iUni]) : "",
+        modalidad: normalizeModalidad(cells[iMod]),
+        estado: normalizeEstado(cells[iEst]),
+
+        local: salon.local,
+        ciclo: salon.ciclo,
+        salon: salon.salon,
+        gid: salon.gid
+      });
+    }
+
+    return { salon, rows: out, error: null };
+  }
+
+  async function loadAll(){
+    // conservar búsqueda mientras actualiza (no “resetea” tu vista)
+    const qPrev = document.getElementById("q").value;
 
     try{
-      const res = await fetch(url, { cache: "no-store" });
-      if (!res.ok) throw new Error("HTTP " + res.status);
+      document.getElementById("statusPill").textContent = "Actualizando…";
+      document.getElementById("note").textContent = "Cargando salones desde Google Sheets…";
 
-      const text = await res.text();
-      const lines = text.split(/\r?\n/).filter(l => l.trim().length > 0);
+      const results = await Promise.allSettled(SALONES.map(loadOneSalon));
 
-      // Detecta encabezados aunque estén desplazados (D2, etc.)
-      let headerIdx = -1;
-      let headerCells = null;
+      let rows = [];
+      let warnings = [];
 
-      for (let i=0;i<Math.min(lines.length, 90);i++){
-        const cells = parseCSVLine(lines[i]).map(norm);
-        const ok =
-          cells.includes(EXPECT.NOMBRES) &&
-          cells.includes(EXPECT.CORREO) &&
-          cells.includes(EXPECT.DNI) &&
-          cells.includes(EXPECT.UNI) &&
-          cells.includes(EXPECT.MOD);
-        if (ok){
-          headerIdx = i;
-          headerCells = cells;
-          break;
+      for (const r of results){
+        if (r.status==="fulfilled"){
+          rows = rows.concat(r.value.rows);
+          if (r.value.error) warnings.push(`${r.value.salon.local} · ${r.value.salon.ciclo} · ${r.value.salon.salon}: ${r.value.error}`);
+        } else {
+          warnings.push(String(r.reason || "Error desconocido"));
         }
       }
 
-      if (headerIdx === -1){
-        document.getElementById("statusPill").textContent = "Error: encabezados no encontrados";
-        document.getElementById("note").textContent =
-          "No se detectó la fila de encabezados. Verifica que existan exactamente: NOMBRES COMPLETOS, CORREO, DNI, CELULAR, UNIVERSIDAD, MODALIDAD, ESTADO.";
-        return;
-      }
+      state.rawRows = rows;
 
-      const idx = (name) => headerCells.findIndex(h => norm(h) === name);
+      // Alumnos únicos globales (por nombre)
+      state.students = dedupeByName(state.rawRows);
 
-      const iN = idx(EXPECT.NOMBRES);
-      const iC = idx(EXPECT.CORREO);
-      const iD = idx(EXPECT.DNI);
-      const iT = idx(EXPECT.CEL);
-      const iU = idx(EXPECT.UNI);
-      const iM = idx(EXPECT.MOD);
-      const iE = idx(EXPECT.EST);
+      // restaurar búsqueda
+      document.getElementById("q").value = qPrev;
 
-      // ESTADO es obligatorio en tu nueva versión
-      const required = [iN,iC,iD,iT,iU,iM,iE];
-      if (required.some(x => x < 0)){
-        document.getElementById("statusPill").textContent = "Error: columnas faltantes";
-        document.getElementById("note").textContent =
-          "Falta alguna columna requerida. Asegúrate de que el encabezado sea exactamente 'ESTADO' y que existan las demás columnas.";
-        return;
-      }
-
-      const out = [];
-      for (let i=headerIdx+1; i<lines.length; i++){
-        const cells = parseCSVLine(lines[i]);
-        const any = cells.some(v => norm(v).length > 0);
-        if (!any) continue;
-
-        out.push({
-          nombres: norm(cells[iN]),
-          correo: norm(cells[iC]),
-          dni: norm(cells[iD]),
-          celular: norm(cells[iT]),
-          universidad: norm(cells[iU]),
-          modalidad: norm(cells[iM]),
-          estado: normalizeEstado(cells[iE]),
-        });
-      }
-
-      rawRows = out;
-
-      // Alumnos únicos
-      students = dedupeStudents(rawRows);
+      // Inicializar filtros (manteniendo selección)
+      initFilters();
 
       document.getElementById("statusPill").textContent = "OK · Datos actualizados";
       document.getElementById("lastLoad").textContent = new Date().toLocaleString("es-PE");
-      document.getElementById("note").textContent =
-        "El dashboard cuenta alumnos únicos por DNI (si no hay DNI, por correo). Se actualiza automáticamente cada 30s.";
 
-      initFilters();
-      applyFilters();
+      if (warnings.length){
+        document.getElementById("note").textContent =
+          "Alerta: algunas hojas no se leyeron perfecto. Revisa encabezados en esas hojas. (El dashboard siguió funcionando.)";
+        console.warn("WARNINGS:", warnings);
+      } else {
+        document.getElementById("note").textContent =
+          "Actualización en segundo plano: no reinicia tus filtros. Si un valor desaparece, el filtro vuelve a “Todos”.";
+      }
+
+      render();
 
     } catch(e){
       console.error(e);
-      document.getElementById("statusPill").textContent = "Error cargando datos";
+      document.getElementById("statusPill").textContent = "Error cargando";
       document.getElementById("note").textContent =
-        "Revisa que el Sheet sea público (lector) y que el gid sea correcto.";
+        "Revisa que el Sheet esté público (lector) o publicado al web y que los gid sean correctos.";
     }
   }
 
-  // ================= EVENTS =================
-  document.getElementById("fUniversidad").addEventListener("change", applyFilters);
-  document.getElementById("fModalidad").addEventListener("change", applyFilters);
-  document.getElementById("fEstado").addEventListener("change", applyFilters);
-  document.getElementById("q").addEventListener("input", applyFilters);
+  // ============================ EVENTS ============================
+  document.getElementById("nav_overview").addEventListener("click", ()=>setView("overview"));
+  document.getElementById("nav_locales").addEventListener("click", ()=>setView("locales"));
+  document.getElementById("nav_salones").addEventListener("click", ()=>setView("salones"));
+  document.getElementById("nav_tabla").addEventListener("click", ()=>setView("tabla"));
 
-  document.getElementById("btnNow").addEventListener("click", loadData);
-
-  document.getElementById("prev").addEventListener("click", () => { page = Math.max(1, page - 1); renderTable(); });
-  document.getElementById("next").addEventListener("click", () => {
-    const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
-    page = Math.min(totalPages, page + 1);
-    renderTable();
+  ["fLocal","fCiclo","fSalon","fModalidad","fEstado"].forEach(id=>{
+    document.getElementById(id).addEventListener("change", render);
   });
-  document.getElementById("pageSize").addEventListener("change", () => { page = 1; renderTable(); });
+  document.getElementById("q").addEventListener("input", render);
 
-  // ================= START =================
-  loadData();
-  setInterval(loadData, AUTO_REFRESH_MS);
+  document.getElementById("btnNow").addEventListener("click", loadAll);
+
+  document.getElementById("autoOn").addEventListener("change", (e)=>{
+    state.autoOn = !!e.target.checked;
+  });
+
+  // ============================ START ============================
+  initFilters();
+  loadAll();
+
+  setInterval(()=>{
+    if (state.autoOn) loadAll();
+  }, AUTO_REFRESH_MS);
 </script>
 </body>
 </html>
-
