@@ -23,7 +23,9 @@
 
       --ok:#16a34a;   /* ACTIVO */
       --bad:#dc2626;  /* RETIRO */
-      --warn:#f59e0b; /* CAMBIO (solo KPI) */
+      --warn:#f59e0b; /* CAMBIO */
+      --pucp:#2563eb; /* azul */
+      --ulima:#f59e0b;/* naranja */
     }
 
     *{ box-sizing:border-box; }
@@ -82,12 +84,7 @@
       font-weight:800;
     }
 
-    .nav{
-      margin-top:16px;
-      display:flex;
-      flex-direction:column;
-      gap:10px;
-    }
+    .nav{ margin-top:16px; display:flex; flex-direction:column; gap:10px; }
 
     .nav button{
       width:100%;
@@ -198,7 +195,6 @@
       flex-wrap:wrap;
     }
 
-    /* Altura mayor para que NO se corten etiquetas */
     .chartBox{ height: 560px; }
     canvas{ width:100% !important; height:100% !important; }
 
@@ -308,7 +304,13 @@
   ];
 
   const AUTO_REFRESH_MS = 30000;
-  const UNI_ORDER = ["AGRARIA","PUCP","U.LIMA"];
+
+  // Colores por universidad
+  const UNI_COLORS = {
+    "AGRARIA": "#16a34a",
+    "PUCP": "#2563eb",
+    "U.LIMA": "#f59e0b",
+  };
 
   function uniGroupFromCiclo(ciclo){
     const c = String(ciclo||"").trim().toUpperCase();
@@ -392,7 +394,6 @@
     return (localFallback === "VIRTUAL") ? "VIRTUAL" : "PRESENCIAL";
   }
 
-  // Dedupe matrícula: SOLO ACTIVO/RETIRO con prioridad ACTIVO > RETIRO
   function dedupeMatriculaByName(rows){
     const best = new Map();
     const score = (estado) => estado==="ACTIVO" ? 2 : 1;
@@ -413,11 +414,11 @@
     cambiosRows: [], // eventos CAMBIO (solo KPI)
     filtered: [],
 
-    // charts overview
+    // overview
     ch_over_estado: null,
     ch_over_modalidad: null,
 
-    // charts local (por salón)
+    // local
     ch_loc_activos_salon: null,
     ch_loc_retiros_salon: null,
   };
@@ -446,7 +447,8 @@
     });
   }
 
-  function mkBarSalon(canvasId, titleLabel, color){
+  // Base de barra con valores GRANDES y dentro
+  function mkBarSalon(canvasId, titleLabel, yMax){
     const canvas = document.getElementById(canvasId);
     if (!canvas) return null;
 
@@ -457,8 +459,8 @@
         datasets:[{
           label: titleLabel,
           data: [],
-          backgroundColor: color,
-          borderColor: color,
+          backgroundColor: [],
+          borderColor: [],
           borderWidth: 1.5,
           borderRadius: 10,
           maxBarThickness: 72
@@ -468,21 +470,18 @@
         responsive:true,
         maintainAspectRatio:false,
         animation:false,
-        layout:{ padding:{ top: 28, right: 10, left: 10, bottom: 10 } },
+        layout:{ padding:{ top: 30, right: 10, left: 10, bottom: 10 } },
         plugins:{
           legend:{ display:false },
           tooltip:{ enabled:true },
           datalabels:{
-            color:"#0f172a",
+            color:"#ffffff",
             anchor:"end",
-            align:"end",
+            align:"start",     // dentro de la barra
             clamp:true,
-            clip:false,
-            offset: 4,
-            font:(ctx)=>{
-              const n = ctx.chart.data.labels?.length || 0;
-              return { weight:"900", size: (n > 10 ? 10 : 12) };
-            },
+            clip:true,
+            offset: -6,
+            font:{ weight:"950", size: 16 },
             formatter:(v)=> (v>0) ? v : ""
           }
         },
@@ -493,7 +492,7 @@
               font:{ weight:"800" },
               maxRotation: 35,
               minRotation: 0,
-              autoSkip: false,  // queremos ver TODOS los salones
+              autoSkip: false,
               callback: function(val){
                 const s = String(this.getLabelForValue(val) || "");
                 return s.length > 18 ? (s.slice(0,18) + "…") : s;
@@ -503,6 +502,7 @@
           },
           y:{
             beginAtZero:true,
+            max: yMax,
             ticks:{ color:TICK, font:{ weight:"800" } },
             grid:{ color:GRID }
           }
@@ -511,10 +511,14 @@
     });
   }
 
-  function setChartData(chart, labels, values){
+  function setChartData(chart, labels, values, colors){
     if (!chart) return;
     chart.data.labels = labels;
     chart.data.datasets[0].data = values;
+    if (colors){
+      chart.data.datasets[0].backgroundColor = colors;
+      chart.data.datasets[0].borderColor = colors;
+    }
     chart.update("none");
   }
 
@@ -537,23 +541,17 @@
     document.getElementById("viewTitle").textContent = titles[v][0];
     document.getElementById("viewDesc").textContent = titles[v][1];
 
-    // EN POR LOCAL: forzamos que el gráfico SIEMPRE sea “general por salones”
-    // (sin filtrar por universidad/salón). Dejo los selects visibles, pero desactivados.
+    // En POR LOCAL: siempre general por salones (no filtro uni/salon)
     const uniSel = document.getElementById("fUni");
     const salSel = document.getElementById("fSalon");
-
     if (v === "local"){
       uniSel.value = "__ALL__";
       salSel.value = "__ALL__";
       uniSel.disabled = true;
       salSel.disabled = true;
-      uniSel.title = "En POR LOCAL se muestra todos los salones del local.";
-      salSel.title = "En POR LOCAL se muestra todos los salones del local.";
     } else {
       uniSel.disabled = false;
       salSel.disabled = false;
-      uniSel.title = "";
-      salSel.title = "";
     }
 
     rebuildSalonOptions();
@@ -564,7 +562,7 @@
   function initFilters(){
     const locals = uniq(SALONES.map(s=>s.local)).sort();
     fillSelectKeep("fLocal", locals, "LOCAL: TODOS");
-    fillSelectKeep("fUni", UNI_ORDER, "UNIVERSIDAD: TODAS");
+    fillSelectKeep("fUni", ["AGRARIA","PUCP","U.LIMA"], "UNIVERSIDAD: TODAS");
     rebuildSalonOptions();
     fillSelectKeep("fModalidad", ["PRESENCIAL","VIRTUAL"], "MODALIDAD: TODAS");
   }
@@ -588,7 +586,7 @@
     const fMod   = document.getElementById("fModalidad").value;
     const q      = low(document.getElementById("q").value);
 
-    let base = state.canonical; // matrícula ACTIVO/RETIRO
+    let base = state.canonical;
 
     base = base.filter(r=>{
       if (fLocal!=="__ALL__" && r.local!==fLocal) return false;
@@ -611,6 +609,7 @@
     const el = document.getElementById("view_overview");
     if (el.dataset.ready === "1") return;
 
+    // IMPORTANTE: quitamos gráficos extra; solo dejamos: ESTADO + MODALIDAD
     el.innerHTML = `
       <div class="card kpi">
         <div class="label">TOTAL DE ALUMNOS</div>
@@ -635,7 +634,7 @@
       </div>
 
       <div class="card panel6">
-        <div class="cardtitle">ESTADO (MATRÍCULA + CAMBIOS)</div>
+        <div class="cardtitle">ESTADO</div>
         <div class="chartBox"><canvas id="over_estado"></canvas></div>
       </div>
 
@@ -720,8 +719,9 @@
       </div>
     `;
 
-    state.ch_loc_activos_salon = mkBarSalon("loc_activos_salon", "ACTIVOS", "#16a34a");
-    state.ch_loc_retiros_salon = mkBarSalon("loc_retiros_salon", "RETIROS", "#dc2626");
+    // TOPES: Activos 60, Retiros 10 (como pediste)
+    state.ch_loc_activos_salon = mkBarSalon("loc_activos_salon", "ACTIVOS", 60);
+    state.ch_loc_retiros_salon = mkBarSalon("loc_retiros_salon", "RETIROS", 10);
 
     el.dataset.ready = "1";
   }
@@ -759,12 +759,11 @@
     applyFilters();
 
     const rows = state.filtered;
-
     const act = rows.filter(r=>r.estado==="ACTIVO").length;
     const ret = rows.filter(r=>r.estado==="RETIRO").length;
     const total = act + ret;
 
-    // cambios (solo KPI, no gráfico)
+    // cambios KPI (no gráfico extra)
     const fLocal = document.getElementById("fLocal").value;
     const fUni   = document.getElementById("fUni").value;
     const fSalon = document.getElementById("fSalon").value;
@@ -806,15 +805,12 @@
     const fMod   = document.getElementById("fModalidad").value;
     const q      = low(document.getElementById("q").value);
 
-    // LISTA DE SALONES FIJA por local (para que salgan TODOS, aunque sean 0)
+    // salones fijos del local
     let salonesLocal = SALONES
       .filter(s => (fLocal==="__ALL__" ? true : s.local === fLocal))
       .map(s => s.salon);
-
-    // Si Local = TODOS, mostramos todos los salones (agrupado por local igual sale)
     salonesLocal = uniq(salonesLocal);
 
-    // Base matrícula (ACTIVO/RETIRO) del local seleccionado, con modalidad/búsqueda
     let baseMat = state.canonical;
     if (fLocal!=="__ALL__") baseMat = baseMat.filter(r=>r.local===fLocal);
     if (fMod!=="__ALL__") baseMat = baseMat.filter(r=>r.modalidad===fMod);
@@ -829,7 +825,6 @@
     const ret = baseMat.filter(r=>r.estado==="RETIRO").length;
     const total = act + ret;
 
-    // Cambios KPI (eventos) por local (no gráficos)
     let baseCam = state.cambiosRows;
     if (fLocal!=="__ALL__") baseCam = baseCam.filter(r=>r.local===fLocal);
     if (fMod!=="__ALL__") baseCam = baseCam.filter(r=>r.modalidad===fMod);
@@ -846,14 +841,23 @@
     document.getElementById("lk_ret").textContent = ret.toLocaleString("es-PE");
     document.getElementById("lk_cam").textContent = cambiosUnique.toLocaleString("es-PE");
 
-    // === 2 GRÁFICOS SEPARADOS: ACTIVOS por salón / RETIROS por salón (TODOS los salones del local)
+    // Activos por salón + color por universidad
     const activosPorSalon = salonesLocal.map(s => baseMat.filter(r=>r.salon===s && r.estado==="ACTIVO").length);
+
+    const activosColors = salonesLocal.map(s=>{
+      const conf = SALONES.find(x => x.salon===s && (fLocal==="__ALL__" ? true : x.local===fLocal));
+      const uni = conf ? uniGroupFromCiclo(conf.ciclo) : "U.LIMA";
+      return UNI_COLORS[uni] || "#16a34a";
+    });
+
+    // Retiros por salón (todos rojos)
     const retirosPorSalon = salonesLocal.map(s => baseMat.filter(r=>r.salon===s && r.estado==="RETIRO").length);
+    const retirosColors = salonesLocal.map(_ => "#dc2626");
 
-    setChartData(state.ch_loc_activos_salon, salonesLocal, activosPorSalon);
-    setChartData(state.ch_loc_retiros_salon, salonesLocal, retirosPorSalon);
+    setChartData(state.ch_loc_activos_salon, salonesLocal, activosPorSalon, activosColors);
+    setChartData(state.ch_loc_retiros_salon, salonesLocal, retirosPorSalon, retirosColors);
 
-    // Tabla detalle
+    // Tabla
     const tbody = document.getElementById("loc_table_salon");
     tbody.innerHTML = salonesLocal.map(s=>{
       const rs = baseMat.filter(r=>r.salon===s);
@@ -861,16 +865,11 @@
       const r = rs.filter(r=>r.estado==="RETIRO").length;
       const t = a + r;
 
-      // Universidad (solo para tabla): si no hay filas, lo inferimos desde la config SALONES
-      let uni = "";
-      if (rs[0]) uni = uniGroupFromCiclo(rs[0].ciclo);
-      else {
-        const conf = SALONES.find(x => x.salon === s && (fLocal==="__ALL__" ? true : x.local===fLocal));
-        uni = conf ? uniGroupFromCiclo(conf.ciclo) : "";
-      }
+      const conf = SALONES.find(x => x.salon === s && (fLocal==="__ALL__" ? true : x.local===fLocal));
+      const uni = conf ? uniGroupFromCiclo(conf.ciclo) : (rs[0] ? uniGroupFromCiclo(rs[0].ciclo) : "");
 
       const c = uniq(baseCam.filter(x=>x.salon===s).map(x=>low(x.nombre))).filter(Boolean).length;
-      const loc = (fLocal==="__ALL__" ? (rs[0]?.local || (SALONES.find(x=>x.salon===s)?.local || "")) : fLocal);
+      const loc = (fLocal==="__ALL__" ? (conf?.local || rs[0]?.local || "") : fLocal);
 
       return `
         <tr>
@@ -980,11 +979,9 @@
 
       state.rawRows = rows;
 
-      // matrícula (ACTIVO/RETIRO)
       const matriculaRows = state.rawRows.filter(r => r.estado==="ACTIVO" || r.estado==="RETIRO");
       state.canonical = dedupeMatriculaByName(matriculaRows);
 
-      // cambios como eventos (solo KPI)
       state.cambiosRows = state.rawRows.filter(r => r.estado==="CAMBIO");
 
       initFilters();
