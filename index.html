@@ -3,19 +3,20 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>La Meta | Dashboard de Registros</title>
+  <title>La Meta | Dashboard de Alumnos</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 
   <style>
     :root{
       --bg:#ffffff;
       --card:#ffffff;
-      --text:#111827;
-      --muted:#6b7280;
-      --border:rgba(17,24,39,0.12);
-      --accent:#d10b0b;   /* rojo La Meta */
-      --accent2:#a60000;  /* rojo más oscuro */
-      --soft:#fff5f5;     /* rojo muy suave */
+      --text:#0f172a;
+      --muted:#64748b;
+      --border:rgba(15,23,42,0.10);
+      --accent:#d10b0b;     /* rojo */
+      --accent2:#a40000;    /* rojo oscuro */
+      --soft:#fff5f5;       /* rojo suave */
+      --shadow: 0 14px 34px rgba(15,23,42,0.10);
     }
 
     body{
@@ -25,36 +26,45 @@
       color: var(--text);
     }
 
-    .wrap{ max-width: 1200px; margin: 0 auto; padding: 22px; }
+    /* Barra superior institucional */
+    .topbar{
+      height: 8px;
+      background: linear-gradient(90deg, var(--accent2), var(--accent));
+    }
 
-    /* Header */
+    .wrap{ max-width: 1220px; margin: 0 auto; padding: 18px 18px 28px; }
+
     header{
       display:flex;
       align-items:flex-start;
       justify-content:space-between;
-      gap: 14px;
+      gap: 16px;
       flex-wrap: wrap;
-      margin-bottom: 8px;
+      margin-top: 14px;
+      margin-bottom: 10px;
     }
 
     .brand{
       display:flex;
       align-items:center;
-      gap: 12px;
+      gap: 14px;
     }
 
+    /* Logo más grande */
     .brand-logo{
-      width: 46px;
-      height: 46px;
+      width: 74px;
+      height: 74px;
       object-fit: contain;
-      border-radius: 12px;
+      border-radius: 16px;
       border: 1px solid var(--border);
       background: #fff;
-      padding: 6px;
-      box-shadow: 0 6px 16px rgba(17,24,39,0.08);
+      padding: 10px;
+      box-shadow: 0 10px 22px rgba(15,23,42,0.12);
     }
 
-    .brand-title{
+    .titleblock{ display:flex; flex-direction:column; gap: 6px; }
+
+    .titleline{
       display:flex;
       align-items:center;
       gap: 10px;
@@ -64,31 +74,36 @@
     h1{
       font-size: 18px;
       margin: 0;
+      font-weight: 900;
       letter-spacing: 0.2px;
-      font-weight: 800;
     }
 
     .pill{
       display:inline-flex;
       align-items:center;
       gap:6px;
-      padding: 5px 10px;
+      padding: 6px 10px;
       border-radius: 999px;
       border: 1px solid rgba(209,11,11,0.25);
       background: rgba(209,11,11,0.06);
       color: var(--accent2);
       font-size: 12px;
-      font-weight: 700;
+      font-weight: 800;
     }
 
-    .sub{
+    .badges{ display:flex; gap:8px; flex-wrap:wrap; }
+
+    .badge{
+      display:inline-block;
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: #fafafa;
       color: var(--muted);
       font-size: 12px;
-      margin-top: 4px;
-      line-height: 1.35;
+      font-weight: 800;
     }
 
-    /* Controls */
     .controls{
       display:flex;
       gap: 10px;
@@ -101,13 +116,13 @@
       background:#ffffff;
       border:1px solid var(--border);
       color: var(--text);
-      border-radius: 10px;
-      padding: 8px 10px;
+      border-radius: 12px;
+      padding: 10px 12px;
       font-size: 12px;
       outline: none;
     }
-
-    input::placeholder{ color: #9ca3af; }
+    input{ min-width: 290px; }
+    input::placeholder{ color: #94a3b8; }
 
     input:focus, select:focus{
       border-color: rgba(209,11,11,0.40);
@@ -119,12 +134,19 @@
       border-color: rgba(209,11,11,0.25);
       background: var(--soft);
       color: var(--accent2);
-      font-weight: 800;
+      font-weight: 900;
     }
 
     button:hover{
       border-color: rgba(209,11,11,0.45);
       background: rgba(209,11,11,0.10);
+    }
+
+    .subnote{
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.4;
     }
 
     /* Layout */
@@ -138,18 +160,28 @@
     .card{
       background: var(--card);
       border: 1px solid var(--border);
-      border-radius: 14px;
+      border-radius: 16px;
       padding: 14px;
-      box-shadow: 0 10px 26px rgba(17,24,39,0.08);
+      box-shadow: var(--shadow);
     }
 
-    .kpi{ grid-column: span 3; min-height: 92px; }
-    .kpi .label{ color: var(--muted); font-size: 12px; font-weight: 650; }
-    .kpi .value{ font-size: 26px; margin-top: 6px; font-weight: 900; color: var(--accent2); }
-    .kpi .delta{ margin-top: 6px; font-size: 12px; color: var(--muted); }
+    .kpi{ grid-column: span 3; min-height: 96px; }
+    .kpi .label{ color: var(--muted); font-size: 12px; font-weight: 800; }
+    .kpi .value{ font-size: 28px; margin-top: 6px; font-weight: 950; color: var(--accent2); }
+    .kpi .delta{ margin-top: 6px; font-size: 12px; color: var(--muted); font-weight: 650; }
 
     .panel{ grid-column: span 6; }
+    .panel3{ grid-column: span 4; }
     .table{ grid-column: span 12; overflow:auto; }
+
+    .cardtitle{
+      font-size: 12px;
+      font-weight: 950;
+      color: var(--muted);
+      margin-bottom: 8px;
+      letter-spacing: .2px;
+      text-transform: uppercase;
+    }
 
     canvas{ width:100% !important; height: 300px !important; }
 
@@ -162,15 +194,12 @@
     }
     th{
       color: var(--muted);
-      font-weight: 800;
+      font-weight: 900;
       position: sticky;
       top: 0;
       background: #ffffff;
       z-index: 1;
     }
-
-    .muted{ color: var(--muted); }
-    .note{ margin-top: 8px; }
 
     .pager{
       display:flex;
@@ -181,65 +210,64 @@
       flex-wrap: wrap;
     }
 
-    .badge{
-      display:inline-block;
-      padding: 4px 10px;
-      border-radius: 999px;
-      border: 1px solid var(--border);
-      background: #fafafa;
-      color: var(--muted);
-      font-size: 12px;
-      font-weight: 700;
-    }
-
     @media (max-width: 980px){
       .kpi{ grid-column: span 6; }
-      .panel{ grid-column: span 12; }
+      .panel, .panel3{ grid-column: span 12; }
       canvas{ height: 260px !important; }
+      input{ min-width: 220px; }
     }
   </style>
 </head>
 
 <body>
+  <div class="topbar"></div>
+
   <div class="wrap">
-
     <header>
-      <div>
-        <div class="brand">
-          <!-- Sube tu logo como logo.png al repo -->
-          <img class="brand-logo" src="logo.png" alt="La Meta" onerror="this.style.display='none'"/>
-          <div>
-            <div class="brand-title">
-              <h1>La Meta · Dashboard de Registros</h1>
-              <span class="pill" id="statusPill">Conectando…</span>
-            </div>
-
-            <div class="sub">
-              <span class="badge">Fuente: Google Sheets</span>
-              <span class="badge">Auto-actualiza: 30s</span>
-              <span class="badge">Última actualización: <b id="lastLoad">—</b></span>
-            </div>
+      <div class="brand">
+        <!-- Sube tu logo como logo.png al repo -->
+        <img class="brand-logo" src="logo.png" alt="La Meta" onerror="this.style.display='none'"/>
+        <div class="titleblock">
+          <div class="titleline">
+            <h1>La Meta · Dashboard de Alumnos</h1>
+            <span class="pill" id="statusPill">Conectando…</span>
           </div>
-        </div>
+          <div class="badges">
+            <span class="badge">Fuente: Google Sheets</span>
+            <span class="badge">Auto-actualiza: 30s</span>
+            <span class="badge">Última actualización: <b id="lastLoad">—</b></span>
+          </div>
 
-        <div class="controls">
-          <select id="fUniversidad"></select>
-          <select id="fModalidad"></select>
-          <select id="fAcademia"></select>
-          <select id="fCarrera"></select>
-          <input id="q" type="text" placeholder="Buscar: nombre / correo / DNI / celular" size="34">
-          <button id="btnNow">Actualizar ahora</button>
-        </div>
+          <div class="controls">
+            <select id="fUniversidad"></select>
+            <select id="fModalidad"></select>
+            <select id="fEstado"></select>
+            <input id="q" type="text" placeholder="Buscar: nombre / correo / DNI / celular">
+            <button id="btnNow">Actualizar ahora</button>
+          </div>
 
-        <div class="sub note muted" id="note"></div>
+          <div class="subnote" id="note"></div>
+        </div>
       </div>
     </header>
 
     <div class="row">
       <div class="card kpi">
-        <div class="label">Registros (filtrados)</div>
-        <div class="value" id="kpiTotal">—</div>
-        <div class="delta" id="kpiTotal2">—</div>
+        <div class="label">Alumnos únicos (filtrados)</div>
+        <div class="value" id="kpiAlumnos">—</div>
+        <div class="delta" id="kpiAlumnos2">—</div>
+      </div>
+
+      <div class="card kpi">
+        <div class="label">Activos</div>
+        <div class="value" id="kpiActivos">—</div>
+        <div class="delta" id="kpiActivos2">—</div>
+      </div>
+
+      <div class="card kpi">
+        <div class="label">Retirados</div>
+        <div class="value" id="kpiRetirados">—</div>
+        <div class="delta" id="kpiRetirados2">—</div>
       </div>
 
       <div class="card kpi">
@@ -248,50 +276,32 @@
         <div class="delta" id="kpiUni2">—</div>
       </div>
 
-      <div class="card kpi">
-        <div class="label">Carreras únicas</div>
-        <div class="value" id="kpiCar">—</div>
-        <div class="delta" id="kpiCar2">—</div>
+      <div class="card panel3">
+        <div class="cardtitle">Estado (Activos vs Retirados)</div>
+        <canvas id="chartEstado"></canvas>
       </div>
 
-      <div class="card kpi">
-        <div class="label">Academias únicas</div>
-        <div class="value" id="kpiAca">—</div>
-        <div class="delta" id="kpiAca2">—</div>
-      </div>
-
-      <div class="card panel">
-        <div class="muted" style="font-size:12px;font-weight:800;margin-bottom:6px;">Top Universidades</div>
-        <canvas id="chartUni"></canvas>
-      </div>
-
-      <div class="card panel">
-        <div class="muted" style="font-size:12px;font-weight:800;margin-bottom:6px;">Distribución por Modalidad</div>
+      <div class="card panel3">
+        <div class="cardtitle">Distribución por Modalidad</div>
         <canvas id="chartMod"></canvas>
       </div>
 
-      <div class="card panel">
-        <div class="muted" style="font-size:12px;font-weight:800;margin-bottom:6px;">Top Carreras</div>
-        <canvas id="chartCar"></canvas>
-      </div>
-
-      <div class="card panel">
-        <div class="muted" style="font-size:12px;font-weight:800;margin-bottom:6px;">Top Academias</div>
-        <canvas id="chartAca"></canvas>
+      <div class="card panel3">
+        <div class="cardtitle">Top Universidades</div>
+        <canvas id="chartUni"></canvas>
       </div>
 
       <div class="card table">
-        <div class="muted" style="font-size:12px;font-weight:800;">Tabla (filtrable y buscable)</div>
-        <div id="tblWrap" style="margin-top:10px;"></div>
+        <div class="cardtitle">Tabla de alumnos (únicos)</div>
+        <div id="tblWrap"></div>
 
         <div class="pager">
-          <div class="muted" id="countText">—</div>
-
+          <div id="countText" style="color:#64748b;font-size:12px;font-weight:700;">—</div>
           <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
             <button id="prev">◀</button>
-            <span class="muted">Página</span>
+            <span style="color:#64748b;font-size:12px;">Página</span>
             <b id="page">1</b>
-            <span class="muted">/</span>
+            <span style="color:#64748b;font-size:12px;">/</span>
             <b id="pages">1</b>
             <button id="next">▶</button>
 
@@ -314,7 +324,7 @@
 
   const AUTO_REFRESH_MS = 30000; // 30s
 
-  // Encabezados esperados (tal como tú los diste)
+  // Encabezados esperados
   const EXPECT = {
     NOMBRES: "NOMBRES COMPLETOS",
     CORREO: "CORREO",
@@ -322,15 +332,14 @@
     CEL: "CELULAR",
     UNI: "UNIVERSIDAD",
     MOD: "MODALIDAD",
-    ACA: "ACADEMIA",
-    CAR: "CARRERA",
+    EST: "ESTADO",
   };
 
-  // Colores charts (rojo La Meta)
-  const COLOR_RED = "rgba(209,11,11,0.85)";
-  const COLOR_RED_SOFT = "rgba(209,11,11,0.20)";
-  const GRID = "rgba(17,24,39,0.10)";
-  const TICK = "#6b7280";
+  // Colores charts
+  const COLOR_RED = "rgba(209,11,11,0.88)";
+  const COLOR_RED_SOFT = "rgba(209,11,11,0.22)";
+  const GRID = "rgba(15,23,42,0.10)";
+  const TICK = "#64748b";
 
   // ================= UTIL =================
   function parseCSVLine(line){
@@ -342,32 +351,24 @@
         if (inQ && line[i+1] === '"'){ cur += '"'; i++; }
         else inQ = !inQ;
       } else if (ch === "," && !inQ){
-        out.push(cur);
-        cur = "";
-      } else {
-        cur += ch;
-      }
+        out.push(cur); cur = "";
+      } else cur += ch;
     }
     out.push(cur);
     return out.map(x => String(x ?? "").trim());
   }
 
-  function norm(s){
-    return String(s ?? "").replace(/\s+/g," ").trim();
-  }
+  function norm(s){ return String(s ?? "").replace(/\s+/g," ").trim(); }
+  function safeLower(s){ return String(s ?? "").toLowerCase(); }
+  function uniq(arr){ return [...new Set(arr)]; }
 
-  function uniq(arr){
-    return [...new Set(arr)];
-  }
-
-  function countBy(rows, key){
-    const m = new Map();
-    for (const r of rows){
-      const v = norm(r[key]);
-      if (!v) continue;
-      m.set(v, (m.get(v) || 0) + 1);
-    }
-    return [...m.entries()].sort((a,b)=> b[1]-a[1]);
+  function escapeHtml(str){
+    return String(str ?? "")
+      .replaceAll("&","&amp;")
+      .replaceAll("<","&lt;")
+      .replaceAll(">","&gt;")
+      .replaceAll('"',"&quot;")
+      .replaceAll("'","&#039;");
   }
 
   function fillSelect(selId, values, labelAll){
@@ -385,42 +386,68 @@
     }
   }
 
-  function safeLower(s){ return String(s ?? "").toLowerCase(); }
+  // Interpreta estado
+  function normalizeEstado(x){
+    const s = safeLower(norm(x));
+    if (!s) return "Sin estado";
+    if (s.includes("retir")) return "Retirado";
+    if (s.includes("activo") || s.includes("activa")) return "Activo";
+    if (s.includes("inactivo")) return "Retirado";
+    return norm(x);
+  }
 
-  function escapeHtml(str){
-    return String(str ?? "")
-      .replaceAll("&","&amp;")
-      .replaceAll("<","&lt;")
-      .replaceAll(">","&gt;")
-      .replaceAll('"',"&quot;")
-      .replaceAll("'","&#039;");
+  // Conteos por categoría
+  function countBy(rows, key){
+    const m = new Map();
+    for (const r of rows){
+      const v = norm(r[key]);
+      if (!v) continue;
+      m.set(v, (m.get(v) || 0) + 1);
+    }
+    return [...m.entries()].sort((a,b)=> b[1]-a[1]);
+  }
+
+  // DEDUP: alumno único por DNI (si falta DNI, por correo)
+  function dedupeStudents(rows){
+    const seen = new Set();
+    const out = [];
+    for (const r of rows){
+      const dni = norm(r.dni);
+      const correo = safeLower(norm(r.correo));
+      const key = dni ? `dni:${dni}` : (correo ? `mail:${correo}` : "");
+      if (!key) continue; // si no hay ni dni ni correo, no lo contamos como alumno
+      if (seen.has(key)) continue;
+      seen.add(key);
+      out.push(r);
+    }
+    return out;
   }
 
   // ================= STATE =================
-  let raw = [];
-  let filtered = [];
+  let rawRows = [];      // filas leídas
+  let students = [];     // alumnos únicos (dedupe)
+  let filtered = [];     // alumnos únicos filtrados
+
   let page = 1;
   let pageSize = 50;
 
-  let chartUni, chartMod, chartCar, chartAca;
+  let chartEstado, chartMod, chartUni;
 
   function applyFilters(){
     const u = document.getElementById("fUniversidad").value;
     const m = document.getElementById("fModalidad").value;
-    const a = document.getElementById("fAcademia").value;
-    const c = document.getElementById("fCarrera").value;
+    const e = document.getElementById("fEstado").value;
     const q = safeLower(document.getElementById("q").value);
 
-    filtered = raw.filter(r => {
+    filtered = students.filter(r => {
       if (u !== "__ALL__" && norm(r.universidad) !== u) return false;
       if (m !== "__ALL__" && norm(r.modalidad) !== m) return false;
-      if (a !== "__ALL__" && norm(r.academia) !== a) return false;
-      if (c !== "__ALL__" && norm(r.carrera) !== c) return false;
+      if (e !== "__ALL__" && norm(r.estado) !== e) return false;
 
       if (q){
         const blob = [
           r.nombres, r.correo, r.dni, r.celular,
-          r.universidad, r.modalidad, r.academia, r.carrera
+          r.universidad, r.modalidad, r.estado
         ].map(safeLower).join(" | ");
         if (!blob.includes(q)) return false;
       }
@@ -432,20 +459,21 @@
   }
 
   function renderKPIs(){
-    document.getElementById("kpiTotal").textContent = filtered.length.toLocaleString("es-PE");
+    const total = filtered.length;
+    const activos = filtered.filter(r => r.estado === "Activo").length;
+    const retirados = filtered.filter(r => r.estado === "Retirado").length;
+    const unis = uniq(filtered.map(r => norm(r.universidad)).filter(Boolean)).length;
 
-    const unis = uniq(filtered.map(r => norm(r.universidad)).filter(Boolean));
-    const cars = uniq(filtered.map(r => norm(r.carrera)).filter(Boolean));
-    const acas = uniq(filtered.map(r => norm(r.academia)).filter(Boolean));
+    document.getElementById("kpiAlumnos").textContent = total.toLocaleString("es-PE");
+    document.getElementById("kpiActivos").textContent = activos.toLocaleString("es-PE");
+    document.getElementById("kpiRetirados").textContent = retirados.toLocaleString("es-PE");
+    document.getElementById("kpiUni").textContent = unis.toLocaleString("es-PE");
 
-    document.getElementById("kpiUni").textContent = unis.length.toLocaleString("es-PE");
-    document.getElementById("kpiCar").textContent = cars.length.toLocaleString("es-PE");
-    document.getElementById("kpiAca").textContent = acas.length.toLocaleString("es-PE");
-
-    document.getElementById("kpiTotal2").textContent = `Total en hoja: ${raw.length.toLocaleString("es-PE")}`;
+    document.getElementById("kpiAlumnos2").textContent =
+      `Registros en hoja: ${rawRows.length.toLocaleString("es-PE")} · Alumnos únicos: ${students.length.toLocaleString("es-PE")}`;
+    document.getElementById("kpiActivos2").textContent = "Según ESTADO";
+    document.getElementById("kpiRetirados2").textContent = "Según ESTADO";
     document.getElementById("kpiUni2").textContent = "Según filtro aplicado";
-    document.getElementById("kpiCar2").textContent = "Según filtro aplicado";
-    document.getElementById("kpiAca2").textContent = "Según filtro aplicado";
   }
 
   function mkBar(existing, ctx, labels, values){
@@ -481,18 +509,60 @@
     }
   }
 
+  function mkDoughnut(existing, ctx, labels, values){
+    const opts = {
+      responsive: true,
+      plugins: { legend: { position: "bottom", labels:{ color:TICK, font:{ weight:"700" } } } }
+    };
+
+    const colors = [
+      "rgba(209,11,11,0.85)",
+      "rgba(209,11,11,0.22)",
+      "rgba(15,23,42,0.12)"
+    ];
+
+    if (!existing){
+      return new Chart(ctx, {
+        type: "doughnut",
+        data: {
+          labels,
+          datasets: [{
+            data: values,
+            backgroundColor: labels.map((_,i)=>colors[i%colors.length]),
+            borderColor: "rgba(15,23,42,0.08)",
+            borderWidth: 1
+          }]
+        },
+        options: opts
+      });
+    } else {
+      existing.data.labels = labels;
+      existing.data.datasets[0].data = values;
+      existing.update();
+      return existing;
+    }
+  }
+
   function renderCharts(){
-    const topN = 10;
+    // Estado
+    const activos = filtered.filter(r => r.estado === "Activo").length;
+    const retirados = filtered.filter(r => r.estado === "Retirado").length;
+    const otros = Math.max(0, filtered.length - activos - retirados);
 
-    const uni = countBy(filtered, "universidad").slice(0, topN);
-    const mod = countBy(filtered, "modalidad").slice(0, 6);
-    const car = countBy(filtered, "carrera").slice(0, topN);
-    const aca = countBy(filtered, "academia").slice(0, topN);
+    chartEstado = mkDoughnut(
+      chartEstado,
+      document.getElementById("chartEstado"),
+      ["Activo","Retirado","Otro/Sin estado"],
+      [activos, retirados, otros]
+    );
 
-    chartUni = mkBar(chartUni, document.getElementById("chartUni"), uni.map(x=>x[0]), uni.map(x=>x[1]));
+    // Modalidad
+    const mod = countBy(filtered, "modalidad").slice(0, 8);
     chartMod = mkBar(chartMod, document.getElementById("chartMod"), mod.map(x=>x[0]), mod.map(x=>x[1]));
-    chartCar = mkBar(chartCar, document.getElementById("chartCar"), car.map(x=>x[0]), car.map(x=>x[1]));
-    chartAca = mkBar(chartAca, document.getElementById("chartAca"), aca.map(x=>x[0]), aca.map(x=>x[1]));
+
+    // Universidades
+    const uni = countBy(filtered, "universidad").slice(0, 8);
+    chartUni = mkBar(chartUni, document.getElementById("chartUni"), uni.map(x=>x[0]), uni.map(x=>x[1]));
   }
 
   function renderTable(){
@@ -508,7 +578,7 @@
     document.getElementById("page").textContent = page;
     document.getElementById("pages").textContent = totalPages;
     document.getElementById("countText").textContent =
-      total === 0 ? "Sin resultados con los filtros actuales." : `Mostrando ${start+1}-${end} de ${total} registros`;
+      total === 0 ? "Sin resultados con los filtros actuales." : `Mostrando ${start+1}-${end} de ${total} alumnos`;
 
     const html = `
       <table>
@@ -520,8 +590,7 @@
             <th>CELULAR</th>
             <th>UNIVERSIDAD</th>
             <th>MODALIDAD</th>
-            <th>ACADEMIA</th>
-            <th>CARRERA</th>
+            <th>ESTADO</th>
           </tr>
         </thead>
         <tbody>
@@ -533,8 +602,7 @@
               <td>${escapeHtml(r.celular)}</td>
               <td>${escapeHtml(r.universidad)}</td>
               <td>${escapeHtml(r.modalidad)}</td>
-              <td>${escapeHtml(r.academia)}</td>
-              <td>${escapeHtml(r.carrera)}</td>
+              <td>${escapeHtml(r.estado)}</td>
             </tr>
           `).join("")}
         </tbody>
@@ -550,15 +618,13 @@
   }
 
   function initFilters(){
-    const unis = uniq(raw.map(r => norm(r.universidad)).filter(Boolean)).sort();
-    const mods = uniq(raw.map(r => norm(r.modalidad)).filter(Boolean)).sort();
-    const acas = uniq(raw.map(r => norm(r.academia)).filter(Boolean)).sort();
-    const cars = uniq(raw.map(r => norm(r.carrera)).filter(Boolean)).sort();
+    const unis = uniq(students.map(r => norm(r.universidad)).filter(Boolean)).sort();
+    const mods = uniq(students.map(r => norm(r.modalidad)).filter(Boolean)).sort();
+    const ests = uniq(students.map(r => norm(r.estado)).filter(Boolean)).sort();
 
     fillSelect("fUniversidad", unis, "Universidad: Todas");
     fillSelect("fModalidad", mods, "Modalidad: Todas");
-    fillSelect("fAcademia", acas, "Academia: Todas");
-    fillSelect("fCarrera", cars, "Carrera: Todas");
+    fillSelect("fEstado", ests, "Estado: Todos");
   }
 
   // ================= LOAD DATA =================
@@ -572,16 +638,19 @@
       const text = await res.text();
       const lines = text.split(/\r?\n/).filter(l => l.trim().length > 0);
 
-      // Detecta la fila de encabezados aunque esté desde D2 a K2 (con A-C vacíos)
+      // Detecta encabezados aunque estén desplazados (D2, etc.)
       let headerIdx = -1;
       let headerCells = null;
 
-      for (let i=0;i<Math.min(lines.length, 60);i++){
+      for (let i=0;i<Math.min(lines.length, 90);i++){
         const cells = parseCSVLine(lines[i]).map(norm);
-        const hasNames = cells.includes(EXPECT.NOMBRES);
-        const hasCorreo = cells.includes(EXPECT.CORREO);
-        const hasDni = cells.includes(EXPECT.DNI);
-        if (hasNames && hasCorreo && hasDni){
+        const ok =
+          cells.includes(EXPECT.NOMBRES) &&
+          cells.includes(EXPECT.CORREO) &&
+          cells.includes(EXPECT.DNI) &&
+          cells.includes(EXPECT.UNI) &&
+          cells.includes(EXPECT.MOD);
+        if (ok){
           headerIdx = i;
           headerCells = cells;
           break;
@@ -591,7 +660,7 @@
       if (headerIdx === -1){
         document.getElementById("statusPill").textContent = "Error: encabezados no encontrados";
         document.getElementById("note").textContent =
-          "No se detectó la fila con encabezados. Verifica que existan exactamente: NOMBRES COMPLETOS, CORREO, DNI, CELULAR, UNIVERSIDAD, MODALIDAD, ACADEMIA, CARRERA.";
+          "No se detectó la fila de encabezados. Verifica que existan exactamente: NOMBRES COMPLETOS, CORREO, DNI, CELULAR, UNIVERSIDAD, MODALIDAD, ESTADO.";
         return;
       }
 
@@ -603,14 +672,14 @@
       const iT = idx(EXPECT.CEL);
       const iU = idx(EXPECT.UNI);
       const iM = idx(EXPECT.MOD);
-      const iA = idx(EXPECT.ACA);
-      const iR = idx(EXPECT.CAR);
+      const iE = idx(EXPECT.EST);
 
-      const required = [iN,iC,iD,iT,iU,iM,iA,iR];
+      // ESTADO es obligatorio en tu nueva versión
+      const required = [iN,iC,iD,iT,iU,iM,iE];
       if (required.some(x => x < 0)){
         document.getElementById("statusPill").textContent = "Error: columnas faltantes";
         document.getElementById("note").textContent =
-          "Faltan columnas esperadas. Asegúrate de que los encabezados estén escritos exactamente igual en el Sheet.";
+          "Falta alguna columna requerida. Asegúrate de que el encabezado sea exactamente 'ESTADO' y que existan las demás columnas.";
         return;
       }
 
@@ -627,20 +696,23 @@
           celular: norm(cells[iT]),
           universidad: norm(cells[iU]),
           modalidad: norm(cells[iM]),
-          academia: norm(cells[iA]),
-          carrera: norm(cells[iR]),
+          estado: normalizeEstado(cells[iE]),
         });
       }
 
-      raw = out;
+      rawRows = out;
+
+      // Alumnos únicos
+      students = dedupeStudents(rawRows);
 
       document.getElementById("statusPill").textContent = "OK · Datos actualizados";
       document.getElementById("lastLoad").textContent = new Date().toLocaleString("es-PE");
       document.getElementById("note").textContent =
-        "Se actualiza automáticamente cada 30s. Los filtros y la búsqueda no requieren recargar la página.";
+        "El dashboard cuenta alumnos únicos por DNI (si no hay DNI, por correo). Se actualiza automáticamente cada 30s.";
 
       initFilters();
       applyFilters();
+
     } catch(e){
       console.error(e);
       document.getElementById("statusPill").textContent = "Error cargando datos";
@@ -652,32 +724,22 @@
   // ================= EVENTS =================
   document.getElementById("fUniversidad").addEventListener("change", applyFilters);
   document.getElementById("fModalidad").addEventListener("change", applyFilters);
-  document.getElementById("fAcademia").addEventListener("change", applyFilters);
-  document.getElementById("fCarrera").addEventListener("change", applyFilters);
+  document.getElementById("fEstado").addEventListener("change", applyFilters);
   document.getElementById("q").addEventListener("input", applyFilters);
 
   document.getElementById("btnNow").addEventListener("click", loadData);
 
-  document.getElementById("prev").addEventListener("click", () => {
-    page = Math.max(1, page - 1);
-    renderTable();
-  });
-
+  document.getElementById("prev").addEventListener("click", () => { page = Math.max(1, page - 1); renderTable(); });
   document.getElementById("next").addEventListener("click", () => {
     const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
     page = Math.min(totalPages, page + 1);
     renderTable();
   });
-
-  document.getElementById("pageSize").addEventListener("change", () => {
-    page = 1;
-    renderTable();
-  });
+  document.getElementById("pageSize").addEventListener("change", () => { page = 1; renderTable(); });
 
   // ================= START =================
   loadData();
   setInterval(loadData, AUTO_REFRESH_MS);
 </script>
-
 </body>
 </html>
