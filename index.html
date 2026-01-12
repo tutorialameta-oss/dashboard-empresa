@@ -3,8 +3,10 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>La Meta | Panel de Control</title>
+  <title>LA META | PANEL DE CONTROL</title>
+
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0"></script>
 
   <style>
     :root{
@@ -20,9 +22,9 @@
       --radius:18px;
 
       /* estados */
-      --ok:#16a34a;      /* Activo */
-      --bad:#dc2626;     /* Retiro */
-      --warn:#f59e0b;    /* Cambio */
+      --ok:#16a34a;      /* ACTIVO */
+      --bad:#dc2626;     /* RETIRO */
+      --warn:#f59e0b;    /* CAMBIO */
     }
 
     *{ box-sizing:border-box; }
@@ -74,6 +76,7 @@
       font-weight:950;
       letter-spacing:.2px;
       line-height:1.15;
+      text-transform: uppercase;
     }
     .brand .sub{
       margin-top:6px;
@@ -157,6 +160,7 @@
       font-size:20px;
       font-weight:950;
       letter-spacing:.2px;
+      text-transform: uppercase;
     }
     .title p{
       margin:0;
@@ -216,9 +220,9 @@
     }
 
     .kpi{ grid-column: span 3; min-height: 110px; }
-    .kpi .label{ color: var(--muted); font-size:12px; font-weight:950; }
+    .kpi .label{ color: var(--muted); font-size:12px; font-weight:950; text-transform: uppercase; }
     .kpi .value{ margin-top:8px; font-size:34px; font-weight:950; color: var(--accent2); }
-    .kpi .hint{ margin-top:8px; color: var(--muted); font-size:12px; font-weight:800; }
+    .kpi .hint{ margin-top:8px; color: var(--muted); font-size:12px; font-weight:900; text-transform: uppercase; }
 
     .panel{ grid-column: span 6; }
     .panel4{ grid-column: span 4; }
@@ -235,7 +239,7 @@
       flex-wrap:wrap;
     }
 
-    canvas{ width:100% !important; height:360px !important; }
+    canvas{ width:100% !important; height:380px !important; }
 
     table{ width:100%; border-collapse: collapse; font-size:12px; }
     th, td{
@@ -251,14 +255,7 @@
       z-index:1;
       color: var(--muted);
       font-weight:950;
-    }
-
-    .footnote{
-      margin-top:10px;
-      color: var(--muted);
-      font-size:12px;
-      font-weight:800;
-      line-height:1.45;
+      text-transform: uppercase;
     }
 
     .softHint{
@@ -269,6 +266,7 @@
       color: var(--muted);
       font-weight:900;
       font-size:12px;
+      text-transform: uppercase;
     }
     .dot{ width:10px; height:10px; border-radius:999px; display:inline-block; }
     .dot.ok{ background: var(--ok); }
@@ -280,7 +278,7 @@
       .sidebar{ position:relative; height:auto; }
       .kpi{ grid-column: span 6; }
       .panel, .panel4{ grid-column: span 12; }
-      canvas{ height:300px !important; }
+      canvas{ height:320px !important; }
       input{ min-width: 220px; }
       .controls{ justify-content:flex-start; }
     }
@@ -293,48 +291,48 @@
   <div class="app">
     <aside class="sidebar">
       <div class="brand">
-        <img src="logo.png" alt="La Meta" onerror="this.style.display='none'"/>
+        <img src="logo.png" alt="LA META" onerror="this.style.display='none'"/>
         <div>
-          <h1>La Meta<br/>Panel de Control</h1>
-          <div class="sub">Alumnos · Locales · Ciclos</div>
+          <h1>LA META<br/>PANEL DE CONTROL</h1>
+          <div class="sub">Monitoreo de alumnos por local y ciclo</div>
         </div>
       </div>
 
       <div class="nav">
-        <button id="nav_overview" class="active">Resumen general</button>
-        <button id="nav_local">Por local</button>
-        <button id="nav_table">Tabla</button>
+        <button id="nav_overview" class="active">RESUMEN GENERAL</button>
+        <button id="nav_local">POR LOCAL</button>
+        <button id="nav_table">TABLA</button>
       </div>
 
       <div class="small">
-        <div class="pill" id="statusPill">Conectando…</div>
-        <div class="badge">Auto-actualiza: <b>30s</b></div>
-        <div class="badge">Última actualización: <b id="lastLoad">—</b></div>
+        <div class="pill" id="statusPill">CONECTANDO…</div>
+        <div class="badge">FUENTE: <b>GOOGLE SHEETS</b></div>
+        <div class="badge">ACTUALIZACIÓN: <b>30s</b></div>
+        <div class="badge">ÚLTIMA ACTUALIZACIÓN: <b id="lastLoad">—</b></div>
 
         <div class="toggle">
           <input type="checkbox" id="autoOn" checked />
-          <label for="autoOn">Auto-actualización activa</label>
+          <label for="autoOn">Auto-actualización</label>
         </div>
 
-        <button id="btnNow" style="width:100%; margin-top:12px;">Actualizar ahora</button>
-
-        <div class="footnote" id="note"></div>
+        <button id="btnNow" style="width:100%; margin-top:12px;">ACTUALIZAR AHORA</button>
       </div>
     </aside>
 
     <main class="main">
       <div class="headerline">
         <div class="title">
-          <h2 id="viewTitle">Resumen general</h2>
-          <p id="viewDesc">Indicadores de la academia consolidando todos los salones.</p>
+          <h2 id="viewTitle">RESUMEN GENERAL</h2>
+          <p id="viewDesc">Visión consolidada de matrícula y movimientos.</p>
         </div>
 
         <div class="controls">
           <select id="fLocal"></select>
           <select id="fCiclo"></select>
+          <select id="fSalon"></select>
           <select id="fModalidad"></select>
           <select id="fEstado"></select>
-          <input id="q" type="text" placeholder="Buscar por nombre (parte del nombre)"/>
+          <input id="q" type="text" placeholder="Buscar por nombre"/>
         </div>
       </div>
 
@@ -350,43 +348,46 @@
 
   const SALONES = [
     // LA MOLINA
-    { local:"La Molina", ciclo:"Agraria", salon:"Agraria 1", gid:115906280 },
-    { local:"La Molina", ciclo:"Agraria", salon:"Agraria 2", gid:1576159193 },
-    { local:"La Molina", ciclo:"PUCP", salon:"PUCP", gid:1037962332 },
-    { local:"La Molina", ciclo:"U.Lima", salon:"U.Lima", gid:877886853 },
-    { local:"La Molina", ciclo:"ADELANTO", salon:"Adelanto", gid:1271606284 },
-    { local:"La Molina", ciclo:"PARALELO", salon:"Paralelo", gid:1863430245 },
+    { local:"LA MOLINA", ciclo:"AGRARIA", salon:"AGRARIA 1", gid:115906280 },
+    { local:"LA MOLINA", ciclo:"AGRARIA", salon:"AGRARIA 2", gid:1576159193 },
+    { local:"LA MOLINA", ciclo:"PUCP", salon:"PUCP", gid:1037962332 },
+    { local:"LA MOLINA", ciclo:"U.LIMA", salon:"U.LIMA", gid:877886853 },
+    { local:"LA MOLINA", ciclo:"ADELANTO", salon:"ADELANTO", gid:1271606284 },
+    { local:"LA MOLINA", ciclo:"PARALELO", salon:"PARALELO", gid:1863430245 },
 
     // SAN BORJA
-    { local:"San Borja", ciclo:"Agraria", salon:"Agraria", gid:538377241 },
-    { local:"San Borja", ciclo:"PUCP", salon:"PUCP", gid:998068235 },
-    { local:"San Borja", ciclo:"U.Lima", salon:"U.Lima 1", gid:670800187 },
-    { local:"San Borja", ciclo:"U.Lima", salon:"U.Lima 2", gid:1856014712 },
+    { local:"SAN BORJA", ciclo:"AGRARIA", salon:"AGRARIA", gid:538377241 },
+    { local:"SAN BORJA", ciclo:"PUCP", salon:"PUCP", gid:998068235 },
+    { local:"SAN BORJA", ciclo:"U.LIMA", salon:"U.LIMA 1", gid:670800187 },
+    { local:"SAN BORJA", ciclo:"U.LIMA", salon:"U.LIMA 2", gid:1856014712 },
 
     // SAN MIGUEL
-    { local:"San Miguel", ciclo:"Agraria", salon:"Agraria", gid:513074883 },
-    { local:"San Miguel", ciclo:"PUCP", salon:"PUCP", gid:1531300183 },
-    { local:"San Miguel", ciclo:"U.Lima", salon:"U.Lima 1", gid:1080962628 },
-    { local:"San Miguel", ciclo:"U.Lima", salon:"U.Lima 2", gid:679583464 },
-    { local:"San Miguel", ciclo:"ADELANTO", salon:"Adelanto U.Lima (Mixto)", gid:2120250792 },
-    { local:"San Miguel", ciclo:"PARALELO", salon:"Paralelo", gid:721468852 },
+    { local:"SAN MIGUEL", ciclo:"AGRARIA", salon:"AGRARIA", gid:513074883 },
+    { local:"SAN MIGUEL", ciclo:"PUCP", salon:"PUCP", gid:1531300183 },
+    { local:"SAN MIGUEL", ciclo:"U.LIMA", salon:"U.LIMA 1", gid:1080962628 },
+    { local:"SAN MIGUEL", ciclo:"U.LIMA", salon:"U.LIMA 2", gid:679583464 },
+    { local:"SAN MIGUEL", ciclo:"ADELANTO", salon:"ADELANTO U.LIMA (MIXTO)", gid:2120250792 },
+    { local:"SAN MIGUEL", ciclo:"PARALELO", salon:"PARALELO", gid:721468852 },
 
     // VIRTUAL
-    { local:"Virtual", ciclo:"Agraria", salon:"Agraria (Virtual)", gid:709062846 },
-    { local:"Virtual", ciclo:"ESCOLAR U.Lima", salon:"Escolar U.Lima", gid:315999969 },
-    { local:"Virtual", ciclo:"U.Lima", salon:"U.Lima (Virtual)", gid:1667430860 },
+    { local:"VIRTUAL", ciclo:"AGRARIA", salon:"AGRARIA (VIRTUAL)", gid:709062846 },
+    { local:"VIRTUAL", ciclo:"ESC. U.LIMA", salon:"ESCOLAR U.LIMA", gid:315999969 },
+    { local:"VIRTUAL", ciclo:"U.LIMA", salon:"U.LIMA (VIRTUAL)", gid:1667430860 },
   ];
 
   const AUTO_REFRESH_MS = 30000;
 
-  // Headers (buscamos por texto, no por letras de columna)
+  // Orden fijo solicitado
+  const CICLO_ORDER = ["AGRARIA","U.LIMA","PUCP","ADELANTO","PARALELO","ESC. U.LIMA"];
+  const cicloSort = (a,b) => (CICLO_ORDER.indexOf(a) - CICLO_ORDER.indexOf(b));
+
+  // Headers (por texto)
   const HEAD = {
     NOMBRES_A: "NOMBRES COMPLETOS",
     NOMBRES_B: "NOMBRE COMPLETO",
-    NOMBRES_C: "NOMBRES",     // por si alguna hoja lo usa
+    NOMBRES_C: "NOMBRES",
     MODALIDAD: "MODALIDAD",
     ESTADO: "ESTADO",
-    UNIVERSIDAD: "UNIVERSIDAD",
   };
 
   // ============================ UTIL ============================
@@ -440,23 +441,22 @@
     sel.value = exists ? prev : "__ALL__";
   }
 
-  // 3 estados exactos: Activo / Retiro / Cambio
+  // 3 estados exactos: ACTIVO / RETIRO / CAMBIO
   function normalizeEstado(x){
     const s = low(x);
-    if (s.includes("reti") || s.includes("retir")) return "Retiro";
-    if (s.includes("cambi")) return "Cambio";
-    if (s.includes("activ")) return "Activo";
-    // respetar tus 3 tipos: si viene raro/empty lo mandamos a Cambio
-    return "Cambio";
+    if (s.includes("reti") || s.includes("retir")) return "RETIRO";
+    if (s.includes("cambi")) return "CAMBIO";
+    if (s.includes("activ")) return "ACTIVO";
+    return "CAMBIO"; // si viene raro/empty, lo tratamos como CAMBIO (tus 3 tipos)
   }
 
-  function normalizeModalidad(x){
+  // Modalidad: SOLO PRESENCIAL / VIRTUAL
+  function normalizeModalidad(x, localFallback){
     const s = low(x);
-    if (!s) return "Sin modalidad";
-    if (s.includes("virtual") || s.includes("online") || s.includes("remot")) return "Virtual";
-    if (s.includes("pres") || s.includes("aula")) return "Presencial";
-    if (s.includes("mixt")) return "Mixto";
-    return norm(x);
+    if (s.includes("virtual") || s.includes("online") || s.includes("remot")) return "VIRTUAL";
+    if (s.includes("pres") || s.includes("aula")) return "PRESENCIAL";
+    // Si no hay dato, inferimos por local (para no crear 3ra categoría):
+    return (localFallback === "VIRTUAL") ? "VIRTUAL" : "PRESENCIAL";
   }
 
   function countBy(arr, keyFn){
@@ -469,55 +469,63 @@
     return [...m.entries()].sort((a,b)=>b[1]-a[1]);
   }
 
-  // Deduplicación por NOMBRE (tu criterio)
-  function dedupeByName(rows){
-    const seen = new Set();
-    const out = [];
+  // Dedupe por NOMBRE con prioridad (ACTIVO > RETIRO > CAMBIO)
+  function dedupeByNameWithPriority(rows){
+    const best = new Map();
+    const score = (estado) => estado==="ACTIVO" ? 3 : (estado==="RETIRO" ? 2 : 1);
+
     for (const r of rows){
       const key = low(r.nombre);
       if (!key) continue;
-      if (seen.has(key)) continue;
-      seen.add(key);
-      out.push(r);
+      const cur = best.get(key);
+      if (!cur || score(r.estado) > score(cur.estado)){
+        best.set(key, r);
+      }
     }
-    return out;
+    return [...best.values()];
   }
 
-  // Detectar salones mixtos: si dentro del mismo salón hay Presencial y Virtual, entonces ese salón es Mixto (a nivel agregado)
-  function applySalonMixFlag(rows){
-    const map = new Map(); // key salonKey -> set modalidades
+  // Aulas mixtas (salón con PRESENCIAL y VIRTUAL dentro del mismo salón)
+  function computeAulaMixta(rows){
+    const map = new Map(); // key local||ciclo||salon -> set modalidades
     for (const r of rows){
       const k = `${r.local}||${r.ciclo}||${r.salon}`;
       if (!map.has(k)) map.set(k, new Set());
-      const mod = (r.modalidad==="Presencial" || r.modalidad==="Virtual") ? r.modalidad : null;
-      if (mod) map.get(k).add(mod);
+      map.get(k).add(r.modalidad);
     }
-    return rows.map(r=>{
-      const k = `${r.local}||${r.ciclo}||${r.salon}`;
-      const set = map.get(k) || new Set();
-      const isMixto = set.has("Presencial") && set.has("Virtual");
-      return { ...r, modalidad_salon: isMixto ? "Mixto" : r.modalidad };
-    });
+    const mixtas = new Set();
+    for (const [k,set] of map.entries()){
+      if (set.has("PRESENCIAL") && set.has("VIRTUAL")) mixtas.add(k);
+    }
+    return mixtas;
   }
 
   // ============================ STATE ============================
   const state = {
     view: "overview",
-    rawRows: [],
-    students: [],
+    rawRows: [],            // todas las filas
+    canonical: [],          // consolidado por nombre (estado actual)
+    cambiosUnique: [],      // lista única por nombre de eventos CAMBIO (para KPI)
+    cambiosRows: [],        // filas CAMBIO para agrupar por local/ciclo/salon (eventos)
+    aulaMixtaKeys: new Set(),
+
     filtered: [],
     autoOn: true,
 
-    // Charts (se crean una vez y luego solo se actualizan)
+    // Charts
     ch_over_estado: null,
     ch_over_modalidad: null,
     ch_over_retiros: null,
 
-    ch_loc_estado_ciclo: null,
+    ch_loc_cambios_ciclo: null,
     ch_loc_retiros_ciclo: null,
+    ch_loc_cambios_salon: null,
+    ch_loc_retiros_salon: null,
   };
 
   // ============================ CHART BASE ============================
+  Chart.register(ChartDataLabels);
+
   const GRID = "rgba(15,23,42,0.10)";
   const TICK = "#64748b";
 
@@ -525,9 +533,10 @@
     return {
       responsive: true,
       maintainAspectRatio: false,
-      animation: false, // clave anti-parpadeo
+      animation: false,
       plugins: {
-        legend: { position: "bottom", labels:{ color:TICK, font:{ weight:"800" } } }
+        legend: { position: "bottom", labels:{ color:TICK, font:{ weight:"800" } } },
+        datalabels: { display:false }
       }
     };
   }
@@ -538,55 +547,48 @@
     return new Chart(canvas, {
       type: "doughnut",
       data: { labels, datasets:[{ data: values, backgroundColor: colors, borderColor:"rgba(15,23,42,0.06)", borderWidth:1 }] },
-      options: baseOptions()
-    });
-  }
-
-  function mkStackedBar(canvasId, labels, datasets){
-    const canvas = document.getElementById(canvasId);
-    if (!canvas) return null;
-    return new Chart(canvas, {
-      type: "bar",
-      data: { labels, datasets },
       options: {
-        responsive:true,
-        maintainAspectRatio:false,
-        animation:false,
-        plugins:{ legend:{ position:"bottom", labels:{ color:TICK, font:{ weight:"800" } } } },
-        scales:{
-          x:{ stacked:true, ticks:{ color:TICK }, grid:{ color:GRID } },
-          y:{ stacked:true, beginAtZero:true, ticks:{ color:TICK }, grid:{ color:GRID } }
+        ...baseOptions(),
+        plugins: {
+          ...baseOptions().plugins,
+          datalabels: { display:false }
         }
       }
     });
   }
 
-  function mkBar(canvasId, labels, values, color){
+  function mkBar(canvasId, labels, values, color, labelText){
     const canvas = document.getElementById(canvasId);
     if (!canvas) return null;
     return new Chart(canvas, {
       type:"bar",
-      data:{ labels, datasets:[{ label:"", data: values, backgroundColor: color, borderColor: color, borderWidth: 1.5, borderRadius: 10 }] },
+      data:{ labels, datasets:[{ label:labelText||"", data: values, backgroundColor: color, borderColor: color, borderWidth: 1.5, borderRadius: 10 }] },
       options:{
         responsive:true, maintainAspectRatio:false, animation:false,
-        plugins:{ legend:{ display:false } },
+        plugins:{
+          legend:{ display:false },
+          datalabels:{
+            color:"#0f172a",
+            anchor:"end",
+            align:"end",
+            clamp:true,
+            offset: 2,
+            font:{ weight:"900" },
+            formatter:(v)=> (v && v>0) ? v : ""
+          }
+        },
         scales:{
-          x:{ ticks:{ color:TICK }, grid:{ color:GRID } },
-          y:{ beginAtZero:true, ticks:{ color:TICK }, grid:{ color:GRID } }
+          x:{ ticks:{ color:TICK, font:{ weight:"800" } }, grid:{ color:GRID } },
+          y:{ beginAtZero:true, ticks:{ color:TICK, font:{ weight:"800" } }, grid:{ color:GRID } }
         }
       }
     });
   }
 
-  function updateChart(chart, labels, datasetsOrValues){
+  function updateChart(chart, labels, values){
     if (!chart) return;
     chart.data.labels = labels;
-
-    if (Array.isArray(datasetsOrValues) && datasetsOrValues.length && typeof datasetsOrValues[0] === "object" && datasetsOrValues[0].data){
-      chart.data.datasets = datasetsOrValues;
-    } else {
-      chart.data.datasets[0].data = datasetsOrValues;
-    }
+    chart.data.datasets[0].data = values;
     chart.update("none");
   }
 
@@ -602,9 +604,9 @@
     document.getElementById("view_table").style.display = (v==="table") ? "" : "none";
 
     const titles = {
-      overview: ["Resumen general", "Indicadores de la academia consolidando todos los salones."],
-      local: ["Por local", "Elige un local y compara Activo/Retiro/Cambio por ciclo y retiros."],
-      table: ["Tabla", "Tabla operativa (sin datos sensibles). Usa filtros y búsqueda."]
+      overview: ["RESUMEN GENERAL", "Visión consolidada de matrícula y movimientos."],
+      local: ["POR LOCAL", "Control por ciclo y salón (cambios y retiros)."],
+      table: ["TABLA", "Búsqueda y filtros para consulta interna."]
     };
     document.getElementById("viewTitle").textContent = titles[v][0];
     document.getElementById("viewDesc").textContent = titles[v][1];
@@ -615,35 +617,52 @@
   // ============================ FILTERS ============================
   function initFilters(){
     const locals = uniq(SALONES.map(s=>s.local)).sort();
-    const ciclos = uniq(SALONES.map(s=>s.ciclo)).sort();
+    const ciclos = uniq(SALONES.map(s=>s.ciclo)).sort(cicloSort);
 
-    fillSelectKeep("fLocal", locals, "Local: Todos");
-    fillSelectKeep("fCiclo", ciclos, "Ciclo: Todos");
+    fillSelectKeep("fLocal", locals, "LOCAL: TODOS");
+    fillSelectKeep("fCiclo", ciclos, "CICLO: TODOS");
 
-    const mods = uniq(state.students.map(r=>r.modalidad_salon).filter(Boolean)).sort();
-    const ests = ["Activo","Retiro","Cambio"]; // fijo, como pediste
+    // Salones se recalculan según Local/Ciclo seleccionados
+    rebuildSalonOptions();
 
-    fillSelectKeep("fModalidad", mods, "Modalidad: Todas");
-    fillSelectKeep("fEstado", ests, "Estado: Todos");
+    // Modalidad: SOLO 2
+    fillSelectKeep("fModalidad", ["PRESENCIAL","VIRTUAL"], "MODALIDAD: TODAS");
+
+    // Estados (para tabla)
+    fillSelectKeep("fEstado", ["ACTIVO","RETIRO"], "ESTADO: TODOS");
+  }
+
+  function rebuildSalonOptions(){
+    const fLocal = document.getElementById("fLocal").value;
+    const fCiclo = document.getElementById("fCiclo").value;
+
+    let base = state.canonical;
+    if (fLocal !== "__ALL__") base = base.filter(r=>r.local===fLocal);
+    if (fCiclo !== "__ALL__") base = base.filter(r=>r.ciclo===fCiclo);
+
+    const salones = uniq(base.map(r=>r.salon)).sort();
+    fillSelectKeep("fSalon", salones, "SALÓN: TODOS");
   }
 
   function applyFilters(){
     const fLocal = document.getElementById("fLocal").value;
     const fCiclo = document.getElementById("fCiclo").value;
+    const fSalon = document.getElementById("fSalon").value;
     const fMod = document.getElementById("fModalidad").value;
     const fEst = document.getElementById("fEstado").value;
     const q = low(document.getElementById("q").value);
 
-    let base = state.students;
+    let base = state.canonical;
 
     base = base.filter(r=>{
       if (fLocal!=="__ALL__" && r.local!==fLocal) return false;
       if (fCiclo!=="__ALL__" && r.ciclo!==fCiclo) return false;
-      if (fMod!=="__ALL__" && r.modalidad_salon!==fMod) return false;
+      if (fSalon!=="__ALL__" && r.salon!==fSalon) return false;
+      if (fMod!=="__ALL__" && r.modalidad!==fMod) return false;
       if (fEst!=="__ALL__" && r.estado!==fEst) return false;
 
       if (q){
-        const blob = low([r.nombre, r.local, r.ciclo, r.salon, r.modalidad_salon, r.estado].join(" | "));
+        const blob = low([r.nombre, r.local, r.ciclo, r.salon, r.modalidad, r.estado].join(" | "));
         if (!blob.includes(q)) return false;
       }
       return true;
@@ -652,58 +671,69 @@
     state.filtered = base;
   }
 
-  // ============================ LAYOUTS (se crean una vez) ============================
+  // ============================ LAYOUTS ============================
   function ensureOverviewLayout(){
     const el = document.getElementById("view_overview");
     if (el.dataset.ready === "1") return;
 
     el.innerHTML = `
-      <div class="card kpi"><div class="label">Alumnos (filtrados)</div><div class="value" id="k_total">0</div><div class="hint">Únicos por nombre</div></div>
-      <div class="card kpi"><div class="label">Activos</div><div class="value" id="k_act">0</div><div class="hint">ESTADO</div></div>
-      <div class="card kpi"><div class="label">Retiros</div><div class="value" id="k_ret">0</div><div class="hint">ESTADO</div></div>
-      <div class="card kpi"><div class="label">Cambios</div><div class="value" id="k_cam">0</div><div class="hint">Ciclo/Local</div></div>
+      <div class="card kpi">
+        <div class="label">TOTAL DE ALUMNOS</div>
+        <div class="value" id="k_total">0</div>
+      </div>
 
-      <div class="card panel4">
-        <div class="cardtitle">Estado</div>
-        <div class="softHint"><span class="dot ok"></span>Activo <span class="dot bad"></span>Retiro <span class="dot warn"></span>Cambio</div>
-        <div style="height:360px;margin-top:10px;"><canvas id="over_estado"></canvas></div>
+      <div class="card kpi">
+        <div class="label">ACTIVOS</div>
+        <div class="value" id="k_act">0</div>
+      </div>
+
+      <div class="card kpi">
+        <div class="label">RETIROS</div>
+        <div class="value" id="k_ret">0</div>
+      </div>
+
+      <div class="card kpi">
+        <div class="label">CAMBIOS (TRASLADOS)</div>
+        <div class="value" id="k_cam">0</div>
+        <div class="hint">NO SUMA AL TOTAL</div>
       </div>
 
       <div class="card panel4">
-        <div class="cardtitle">Modalidad</div>
-        <div class="footnote">“Mixto” se detecta si en un salón hay Presencial y Virtual.</div>
-        <div style="height:360px;margin-top:10px;"><canvas id="over_modalidad"></canvas></div>
-      </div>
-
-      <div class="card panel4">
-        <div class="cardtitle">Retiros por ciclo</div>
-        <div style="height:360px"><canvas id="over_retiros"></canvas></div>
-      </div>
-
-      <div class="card panel12">
-        <div class="cardtitle">Nota</div>
-        <div class="footnote">
-          Actualización suave: el panel actualiza datos sin “parpadeo” y sin reiniciar filtros.
+        <div class="cardtitle">ESTADO (MATRÍCULA)</div>
+        <div class="softHint">
+          <span class="dot ok"></span>ACTIVO
+          <span class="dot bad"></span>RETIRO
+          <span class="dot warn"></span>CAMBIO
         </div>
+        <div style="height:380px;margin-top:10px;"><canvas id="over_estado"></canvas></div>
+      </div>
+
+      <div class="card panel4">
+        <div class="cardtitle">MODALIDAD</div>
+        <div style="height:380px;margin-top:10px;"><canvas id="over_modalidad"></canvas></div>
+      </div>
+
+      <div class="card panel4">
+        <div class="cardtitle">RETIROS POR CICLO</div>
+        <div style="height:380px"><canvas id="over_retiros"></canvas></div>
       </div>
     `;
 
-    // Crear charts una sola vez
     state.ch_over_estado = mkDoughnut(
       "over_estado",
-      ["Activo","Retiro","Cambio"],
+      ["ACTIVO","RETIRO","CAMBIO"],
       [0,0,0],
       ["#16a34a","#dc2626","#f59e0b"]
     );
 
     state.ch_over_modalidad = mkDoughnut(
       "over_modalidad",
-      ["Presencial","Virtual","Mixto","Sin modalidad"],
-      [0,0,0,0],
-      ["rgba(209,11,11,0.60)","rgba(209,11,11,0.25)","rgba(15,23,42,0.14)","rgba(15,23,42,0.08)"]
+      ["PRESENCIAL","VIRTUAL"],
+      [0,0],
+      ["rgba(209,11,11,0.55)","rgba(15,23,42,0.12)"]
     );
 
-    state.ch_over_retiros = mkBar("over_retiros", [], [], "#dc2626");
+    state.ch_over_retiros = mkBar("over_retiros", [], [], "#dc2626", "RETIROS");
 
     el.dataset.ready = "1";
   }
@@ -714,53 +744,80 @@
 
     el.innerHTML = `
       <div class="card panel12">
-        <div class="cardtitle">Comparativo por ciclo (Estado)</div>
+        <div class="cardtitle">CAMBIOS Y RETIROS</div>
         <div class="softHint">
-          <span class="dot ok"></span>Activo
-          <span class="dot bad"></span>Retiro
-          <span class="dot warn"></span>Cambio
+          <span class="dot warn"></span>CAMBIO
+          <span class="dot bad"></span>RETIRO
         </div>
       </div>
 
       <div class="card panel">
-        <div class="cardtitle">Activos / Retiros / Cambios por ciclo</div>
-        <div style="height:360px"><canvas id="loc_estado_ciclo"></canvas></div>
+        <div class="cardtitle">CAMBIOS POR CICLO</div>
+        <div style="height:380px"><canvas id="loc_cambios_ciclo"></canvas></div>
       </div>
 
       <div class="card panel">
-        <div class="cardtitle">Retiros por ciclo (comparación rápida)</div>
-        <div style="height:360px"><canvas id="loc_retiros_ciclo"></canvas></div>
+        <div class="cardtitle">RETIROS POR CICLO</div>
+        <div style="height:380px"><canvas id="loc_retiros_ciclo"></canvas></div>
+      </div>
+
+      <div class="card panel">
+        <div class="cardtitle">CAMBIOS POR SALÓN</div>
+        <div style="height:380px"><canvas id="loc_cambios_salon"></canvas></div>
+      </div>
+
+      <div class="card panel">
+        <div class="cardtitle">RETIROS POR SALÓN</div>
+        <div style="height:380px"><canvas id="loc_retiros_salon"></canvas></div>
       </div>
 
       <div class="card panel12">
-        <div class="cardtitle">Resumen por ciclo</div>
+        <div class="cardtitle">RESUMEN (CICLO)</div>
+        <div style="overflow:auto; max-height: 40vh;">
+          <table>
+            <thead>
+              <tr>
+                <th>CICLO</th>
+                <th>TOTAL</th>
+                <th>ACTIVOS</th>
+                <th>RETIROS</th>
+                <th>PRESENCIAL</th>
+                <th>VIRTUAL</th>
+                <th>CAMBIOS</th>
+              </tr>
+            </thead>
+            <tbody id="loc_table_ciclo"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card panel12">
+        <div class="cardtitle">RESUMEN (SALÓN)</div>
         <div style="overflow:auto; max-height: 45vh;">
           <table>
             <thead>
               <tr>
-                <th>Ciclo</th>
-                <th>Total</th>
-                <th>Activos</th>
-                <th>Retiros</th>
-                <th>Cambios</th>
-                <th>Presencial</th>
-                <th>Virtual</th>
-                <th>Mixto</th>
+                <th>SALÓN</th>
+                <th>CICLO</th>
+                <th>TOTAL</th>
+                <th>ACTIVOS</th>
+                <th>RETIROS</th>
+                <th>PRESENCIAL</th>
+                <th>VIRTUAL</th>
+                <th>AULA MIXTA</th>
+                <th>CAMBIOS</th>
               </tr>
             </thead>
-            <tbody id="loc_table_body"></tbody>
+            <tbody id="loc_table_salon"></tbody>
           </table>
         </div>
       </div>
     `;
 
-    state.ch_loc_estado_ciclo = mkStackedBar("loc_estado_ciclo", [], [
-      { label:"Activo", data: [], backgroundColor:"#16a34a", borderColor:"#16a34a", borderWidth:1, borderRadius:8 },
-      { label:"Retiro", data: [], backgroundColor:"#dc2626", borderColor:"#dc2626", borderWidth:1, borderRadius:8 },
-      { label:"Cambio", data: [], backgroundColor:"#f59e0b", borderColor:"#f59e0b", borderWidth:1, borderRadius:8 },
-    ]);
-
-    state.ch_loc_retiros_ciclo = mkBar("loc_retiros_ciclo", [], [], "#dc2626");
+    state.ch_loc_cambios_ciclo = mkBar("loc_cambios_ciclo", [], [], "#f59e0b", "CAMBIOS");
+    state.ch_loc_retiros_ciclo = mkBar("loc_retiros_ciclo", [], [], "#dc2626", "RETIROS");
+    state.ch_loc_cambios_salon = mkBar("loc_cambios_salon", [], [], "#f59e0b", "CAMBIOS");
+    state.ch_loc_retiros_salon = mkBar("loc_retiros_salon", [], [], "#dc2626", "RETIROS");
 
     el.dataset.ready = "1";
   }
@@ -771,8 +828,8 @@
 
     el.innerHTML = `
       <div class="card panel12">
-        <div class="cardtitle">Tabla (sin datos sensibles)</div>
-        <div style="overflow:auto; max-height: 70vh;">
+        <div class="cardtitle">TABLA</div>
+        <div style="overflow:auto; max-height: 75vh;">
           <table>
             <thead>
               <tr>
@@ -787,7 +844,6 @@
             <tbody id="tb_body"></tbody>
           </table>
         </div>
-        <div class="footnote">Mostrando hasta 600 filas para mantener velocidad.</div>
       </div>
     `;
 
@@ -799,26 +855,38 @@
     ensureOverviewLayout();
 
     const rows = state.filtered;
-    const total = rows.length;
-    const act = rows.filter(r=>r.estado==="Activo").length;
-    const ret = rows.filter(r=>r.estado==="Retiro").length;
-    const cam = rows.filter(r=>r.estado==="Cambio").length;
 
-    const pres = rows.filter(r=>r.modalidad_salon==="Presencial").length;
-    const virt = rows.filter(r=>r.modalidad_salon==="Virtual").length;
-    const mix = rows.filter(r=>r.modalidad_salon==="Mixto").length;
-    const sinm = Math.max(0, total - pres - virt - mix);
+    // TOTAL: Activo + Retiro (NO incluye cambio)
+    const total = rows.length;
+    const act = rows.filter(r=>r.estado==="ACTIVO").length;
+    const ret = rows.filter(r=>r.estado==="RETIRO").length;
+
+    // CAMBIOS: se calcula desde eventos (por nombre), no desde canonical
+    const fLocal = document.getElementById("fLocal").value;
+    const fCiclo = document.getElementById("fCiclo").value;
+    const fSalon = document.getElementById("fSalon").value;
+    let cambiosBase = state.cambiosRows;
+
+    if (fLocal!=="__ALL__") cambiosBase = cambiosBase.filter(r=>r.local===fLocal);
+    if (fCiclo!=="__ALL__") cambiosBase = cambiosBase.filter(r=>r.ciclo===fCiclo);
+    if (fSalon!=="__ALL__") cambiosBase = cambiosBase.filter(r=>r.salon===fSalon);
+
+    const cambiosUnique = uniq(cambiosBase.map(r=>low(r.nombre))).filter(Boolean).length;
+
+    // Modalidad (solo 2)
+    const pres = rows.filter(r=>r.modalidad==="PRESENCIAL").length;
+    const virt = rows.filter(r=>r.modalidad==="VIRTUAL").length;
 
     document.getElementById("k_total").textContent = total.toLocaleString("es-PE");
     document.getElementById("k_act").textContent = act.toLocaleString("es-PE");
     document.getElementById("k_ret").textContent = ret.toLocaleString("es-PE");
-    document.getElementById("k_cam").textContent = cam.toLocaleString("es-PE");
+    document.getElementById("k_cam").textContent = cambiosUnique.toLocaleString("es-PE");
 
-    updateChart(state.ch_over_estado, ["Activo","Retiro","Cambio"], [act, ret, cam]);
-    updateChart(state.ch_over_modalidad, ["Presencial","Virtual","Mixto","Sin modalidad"], [pres, virt, mix, sinm]);
+    updateChart(state.ch_over_estado, ["ACTIVO","RETIRO","CAMBIO"], [act, ret, cambiosUnique]);
+    updateChart(state.ch_over_modalidad, ["PRESENCIAL","VIRTUAL"], [pres, virt]);
 
-    // Retiros por ciclo (global)
-    const byCicloRet = countBy(rows.filter(r=>r.estado==="Retiro"), r=>r.ciclo);
+    // Retiros por ciclo (según filtros actuales)
+    const byCicloRet = countBy(rows.filter(r=>r.estado==="RETIRO"), r=>r.ciclo).sort((a,b)=>cicloSort(a[0],b[0]));
     const labels = byCicloRet.map(x=>x[0]);
     const values = byCicloRet.map(x=>x[1]);
     updateChart(state.ch_over_retiros, labels, values);
@@ -827,33 +895,68 @@
   function renderLocal(){
     ensureLocalLayout();
 
-    // Para la vista "Por local", forzamos que el usuario elija un Local (si está en "Todos", usamos todos igual)
+    const fLocal = document.getElementById("fLocal").value;
+
+    // En "Por Local" lo normal es elegir un local
+    let baseCanon = state.canonical;
+    let baseCambios = state.cambiosRows;
+
+    if (fLocal !== "__ALL__"){
+      baseCanon = baseCanon.filter(r=>r.local===fLocal);
+      baseCambios = baseCambios.filter(r=>r.local===fLocal);
+    }
+
+    // Aplicar también ciclo/salon/modalidad/estado/búsqueda sobre canonical en esta vista
+    applyFilters();
     const rows = state.filtered;
 
-    const ciclos = uniq(rows.map(r=>r.ciclo)).sort();
-    const dataAct = ciclos.map(c=> rows.filter(r=>r.ciclo===c && r.estado==="Activo").length );
-    const dataRet = ciclos.map(c=> rows.filter(r=>r.ciclo===c && r.estado==="Retiro").length );
-    const dataCam = ciclos.map(c=> rows.filter(r=>r.ciclo===c && r.estado==="Cambio").length );
+    // ---- CAMBIOS por ciclo (EVENTOS)
+    let cambiosFiltrados = baseCambios;
+    const fCiclo = document.getElementById("fCiclo").value;
+    const fSalon = document.getElementById("fSalon").value;
+    const fMod = document.getElementById("fModalidad").value;
 
-    updateChart(state.ch_loc_estado_ciclo, ciclos, [
-      { label:"Activo", data: dataAct, backgroundColor:"#16a34a", borderColor:"#16a34a", borderWidth:1, borderRadius:8 },
-      { label:"Retiro", data: dataRet, backgroundColor:"#dc2626", borderColor:"#dc2626", borderWidth:1, borderRadius:8 },
-      { label:"Cambio", data: dataCam, backgroundColor:"#f59e0b", borderColor:"#f59e0b", borderWidth:1, borderRadius:8 },
-    ]);
+    if (fCiclo !== "__ALL__") cambiosFiltrados = cambiosFiltrados.filter(r=>r.ciclo===fCiclo);
+    if (fSalon !== "__ALL__") cambiosFiltrados = cambiosFiltrados.filter(r=>r.salon===fSalon);
+    if (fMod !== "__ALL__") cambiosFiltrados = cambiosFiltrados.filter(r=>r.modalidad===fMod);
 
-    updateChart(state.ch_loc_retiros_ciclo, ciclos, dataRet);
+    const ciclos = uniq(baseCanon.map(r=>r.ciclo)).sort(cicloSort);
+    const cambiosByCiclo = ciclos.map(c=>{
+      const names = uniq(cambiosFiltrados.filter(r=>r.ciclo===c).map(r=>low(r.nombre))).filter(Boolean);
+      return names.length;
+    });
 
-    // Tabla resumen por ciclo
-    const tbody = document.getElementById("loc_table_body");
-    tbody.innerHTML = ciclos.map(c=>{
+    // ---- RETIROS por ciclo (CANONICAL)
+    const retirosByCiclo = ciclos.map(c=> rows.filter(r=>r.ciclo===c && r.estado==="RETIRO").length );
+
+    updateChart(state.ch_loc_cambios_ciclo, ciclos, cambiosByCiclo);
+    updateChart(state.ch_loc_retiros_ciclo, ciclos, retirosByCiclo);
+
+    // ---- Por salón (para monitoreo de tutores)
+    const salones = uniq(baseCanon.map(r=>r.salon)).sort();
+
+    const cambiosBySalon = salones.map(s=>{
+      const names = uniq(cambiosFiltrados.filter(r=>r.salon===s).map(r=>low(r.nombre))).filter(Boolean);
+      return names.length;
+    });
+
+    const retirosBySalon = salones.map(s=> rows.filter(r=>r.salon===s && r.estado==="RETIRO").length );
+
+    updateChart(state.ch_loc_cambios_salon, salones, cambiosBySalon);
+    updateChart(state.ch_loc_retiros_salon, salones, retirosBySalon);
+
+    // ---- Tabla resumen ciclo
+    const tbodyC = document.getElementById("loc_table_ciclo");
+    tbodyC.innerHTML = ciclos.map(c=>{
       const rC = rows.filter(r=>r.ciclo===c);
       const total = rC.length;
-      const act = rC.filter(r=>r.estado==="Activo").length;
-      const ret = rC.filter(r=>r.estado==="Retiro").length;
-      const cam = rC.filter(r=>r.estado==="Cambio").length;
-      const pres = rC.filter(r=>r.modalidad_salon==="Presencial").length;
-      const virt = rC.filter(r=>r.modalidad_salon==="Virtual").length;
-      const mix = rC.filter(r=>r.modalidad_salon==="Mixto").length;
+      const act = rC.filter(r=>r.estado==="ACTIVO").length;
+      const ret = rC.filter(r=>r.estado==="RETIRO").length;
+      const pres = rC.filter(r=>r.modalidad==="PRESENCIAL").length;
+      const virt = rC.filter(r=>r.modalidad==="VIRTUAL").length;
+
+      const namesCambio = uniq(cambiosFiltrados.filter(r=>r.ciclo===c).map(r=>low(r.nombre))).filter(Boolean);
+      const cam = namesCambio.length;
 
       return `
         <tr>
@@ -861,10 +964,43 @@
           <td>${total}</td>
           <td>${act}</td>
           <td>${ret}</td>
-          <td>${cam}</td>
           <td>${pres}</td>
           <td>${virt}</td>
-          <td>${mix}</td>
+          <td>${cam}</td>
+        </tr>
+      `;
+    }).join("");
+
+    // ---- Tabla resumen salón
+    const tbodyS = document.getElementById("loc_table_salon");
+    tbodyS.innerHTML = salones.map(s=>{
+      const rS = rows.filter(r=>r.salon===s);
+      const total = rS.length;
+      const act = rS.filter(r=>r.estado==="ACTIVO").length;
+      const ret = rS.filter(r=>r.estado==="RETIRO").length;
+      const pres = rS.filter(r=>r.modalidad==="PRESENCIAL").length;
+      const virt = rS.filter(r=>r.modalidad==="VIRTUAL").length;
+
+      const any = rS[0];
+      const k = any ? `${any.local}||${any.ciclo}||${any.salon}` : "";
+      const isMixta = k && state.aulaMixtaKeys.has(k) ? "SÍ" : "NO";
+
+      const namesCambio = uniq(cambiosFiltrados.filter(r=>r.salon===s).map(r=>low(r.nombre))).filter(Boolean);
+      const cam = namesCambio.length;
+
+      const ciclo = any ? any.ciclo : "";
+
+      return `
+        <tr>
+          <td>${escapeHtml(s)}</td>
+          <td>${escapeHtml(ciclo)}</td>
+          <td>${total}</td>
+          <td>${act}</td>
+          <td>${ret}</td>
+          <td>${pres}</td>
+          <td>${virt}</td>
+          <td>${isMixta}</td>
+          <td>${cam}</td>
         </tr>
       `;
     }).join("");
@@ -875,13 +1011,13 @@
 
     const rows = state.filtered;
     const tbody = document.getElementById("tb_body");
-    tbody.innerHTML = rows.slice(0,600).map(r=>`
+    tbody.innerHTML = rows.slice(0,800).map(r=>`
       <tr>
         <td>${escapeHtml(r.nombre)}</td>
         <td>${escapeHtml(r.local)}</td>
         <td>${escapeHtml(r.ciclo)}</td>
         <td>${escapeHtml(r.salon)}</td>
-        <td>${escapeHtml(r.modalidad_salon)}</td>
+        <td>${escapeHtml(r.modalidad)}</td>
         <td>${escapeHtml(r.estado)}</td>
       </tr>
     `).join("");
@@ -936,7 +1072,9 @@
       const nombre = norm(cells[iNombre]);
       if (!nombre) continue;
 
-      const modalidad = (iMod>=0) ? normalizeModalidad(cells[iMod]) : "Sin modalidad";
+      const modalidadCell = (iMod>=0) ? cells[iMod] : "";
+      const modalidad = normalizeModalidad(modalidadCell, salon.local);
+
       const estado = normalizeEstado(cells[iEst]);
 
       out.push({
@@ -954,11 +1092,8 @@
   }
 
   async function loadAll(){
-    const qPrev = document.getElementById("q").value;
-
     try{
-      document.getElementById("statusPill").textContent = "Actualizando…";
-      document.getElementById("note").textContent = "Cargando salones desde Google Sheets…";
+      document.getElementById("statusPill").textContent = "ACTUALIZANDO…";
 
       const results = await Promise.allSettled(SALONES.map(loadOneSalon));
 
@@ -976,31 +1111,28 @@
 
       state.rawRows = rows;
 
-      // dedupe por nombre y detecta salones mixtos
-      state.students = applySalonMixFlag(dedupeByName(state.rawRows));
+      // Aula mixta (por salón)
+      state.aulaMixtaKeys = computeAulaMixta(state.rawRows);
 
-      document.getElementById("q").value = qPrev;
+      // Canonical (estado actual por nombre)
+      state.canonical = dedupeByNameWithPriority(state.rawRows);
+
+      // Cambios (eventos, no suman al total)
+      state.cambiosRows = state.rawRows.filter(r=>r.estado==="CAMBIO");
+      const cambiosNames = uniq(state.cambiosRows.map(r=>low(r.nombre))).filter(Boolean);
+      state.cambiosUnique = cambiosNames;
+
       initFilters();
+      render();
 
-      document.getElementById("statusPill").textContent = "OK · Datos actualizados";
+      document.getElementById("statusPill").textContent = warnings.length ? "OK · CON ALERTAS" : "OK · DATOS ACTUALIZADOS";
       document.getElementById("lastLoad").textContent = new Date().toLocaleString("es-PE");
 
-      if (warnings.length){
-        document.getElementById("note").textContent =
-          "Alerta: algunas hojas no se leyeron perfecto. Revisa encabezados (ver consola).";
-        console.warn("WARNINGS:", warnings);
-      } else {
-        document.getElementById("note").textContent =
-          "Actualización suave: se refrescan datos sin parpadeo y sin reiniciar filtros.";
-      }
-
-      render();
+      if (warnings.length) console.warn("WARNINGS:", warnings);
 
     } catch(e){
       console.error(e);
-      document.getElementById("statusPill").textContent = "Error cargando";
-      document.getElementById("note").textContent =
-        "Revisa que el Sheet esté publicado/visible y que los gid sean correctos.";
+      document.getElementById("statusPill").textContent = "ERROR DE CARGA";
     }
   }
 
@@ -1009,9 +1141,17 @@
   document.getElementById("nav_local").addEventListener("click", ()=>setView("local"));
   document.getElementById("nav_table").addEventListener("click", ()=>setView("table"));
 
-  ["fLocal","fCiclo","fModalidad","fEstado"].forEach(id=>{
+  ["fLocal","fCiclo"].forEach(id=>{
+    document.getElementById(id).addEventListener("change", ()=>{
+      rebuildSalonOptions();
+      render();
+    });
+  });
+
+  ["fSalon","fModalidad","fEstado"].forEach(id=>{
     document.getElementById(id).addEventListener("change", render);
   });
+
   document.getElementById("q").addEventListener("input", render);
 
   document.getElementById("btnNow").addEventListener("click", loadAll);
