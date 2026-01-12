@@ -17,7 +17,7 @@
       --accent2:#a40000;
       --soft:#fff5f5;
       --shadow: 0 14px 34px rgba(15,23,42,0.10);
-      --radius:16px;
+      --radius:18px;
     }
 
     *{ box-sizing:border-box; }
@@ -26,31 +26,33 @@
       font-family: system-ui,-apple-system,Segoe UI,Roboto,Arial;
       background: var(--bg);
       color: var(--text);
+      font-size: 14px;
     }
 
-    .topbar{ height:8px; background:linear-gradient(90deg,var(--accent2),var(--accent)); }
+    .topbar{ height:10px; background:linear-gradient(90deg,var(--accent2),var(--accent)); }
 
+    /* Ocupa mejor pantallas grandes */
     .app{
       display:grid;
-      grid-template-columns: 280px 1fr;
-      min-height: calc(100vh - 8px);
+      grid-template-columns: 320px 1fr;
+      min-height: calc(100vh - 10px);
     }
 
     /* Sidebar */
     .sidebar{
       border-right:1px solid var(--border);
-      padding:16px 14px;
+      padding:18px 14px;
       position: sticky;
       top: 0;
       align-self: start;
-      height: calc(100vh - 8px);
+      height: calc(100vh - 10px);
       overflow:auto;
       background:#fff;
     }
 
     .brand{
       display:flex; gap:12px; align-items:center;
-      padding:10px;
+      padding:12px;
       border:1px solid var(--border);
       border-radius: var(--radius);
       box-shadow: var(--shadow);
@@ -58,41 +60,41 @@
     }
 
     .brand img{
-      width:58px; height:58px; object-fit:contain;
+      width:64px; height:64px; object-fit:contain;
       border-radius:14px; border:1px solid var(--border);
       padding:8px; background:#fff;
     }
 
     .brand h1{
       margin:0;
-      font-size:14px;
+      font-size:15px;
       font-weight:950;
       letter-spacing:.2px;
       line-height:1.15;
     }
     .brand .sub{
-      margin-top:4px;
+      margin-top:6px;
       color:var(--muted);
       font-size:12px;
-      font-weight:700;
+      font-weight:800;
     }
 
     .nav{
-      margin-top:14px;
+      margin-top:16px;
       display:flex;
       flex-direction:column;
-      gap:8px;
+      gap:10px;
     }
 
     .nav button{
       width:100%;
       text-align:left;
-      padding:10px 12px;
+      padding:12px 12px;
       border-radius: 14px;
       border:1px solid var(--border);
       background:#fff;
       cursor:pointer;
-      font-weight:900;
+      font-weight:950;
       color: var(--text);
     }
     .nav button.active{
@@ -103,83 +105,85 @@
     }
 
     .small{
-      margin-top:14px;
-      padding:12px;
+      margin-top:16px;
+      padding:14px;
       border:1px solid var(--border);
       border-radius: var(--radius);
       background:#fff;
+      box-shadow: var(--shadow);
     }
     .pill{
       display:inline-flex; align-items:center; gap:6px;
-      padding:6px 10px;
+      padding:7px 10px;
       border-radius:999px;
       border:1px solid rgba(209,11,11,0.25);
       background: rgba(209,11,11,0.06);
       color: var(--accent2);
       font-size:12px;
-      font-weight:900;
+      font-weight:950;
     }
     .badge{
-      display:inline-block;
-      padding:6px 10px;
-      border-radius:999px;
+      display:block;
+      padding:8px 10px;
+      border-radius:14px;
       border:1px solid var(--border);
       background:#fafafa;
       color: var(--muted);
       font-size:12px;
       font-weight:900;
-      margin-top:8px;
+      margin-top:10px;
     }
 
     .toggle{
       display:flex; align-items:center; gap:10px;
-      margin-top:10px;
+      margin-top:12px;
       font-size:12px; color: var(--muted);
-      font-weight:800;
+      font-weight:900;
     }
 
     /* Main */
     .main{
-      padding:18px 18px 28px;
+      padding:22px 22px 32px;
     }
 
     .headerline{
-      display:flex; gap:10px; align-items:center; justify-content:space-between;
+      display:flex; gap:12px; align-items:flex-start; justify-content:space-between;
       flex-wrap:wrap;
     }
 
     .title{
-      display:flex; flex-direction:column; gap:6px;
+      display:flex; flex-direction:column; gap:8px;
     }
     .title h2{
       margin:0;
-      font-size:18px;
+      font-size:20px;
       font-weight:950;
       letter-spacing:.2px;
     }
     .title p{
       margin:0;
       color: var(--muted);
-      font-size:12px;
-      font-weight:700;
+      font-size:13px;
+      font-weight:750;
       line-height:1.4;
-      max-width: 880px;
+      max-width: 980px;
     }
 
     .controls{
       display:flex; gap:10px; align-items:center; flex-wrap:wrap;
+      justify-content:flex-end;
     }
 
     select, input, button{
       background:#fff;
       border:1px solid var(--border);
-      border-radius: 12px;
-      padding:10px 12px;
+      border-radius: 14px;
+      padding:11px 12px;
       font-size:12px;
       outline:none;
       color: var(--text);
     }
-    input{ min-width:260px; }
+    input{ min-width:320px; }
     input::placeholder{ color:#94a3b8; }
     select:focus, input:focus{
       border-color: rgba(209,11,11,0.40);
@@ -200,22 +204,22 @@
     .grid{
       display:grid;
       grid-template-columns: repeat(12, 1fr);
-      gap: 14px;
-      margin-top: 14px;
+      gap: 16px;
+      margin-top: 16px;
     }
 
     .card{
       background: var(--card);
       border:1px solid var(--border);
       border-radius: var(--radius);
-      padding:14px;
+      padding:18px;
       box-shadow: var(--shadow);
     }
 
-    .kpi{ grid-column: span 3; min-height: 94px; }
-    .kpi .label{ color: var(--muted); font-size:12px; font-weight:900; }
-    .kpi .value{ margin-top:6px; font-size:28px; font-weight:950; color: var(--accent2); }
-    .kpi .hint{ margin-top:6px; color: var(--muted); font-size:12px; font-weight:750; }
+    .kpi{ grid-column: span 3; min-height: 110px; }
+    .kpi .label{ color: var(--muted); font-size:12px; font-weight:950; }
+    .kpi .value{ margin-top:8px; font-size:34px; font-weight:950; color: var(--accent2); }
+    .kpi .hint{ margin-top:8px; color: var(--muted); font-size:12px; font-weight:800; }
 
     .panel{ grid-column: span 6; }
     .panel4{ grid-column: span 4; }
@@ -227,12 +231,13 @@
       font-weight:950;
       letter-spacing:.2px;
       text-transform: uppercase;
-      margin-bottom:8px;
+      margin-bottom:10px;
       display:flex; align-items:center; justify-content:space-between; gap:10px;
       flex-wrap:wrap;
     }
 
-    canvas{ width:100% !important; height:300px !important; }
+    /* Gráficos más grandes */
+    canvas{ width:100% !important; height:380px !important; }
 
     table{ width:100%; border-collapse: collapse; font-size:12px; }
     th, td{
@@ -254,17 +259,18 @@
       margin-top:10px;
       color: var(--muted);
       font-size:12px;
-      font-weight:700;
+      font-weight:800;
       line-height:1.45;
     }
 
-    @media (max-width: 980px){
+    @media (max-width: 1100px){
       .app{ grid-template-columns: 1fr; }
       .sidebar{ position:relative; height:auto; }
       .kpi{ grid-column: span 6; }
       .panel, .panel4{ grid-column: span 12; }
-      canvas{ height:260px !important; }
-      input{ min-width: 200px; }
+      canvas{ height:300px !important; }
+      input{ min-width: 220px; }
+      .controls{ justify-content:flex-start; }
     }
   </style>
 </head>
@@ -298,7 +304,8 @@
           <input type="checkbox" id="autoOn" checked />
           <label for="autoOn">Auto-actualización activa</label>
         </div>
-        <button id="btnNow" style="width:100%; margin-top:10px;">Actualizar ahora</button>
+
+        <button id="btnNow" style="width:100%; margin-top:12px;">Actualizar ahora</button>
 
         <div class="footnote" id="note"></div>
       </div>
@@ -308,9 +315,7 @@
       <div class="headerline">
         <div class="title">
           <h2 id="viewTitle">Resumen general</h2>
-          <p id="viewDesc">
-            Panel consolidado de La Meta. Se actualiza desde Google Sheets sin reiniciar tus filtros.
-          </p>
+          <p id="viewDesc">Panel consolidado de La Meta. Se actualiza desde Google Sheets sin reiniciar tus filtros.</p>
         </div>
 
         <div class="controls">
@@ -447,16 +452,6 @@
       .replaceAll('"',"&quot;").replaceAll("'","&#039;");
   }
 
-  function groupBy(arr, keyFn){
-    const m = new Map();
-    for (const it of arr){
-      const k = keyFn(it);
-      if (!m.has(k)) m.set(k, []);
-      m.get(k).push(it);
-    }
-    return m;
-  }
-
   function countBy(arr, keyFn){
     const m = new Map();
     for (const it of arr){
@@ -485,8 +480,8 @@
   const state = {
     view: "overview",
     rawRows: [],
-    students: [],      // alumnos únicos globales (por nombre)
-    filtered: [],      // alumnos únicos globales filtrados
+    students: [],
+    filtered: [],
     autoOn: true,
 
     // charts
@@ -501,6 +496,75 @@
     ch_sal_mod: null,
     ch_sal_top: null,
   };
+
+  // IMPORTANTE: destruir charts antes de re-renderizar (evita que “desaparezcan”)
+  function destroyCharts(keys){
+    for (const k of keys){
+      if (state[k]){
+        try{ state[k].destroy(); }catch(_){}
+        state[k] = null;
+      }
+    }
+  }
+
+  // ============================ CHARTS ============================
+  const GRID = "rgba(15,23,42,0.10)";
+  const TICK = "#64748b";
+  const RED = "rgba(209,11,11,0.88)";
+  const RED_SOFT = "rgba(209,11,11,0.22)";
+  const DARK_SOFT = "rgba(15,23,42,0.12)";
+
+  function mkBar(canvasId, labels, values, stacked=false, datasets=null){
+    const canvas = document.getElementById(canvasId);
+    if (!canvas) return null;
+    return new Chart(canvas, {
+      type: "bar",
+      data: {
+        labels,
+        datasets: datasets ?? [{
+          data: values,
+          backgroundColor: RED_SOFT,
+          borderColor: RED,
+          borderWidth: 1.5,
+          borderRadius: 10
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: !!datasets } },
+        scales: {
+          x: { ticks: { color: TICK }, grid: { color: GRID }, stacked },
+          y: { ticks: { color: TICK }, grid: { color: GRID }, beginAtZero: true, stacked }
+        }
+      }
+    });
+  }
+
+  function mkDoughnut(canvasId, labels, values){
+    const canvas = document.getElementById(canvasId);
+    if (!canvas) return null;
+    const colors = [RED, RED_SOFT, DARK_SOFT, "rgba(209,11,11,0.55)"];
+    return new Chart(canvas, {
+      type: "doughnut",
+      data: {
+        labels,
+        datasets: [{
+          data: values,
+          backgroundColor: labels.map((_,i)=>colors[i%colors.length]),
+          borderColor: "rgba(15,23,42,0.06)",
+          borderWidth: 1
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { position: "bottom", labels:{ color:TICK, font:{ weight:"800" } } }
+        }
+      }
+    });
+  }
 
   // ============================ UI NAV ============================
   function setView(v){
@@ -529,7 +593,6 @@
 
   // ============================ FILTERS ============================
   function initFilters(){
-    // opciones desde la configuración (no desde datos)
     const locals = uniq(SALONES.map(s=>s.local)).sort();
     const ciclos = uniq(SALONES.map(s=>s.ciclo)).sort();
     const salons = uniq(SALONES.map(s=>`${s.local} · ${s.ciclo} · ${s.salon}`)).sort();
@@ -538,7 +601,6 @@
     fillSelectKeep("fCiclo", ciclos, "Ciclo: Todos");
     fillSelectKeep("fSalon", salons, "Salón: Todos");
 
-    // Modalidad/Estado salen de datos, pero conservando selección
     const mods = uniq(state.students.map(r=>r.modalidad).filter(Boolean)).sort();
     const ests = uniq(state.students.map(r=>r.estado).filter(Boolean)).sort();
 
@@ -554,10 +616,8 @@
     const fEst = document.getElementById("fEstado").value;
     const q = low(document.getElementById("q").value);
 
-    // Base: alumnos únicos globales
     let base = state.students;
 
-    // filtros
     base = base.filter(r=>{
       if (fLocal!=="__ALL__" && r.local!==fLocal) return false;
       if (fCiclo!=="__ALL__" && r.ciclo!==fCiclo) return false;
@@ -575,75 +635,10 @@
     state.filtered = base;
   }
 
-  // ============================ CHARTS (helpers) ============================
-  const GRID = "rgba(15,23,42,0.10)";
-  const TICK = "#64748b";
-  const RED = "rgba(209,11,11,0.88)";
-  const RED_SOFT = "rgba(209,11,11,0.22)";
-  const DARK_SOFT = "rgba(15,23,42,0.12)";
-
-  function mkBar(existing, canvasId, labels, values, stacked=false, datasets=null){
-    const ctx = document.getElementById(canvasId);
-    const config = {
-      type: "bar",
-      data: {
-        labels,
-        datasets: datasets ?? [{
-          data: values,
-          backgroundColor: RED_SOFT,
-          borderColor: RED,
-          borderWidth: 1.5,
-          borderRadius: 10
-        }]
-      },
-      options: {
-        responsive: true,
-        plugins: { legend: { display: !!datasets } },
-        scales: {
-          x: { ticks: { color: TICK }, grid: { color: GRID }, stacked },
-          y: { ticks: { color: TICK }, grid: { color: GRID }, beginAtZero: true, stacked }
-        }
-      }
-    };
-
-    if (!existing) return new Chart(ctx, config);
-    existing.data = config.data;
-    existing.options = config.options;
-    existing.update();
-    return existing;
-  }
-
-  function mkDoughnut(existing, canvasId, labels, values){
-    const ctx = document.getElementById(canvasId);
-    const colors = [RED, RED_SOFT, DARK_SOFT, "rgba(209,11,11,0.55)"];
-    const config = {
-      type: "doughnut",
-      data: {
-        labels,
-        datasets: [{
-          data: values,
-          backgroundColor: labels.map((_,i)=>colors[i%colors.length]),
-          borderColor: "rgba(15,23,42,0.06)",
-          borderWidth: 1
-        }]
-      },
-      options: {
-        responsive: true,
-        plugins: {
-          legend: { position: "bottom", labels:{ color:TICK, font:{ weight:"800" } } }
-        }
-      }
-    };
-
-    if (!existing) return new Chart(ctx, config);
-    existing.data = config.data;
-    existing.options = config.options;
-    existing.update();
-    return existing;
-  }
-
   // ============================ RENDER VIEWS ============================
   function renderOverview(){
+    destroyCharts(["ch_over_est","ch_over_mod","ch_over_local"]); // clave anti-parpadeo/desaparición
+
     const el = document.getElementById("view_overview");
     const rows = state.filtered;
 
@@ -653,11 +648,11 @@
     const presencial = rows.filter(r=>r.modalidad==="Presencial").length;
     const virtual = rows.filter(r=>r.modalidad==="Virtual").length;
     const mixto = rows.filter(r=>r.modalidad==="Mixto").length;
-
     const locals = uniq(rows.map(r=>r.local).filter(Boolean)).length;
 
     el.innerHTML = `
       <div class="card kpi">
+s>
         <div class="label">Alumnos (filtrados)</div>
         <div class="value">${total.toLocaleString("es-PE")}</div>
         <div class="hint">Consolidado (únicos por nombre)</div>
@@ -683,17 +678,17 @@
 
       <div class="card panel4">
         <div class="cardtitle">Estado</div>
-        <canvas id="over_estado"></canvas>
+        <div style="height:380px"><canvas id="over_estado"></canvas></div>
       </div>
 
       <div class="card panel4">
         <div class="cardtitle">Modalidad</div>
-        <canvas id="over_modalidad"></canvas>
+        <div style="height:380px"><canvas id="over_modalidad"></canvas></div>
       </div>
 
       <div class="card panel4">
         <div class="cardtitle">Alumnos por local</div>
-        <canvas id="over_local"></canvas>
+        <div style="height:380px"><canvas id="over_local"></canvas></div>
       </div>
 
       <div class="card panel12">
@@ -705,27 +700,22 @@
       </div>
     `;
 
-    // Charts
     const otrosE = Math.max(0, total - activos - retirados);
-    state.ch_over_est = mkDoughnut(state.ch_over_est, "over_estado",
-      ["Activo","Retirado","Otro/Sin estado"], [activos, retirados, otrosE]);
+    state.ch_over_est = mkDoughnut("over_estado", ["Activo","Retirado","Otro/Sin estado"], [activos, retirados, otrosE]);
 
     const otrosM = Math.max(0, total - presencial - virtual - mixto);
-    state.ch_over_mod = mkDoughnut(state.ch_over_mod, "over_modalidad",
-      ["Presencial","Virtual","Mixto","Otro"], [presencial, virtual, mixto, otrosM]);
+    state.ch_over_mod = mkDoughnut("over_modalidad", ["Presencial","Virtual","Mixto","Otro"], [presencial, virtual, mixto, otrosM]);
 
     const byLocal = countBy(rows, r=>r.local);
-    state.ch_over_local = mkBar(
-      state.ch_over_local, "over_local",
-      byLocal.map(x=>x[0]), byLocal.map(x=>x[1])
-    );
+    state.ch_over_local = mkBar("over_local", byLocal.map(x=>x[0]), byLocal.map(x=>x[1]));
   }
 
   function renderLocales(){
+    destroyCharts(["ch_loc_estado","ch_loc_mod"]); // clave anti-desaparición
+
     const el = document.getElementById("view_locales");
     const rows = state.filtered;
 
-    // métricas por local
     const locals = uniq(SALONES.map(s=>s.local)).sort();
     const agg = locals.map(L=>{
       const rL = rows.filter(r=>r.local===L);
@@ -741,12 +731,12 @@
     el.innerHTML = `
       <div class="card panel">
         <div class="cardtitle">Activos vs Retirados por local</div>
-        <canvas id="loc_estado"></canvas>
+        <div style="height:380px"><canvas id="loc_estado"></canvas></div>
       </div>
 
       <div class="card panel">
         <div class="cardtitle">Presencial vs Virtual por local</div>
-        <canvas id="loc_mod"></canvas>
+        <div style="height:380px"><canvas id="loc_mod"></canvas></div>
       </div>
 
       <div class="card panel12">
@@ -779,45 +769,32 @@
             </tbody>
           </table>
         </div>
-        <div class="footnote">
-          Esta vista es ideal para dirección/administración: identifica rápidamente qué local concentra más alumnos,
-          y el balance de Estado y Modalidad.
-        </div>
       </div>
     `;
 
-    // Charts apilados
     const labels = agg.map(a=>a.local);
 
-    state.ch_loc_estado = mkBar(
-      state.ch_loc_estado, "loc_estado",
-      labels, null, true,
-      [
-        { label:"Activos", data: agg.map(a=>a.activos), backgroundColor: RED, borderColor: RED, borderWidth:1 },
-        { label:"Retirados", data: agg.map(a=>a.retirados), backgroundColor: RED_SOFT, borderColor: RED, borderWidth:1 }
-      ]
-    );
+    state.ch_loc_estado = mkBar("loc_estado", labels, null, true, [
+      { label:"Activos", data: agg.map(a=>a.activos), backgroundColor: RED, borderColor: RED, borderWidth:1 },
+      { label:"Retirados", data: agg.map(a=>a.retirados), backgroundColor: RED_SOFT, borderColor: RED, borderWidth:1 }
+    ]);
 
-    state.ch_loc_mod = mkBar(
-      state.ch_loc_mod, "loc_mod",
-      labels, null, true,
-      [
-        { label:"Presencial", data: agg.map(a=>a.pres), backgroundColor: RED, borderColor: RED, borderWidth:1 },
-        { label:"Virtual", data: agg.map(a=>a.virt), backgroundColor: RED_SOFT, borderColor: RED, borderWidth:1 },
-        { label:"Mixto", data: agg.map(a=>a.mix), backgroundColor: "rgba(15,23,42,0.12)", borderColor: "rgba(15,23,42,0.12)", borderWidth:1 }
-      ]
-    );
+    state.ch_loc_mod = mkBar("loc_mod", labels, null, true, [
+      { label:"Presencial", data: agg.map(a=>a.pres), backgroundColor: RED, borderColor: RED, borderWidth:1 },
+      { label:"Virtual", data: agg.map(a=>a.virt), backgroundColor: RED_SOFT, borderColor: RED, borderWidth:1 },
+      { label:"Mixto", data: agg.map(a=>a.mix), backgroundColor: "rgba(15,23,42,0.12)", borderColor: "rgba(15,23,42,0.12)", borderWidth:1 }
+    ]);
   }
 
   function renderSalones(){
+    destroyCharts(["ch_sal_estado","ch_sal_mod","ch_sal_top"]); // clave anti-desaparición
+
     const el = document.getElementById("view_salones");
     const rows = state.filtered;
 
-    // por salón (texto clave)
     const bySalon = countBy(rows, r=>`${r.local} · ${r.ciclo} · ${r.salon}`);
     const top = bySalon.slice(0, 10);
 
-    // KPIs del salón filtrado (si eliges un salón específico)
     const fSalon = document.getElementById("fSalon").value;
     const scope = (fSalon==="__ALL__") ? "Todos los salones (según filtros)" : fSalon;
 
@@ -859,66 +836,38 @@
       </div>
 
       <div class="card panel">
-        <div class="cardtitle">Estado (en este alcance)</div>
-        <canvas id="sal_estado"></canvas>
+        <div class="cardtitle">Estado</div>
+        <div style="height:380px"><canvas id="sal_estado"></canvas></div>
       </div>
 
       <div class="card panel">
-        <div class="cardtitle">Modalidad (en este alcance)</div>
-        <canvas id="sal_mod"></canvas>
+        <div class="cardtitle">Modalidad</div>
+        <div style="height:380px"><canvas id="sal_mod"></canvas></div>
       </div>
 
       <div class="card panel12">
-        <div class="cardtitle">Top salones por alumnos (filtrado)</div>
-        <canvas id="sal_top"></canvas>
-      </div>
-
-      <div class="card panel12">
-        <div class="cardtitle">Tabla de salones (filtrados)</div>
-        <div style="overflow:auto;">
-          <table>
-            <thead>
-              <tr>
-                <th>Salón</th>
-                <th>Alumnos</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${bySalon.map(s=>`
-                <tr>
-                  <td>${escapeHtml(s[0])}</td>
-                  <td>${s[1]}</td>
-                </tr>
-              `).join("")}
-            </tbody>
-          </table>
-        </div>
+        <div class="cardtitle">Top salones por alumnos</div>
+        <div style="height:380px"><canvas id="sal_top"></canvas></div>
       </div>
     `;
 
     const otrosE = Math.max(0, total - activos - retirados);
-    state.ch_sal_estado = mkDoughnut(state.ch_sal_estado, "sal_estado",
-      ["Activo","Retirado","Otro/Sin estado"], [activos, retirados, otrosE]);
+    state.ch_sal_estado = mkDoughnut("sal_estado", ["Activo","Retirado","Otro/Sin estado"], [activos, retirados, otrosE]);
 
     const otrosM = Math.max(0, total - pres - virt - mix);
-    state.ch_sal_mod = mkDoughnut(state.ch_sal_mod, "sal_mod",
-      ["Presencial","Virtual","Mixto","Otro"], [pres, virt, mix, otrosM]);
+    state.ch_sal_mod = mkDoughnut("sal_mod", ["Presencial","Virtual","Mixto","Otro"], [pres, virt, mix, otrosM]);
 
-    state.ch_sal_top = mkBar(
-      state.ch_sal_top, "sal_top",
-      top.map(x=>x[0]), top.map(x=>x[1])
-    );
+    state.ch_sal_top = mkBar("sal_top", top.map(x=>x[0]), top.map(x=>x[1]));
   }
 
   function renderTabla(){
     const el = document.getElementById("view_tabla");
     const rows = state.filtered;
 
-    // tabla operativa sin PII: (Nombre, Local, Ciclo, Salon, Universidad, Modalidad, Estado)
     el.innerHTML = `
       <div class="card panel12">
         <div class="cardtitle">Tabla operativa (sin datos sensibles)</div>
-        <div style="overflow:auto;">
+        <div style="overflow:auto; max-height: 70vh;">
           <table>
             <thead>
               <tr>
@@ -932,7 +881,7 @@
               </tr>
             </thead>
             <tbody>
-              ${rows.slice(0, 400).map(r=>`
+              ${rows.slice(0, 600).map(r=>`
                 <tr>
                   <td>${escapeHtml(r.nombre)}</td>
                   <td>${escapeHtml(r.local)}</td>
@@ -946,17 +895,13 @@
             </tbody>
           </table>
         </div>
-        <div class="footnote">
-          Mostrando hasta 400 filas para mantener velocidad. Filtra por Local/Ciclo/Salón/Estado/Modalidad y usa búsqueda.
-          <br/>Si deseas exportación a CSV o paginación, lo implemento en el siguiente ajuste.
-        </div>
+        <div class="footnote">Mostrando hasta 600 filas para mantener velocidad.</div>
       </div>
     `;
   }
 
   function render(){
     applyFilters();
-
     if (state.view==="overview") renderOverview();
     if (state.view==="locales") renderLocales();
     if (state.view==="salones") renderSalones();
@@ -972,11 +917,10 @@
     const text = await res.text();
     const lines = text.split(/\r?\n/).filter(l=>l.trim().length>0);
 
-    // Encontrar fila de encabezado (flexible)
     let headerIdx = -1;
     let header = null;
 
-    for (let i=0;i<Math.min(lines.length, 120);i++){
+    for (let i=0;i<Math.min(lines.length, 140);i++){
       const cells = parseCSVLine(lines[i]).map(norm);
       const okNombre = cells.includes(HEAD.NOMBRES_A) || cells.includes(HEAD.NOMBRES_B);
       const okMod = cells.includes(HEAD.MODALIDAD);
@@ -987,7 +931,6 @@
     }
 
     if (headerIdx === -1){
-      // Si alguna hoja estuviera mal, no tumbamos todo: devolvemos vacío y nota
       return { salon, rows: [], error: "No se encontró fila de encabezado (NOMBRES + MODALIDAD + ESTADO)." };
     }
 
@@ -1000,31 +943,19 @@
     const iEst = idx(HEAD.ESTADO);
     const iUni = idx(HEAD.UNIVERSIDAD);
 
-    // opcionales
-    const iCorreo = idx(HEAD.CORREO);
-    const iDni = idx(HEAD.DNI);
-    const iCelA = idx(HEAD.CEL_A);
-    const iCelB = idx(HEAD.CEL_B);
-    const iCel = (iCelA>=0) ? iCelA : iCelB;
-
     const out = [];
     for (let i=headerIdx+1; i<lines.length; i++){
       const cells = parseCSVLine(lines[i]);
-      const any = cells.some(v=>norm(v).length>0);
-      if (!any) continue;
+      if (!cells.some(v=>norm(v).length>0)) continue;
 
       const nombre = norm(cells[iNombre]);
       if (!nombre) continue;
 
       out.push({
         nombre,
-        correo: (iCorreo>=0) ? norm(cells[iCorreo]) : "",
-        dni: (iDni>=0) ? norm(cells[iDni]) : "",
-        cel: (iCel>=0) ? norm(cells[iCel]) : "",
         universidad: (iUni>=0) ? norm(cells[iUni]) : "",
         modalidad: normalizeModalidad(cells[iMod]),
         estado: normalizeEstado(cells[iEst]),
-
         local: salon.local,
         ciclo: salon.ciclo,
         salon: salon.salon,
@@ -1036,7 +967,6 @@
   }
 
   async function loadAll(){
-    // conservar búsqueda mientras actualiza (no “resetea” tu vista)
     const qPrev = document.getElementById("q").value;
 
     try{
@@ -1058,14 +988,9 @@
       }
 
       state.rawRows = rows;
-
-      // Alumnos únicos globales (por nombre)
       state.students = dedupeByName(state.rawRows);
 
-      // restaurar búsqueda
       document.getElementById("q").value = qPrev;
-
-      // Inicializar filtros (manteniendo selección)
       initFilters();
 
       document.getElementById("statusPill").textContent = "OK · Datos actualizados";
@@ -1073,11 +998,11 @@
 
       if (warnings.length){
         document.getElementById("note").textContent =
-          "Alerta: algunas hojas no se leyeron perfecto. Revisa encabezados en esas hojas. (El dashboard siguió funcionando.)";
+          "Alerta: algunas hojas no se leyeron perfecto. Revisa encabezados en esas hojas (ver consola).";
         console.warn("WARNINGS:", warnings);
       } else {
         document.getElementById("note").textContent =
-          "Actualización en segundo plano: no reinicia tus filtros. Si un valor desaparece, el filtro vuelve a “Todos”.";
+          "Actualización en segundo plano: no reinicia tus filtros. Si un valor desaparece, vuelve a “Todos”.";
       }
 
       render();
@@ -1086,7 +1011,7 @@
       console.error(e);
       document.getElementById("statusPill").textContent = "Error cargando";
       document.getElementById("note").textContent =
-        "Revisa que el Sheet esté público (lector) o publicado al web y que los gid sean correctos.";
+        "Revisa que el Sheet esté publicado/visible y que los gid sean correctos.";
     }
   }
 
