@@ -3,142 +3,318 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Dashboard - Registro</title>
+  <title>La Meta | Dashboard de Registros</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
   <style>
     :root{
-      --bg:#0b1220; --card:#111b2e; --muted:#9fb0d0; --text:#eaf0ff; --border:rgba(255,255,255,0.10);
+      --bg:#ffffff;
+      --card:#ffffff;
+      --text:#111827;
+      --muted:#6b7280;
+      --border:rgba(17,24,39,0.12);
+      --accent:#d10b0b;   /* rojo La Meta */
+      --accent2:#a60000;  /* rojo más oscuro */
+      --soft:#fff5f5;     /* rojo muy suave */
     }
-    body{ margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial; background:linear-gradient(180deg,#070b14,#0b1220); color:var(--text); }
-    .wrap{ max-width:1200px; margin:0 auto; padding:22px; }
-    header{ display:flex; gap:12px; align-items:flex-start; justify-content:space-between; flex-wrap:wrap; }
-    h1{ font-size:20px; margin:0; letter-spacing:0.2px; }
-    .sub{ color:var(--muted); font-size:12px; margin-top:6px; line-height:1.4; }
-    .pill{ display:inline-block; padding:4px 10px; border:1px solid var(--border); border-radius:999px; color:var(--muted); font-size:12px; }
-    .row{ display:grid; grid-template-columns: repeat(12, 1fr); gap:14px; margin-top:14px; }
-    .card{ background:rgba(17,27,46,0.85); border:1px solid var(--border); border-radius:14px; padding:14px; box-shadow: 0 10px 30px rgba(0,0,0,0.25); }
-    .kpi{ grid-column: span 3; min-height:92px; }
-    .kpi .label{ color:var(--muted); font-size:12px; }
-    .kpi .value{ font-size:24px; margin-top:6px; font-weight:750; }
-    .kpi .delta{ margin-top:6px; font-size:12px; color:var(--muted); }
+
+    body{
+      margin:0;
+      font-family: system-ui,-apple-system,Segoe UI,Roboto,Arial;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    .wrap{ max-width: 1200px; margin: 0 auto; padding: 22px; }
+
+    /* Header */
+    header{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap: 14px;
+      flex-wrap: wrap;
+      margin-bottom: 8px;
+    }
+
+    .brand{
+      display:flex;
+      align-items:center;
+      gap: 12px;
+    }
+
+    .brand-logo{
+      width: 46px;
+      height: 46px;
+      object-fit: contain;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: #fff;
+      padding: 6px;
+      box-shadow: 0 6px 16px rgba(17,24,39,0.08);
+    }
+
+    .brand-title{
+      display:flex;
+      align-items:center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    h1{
+      font-size: 18px;
+      margin: 0;
+      letter-spacing: 0.2px;
+      font-weight: 800;
+    }
+
+    .pill{
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      padding: 5px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(209,11,11,0.25);
+      background: rgba(209,11,11,0.06);
+      color: var(--accent2);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .sub{
+      color: var(--muted);
+      font-size: 12px;
+      margin-top: 4px;
+      line-height: 1.35;
+    }
+
+    /* Controls */
+    .controls{
+      display:flex;
+      gap: 10px;
+      align-items:center;
+      flex-wrap: wrap;
+      margin-top: 10px;
+    }
+
+    input, select, button{
+      background:#ffffff;
+      border:1px solid var(--border);
+      color: var(--text);
+      border-radius: 10px;
+      padding: 8px 10px;
+      font-size: 12px;
+      outline: none;
+    }
+
+    input::placeholder{ color: #9ca3af; }
+
+    input:focus, select:focus{
+      border-color: rgba(209,11,11,0.40);
+      box-shadow: 0 0 0 3px rgba(209,11,11,0.10);
+    }
+
+    button{
+      cursor:pointer;
+      border-color: rgba(209,11,11,0.25);
+      background: var(--soft);
+      color: var(--accent2);
+      font-weight: 800;
+    }
+
+    button:hover{
+      border-color: rgba(209,11,11,0.45);
+      background: rgba(209,11,11,0.10);
+    }
+
+    /* Layout */
+    .row{
+      display:grid;
+      grid-template-columns: repeat(12, 1fr);
+      gap: 14px;
+      margin-top: 14px;
+    }
+
+    .card{
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 14px;
+      box-shadow: 0 10px 26px rgba(17,24,39,0.08);
+    }
+
+    .kpi{ grid-column: span 3; min-height: 92px; }
+    .kpi .label{ color: var(--muted); font-size: 12px; font-weight: 650; }
+    .kpi .value{ font-size: 26px; margin-top: 6px; font-weight: 900; color: var(--accent2); }
+    .kpi .delta{ margin-top: 6px; font-size: 12px; color: var(--muted); }
+
     .panel{ grid-column: span 6; }
     .table{ grid-column: span 12; overflow:auto; }
-    .controls{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-top:10px; }
-    input, select, button{
-      background:#0b1426; border:1px solid var(--border); color:var(--text);
-      border-radius:10px; padding:8px 10px; font-size:12px;
+
+    canvas{ width:100% !important; height: 300px !important; }
+
+    table{ width: 100%; border-collapse: collapse; font-size: 12px; }
+    th, td{
+      padding: 10px;
+      border-bottom: 1px solid var(--border);
+      text-align: left;
+      white-space: nowrap;
     }
-    button{ cursor:pointer; }
-    button:hover{ border-color:rgba(255,255,255,0.20); }
-    canvas{ width:100% !important; height:320px !important; }
-    table{ width:100%; border-collapse:collapse; font-size:12px; }
-    th,td{ padding:10px; border-bottom:1px solid var(--border); text-align:left; white-space:nowrap; }
-    th{ color:var(--muted); font-weight:650; position:sticky; top:0; background:rgba(17,27,46,0.98); }
-    .muted{ color:var(--muted); }
-    .right{ text-align:right; }
-    .pager{ display:flex; gap:10px; align-items:center; justify-content:space-between; margin-top:10px; flex-wrap:wrap; }
+    th{
+      color: var(--muted);
+      font-weight: 800;
+      position: sticky;
+      top: 0;
+      background: #ffffff;
+      z-index: 1;
+    }
+
+    .muted{ color: var(--muted); }
+    .note{ margin-top: 8px; }
+
+    .pager{
+      display:flex;
+      gap: 10px;
+      align-items:center;
+      justify-content: space-between;
+      margin-top: 10px;
+      flex-wrap: wrap;
+    }
+
+    .badge{
+      display:inline-block;
+      padding: 4px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: #fafafa;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
     @media (max-width: 980px){
       .kpi{ grid-column: span 6; }
       .panel{ grid-column: span 12; }
-      canvas{ height:280px !important; }
+      canvas{ height: 260px !important; }
     }
   </style>
 </head>
 
 <body>
-<div class="wrap">
-  <header>
-    <div>
-      <h1>Dashboard (Registro) <span class="pill" id="statusPill">Conectando…</span></h1>
-      <div class="sub">
-        Fuente: Google Sheets (CSV en vivo) · Auto-actualización: <b>30s</b><br>
-        Última actualización: <b id="lastLoad">—</b>
+  <div class="wrap">
+
+    <header>
+      <div>
+        <div class="brand">
+          <!-- Sube tu logo como logo.png al repo -->
+          <img class="brand-logo" src="logo.png" alt="La Meta" onerror="this.style.display='none'"/>
+          <div>
+            <div class="brand-title">
+              <h1>La Meta · Dashboard de Registros</h1>
+              <span class="pill" id="statusPill">Conectando…</span>
+            </div>
+
+            <div class="sub">
+              <span class="badge">Fuente: Google Sheets</span>
+              <span class="badge">Auto-actualiza: 30s</span>
+              <span class="badge">Última actualización: <b id="lastLoad">—</b></span>
+            </div>
+          </div>
+        </div>
+
+        <div class="controls">
+          <select id="fUniversidad"></select>
+          <select id="fModalidad"></select>
+          <select id="fAcademia"></select>
+          <select id="fCarrera"></select>
+          <input id="q" type="text" placeholder="Buscar: nombre / correo / DNI / celular" size="34">
+          <button id="btnNow">Actualizar ahora</button>
+        </div>
+
+        <div class="sub note muted" id="note"></div>
+      </div>
+    </header>
+
+    <div class="row">
+      <div class="card kpi">
+        <div class="label">Registros (filtrados)</div>
+        <div class="value" id="kpiTotal">—</div>
+        <div class="delta" id="kpiTotal2">—</div>
       </div>
 
-      <div class="controls">
-        <select id="fUniversidad"></select>
-        <select id="fModalidad"></select>
-        <select id="fAcademia"></select>
-        <select id="fCarrera"></select>
-        <input id="q" type="text" placeholder="Buscar: nombre / correo / DNI / celular" size="34">
-        <button id="btnNow">Actualizar ahora</button>
+      <div class="card kpi">
+        <div class="label">Universidades únicas</div>
+        <div class="value" id="kpiUni">—</div>
+        <div class="delta" id="kpiUni2">—</div>
       </div>
-      <div class="sub muted" id="note"></div>
-    </div>
-  </header>
 
-  <div class="row">
-    <div class="card kpi">
-      <div class="label">Registros totales</div>
-      <div class="value" id="kpiTotal">—</div>
-      <div class="delta" id="kpiTotal2">—</div>
-    </div>
-    <div class="card kpi">
-      <div class="label">Universidades únicas</div>
-      <div class="value" id="kpiUni">—</div>
-      <div class="delta" id="kpiUni2">—</div>
-    </div>
-    <div class="card kpi">
-      <div class="label">Carreras únicas</div>
-      <div class="value" id="kpiCar">—</div>
-      <div class="delta" id="kpiCar2">—</div>
-    </div>
-    <div class="card kpi">
-      <div class="label">Academias únicas</div>
-      <div class="value" id="kpiAca">—</div>
-      <div class="delta" id="kpiAca2">—</div>
-    </div>
+      <div class="card kpi">
+        <div class="label">Carreras únicas</div>
+        <div class="value" id="kpiCar">—</div>
+        <div class="delta" id="kpiCar2">—</div>
+      </div>
 
-    <div class="card panel">
-      <div class="muted" style="font-size:12px;margin-bottom:6px;">Top Universidades</div>
-      <canvas id="chartUni"></canvas>
-    </div>
-    <div class="card panel">
-      <div class="muted" style="font-size:12px;margin-bottom:6px;">Distribución por Modalidad</div>
-      <canvas id="chartMod"></canvas>
-    </div>
+      <div class="card kpi">
+        <div class="label">Academias únicas</div>
+        <div class="value" id="kpiAca">—</div>
+        <div class="delta" id="kpiAca2">—</div>
+      </div>
 
-    <div class="card panel">
-      <div class="muted" style="font-size:12px;margin-bottom:6px;">Top Carreras</div>
-      <canvas id="chartCar"></canvas>
-    </div>
-    <div class="card panel">
-      <div class="muted" style="font-size:12px;margin-bottom:6px;">Top Academias</div>
-      <canvas id="chartAca"></canvas>
-    </div>
+      <div class="card panel">
+        <div class="muted" style="font-size:12px;font-weight:800;margin-bottom:6px;">Top Universidades</div>
+        <canvas id="chartUni"></canvas>
+      </div>
 
-    <div class="card table">
-      <div class="muted" style="font-size:12px;">Tabla (filtrable y buscable)</div>
-      <div id="tblWrap" style="margin-top:10px;"></div>
-      <div class="pager">
-        <div class="muted" id="countText">—</div>
-        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-          <button id="prev">◀</button>
-          <span class="muted">Página</span>
-          <b id="page">1</b>
-          <span class="muted">/</span>
-          <b id="pages">1</b>
-          <button id="next">▶</button>
-          <select id="pageSize">
-            <option value="25">25 filas</option>
-            <option value="50" selected>50 filas</option>
-            <option value="100">100 filas</option>
-          </select>
+      <div class="card panel">
+        <div class="muted" style="font-size:12px;font-weight:800;margin-bottom:6px;">Distribución por Modalidad</div>
+        <canvas id="chartMod"></canvas>
+      </div>
+
+      <div class="card panel">
+        <div class="muted" style="font-size:12px;font-weight:800;margin-bottom:6px;">Top Carreras</div>
+        <canvas id="chartCar"></canvas>
+      </div>
+
+      <div class="card panel">
+        <div class="muted" style="font-size:12px;font-weight:800;margin-bottom:6px;">Top Academias</div>
+        <canvas id="chartAca"></canvas>
+      </div>
+
+      <div class="card table">
+        <div class="muted" style="font-size:12px;font-weight:800;">Tabla (filtrable y buscable)</div>
+        <div id="tblWrap" style="margin-top:10px;"></div>
+
+        <div class="pager">
+          <div class="muted" id="countText">—</div>
+
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+            <button id="prev">◀</button>
+            <span class="muted">Página</span>
+            <b id="page">1</b>
+            <span class="muted">/</span>
+            <b id="pages">1</b>
+            <button id="next">▶</button>
+
+            <select id="pageSize">
+              <option value="25">25 filas</option>
+              <option value="50" selected>50 filas</option>
+              <option value="100">100 filas</option>
+            </select>
+          </div>
         </div>
       </div>
+
     </div>
   </div>
-</div>
 
 <script>
   // ================= CONFIG =================
-  // Tu sheet (gid correcto) — CSV en vivo
   const SHEETS_CSV_URL =
     "https://docs.google.com/spreadsheets/d/1nHCBQLuJ8RZNtLisvAqD916pcxbUmtqPrMnO4V0ewvs/export?format=csv&gid=115906280";
 
   const AUTO_REFRESH_MS = 30000; // 30s
 
-  // Encabezados esperados (tal como tú los pusiste)
+  // Encabezados esperados (tal como tú los diste)
   const EXPECT = {
     NOMBRES: "NOMBRES COMPLETOS",
     CORREO: "CORREO",
@@ -150,6 +326,12 @@
     CAR: "CARRERA",
   };
 
+  // Colores charts (rojo La Meta)
+  const COLOR_RED = "rgba(209,11,11,0.85)";
+  const COLOR_RED_SOFT = "rgba(209,11,11,0.20)";
+  const GRID = "rgba(17,24,39,0.10)";
+  const TICK = "#6b7280";
+
   // ================= UTIL =================
   function parseCSVLine(line){
     const out = [];
@@ -157,7 +339,6 @@
     for (let i=0;i<line.length;i++){
       const ch = line[i];
       if (ch === '"'){
-        // Manejo simple de comillas dobles
         if (inQ && line[i+1] === '"'){ cur += '"'; i++; }
         else inQ = !inQ;
       } else if (ch === "," && !inQ){
@@ -206,6 +387,15 @@
 
   function safeLower(s){ return String(s ?? "").toLowerCase(); }
 
+  function escapeHtml(str){
+    return String(str ?? "")
+      .replaceAll("&","&amp;")
+      .replaceAll("<","&lt;")
+      .replaceAll(">","&gt;")
+      .replaceAll('"',"&quot;")
+      .replaceAll("'","&#039;");
+  }
+
   // ================= STATE =================
   let raw = [];
   let filtered = [];
@@ -243,6 +433,7 @@
 
   function renderKPIs(){
     document.getElementById("kpiTotal").textContent = filtered.length.toLocaleString("es-PE");
+
     const unis = uniq(filtered.map(r => norm(r.universidad)).filter(Boolean));
     const cars = uniq(filtered.map(r => norm(r.carrera)).filter(Boolean));
     const acas = uniq(filtered.map(r => norm(r.academia)).filter(Boolean));
@@ -251,11 +442,43 @@
     document.getElementById("kpiCar").textContent = cars.length.toLocaleString("es-PE");
     document.getElementById("kpiAca").textContent = acas.length.toLocaleString("es-PE");
 
-    // texto auxiliar
-    document.getElementById("kpiTotal2").textContent = "Filtrados según selección";
+    document.getElementById("kpiTotal2").textContent = `Total en hoja: ${raw.length.toLocaleString("es-PE")}`;
     document.getElementById("kpiUni2").textContent = "Según filtro aplicado";
     document.getElementById("kpiCar2").textContent = "Según filtro aplicado";
     document.getElementById("kpiAca2").textContent = "Según filtro aplicado";
+  }
+
+  function mkBar(existing, ctx, labels, values){
+    const baseOptions = {
+      responsive: true,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { color: TICK }, grid: { color: GRID } },
+        y: { ticks: { color: TICK }, grid: { color: GRID }, beginAtZero: true }
+      }
+    };
+
+    if (!existing){
+      return new Chart(ctx, {
+        type: "bar",
+        data: {
+          labels,
+          datasets: [{
+            data: values,
+            backgroundColor: COLOR_RED_SOFT,
+            borderColor: COLOR_RED,
+            borderWidth: 1.5,
+            borderRadius: 10
+          }]
+        },
+        options: baseOptions
+      });
+    } else {
+      existing.data.labels = labels;
+      existing.data.datasets[0].data = values;
+      existing.update();
+      return existing;
+    }
   }
 
   function renderCharts(){
@@ -266,32 +489,10 @@
     const car = countBy(filtered, "carrera").slice(0, topN);
     const aca = countBy(filtered, "academia").slice(0, topN);
 
-    const mkBar = (ctx, labels, values, title, existing) => {
-      if (!existing){
-        return new Chart(ctx, {
-          type: "bar",
-          data: { labels, datasets: [{ label: title, data: values }] },
-          options: {
-            responsive:true,
-            plugins:{ legend:{ display:false } },
-            scales:{
-              x:{ ticks:{ color:"#9fb0d0" }, grid:{ color:"rgba(255,255,255,0.07)" } },
-              y:{ ticks:{ color:"#9fb0d0" }, grid:{ color:"rgba(255,255,255,0.07)" }, beginAtZero:true }
-            }
-          }
-        });
-      } else {
-        existing.data.labels = labels;
-        existing.data.datasets[0].data = values;
-        existing.update();
-        return existing;
-      }
-    };
-
-    chartUni = mkBar(document.getElementById("chartUni"), uni.map(x=>x[0]), uni.map(x=>x[1]), "Universidades", chartUni);
-    chartMod = mkBar(document.getElementById("chartMod"), mod.map(x=>x[0]), mod.map(x=>x[1]), "Modalidad", chartMod);
-    chartCar = mkBar(document.getElementById("chartCar"), car.map(x=>x[0]), car.map(x=>x[1]), "Carreras", chartCar);
-    chartAca = mkBar(document.getElementById("chartAca"), aca.map(x=>x[0]), aca.map(x=>x[1]), "Academias", chartAca);
+    chartUni = mkBar(chartUni, document.getElementById("chartUni"), uni.map(x=>x[0]), uni.map(x=>x[1]));
+    chartMod = mkBar(chartMod, document.getElementById("chartMod"), mod.map(x=>x[0]), mod.map(x=>x[1]));
+    chartCar = mkBar(chartCar, document.getElementById("chartCar"), car.map(x=>x[0]), car.map(x=>x[1]));
+    chartAca = mkBar(chartAca, document.getElementById("chartAca"), aca.map(x=>x[0]), aca.map(x=>x[1]));
   }
 
   function renderTable(){
@@ -307,7 +508,7 @@
     document.getElementById("page").textContent = page;
     document.getElementById("pages").textContent = totalPages;
     document.getElementById("countText").textContent =
-      `Mostrando ${start+1}-${end} de ${total} registros`;
+      total === 0 ? "Sin resultados con los filtros actuales." : `Mostrando ${start+1}-${end} de ${total} registros`;
 
     const html = `
       <table>
@@ -340,15 +541,6 @@
       </table>
     `;
     document.getElementById("tblWrap").innerHTML = html;
-  }
-
-  function escapeHtml(str){
-    return String(str ?? "")
-      .replaceAll("&","&amp;")
-      .replaceAll("<","&lt;")
-      .replaceAll(">","&gt;")
-      .replaceAll('"',"&quot;")
-      .replaceAll("'","&#039;");
   }
 
   function renderAll(){
@@ -384,7 +576,7 @@
       let headerIdx = -1;
       let headerCells = null;
 
-      for (let i=0;i<Math.min(lines.length, 50);i++){
+      for (let i=0;i<Math.min(lines.length, 60);i++){
         const cells = parseCSVLine(lines[i]).map(norm);
         const hasNames = cells.includes(EXPECT.NOMBRES);
         const hasCorreo = cells.includes(EXPECT.CORREO);
@@ -397,13 +589,12 @@
       }
 
       if (headerIdx === -1){
-        document.getElementById("statusPill").textContent = "Error: no encontré encabezados";
+        document.getElementById("statusPill").textContent = "Error: encabezados no encontrados";
         document.getElementById("note").textContent =
-          "No se detectó la fila con 'NOMBRES COMPLETOS, CORREO, DNI...'. Verifica que estén exactamente así en la hoja.";
+          "No se detectó la fila con encabezados. Verifica que existan exactamente: NOMBRES COMPLETOS, CORREO, DNI, CELULAR, UNIVERSIDAD, MODALIDAD, ACADEMIA, CARRERA.";
         return;
       }
 
-      // Mapeo de índices (por si hay columnas vacías antes)
       const idx = (name) => headerCells.findIndex(h => norm(h) === name);
 
       const iN = idx(EXPECT.NOMBRES);
@@ -419,15 +610,13 @@
       if (required.some(x => x < 0)){
         document.getElementById("statusPill").textContent = "Error: columnas faltantes";
         document.getElementById("note").textContent =
-          "Faltan algunas columnas esperadas. Verifica que los encabezados estén exactamente como me los diste.";
+          "Faltan columnas esperadas. Asegúrate de que los encabezados estén escritos exactamente igual en el Sheet.";
         return;
       }
 
-      // Datos: desde la fila posterior al header
       const out = [];
       for (let i=headerIdx+1; i<lines.length; i++){
         const cells = parseCSVLine(lines[i]);
-        // Ignora filas totalmente vacías
         const any = cells.some(v => norm(v).length > 0);
         if (!any) continue;
 
@@ -448,16 +637,13 @@
       document.getElementById("statusPill").textContent = "OK · Datos actualizados";
       document.getElementById("lastLoad").textContent = new Date().toLocaleString("es-PE");
       document.getElementById("note").textContent =
-        "Actualiza solo cada 30s. Si editas el Sheet, el dashboard reflejará cambios automáticamente.";
+        "Se actualiza automáticamente cada 30s. Los filtros y la búsqueda no requieren recargar la página.";
 
-      // Inicializar filtros una sola vez o cuando cambie estructura
       initFilters();
-
-      // Aplicar filtros actuales
       applyFilters();
     } catch(e){
       console.error(e);
-      document.getElementById("statusPill").textContent = "Error cargando CSV";
+      document.getElementById("statusPill").textContent = "Error cargando datos";
       document.getElementById("note").textContent =
         "Revisa que el Sheet sea público (lector) y que el gid sea correcto.";
     }
@@ -472,17 +658,26 @@
 
   document.getElementById("btnNow").addEventListener("click", loadData);
 
-  document.getElementById("prev").addEventListener("click", () => { page = Math.max(1, page-1); renderTable(); });
-  document.getElementById("next").addEventListener("click", () => {
-    const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
-    page = Math.min(totalPages, page+1);
+  document.getElementById("prev").addEventListener("click", () => {
+    page = Math.max(1, page - 1);
     renderTable();
   });
-  document.getElementById("pageSize").addEventListener("change", () => { page = 1; renderTable(); });
+
+  document.getElementById("next").addEventListener("click", () => {
+    const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+    page = Math.min(totalPages, page + 1);
+    renderTable();
+  });
+
+  document.getElementById("pageSize").addEventListener("change", () => {
+    page = 1;
+    renderTable();
+  });
 
   // ================= START =================
   loadData();
   setInterval(loadData, AUTO_REFRESH_MS);
 </script>
+
 </body>
 </html>
