@@ -1,0 +1,488 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Dashboard - Registro</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <style>
+    :root{
+      --bg:#0b1220; --card:#111b2e; --muted:#9fb0d0; --text:#eaf0ff; --border:rgba(255,255,255,0.10);
+    }
+    body{ margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial; background:linear-gradient(180deg,#070b14,#0b1220); color:var(--text); }
+    .wrap{ max-width:1200px; margin:0 auto; padding:22px; }
+    header{ display:flex; gap:12px; align-items:flex-start; justify-content:space-between; flex-wrap:wrap; }
+    h1{ font-size:20px; margin:0; letter-spacing:0.2px; }
+    .sub{ color:var(--muted); font-size:12px; margin-top:6px; line-height:1.4; }
+    .pill{ display:inline-block; padding:4px 10px; border:1px solid var(--border); border-radius:999px; color:var(--muted); font-size:12px; }
+    .row{ display:grid; grid-template-columns: repeat(12, 1fr); gap:14px; margin-top:14px; }
+    .card{ background:rgba(17,27,46,0.85); border:1px solid var(--border); border-radius:14px; padding:14px; box-shadow: 0 10px 30px rgba(0,0,0,0.25); }
+    .kpi{ grid-column: span 3; min-height:92px; }
+    .kpi .label{ color:var(--muted); font-size:12px; }
+    .kpi .value{ font-size:24px; margin-top:6px; font-weight:750; }
+    .kpi .delta{ margin-top:6px; font-size:12px; color:var(--muted); }
+    .panel{ grid-column: span 6; }
+    .table{ grid-column: span 12; overflow:auto; }
+    .controls{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-top:10px; }
+    input, select, button{
+      background:#0b1426; border:1px solid var(--border); color:var(--text);
+      border-radius:10px; padding:8px 10px; font-size:12px;
+    }
+    button{ cursor:pointer; }
+    button:hover{ border-color:rgba(255,255,255,0.20); }
+    canvas{ width:100% !important; height:320px !important; }
+    table{ width:100%; border-collapse:collapse; font-size:12px; }
+    th,td{ padding:10px; border-bottom:1px solid var(--border); text-align:left; white-space:nowrap; }
+    th{ color:var(--muted); font-weight:650; position:sticky; top:0; background:rgba(17,27,46,0.98); }
+    .muted{ color:var(--muted); }
+    .right{ text-align:right; }
+    .pager{ display:flex; gap:10px; align-items:center; justify-content:space-between; margin-top:10px; flex-wrap:wrap; }
+    @media (max-width: 980px){
+      .kpi{ grid-column: span 6; }
+      .panel{ grid-column: span 12; }
+      canvas{ height:280px !important; }
+    }
+  </style>
+</head>
+
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Dashboard (Registro) <span class="pill" id="statusPill">Conectando…</span></h1>
+      <div class="sub">
+        Fuente: Google Sheets (CSV en vivo) · Auto-actualización: <b>30s</b><br>
+        Última actualización: <b id="lastLoad">—</b>
+      </div>
+
+      <div class="controls">
+        <select id="fUniversidad"></select>
+        <select id="fModalidad"></select>
+        <select id="fAcademia"></select>
+        <select id="fCarrera"></select>
+        <input id="q" type="text" placeholder="Buscar: nombre / correo / DNI / celular" size="34">
+        <button id="btnNow">Actualizar ahora</button>
+      </div>
+      <div class="sub muted" id="note"></div>
+    </div>
+  </header>
+
+  <div class="row">
+    <div class="card kpi">
+      <div class="label">Registros totales</div>
+      <div class="value" id="kpiTotal">—</div>
+      <div class="delta" id="kpiTotal2">—</div>
+    </div>
+    <div class="card kpi">
+      <div class="label">Universidades únicas</div>
+      <div class="value" id="kpiUni">—</div>
+      <div class="delta" id="kpiUni2">—</div>
+    </div>
+    <div class="card kpi">
+      <div class="label">Carreras únicas</div>
+      <div class="value" id="kpiCar">—</div>
+      <div class="delta" id="kpiCar2">—</div>
+    </div>
+    <div class="card kpi">
+      <div class="label">Academias únicas</div>
+      <div class="value" id="kpiAca">—</div>
+      <div class="delta" id="kpiAca2">—</div>
+    </div>
+
+    <div class="card panel">
+      <div class="muted" style="font-size:12px;margin-bottom:6px;">Top Universidades</div>
+      <canvas id="chartUni"></canvas>
+    </div>
+    <div class="card panel">
+      <div class="muted" style="font-size:12px;margin-bottom:6px;">Distribución por Modalidad</div>
+      <canvas id="chartMod"></canvas>
+    </div>
+
+    <div class="card panel">
+      <div class="muted" style="font-size:12px;margin-bottom:6px;">Top Carreras</div>
+      <canvas id="chartCar"></canvas>
+    </div>
+    <div class="card panel">
+      <div class="muted" style="font-size:12px;margin-bottom:6px;">Top Academias</div>
+      <canvas id="chartAca"></canvas>
+    </div>
+
+    <div class="card table">
+      <div class="muted" style="font-size:12px;">Tabla (filtrable y buscable)</div>
+      <div id="tblWrap" style="margin-top:10px;"></div>
+      <div class="pager">
+        <div class="muted" id="countText">—</div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+          <button id="prev">◀</button>
+          <span class="muted">Página</span>
+          <b id="page">1</b>
+          <span class="muted">/</span>
+          <b id="pages">1</b>
+          <button id="next">▶</button>
+          <select id="pageSize">
+            <option value="25">25 filas</option>
+            <option value="50" selected>50 filas</option>
+            <option value="100">100 filas</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ================= CONFIG =================
+  // Tu sheet (gid correcto) — CSV en vivo
+  const SHEETS_CSV_URL =
+    "https://docs.google.com/spreadsheets/d/1nHCBQLuJ8RZNtLisvAqD916pcxbUmtqPrMnO4V0ewvs/export?format=csv&gid=115906280";
+
+  const AUTO_REFRESH_MS = 30000; // 30s
+
+  // Encabezados esperados (tal como tú los pusiste)
+  const EXPECT = {
+    NOMBRES: "NOMBRES COMPLETOS",
+    CORREO: "CORREO",
+    DNI: "DNI",
+    CEL: "CELULAR",
+    UNI: "UNIVERSIDAD",
+    MOD: "MODALIDAD",
+    ACA: "ACADEMIA",
+    CAR: "CARRERA",
+  };
+
+  // ================= UTIL =================
+  function parseCSVLine(line){
+    const out = [];
+    let cur = "", inQ = false;
+    for (let i=0;i<line.length;i++){
+      const ch = line[i];
+      if (ch === '"'){
+        // Manejo simple de comillas dobles
+        if (inQ && line[i+1] === '"'){ cur += '"'; i++; }
+        else inQ = !inQ;
+      } else if (ch === "," && !inQ){
+        out.push(cur);
+        cur = "";
+      } else {
+        cur += ch;
+      }
+    }
+    out.push(cur);
+    return out.map(x => String(x ?? "").trim());
+  }
+
+  function norm(s){
+    return String(s ?? "").replace(/\s+/g," ").trim();
+  }
+
+  function uniq(arr){
+    return [...new Set(arr)];
+  }
+
+  function countBy(rows, key){
+    const m = new Map();
+    for (const r of rows){
+      const v = norm(r[key]);
+      if (!v) continue;
+      m.set(v, (m.get(v) || 0) + 1);
+    }
+    return [...m.entries()].sort((a,b)=> b[1]-a[1]);
+  }
+
+  function fillSelect(selId, values, labelAll){
+    const sel = document.getElementById(selId);
+    sel.innerHTML = "";
+    const all = document.createElement("option");
+    all.value = "__ALL__";
+    all.textContent = labelAll;
+    sel.appendChild(all);
+    for (const v of values){
+      const opt = document.createElement("option");
+      opt.value = v;
+      opt.textContent = v;
+      sel.appendChild(opt);
+    }
+  }
+
+  function safeLower(s){ return String(s ?? "").toLowerCase(); }
+
+  // ================= STATE =================
+  let raw = [];
+  let filtered = [];
+  let page = 1;
+  let pageSize = 50;
+
+  let chartUni, chartMod, chartCar, chartAca;
+
+  function applyFilters(){
+    const u = document.getElementById("fUniversidad").value;
+    const m = document.getElementById("fModalidad").value;
+    const a = document.getElementById("fAcademia").value;
+    const c = document.getElementById("fCarrera").value;
+    const q = safeLower(document.getElementById("q").value);
+
+    filtered = raw.filter(r => {
+      if (u !== "__ALL__" && norm(r.universidad) !== u) return false;
+      if (m !== "__ALL__" && norm(r.modalidad) !== m) return false;
+      if (a !== "__ALL__" && norm(r.academia) !== a) return false;
+      if (c !== "__ALL__" && norm(r.carrera) !== c) return false;
+
+      if (q){
+        const blob = [
+          r.nombres, r.correo, r.dni, r.celular,
+          r.universidad, r.modalidad, r.academia, r.carrera
+        ].map(safeLower).join(" | ");
+        if (!blob.includes(q)) return false;
+      }
+      return true;
+    });
+
+    page = 1;
+    renderAll();
+  }
+
+  function renderKPIs(){
+    document.getElementById("kpiTotal").textContent = filtered.length.toLocaleString("es-PE");
+    const unis = uniq(filtered.map(r => norm(r.universidad)).filter(Boolean));
+    const cars = uniq(filtered.map(r => norm(r.carrera)).filter(Boolean));
+    const acas = uniq(filtered.map(r => norm(r.academia)).filter(Boolean));
+
+    document.getElementById("kpiUni").textContent = unis.length.toLocaleString("es-PE");
+    document.getElementById("kpiCar").textContent = cars.length.toLocaleString("es-PE");
+    document.getElementById("kpiAca").textContent = acas.length.toLocaleString("es-PE");
+
+    // texto auxiliar
+    document.getElementById("kpiTotal2").textContent = "Filtrados según selección";
+    document.getElementById("kpiUni2").textContent = "Según filtro aplicado";
+    document.getElementById("kpiCar2").textContent = "Según filtro aplicado";
+    document.getElementById("kpiAca2").textContent = "Según filtro aplicado";
+  }
+
+  function renderCharts(){
+    const topN = 10;
+
+    const uni = countBy(filtered, "universidad").slice(0, topN);
+    const mod = countBy(filtered, "modalidad").slice(0, 6);
+    const car = countBy(filtered, "carrera").slice(0, topN);
+    const aca = countBy(filtered, "academia").slice(0, topN);
+
+    const mkBar = (ctx, labels, values, title, existing) => {
+      if (!existing){
+        return new Chart(ctx, {
+          type: "bar",
+          data: { labels, datasets: [{ label: title, data: values }] },
+          options: {
+            responsive:true,
+            plugins:{ legend:{ display:false } },
+            scales:{
+              x:{ ticks:{ color:"#9fb0d0" }, grid:{ color:"rgba(255,255,255,0.07)" } },
+              y:{ ticks:{ color:"#9fb0d0" }, grid:{ color:"rgba(255,255,255,0.07)" }, beginAtZero:true }
+            }
+          }
+        });
+      } else {
+        existing.data.labels = labels;
+        existing.data.datasets[0].data = values;
+        existing.update();
+        return existing;
+      }
+    };
+
+    chartUni = mkBar(document.getElementById("chartUni"), uni.map(x=>x[0]), uni.map(x=>x[1]), "Universidades", chartUni);
+    chartMod = mkBar(document.getElementById("chartMod"), mod.map(x=>x[0]), mod.map(x=>x[1]), "Modalidad", chartMod);
+    chartCar = mkBar(document.getElementById("chartCar"), car.map(x=>x[0]), car.map(x=>x[1]), "Carreras", chartCar);
+    chartAca = mkBar(document.getElementById("chartAca"), aca.map(x=>x[0]), aca.map(x=>x[1]), "Academias", chartAca);
+  }
+
+  function renderTable(){
+    pageSize = Number(document.getElementById("pageSize").value) || 50;
+    const total = filtered.length;
+    const totalPages = Math.max(1, Math.ceil(total / pageSize));
+    page = Math.min(page, totalPages);
+
+    const start = (page - 1) * pageSize;
+    const end = Math.min(total, start + pageSize);
+    const slice = filtered.slice(start, end);
+
+    document.getElementById("page").textContent = page;
+    document.getElementById("pages").textContent = totalPages;
+    document.getElementById("countText").textContent =
+      `Mostrando ${start+1}-${end} de ${total} registros`;
+
+    const html = `
+      <table>
+        <thead>
+          <tr>
+            <th>NOMBRES</th>
+            <th>CORREO</th>
+            <th>DNI</th>
+            <th>CELULAR</th>
+            <th>UNIVERSIDAD</th>
+            <th>MODALIDAD</th>
+            <th>ACADEMIA</th>
+            <th>CARRERA</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${slice.map(r => `
+            <tr>
+              <td>${escapeHtml(r.nombres)}</td>
+              <td>${escapeHtml(r.correo)}</td>
+              <td>${escapeHtml(r.dni)}</td>
+              <td>${escapeHtml(r.celular)}</td>
+              <td>${escapeHtml(r.universidad)}</td>
+              <td>${escapeHtml(r.modalidad)}</td>
+              <td>${escapeHtml(r.academia)}</td>
+              <td>${escapeHtml(r.carrera)}</td>
+            </tr>
+          `).join("")}
+        </tbody>
+      </table>
+    `;
+    document.getElementById("tblWrap").innerHTML = html;
+  }
+
+  function escapeHtml(str){
+    return String(str ?? "")
+      .replaceAll("&","&amp;")
+      .replaceAll("<","&lt;")
+      .replaceAll(">","&gt;")
+      .replaceAll('"',"&quot;")
+      .replaceAll("'","&#039;");
+  }
+
+  function renderAll(){
+    renderKPIs();
+    renderCharts();
+    renderTable();
+  }
+
+  function initFilters(){
+    const unis = uniq(raw.map(r => norm(r.universidad)).filter(Boolean)).sort();
+    const mods = uniq(raw.map(r => norm(r.modalidad)).filter(Boolean)).sort();
+    const acas = uniq(raw.map(r => norm(r.academia)).filter(Boolean)).sort();
+    const cars = uniq(raw.map(r => norm(r.carrera)).filter(Boolean)).sort();
+
+    fillSelect("fUniversidad", unis, "Universidad: Todas");
+    fillSelect("fModalidad", mods, "Modalidad: Todas");
+    fillSelect("fAcademia", acas, "Academia: Todas");
+    fillSelect("fCarrera", cars, "Carrera: Todas");
+  }
+
+  // ================= LOAD DATA =================
+  async function loadData(){
+    const url = SHEETS_CSV_URL + (SHEETS_CSV_URL.includes("?") ? "&" : "?") + "v=" + Date.now();
+
+    try{
+      const res = await fetch(url, { cache: "no-store" });
+      if (!res.ok) throw new Error("HTTP " + res.status);
+
+      const text = await res.text();
+      const lines = text.split(/\r?\n/).filter(l => l.trim().length > 0);
+
+      // Detecta la fila de encabezados aunque esté desde D2 a K2 (con A-C vacíos)
+      let headerIdx = -1;
+      let headerCells = null;
+
+      for (let i=0;i<Math.min(lines.length, 50);i++){
+        const cells = parseCSVLine(lines[i]).map(norm);
+        const hasNames = cells.includes(EXPECT.NOMBRES);
+        const hasCorreo = cells.includes(EXPECT.CORREO);
+        const hasDni = cells.includes(EXPECT.DNI);
+        if (hasNames && hasCorreo && hasDni){
+          headerIdx = i;
+          headerCells = cells;
+          break;
+        }
+      }
+
+      if (headerIdx === -1){
+        document.getElementById("statusPill").textContent = "Error: no encontré encabezados";
+        document.getElementById("note").textContent =
+          "No se detectó la fila con 'NOMBRES COMPLETOS, CORREO, DNI...'. Verifica que estén exactamente así en la hoja.";
+        return;
+      }
+
+      // Mapeo de índices (por si hay columnas vacías antes)
+      const idx = (name) => headerCells.findIndex(h => norm(h) === name);
+
+      const iN = idx(EXPECT.NOMBRES);
+      const iC = idx(EXPECT.CORREO);
+      const iD = idx(EXPECT.DNI);
+      const iT = idx(EXPECT.CEL);
+      const iU = idx(EXPECT.UNI);
+      const iM = idx(EXPECT.MOD);
+      const iA = idx(EXPECT.ACA);
+      const iR = idx(EXPECT.CAR);
+
+      const required = [iN,iC,iD,iT,iU,iM,iA,iR];
+      if (required.some(x => x < 0)){
+        document.getElementById("statusPill").textContent = "Error: columnas faltantes";
+        document.getElementById("note").textContent =
+          "Faltan algunas columnas esperadas. Verifica que los encabezados estén exactamente como me los diste.";
+        return;
+      }
+
+      // Datos: desde la fila posterior al header
+      const out = [];
+      for (let i=headerIdx+1; i<lines.length; i++){
+        const cells = parseCSVLine(lines[i]);
+        // Ignora filas totalmente vacías
+        const any = cells.some(v => norm(v).length > 0);
+        if (!any) continue;
+
+        out.push({
+          nombres: norm(cells[iN]),
+          correo: norm(cells[iC]),
+          dni: norm(cells[iD]),
+          celular: norm(cells[iT]),
+          universidad: norm(cells[iU]),
+          modalidad: norm(cells[iM]),
+          academia: norm(cells[iA]),
+          carrera: norm(cells[iR]),
+        });
+      }
+
+      raw = out;
+
+      document.getElementById("statusPill").textContent = "OK · Datos actualizados";
+      document.getElementById("lastLoad").textContent = new Date().toLocaleString("es-PE");
+      document.getElementById("note").textContent =
+        "Actualiza solo cada 30s. Si editas el Sheet, el dashboard reflejará cambios automáticamente.";
+
+      // Inicializar filtros una sola vez o cuando cambie estructura
+      initFilters();
+
+      // Aplicar filtros actuales
+      applyFilters();
+    } catch(e){
+      console.error(e);
+      document.getElementById("statusPill").textContent = "Error cargando CSV";
+      document.getElementById("note").textContent =
+        "Revisa que el Sheet sea público (lector) y que el gid sea correcto.";
+    }
+  }
+
+  // ================= EVENTS =================
+  document.getElementById("fUniversidad").addEventListener("change", applyFilters);
+  document.getElementById("fModalidad").addEventListener("change", applyFilters);
+  document.getElementById("fAcademia").addEventListener("change", applyFilters);
+  document.getElementById("fCarrera").addEventListener("change", applyFilters);
+  document.getElementById("q").addEventListener("input", applyFilters);
+
+  document.getElementById("btnNow").addEventListener("click", loadData);
+
+  document.getElementById("prev").addEventListener("click", () => { page = Math.max(1, page-1); renderTable(); });
+  document.getElementById("next").addEventListener("click", () => {
+    const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+    page = Math.min(totalPages, page+1);
+    renderTable();
+  });
+  document.getElementById("pageSize").addEventListener("change", () => { page = 1; renderTable(); });
+
+  // ================= START =================
+  loadData();
+  setInterval(loadData, AUTO_REFRESH_MS);
+</script>
+</body>
+</html>
