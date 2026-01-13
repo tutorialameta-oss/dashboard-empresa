@@ -21,7 +21,7 @@
       --shadow: 0 14px 34px rgba(15,23,42,0.10);
       --radius:18px;
 
-      /* Colores universidades (OBLIGATORIO) */
+      /* Universidades (exactos) */
       --pucp:#6ea8da;
       --ulima:#ff9900;
       --agraria:#4caf50;
@@ -257,7 +257,6 @@
       background:#fafafa;
       font-weight:950;
       font-size:12px;
- mention: none;
     }
 
     table{ width:100%; border-collapse: collapse; font-size:12px; }
@@ -369,29 +368,26 @@
 
   const AUTO_REFRESH_MS = 30000;
 
-  // Colores universidades (exactos como pediste)
   const UNI_COLORS = {
     "PUCP": "#6ea8da",
     "U.LIMA": "#ff9900",
     "AGRARIA": "#4caf50",
   };
 
-  // Modalidad (diferentes)
+  function getCss(varName){
+    return getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
+  }
+
   const MOD_COLORS = {
     "PRESENCIAL": getCss("--pres"),
     "VIRTUAL": getCss("--virt"),
   };
 
-  // Estados para resumen general
   const EST_COLORS = {
     "ACTIVO": getCss("--ok"),
     "RETIRO": getCss("--bad"),
     "CAMBIO": getCss("--warn"),
   };
-
-  function getCss(varName){
-    return getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
-  }
 
   function uniGroupFromCiclo(ciclo){
     const c = String(ciclo||"").trim().toUpperCase();
@@ -475,7 +471,6 @@
     return (localFallback === "VIRTUAL") ? "VIRTUAL" : "PRESENCIAL";
   }
 
-  // Canonical matrícula: SOLO ACTIVO/RETIRO (CAMBIO NO suma al total)
   function dedupeMatriculaByName(rows){
     const best = new Map();
     const score = (estado) => estado==="ACTIVO" ? 2 : 1;
@@ -488,6 +483,119 @@
     return [...best.values()];
   }
 
+  // ============================ PLUGIN (DONUT LABELS OUTSIDE + LINES) ============================
+  // Evita cruces sacando labels de porciones pequeñas hacia afuera con "leader lines"
+  const donutOutsideLabels = {
+    id: "donutOutsideLabels",
+    afterDatasetsDraw(chart, args, pluginOptions){
+      const opt = pluginOptions || {};
+      if (chart.config.type !== "doughnut") return;
+
+      const ctx = chart.ctx;
+      const dsIndex = opt.datasetIndex ?? 0;
+      const dataset = chart.data.datasets[dsIndex];
+      if (!dataset) return;
+
+      const meta = chart.getDatasetMeta(dsIndex);
+      if (!meta || !meta.data || !meta.data.length) return;
+
+      const values = dataset.data.map(v => +v || 0);
+      const total = values.reduce((a,b)=>a+b,0) || 1;
+
+      const minPct = opt.minPercent ?? 6;      // <= este % se manda afuera
+      const lineColor = opt.lineColor ?? "rgba(15,23,42,0.55)";
+      const fontSize = opt.fontSize ?? 14;
+      const fontWeight = opt.fontWeight ?? 950;
+      const textColor = opt.textColor ?? "#111827";
+      const strokeColor = opt.textStrokeColor ?? "#ffffff";
+      const strokeW = opt.textStrokeWidth ?? 4;
+      const extra = opt.outsideOffset ?? 18;
+
+      // Recolectar puntos y separar (izq / der) para evitar solape vertical
+      const left = [];
+      const right = [];
+
+      meta.data.forEach((arc, i) => {
+        const v = values[i];
+        if (!v) return;
+
+        const pct = (v/total)*100;
+        if (pct >= minPct) return; // los grandes se quedan con datalabels interno
+
+        const {x, y, startAngle, endAngle, outerRadius} = arc.getProps(
+          ["x","y","startAngle","endAngle","outerRadius"], true
+        );
+        const angle = (startAngle + endAngle) / 2;
+        const cos = Math.cos(angle);
+        const sin = Math.sin(angle);
+
+        const x1 = x + cos * (outerRadius + 2);
+        const y1 = y + sin * (outerRadius + 2);
+        const x2 = x + cos * (outerRadius + extra);
+        const y2 = y + sin * (outerRadius + extra);
+
+        const side = (cos >= 0) ? "right" : "left";
+        const label = `${v} (${Math.round(pct)}%)`;
+
+        (side==="right" ? right : left).push({
+          i, x, y, x1, y1, x2, y2, side, label,
+          targetY: y2
+        });
+      });
+
+      // Separar para evitar cruce vertical (simple: ordena y empuja si está cerca)
+      function spread(items){
+        items.sort((a,b)=>a.targetY - b.targetY);
+        const gap = opt.minGap ?? 18;
+        for (let k=1;k<items.length;k++){
+          if (items[k].targetY - items[k-1].targetY < gap){
+            items[k].targetY = items[k-1].targetY + gap;
+          }
+        }
+      }
+      spread(left);
+      spread(right);
+
+      // Dibujar
+      ctx.save();
+      ctx.font = `${fontWeight} ${fontSize}px system-ui,-apple-system,Segoe UI,Roboto,Arial`;
+      ctx.fillStyle = textColor;
+      ctx.strokeStyle = lineColor;
+      ctx.lineWidth = 1.2;
+
+      function drawItem(it){
+        const align = (it.side==="right") ? "left" : "right";
+        const x3 = it.x2 + (it.side==="right" ? 14 : -14);
+        const y3 = it.targetY;
+
+        // line: arc -> outside -> horizontal
+        ctx.beginPath();
+        ctx.moveTo(it.x1, it.y1);
+        ctx.lineTo(it.x2, y3);
+        ctx.lineTo(x3, y3);
+        ctx.stroke();
+
+        // text
+        ctx.textAlign = align;
+        ctx.textBaseline = "middle";
+
+        // stroke text (white) for contrast
+        ctx.save();
+        ctx.lineWidth = strokeW;
+        ctx.strokeStyle = strokeColor;
+        ctx.strokeText(it.label, x3, y3);
+        ctx.restore();
+
+        ctx.fillStyle = textColor;
+        ctx.fillText(it.label, x3, y3);
+      }
+
+      left.forEach(drawItem);
+      right.forEach(drawItem);
+      ctx.restore();
+    }
+  };
+
   // ============================ STATE ============================
   const state = {
     view: "overview",
@@ -496,22 +604,21 @@
     cambiosRows: [],
     filtered: [],
 
-    // overview charts
     ch_over_estado: null,
     ch_over_modalidad: null,
     ch_over_uni_stack: null,
 
-    // local charts
     ch_loc_activos_salon: null,
     ch_loc_retiros_salon: null,
   };
 
   // ============================ CHART BASE ============================
-  Chart.register(ChartDataLabels);
+  Chart.register(ChartDataLabels, donutOutsideLabels);
+
   const GRID = "rgba(15,23,42,0.10)";
   const TICK = "#64748b";
 
-  function mkDoughnutWithLabels(canvasId, labels, values, colors){
+  function mkDoughnutWithLabels(canvasId, labels, values, colors, outsideOpts){
     const canvas = document.getElementById(canvasId);
     if (!canvas) return null;
 
@@ -532,25 +639,36 @@
         maintainAspectRatio:false,
         animation:false,
         cutout: "62%",
+        layout:{ padding:{ top: 16, right: 26, bottom: 16, left: 26 } }, // espacio para labels afuera
         plugins:{
           legend:{ position:"bottom", labels:{ color:TICK, font:{ weight:"900" } } },
           tooltip:{ enabled:true },
+
+          // Datlabel "interno" solo para porciones grandes
           datalabels:{
-            color:"#0f172a",
+            color:"#111827",
+            textStrokeColor:"#ffffff",
+            textStrokeWidth:4,
             font:{ weight:"950", size: 14 },
             formatter:(v, ctx)=>{
               const data = ctx.chart.data.datasets[0].data || [];
               const total = data.reduce((a,b)=>a+(+b||0),0) || 1;
-              const p = Math.round((v/total)*100);
-              return v ? `${v} (${p}%)` : "";
+              const p = (v/total)*100;
+              if (!v) return "";
+              // si es pequeño, NO lo pintamos adentro (lo pinta el plugin afuera)
+              if (p < ((outsideOpts?.minPercent) ?? 6)) return "";
+              return `${v} (${Math.round(p)}%)`;
             }
-          }
+          },
+
+          // Plugin labels externos (para pequeños)
+          donutOutsideLabels: outsideOpts || { minPercent: 6 }
         }
       }
     });
   }
 
-  // Barra con labels muy legibles (negro + borde blanco)
+  // Barra con labels legibles para "Por local"
   function mkBarReadable(canvasId, titleLabel){
     const canvas = document.getElementById(canvasId);
     if (!canvas) return null;
@@ -578,14 +696,14 @@
           legend:{ display:false },
           tooltip:{ enabled:true },
           datalabels:{
-            color:"#111827",               // negro
-            textStrokeColor:"#ffffff",     // borde blanco
-            textStrokeWidth: 4,
+            color:"#111827",
+            textStrokeColor:"#ffffff",
+            textStrokeWidth:4,
             font:{ weight:"950", size: 15 },
             anchor:"end",
             align:(ctx)=>{
               const v = ctx.dataset.data[ctx.dataIndex] || 0;
-              return v <= 2 ? "end" : "center"; // si es chico, arriba; si no, centro
+              return v <= 2 ? "end" : "center";
             },
             offset:(ctx)=>{
               const v = ctx.dataset.data[ctx.dataIndex] || 0;
@@ -621,7 +739,7 @@
     });
   }
 
-  // Barra apilada por universidad (resumen general)
+  // Barra apilada por universidad: labels NO se cruzan
   function mkStackedUni(canvasId){
     const canvas = document.getElementById(canvasId);
     if (!canvas) return null;
@@ -631,14 +749,31 @@
       data:{
         labels: ["AGRARIA","PUCP","U.LIMA"],
         datasets:[
-          { label:"ACTIVOS", data:[0,0,0], backgroundColor:"rgba(76,175,80,0.18)", borderColor:"rgba(76,175,80,0.25)", borderWidth:1.2, borderRadius:10, stack:"s1" },
-          { label:"RETIROS", data:[0,0,0], backgroundColor:"rgba(220,38,38,0.25)", borderColor:"rgba(220,38,38,0.35)", borderWidth:1.2, borderRadius:10, stack:"s1" },
+          {
+            label:"ACTIVOS",
+            data:[0,0,0],
+            backgroundColor:"rgba(76,175,80,0.18)",
+            borderColor:"rgba(76,175,80,0.25)",
+            borderWidth:1.2,
+            borderRadius:10,
+            stack:"s1"
+          },
+          {
+            label:"RETIROS",
+            data:[0,0,0],
+            backgroundColor:"rgba(220,38,38,0.25)",
+            borderColor:"rgba(220,38,38,0.35)",
+            borderWidth:1.2,
+            borderRadius:10,
+            stack:"s1"
+          },
         ]
       },
       options:{
         responsive:true,
         maintainAspectRatio:false,
         animation:false,
+        layout:{ padding:{ top: 30, right: 10, left: 10, bottom: 10 } },
         plugins:{
           legend:{ position:"bottom", labels:{ color:TICK, font:{ weight:"900" } } },
           tooltip:{ enabled:true },
@@ -647,9 +782,17 @@
             textStrokeColor:"#ffffff",
             textStrokeWidth:4,
             font:{ weight:"950", size: 13 },
-            anchor:"end",
-            align:"end",
-            formatter:(v)=> (v>0) ? v : ""
+            // Diferenciar posición por dataset
+            anchor:(ctx)=> ctx.datasetIndex === 0 ? "center" : "end",
+            align:(ctx)=>  ctx.datasetIndex === 0 ? "center" : "end",
+            offset:(ctx)=> ctx.datasetIndex === 0 ? 0 : 4,
+            clamp:true,
+            clip:false,
+            formatter:(v, ctx)=>{
+              if (!v || v<=0) return "";
+              // Activos adentro, Retiros afuera (arriba)
+              return v;
+            }
           }
         },
         scales:{
@@ -690,7 +833,6 @@
     document.getElementById("viewTitle").textContent = titles[v][0];
     document.getElementById("viewDesc").textContent = titles[v][1];
 
-    // POR LOCAL: siempre por salones del local, sin forzar a sumar por universidad
     const uniSel = document.getElementById("fUni");
     const salSel = document.getElementById("fSalon");
     if (v === "local"){
@@ -758,7 +900,6 @@
     const el = document.getElementById("view_overview");
     if (el.dataset.ready === "1") return;
 
-    // Panel real: KPIs + donut estado + donut modalidad + distribución por universidad + mini cards con logos
     el.innerHTML = `
       <div class="card kpi">
         <div class="label">TOTAL DE ALUMNOS</div>
@@ -844,20 +985,25 @@
       </div>
     `;
 
+    // Donut ESTADO: sacar labels pequeños afuera (retiro/cambio) con líneas
     state.ch_over_estado = mkDoughnutWithLabels(
       "over_estado",
       ["ACTIVO","RETIRO","CAMBIO"],
       [0,0,0],
-      [EST_COLORS.ACTIVO, EST_COLORS.RETIRO, EST_COLORS.CAMBIO]
+      [EST_COLORS.ACTIVO, EST_COLORS.RETIRO, EST_COLORS.CAMBIO],
+      { minPercent: 6, outsideOffset: 22, minGap: 18, fontSize: 14 }
     );
 
+    // Donut MODALIDAD: también con anti-cruce (por si algún caso queda muy extremo)
     state.ch_over_modalidad = mkDoughnutWithLabels(
       "over_modalidad",
       ["PRESENCIAL","VIRTUAL"],
       [0,0],
-      [MOD_COLORS.PRESENCIAL, MOD_COLORS.VIRTUAL]
+      [MOD_COLORS.PRESENCIAL, MOD_COLORS.VIRTUAL],
+      { minPercent: 10, outsideOffset: 18, minGap: 18, fontSize: 14 }
     );
 
+    // Barras apiladas universidad: activos adentro, retiros afuera
     state.ch_over_uni_stack = mkStackedUni("over_uni_stack");
 
     el.dataset.ready = "1";
@@ -928,7 +1074,6 @@
       </div>
     `;
 
-    // barras con labels visibles (negro con borde blanco)
     state.ch_loc_activos_salon = mkBarReadable("loc_activos_salon", "ACTIVOS");
     state.ch_loc_retiros_salon = mkBarReadable("loc_retiros_salon", "RETIROS");
 
@@ -973,7 +1118,6 @@
     const ret = rows.filter(r=>r.estado==="RETIRO").length;
     const total = act + ret;
 
-    // cambios KPI (no suma al total)
     const fLocal = document.getElementById("fLocal").value;
     const fUni   = document.getElementById("fUni").value;
     const fSalon = document.getElementById("fSalon").value;
@@ -1001,14 +1145,12 @@
     document.getElementById("k_ret").textContent = ret.toLocaleString("es-PE");
     document.getElementById("k_cam").textContent = cambiosUnique.toLocaleString("es-PE");
 
-    // Donuts
     state.ch_over_estado.data.datasets[0].data = [act, ret, cambiosUnique];
     state.ch_over_estado.update("none");
 
     state.ch_over_modalidad.data.datasets[0].data = [pres, virt];
     state.ch_over_modalidad.update("none");
 
-    // Resumen por universidad (ACTIVOS/RETIROS)
     const aAct = rows.filter(r=>uniGroupFromCiclo(r.ciclo)==="AGRARIA" && r.estado==="ACTIVO").length;
     const aRet = rows.filter(r=>uniGroupFromCiclo(r.ciclo)==="AGRARIA" && r.estado==="RETIRO").length;
 
@@ -1025,7 +1167,6 @@
     document.getElementById("uL_act").textContent = lAct;
     document.getElementById("uL_ret").textContent = lRet;
 
-    // Chart apilado: dataset0 activos, dataset1 retiros
     state.ch_over_uni_stack.data.datasets[0].data = [aAct, pAct, lAct];
     state.ch_over_uni_stack.data.datasets[1].data = [aRet, pRet, lRet];
     state.ch_over_uni_stack.update("none");
@@ -1038,7 +1179,6 @@
     const fMod   = document.getElementById("fModalidad").value;
     const q      = low(document.getElementById("q").value);
 
-    // salones del local
     let salonesLocal = SALONES
       .filter(s => (fLocal==="__ALL__" ? true : s.local === fLocal))
       .map(s => s.salon);
@@ -1074,7 +1214,6 @@
     document.getElementById("lk_ret").textContent = ret.toLocaleString("es-PE");
     document.getElementById("lk_cam").textContent = cambiosUnique.toLocaleString("es-PE");
 
-    // Activos por salón + color por universidad
     const activosPorSalon = salonesLocal.map(s => baseMat.filter(r=>r.salon===s && r.estado==="ACTIVO").length);
 
     const activosColors = salonesLocal.map(s=>{
@@ -1083,14 +1222,12 @@
       return UNI_COLORS[uni] || UNI_COLORS["AGRARIA"];
     });
 
-    // Retiros por salón (rojo)
     const retirosPorSalon = salonesLocal.map(s => baseMat.filter(r=>r.salon===s && r.estado==="RETIRO").length);
     const retirosColors = salonesLocal.map(_ => "#dc2626");
 
     setChartData(state.ch_loc_activos_salon, salonesLocal, activosPorSalon, activosColors);
     setChartData(state.ch_loc_retiros_salon, salonesLocal, retirosPorSalon, retirosColors);
 
-    // Tabla
     const tbody = document.getElementById("loc_table_salon");
     tbody.innerHTML = salonesLocal.map(s=>{
       const rs = baseMat.filter(r=>r.salon===s);
@@ -1211,11 +1348,9 @@
 
       state.rawRows = rows;
 
-      // Matrícula (ACTIVO/RETIRO) consolidada por nombre
       const matriculaRows = state.rawRows.filter(r => r.estado==="ACTIVO" || r.estado==="RETIRO");
       state.canonical = dedupeMatriculaByName(matriculaRows);
 
-      // Cambios (eventos)
       state.cambiosRows = state.rawRows.filter(r => r.estado==="CAMBIO");
 
       initFilters();
