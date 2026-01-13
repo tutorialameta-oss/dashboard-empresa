@@ -21,11 +21,19 @@
       --shadow: 0 14px 34px rgba(15,23,42,0.10);
       --radius:18px;
 
-      --ok:#16a34a;   /* ACTIVO */
-      --bad:#dc2626;  /* RETIRO */
-      --warn:#f59e0b; /* CAMBIO */
-      --pucp:#2563eb; /* azul */
-      --ulima:#f59e0b;/* naranja */
+      /* Colores universidades (OBLIGATORIO) */
+      --pucp:#6ea8da;
+      --ulima:#ff9900;
+      --agraria:#4caf50;
+
+      /* Modalidad */
+      --pres:#ef6b6b;
+      --virt:#9aa4b2;
+
+      /* Estados */
+      --ok:#16a34a;
+      --bad:#dc2626;
+      --warn:#f59e0b;
     }
 
     *{ box-sizing:border-box; }
@@ -36,7 +44,6 @@
       color: var(--text);
       font-size: 14px;
     }
-
     .topbar{ height:10px; background:linear-gradient(90deg,var(--accent2),var(--accent)); }
 
     .app{
@@ -85,7 +92,6 @@
     }
 
     .nav{ margin-top:16px; display:flex; flex-direction:column; gap:10px; }
-
     .nav button{
       width:100%;
       text-align:left;
@@ -176,12 +182,14 @@
       min-width: 0;
     }
 
-    .kpi{ grid-column: span 3; min-height: 110px; }
+    .kpi{ grid-column: span 3; min-height: 118px; }
     .kpi .label{ color: var(--muted); font-size:12px; font-weight:950; text-transform: uppercase; }
-    .kpi .value{ margin-top:8px; font-size:34px; font-weight:950; color: var(--accent2); }
+    .kpi .value{ margin-top:8px; font-size:36px; font-weight:950; color: var(--accent2); }
     .kpi .hint{ margin-top:8px; color: var(--muted); font-size:12px; font-weight:900; text-transform: uppercase; }
 
     .panel12{ grid-column: span 12; }
+    .panel8{ grid-column: span 8; }
+    .panel4{ grid-column: span 4; }
     .panel6{ grid-column: span 6; }
 
     .cardtitle{
@@ -195,8 +203,62 @@
       flex-wrap:wrap;
     }
 
-    .chartBox{ height: 560px; }
+    .panelHint{
+      display:flex; gap:10px; align-items:center; flex-wrap:wrap;
+      color: var(--muted); font-weight:900; font-size:12px; text-transform: uppercase;
+    }
+    .dot{ width:10px; height:10px; border-radius:999px; display:inline-block; }
+    .dot.pucp{ background: var(--pucp); }
+    .dot.ulima{ background: var(--ulima); }
+    .dot.agraria{ background: var(--agraria); }
+    .dot.pres{ background: var(--pres); }
+    .dot.virt{ background: var(--virt); }
+
+    .chartBox{ height: 420px; }
+    .chartBoxTall{ height: 520px; }
     canvas{ width:100% !important; height:100% !important; }
+
+    .uniCards{
+      display:grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-top: 10px;
+    }
+    .uniCard{
+      border:1px solid var(--border);
+      border-radius: 16px;
+      padding: 12px;
+      display:flex; gap:10px; align-items:center;
+      background:#fff;
+    }
+    .uniCard img{
+      width:44px; height:44px; object-fit:contain;
+      border-radius:12px; border:1px solid var(--border);
+      padding:6px; background:#fff;
+    }
+    .uniCard .t{
+      display:flex; flex-direction:column; gap:2px; min-width:0;
+    }
+    .uniCard .name{
+      font-weight:950; font-size:12px; text-transform:uppercase;
+      color: var(--text);
+    }
+    .uniCard .nums{
+      color: var(--muted);
+      font-size:12px;
+      font-weight:900;
+      display:flex; gap:10px; flex-wrap:wrap;
+    }
+    .pill{
+      display:inline-flex; align-items:center; gap:6px;
+      padding:6px 10px;
+      border-radius:999px;
+      border:1px solid var(--border);
+      background:#fafafa;
+      font-weight:950;
+      font-size:12px;
+ mention: none;
+    }
 
     table{ width:100%; border-collapse: collapse; font-size:12px; }
     th, td{
@@ -219,10 +281,12 @@
       .app{ grid-template-columns: 1fr; }
       .sidebar{ position:relative; height:auto; }
       .kpi{ grid-column: span 6; }
-      .panel6{ grid-column: span 12; }
-      .chartBox{ height: 460px; }
+      .panel8, .panel6, .panel4{ grid-column: span 12; }
+      .chartBox{ height: 360px; }
+      .chartBoxTall{ height: 440px; }
       input{ min-width: 220px; }
       .controls{ justify-content:flex-start; }
+      .uniCards{ grid-template-columns: 1fr; }
     }
   </style>
 </head>
@@ -251,7 +315,7 @@
       <div class="headerline">
         <div class="title">
           <h2 id="viewTitle">RESUMEN GENERAL</h2>
-          <p id="viewDesc">Visión consolidada de matrícula y movimientos.</p>
+          <p id="viewDesc">Panel estructurado para control de matrícula, modalidad y distribución por universidad.</p>
         </div>
 
         <div class="controls">
@@ -305,12 +369,29 @@
 
   const AUTO_REFRESH_MS = 30000;
 
-  // Colores por universidad
+  // Colores universidades (exactos como pediste)
   const UNI_COLORS = {
-    "AGRARIA": "#16a34a",
-    "PUCP": "#2563eb",
-    "U.LIMA": "#f59e0b",
+    "PUCP": "#6ea8da",
+    "U.LIMA": "#ff9900",
+    "AGRARIA": "#4caf50",
   };
+
+  // Modalidad (diferentes)
+  const MOD_COLORS = {
+    "PRESENCIAL": getCss("--pres"),
+    "VIRTUAL": getCss("--virt"),
+  };
+
+  // Estados para resumen general
+  const EST_COLORS = {
+    "ACTIVO": getCss("--ok"),
+    "RETIRO": getCss("--bad"),
+    "CAMBIO": getCss("--warn"),
+  };
+
+  function getCss(varName){
+    return getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
+  }
 
   function uniGroupFromCiclo(ciclo){
     const c = String(ciclo||"").trim().toUpperCase();
@@ -394,6 +475,7 @@
     return (localFallback === "VIRTUAL") ? "VIRTUAL" : "PRESENCIAL";
   }
 
+  // Canonical matrícula: SOLO ACTIVO/RETIRO (CAMBIO NO suma al total)
   function dedupeMatriculaByName(rows){
     const best = new Map();
     const score = (estado) => estado==="ACTIVO" ? 2 : 1;
@@ -410,45 +492,66 @@
   const state = {
     view: "overview",
     rawRows: [],
-    canonical: [],   // matrícula (ACTIVO/RETIRO)
-    cambiosRows: [], // eventos CAMBIO (solo KPI)
+    canonical: [],
+    cambiosRows: [],
     filtered: [],
 
-    // overview
+    // overview charts
     ch_over_estado: null,
     ch_over_modalidad: null,
+    ch_over_uni_stack: null,
 
-    // local
+    // local charts
     ch_loc_activos_salon: null,
     ch_loc_retiros_salon: null,
   };
 
   // ============================ CHART BASE ============================
   Chart.register(ChartDataLabels);
-
   const GRID = "rgba(15,23,42,0.10)";
   const TICK = "#64748b";
 
-  function mkDoughnut(canvasId, labels, values, colors){
+  function mkDoughnutWithLabels(canvasId, labels, values, colors){
     const canvas = document.getElementById(canvasId);
     if (!canvas) return null;
+
     return new Chart(canvas, {
       type: "doughnut",
-      data: { labels, datasets:[{ data: values, backgroundColor: colors, borderColor:"rgba(15,23,42,0.06)", borderWidth:1 }] },
+      data: {
+        labels,
+        datasets:[{
+          data: values,
+          backgroundColor: colors,
+          borderColor:"rgba(15,23,42,0.06)",
+          borderWidth:1,
+          hoverOffset: 6
+        }]
+      },
       options: {
         responsive:true,
         maintainAspectRatio:false,
         animation:false,
+        cutout: "62%",
         plugins:{
-          legend:{ position:"bottom", labels:{ color:TICK, font:{ weight:"800" } } },
-          datalabels:{ display:false }
+          legend:{ position:"bottom", labels:{ color:TICK, font:{ weight:"900" } } },
+          tooltip:{ enabled:true },
+          datalabels:{
+            color:"#0f172a",
+            font:{ weight:"950", size: 14 },
+            formatter:(v, ctx)=>{
+              const data = ctx.chart.data.datasets[0].data || [];
+              const total = data.reduce((a,b)=>a+(+b||0),0) || 1;
+              const p = Math.round((v/total)*100);
+              return v ? `${v} (${p}%)` : "";
+            }
+          }
         }
       }
     });
   }
 
-  // Base de barra con valores GRANDES y dentro
-  function mkBarSalon(canvasId, titleLabel, yMax){
+  // Barra con labels muy legibles (negro + borde blanco)
+  function mkBarReadable(canvasId, titleLabel){
     const canvas = document.getElementById(canvasId);
     if (!canvas) return null;
 
@@ -462,26 +565,34 @@
           backgroundColor: [],
           borderColor: [],
           borderWidth: 1.5,
-          borderRadius: 10,
-          maxBarThickness: 72
+          borderRadius: 12,
+          maxBarThickness: 70
         }]
       },
       options:{
         responsive:true,
         maintainAspectRatio:false,
         animation:false,
-        layout:{ padding:{ top: 30, right: 10, left: 10, bottom: 10 } },
+        layout:{ padding:{ top: 26, right: 10, left: 10, bottom: 10 } },
         plugins:{
           legend:{ display:false },
           tooltip:{ enabled:true },
           datalabels:{
-            color:"#ffffff",
+            color:"#111827",               // negro
+            textStrokeColor:"#ffffff",     // borde blanco
+            textStrokeWidth: 4,
+            font:{ weight:"950", size: 15 },
             anchor:"end",
-            align:"start",     // dentro de la barra
+            align:(ctx)=>{
+              const v = ctx.dataset.data[ctx.dataIndex] || 0;
+              return v <= 2 ? "end" : "center"; // si es chico, arriba; si no, centro
+            },
+            offset:(ctx)=>{
+              const v = ctx.dataset.data[ctx.dataIndex] || 0;
+              return v <= 2 ? 2 : 0;
+            },
             clamp:true,
-            clip:true,
-            offset: -6,
-            font:{ weight:"950", size: 16 },
+            clip:false,
             formatter:(v)=> (v>0) ? v : ""
           }
         },
@@ -489,10 +600,10 @@
           x:{
             ticks:{
               color:TICK,
-              font:{ weight:"800" },
-              maxRotation: 35,
-              minRotation: 0,
+              font:{ weight:"900" },
               autoSkip: false,
+              maxRotation: 30,
+              minRotation: 0,
               callback: function(val){
                 const s = String(this.getLabelForValue(val) || "");
                 return s.length > 18 ? (s.slice(0,18) + "…") : s;
@@ -502,10 +613,48 @@
           },
           y:{
             beginAtZero:true,
-            max: yMax,
-            ticks:{ color:TICK, font:{ weight:"800" } },
+            ticks:{ color:TICK, font:{ weight:"900" } },
             grid:{ color:GRID }
           }
+        }
+      }
+    });
+  }
+
+  // Barra apilada por universidad (resumen general)
+  function mkStackedUni(canvasId){
+    const canvas = document.getElementById(canvasId);
+    if (!canvas) return null;
+
+    return new Chart(canvas, {
+      type:"bar",
+      data:{
+        labels: ["AGRARIA","PUCP","U.LIMA"],
+        datasets:[
+          { label:"ACTIVOS", data:[0,0,0], backgroundColor:"rgba(76,175,80,0.18)", borderColor:"rgba(76,175,80,0.25)", borderWidth:1.2, borderRadius:10, stack:"s1" },
+          { label:"RETIROS", data:[0,0,0], backgroundColor:"rgba(220,38,38,0.25)", borderColor:"rgba(220,38,38,0.35)", borderWidth:1.2, borderRadius:10, stack:"s1" },
+        ]
+      },
+      options:{
+        responsive:true,
+        maintainAspectRatio:false,
+        animation:false,
+        plugins:{
+          legend:{ position:"bottom", labels:{ color:TICK, font:{ weight:"900" } } },
+          tooltip:{ enabled:true },
+          datalabels:{
+            color:"#111827",
+            textStrokeColor:"#ffffff",
+            textStrokeWidth:4,
+            font:{ weight:"950", size: 13 },
+            anchor:"end",
+            align:"end",
+            formatter:(v)=> (v>0) ? v : ""
+          }
+        },
+        scales:{
+          x:{ stacked:true, ticks:{ color:TICK, font:{ weight:"900" } }, grid:{ color:GRID } },
+          y:{ stacked:true, beginAtZero:true, ticks:{ color:TICK, font:{ weight:"900" } }, grid:{ color:GRID } }
         }
       }
     });
@@ -522,7 +671,7 @@
     chart.update("none");
   }
 
-  // ============================ UI NAV ============================
+  // ============================ NAV ============================
   function setView(v){
     state.view = v;
     document.getElementById("nav_overview").classList.toggle("active", v==="overview");
@@ -534,14 +683,14 @@
     document.getElementById("view_table").style.display = (v==="table") ? "" : "none";
 
     const titles = {
-      overview: ["RESUMEN GENERAL", "Visión consolidada de matrícula y movimientos."],
+      overview: ["RESUMEN GENERAL", "Panel estructurado para control de matrícula, modalidad y distribución por universidad."],
       local: ["POR LOCAL", "Monitoreo por salón (tutor) del local seleccionado."],
       table: ["TABLA", "Búsqueda y filtros para consulta interna."]
     };
     document.getElementById("viewTitle").textContent = titles[v][0];
     document.getElementById("viewDesc").textContent = titles[v][1];
 
-    // En POR LOCAL: siempre general por salones (no filtro uni/salon)
+    // POR LOCAL: siempre por salones del local, sin forzar a sumar por universidad
     const uniSel = document.getElementById("fUni");
     const salSel = document.getElementById("fSalon");
     if (v === "local"){
@@ -609,7 +758,7 @@
     const el = document.getElementById("view_overview");
     if (el.dataset.ready === "1") return;
 
-    // IMPORTANTE: quitamos gráficos extra; solo dejamos: ESTADO + MODALIDAD
+    // Panel real: KPIs + donut estado + donut modalidad + distribución por universidad + mini cards con logos
     el.innerHTML = `
       <div class="card kpi">
         <div class="label">TOTAL DE ALUMNOS</div>
@@ -633,30 +782,83 @@
         <div class="hint">NO SUMA AL TOTAL</div>
       </div>
 
-      <div class="card panel6">
-        <div class="cardtitle">ESTADO</div>
-        <div class="chartBox"><canvas id="over_estado"></canvas></div>
+      <div class="card panel8">
+        <div class="cardtitle">
+          ESTADO Y MODALIDAD
+          <div class="panelHint">
+            <span class="pill"><span class="dot agraria"></span>AGRARIA</span>
+            <span class="pill"><span class="dot pucp"></span>PUCP</span>
+            <span class="pill"><span class="dot ulima"></span>U.LIMA</span>
+          </div>
+        </div>
+        <div class="grid" style="margin-top:0;">
+          <div class="card panel6" style="box-shadow:none; border:1px solid var(--border);">
+            <div class="cardtitle">ESTADO</div>
+            <div class="chartBox"><canvas id="over_estado"></canvas></div>
+          </div>
+          <div class="card panel6" style="box-shadow:none; border:1px solid var(--border);">
+            <div class="cardtitle">MODALIDAD</div>
+            <div class="chartBox"><canvas id="over_modalidad"></canvas></div>
+          </div>
+        </div>
       </div>
 
-      <div class="card panel6">
-        <div class="cardtitle">MODALIDAD</div>
-        <div class="chartBox"><canvas id="over_modalidad"></canvas></div>
+      <div class="card panel4">
+        <div class="cardtitle">RESUMEN POR UNIVERSIDAD</div>
+        <div class="chartBoxTall"><canvas id="over_uni_stack"></canvas></div>
+
+        <div class="uniCards">
+          <div class="uniCard">
+            <img src="logo_agraria.png" alt="AGRARIA" onerror="this.style.display='none'">
+            <div class="t">
+              <div class="name">AGRARIA</div>
+              <div class="nums">
+                <span class="pill" style="border-color:rgba(76,175,80,0.35); background:rgba(76,175,80,0.10);">Activos: <b id="uA_act">0</b></span>
+                <span class="pill">Retiros: <b id="uA_ret">0</b></span>
+              </div>
+            </div>
+          </div>
+
+          <div class="uniCard">
+            <img src="logo_pucp.png" alt="PUCP" onerror="this.style.display='none'">
+            <div class="t">
+              <div class="name">PUCP</div>
+              <div class="nums">
+                <span class="pill" style="border-color:rgba(110,168,218,0.50); background:rgba(110,168,218,0.12);">Activos: <b id="uP_act">0</b></span>
+                <span class="pill">Retiros: <b id="uP_ret">0</b></span>
+              </div>
+            </div>
+          </div>
+
+          <div class="uniCard">
+            <img src="logo_ulima.png" alt="U.LIMA" onerror="this.style.display='none'">
+            <div class="t">
+              <div class="name">U.LIMA</div>
+              <div class="nums">
+                <span class="pill" style="border-color:rgba(255,153,0,0.55); background:rgba(255,153,0,0.12);">Activos: <b id="uL_act">0</b></span>
+                <span class="pill">Retiros: <b id="uL_ret">0</b></span>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     `;
 
-    state.ch_over_estado = mkDoughnut(
+    state.ch_over_estado = mkDoughnutWithLabels(
       "over_estado",
       ["ACTIVO","RETIRO","CAMBIO"],
       [0,0,0],
-      ["#16a34a","#dc2626","#f59e0b"]
+      [EST_COLORS.ACTIVO, EST_COLORS.RETIRO, EST_COLORS.CAMBIO]
     );
 
-    state.ch_over_modalidad = mkDoughnut(
+    state.ch_over_modalidad = mkDoughnutWithLabels(
       "over_modalidad",
       ["PRESENCIAL","VIRTUAL"],
       [0,0],
-      ["rgba(209,11,11,0.55)","rgba(15,23,42,0.12)"]
+      [MOD_COLORS.PRESENCIAL, MOD_COLORS.VIRTUAL]
     );
+
+    state.ch_over_uni_stack = mkStackedUni("over_uni_stack");
 
     el.dataset.ready = "1";
   }
@@ -689,13 +891,20 @@
       </div>
 
       <div class="card panel12">
-        <div class="cardtitle">ACTIVOS POR SALÓN (LOCAL)</div>
-        <div class="chartBox"><canvas id="loc_activos_salon"></canvas></div>
+        <div class="cardtitle">
+          ACTIVOS POR SALÓN (LOCAL)
+          <div class="panelHint">
+            <span class="dot agraria"></span>AGRARIA
+            <span class="dot pucp"></span>PUCP
+            <span class="dot ulima"></span>U.LIMA
+          </div>
+        </div>
+        <div class="chartBoxTall"><canvas id="loc_activos_salon"></canvas></div>
       </div>
 
       <div class="card panel12">
         <div class="cardtitle">RETIROS POR SALÓN (LOCAL)</div>
-        <div class="chartBox"><canvas id="loc_retiros_salon"></canvas></div>
+        <div class="chartBoxTall"><canvas id="loc_retiros_salon"></canvas></div>
       </div>
 
       <div class="card panel12">
@@ -719,9 +928,9 @@
       </div>
     `;
 
-    // TOPES: Activos 60, Retiros 10 (como pediste)
-    state.ch_loc_activos_salon = mkBarSalon("loc_activos_salon", "ACTIVOS", 60);
-    state.ch_loc_retiros_salon = mkBarSalon("loc_retiros_salon", "RETIROS", 10);
+    // barras con labels visibles (negro con borde blanco)
+    state.ch_loc_activos_salon = mkBarReadable("loc_activos_salon", "ACTIVOS");
+    state.ch_loc_retiros_salon = mkBarReadable("loc_retiros_salon", "RETIROS");
 
     el.dataset.ready = "1";
   }
@@ -759,11 +968,12 @@
     applyFilters();
 
     const rows = state.filtered;
+
     const act = rows.filter(r=>r.estado==="ACTIVO").length;
     const ret = rows.filter(r=>r.estado==="RETIRO").length;
     const total = act + ret;
 
-    // cambios KPI (no gráfico extra)
+    // cambios KPI (no suma al total)
     const fLocal = document.getElementById("fLocal").value;
     const fUni   = document.getElementById("fUni").value;
     const fSalon = document.getElementById("fSalon").value;
@@ -791,11 +1001,34 @@
     document.getElementById("k_ret").textContent = ret.toLocaleString("es-PE");
     document.getElementById("k_cam").textContent = cambiosUnique.toLocaleString("es-PE");
 
+    // Donuts
     state.ch_over_estado.data.datasets[0].data = [act, ret, cambiosUnique];
     state.ch_over_estado.update("none");
 
     state.ch_over_modalidad.data.datasets[0].data = [pres, virt];
     state.ch_over_modalidad.update("none");
+
+    // Resumen por universidad (ACTIVOS/RETIROS)
+    const aAct = rows.filter(r=>uniGroupFromCiclo(r.ciclo)==="AGRARIA" && r.estado==="ACTIVO").length;
+    const aRet = rows.filter(r=>uniGroupFromCiclo(r.ciclo)==="AGRARIA" && r.estado==="RETIRO").length;
+
+    const pAct = rows.filter(r=>uniGroupFromCiclo(r.ciclo)==="PUCP" && r.estado==="ACTIVO").length;
+    const pRet = rows.filter(r=>uniGroupFromCiclo(r.ciclo)==="PUCP" && r.estado==="RETIRO").length;
+
+    const lAct = rows.filter(r=>uniGroupFromCiclo(r.ciclo)==="U.LIMA" && r.estado==="ACTIVO").length;
+    const lRet = rows.filter(r=>uniGroupFromCiclo(r.ciclo)==="U.LIMA" && r.estado==="RETIRO").length;
+
+    document.getElementById("uA_act").textContent = aAct;
+    document.getElementById("uA_ret").textContent = aRet;
+    document.getElementById("uP_act").textContent = pAct;
+    document.getElementById("uP_ret").textContent = pRet;
+    document.getElementById("uL_act").textContent = lAct;
+    document.getElementById("uL_ret").textContent = lRet;
+
+    // Chart apilado: dataset0 activos, dataset1 retiros
+    state.ch_over_uni_stack.data.datasets[0].data = [aAct, pAct, lAct];
+    state.ch_over_uni_stack.data.datasets[1].data = [aRet, pRet, lRet];
+    state.ch_over_uni_stack.update("none");
   }
 
   function renderLocal(){
@@ -805,7 +1038,7 @@
     const fMod   = document.getElementById("fModalidad").value;
     const q      = low(document.getElementById("q").value);
 
-    // salones fijos del local
+    // salones del local
     let salonesLocal = SALONES
       .filter(s => (fLocal==="__ALL__" ? true : s.local === fLocal))
       .map(s => s.salon);
@@ -847,10 +1080,10 @@
     const activosColors = salonesLocal.map(s=>{
       const conf = SALONES.find(x => x.salon===s && (fLocal==="__ALL__" ? true : x.local===fLocal));
       const uni = conf ? uniGroupFromCiclo(conf.ciclo) : "U.LIMA";
-      return UNI_COLORS[uni] || "#16a34a";
+      return UNI_COLORS[uni] || UNI_COLORS["AGRARIA"];
     });
 
-    // Retiros por salón (todos rojos)
+    // Retiros por salón (rojo)
     const retirosPorSalon = salonesLocal.map(s => baseMat.filter(r=>r.salon===s && r.estado==="RETIRO").length);
     const retirosColors = salonesLocal.map(_ => "#dc2626");
 
@@ -971,7 +1204,6 @@
   async function loadAll(){
     try{
       const results = await Promise.allSettled(SALONES.map(loadOneSalon));
-
       let rows = [];
       for (const r of results){
         if (r.status==="fulfilled") rows = rows.concat(r.value.rows);
@@ -979,9 +1211,11 @@
 
       state.rawRows = rows;
 
+      // Matrícula (ACTIVO/RETIRO) consolidada por nombre
       const matriculaRows = state.rawRows.filter(r => r.estado==="ACTIVO" || r.estado==="RETIRO");
       state.canonical = dedupeMatriculaByName(matriculaRows);
 
+      // Cambios (eventos)
       state.cambiosRows = state.rawRows.filter(r => r.estado==="CAMBIO");
 
       initFilters();
