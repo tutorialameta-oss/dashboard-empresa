@@ -21,14 +21,14 @@
       --shadow: 0 14px 34px rgba(15,23,42,0.10);
       --radius:18px;
 
-      /* Universidades (exactos) */
+      /* Universidades */
       --pucp:#6ea8da;
       --ulima:#ff9900;
       --agraria:#4caf50;
 
-      /* Modalidad */
-      --pres:#ef6b6b;
-      --virt:#9aa4b2;
+      /* Modalidad (NUEVOS COLORES) */
+      --pres:#2bb673;   /* verde diferente al de agraria */
+      --virt:#f2c94c;   /* amarillo */
 
       /* Estados */
       --ok:#16a34a;
@@ -236,9 +236,7 @@
       border-radius:12px; border:1px solid var(--border);
       padding:6px; background:#fff;
     }
-    .uniCard .t{
-      display:flex; flex-direction:column; gap:2px; min-width:0;
-    }
+    .uniCard .t{ display:flex; flex-direction:column; gap:2px; min-width:0; }
     .uniCard .name{
       font-weight:950; font-size:12px; text-transform:uppercase;
       color: var(--text);
@@ -334,11 +332,9 @@
   </div>
 
 <script>
-  // ============================ CONFIG ============================
   const SPREADSHEET_ID = "1nHCBQLuJ8RZNtLisvAqD916pcxbUmtqPrMnO4V0ewvs";
 
   const SALONES = [
-    // LA MOLINA
     { local:"LA MOLINA", ciclo:"AGRARIA",  salon:"AGRARIA LM 1", gid:115906280 },
     { local:"LA MOLINA", ciclo:"AGRARIA",  salon:"AGRARIA LM 2", gid:1576159193 },
     { local:"LA MOLINA", ciclo:"PUCP",     salon:"PUCP LM",     gid:1037962332 },
@@ -346,13 +342,11 @@
     { local:"LA MOLINA", ciclo:"ADELANTO", salon:"ADELANTO LM", gid:1271606284 },
     { local:"LA MOLINA", ciclo:"PARALELO", salon:"PARALELO LM", gid:1863430245 },
 
-    // SAN BORJA
     { local:"SAN BORJA", ciclo:"AGRARIA", salon:"AGRARIA SB",  gid:538377241 },
     { local:"SAN BORJA", ciclo:"PUCP",    salon:"PUCP SB",     gid:998068235 },
     { local:"SAN BORJA", ciclo:"U.LIMA",  salon:"U.LIMA SB 1", gid:670800187 },
     { local:"SAN BORJA", ciclo:"U.LIMA",  salon:"U.LIMA SB 2", gid:1856014712 },
 
-    // SAN MIGUEL
     { local:"SAN MIGUEL", ciclo:"AGRARIA",  salon:"AGRARIA SM",  gid:513074883 },
     { local:"SAN MIGUEL", ciclo:"PUCP",     salon:"PUCP SM",     gid:1531300183 },
     { local:"SAN MIGUEL", ciclo:"U.LIMA",   salon:"U.LIMA SM 1", gid:1080962628 },
@@ -360,7 +354,6 @@
     { local:"SAN MIGUEL", ciclo:"ADELANTO", salon:"ADELANTO SM", gid:2120250792 },
     { local:"SAN MIGUEL", ciclo:"PARALELO", salon:"PARALELO SM", gid:721468852 },
 
-    // VIRTUAL
     { local:"VIRTUAL", ciclo:"AGRARIA",     salon:"AGRARIA VIRTUAL", gid:709062846 },
     { local:"VIRTUAL", ciclo:"ESC. U.LIMA", salon:"U.LIMA ESCOLAR",  gid:315999969 },
     { local:"VIRTUAL", ciclo:"U.LIMA",      salon:"U.LIMA VIRTUAL",  gid:1667430860 },
@@ -396,7 +389,6 @@
     return "U.LIMA";
   }
 
-  // ============================ HEADERS ============================
   const HEAD = {
     NOMBRES_A: "NOMBRES COMPLETOS",
     NOMBRES_B: "NOMBRE COMPLETO",
@@ -405,7 +397,6 @@
     ESTADO: "ESTADO",
   };
 
-  // ============================ UTIL ============================
   function csvUrl(gid){
     return `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/export?format=csv&gid=${gid}`;
   }
@@ -483,8 +474,8 @@
     return [...best.values()];
   }
 
-  // ============================ PLUGIN (DONUT LABELS OUTSIDE + LINES) ============================
-  // Evita cruces sacando labels de porciones pequeñas hacia afuera con "leader lines"
+  // ============================ PLUGIN DONUT OUTSIDE (MEJORADO) ============================
+  // Ajuste: más margen + coordenadas respetan padding del chart y evitan corte del texto.
   const donutOutsideLabels = {
     id: "donutOutsideLabels",
     afterDatasetsDraw(chart, args, pluginOptions){
@@ -502,16 +493,23 @@
       const values = dataset.data.map(v => +v || 0);
       const total = values.reduce((a,b)=>a+b,0) || 1;
 
-      const minPct = opt.minPercent ?? 6;      // <= este % se manda afuera
+      const minPct = opt.minPercent ?? 6;
       const lineColor = opt.lineColor ?? "rgba(15,23,42,0.55)";
       const fontSize = opt.fontSize ?? 14;
       const fontWeight = opt.fontWeight ?? 950;
       const textColor = opt.textColor ?? "#111827";
       const strokeColor = opt.textStrokeColor ?? "#ffffff";
       const strokeW = opt.textStrokeWidth ?? 4;
-      const extra = opt.outsideOffset ?? 18;
+      const extra = opt.outsideOffset ?? 30;        // ⬅️ más afuera (evita corte)
+      const horiz = opt.horizOffset ?? 22;          // ⬅️ texto más lejos del borde
 
-      // Recolectar puntos y separar (izq / der) para evitar solape vertical
+      // límites internos del área (para evitar que se vaya fuera del canvas)
+      const area = chart.chartArea;
+      const minX = area.left + 6;
+      const maxX = area.right - 6;
+      const minY = area.top + 6;
+      const maxY = area.bottom - 6;
+
       const left = [];
       const right = [];
 
@@ -520,30 +518,35 @@
         if (!v) return;
 
         const pct = (v/total)*100;
-        if (pct >= minPct) return; // los grandes se quedan con datalabels interno
+        if (pct >= minPct) return;
 
         const {x, y, startAngle, endAngle, outerRadius} = arc.getProps(
           ["x","y","startAngle","endAngle","outerRadius"], true
         );
+
         const angle = (startAngle + endAngle) / 2;
         const cos = Math.cos(angle);
         const sin = Math.sin(angle);
 
         const x1 = x + cos * (outerRadius + 2);
         const y1 = y + sin * (outerRadius + 2);
-        const x2 = x + cos * (outerRadius + extra);
-        const y2 = y + sin * (outerRadius + extra);
+
+        let x2 = x + cos * (outerRadius + extra);
+        let y2 = y + sin * (outerRadius + extra);
+
+        // clamp dentro del chartArea para que no corte texto
+        x2 = Math.max(minX, Math.min(maxX, x2));
+        y2 = Math.max(minY, Math.min(maxY, y2));
 
         const side = (cos >= 0) ? "right" : "left";
         const label = `${v} (${Math.round(pct)}%)`;
 
         (side==="right" ? right : left).push({
-          i, x, y, x1, y1, x2, y2, side, label,
+          x1, y1, x2, y2, side, label,
           targetY: y2
         });
       });
 
-      // Separar para evitar cruce vertical (simple: ordena y empuja si está cerca)
       function spread(items){
         items.sort((a,b)=>a.targetY - b.targetY);
         const gap = opt.minGap ?? 18;
@@ -552,11 +555,13 @@
             items[k].targetY = items[k-1].targetY + gap;
           }
         }
+        // clamp final
+        for (const it of items){
+          it.targetY = Math.max(minY, Math.min(maxY, it.targetY));
+        }
       }
-      spread(left);
-      spread(right);
+      spread(left); spread(right);
 
-      // Dibujar
       ctx.save();
       ctx.font = `${fontWeight} ${fontSize}px system-ui,-apple-system,Segoe UI,Roboto,Arial`;
       ctx.fillStyle = textColor;
@@ -565,21 +570,22 @@
 
       function drawItem(it){
         const align = (it.side==="right") ? "left" : "right";
-        const x3 = it.x2 + (it.side==="right" ? 14 : -14);
-        const y3 = it.targetY;
+        let x3 = it.x2 + (it.side==="right" ? horiz : -horiz);
+        let y3 = it.targetY;
 
-        // line: arc -> outside -> horizontal
+        // clamp x3 también (evita que el texto salga fuera)
+        x3 = Math.max(minX, Math.min(maxX, x3));
+        y3 = Math.max(minY, Math.min(maxY, y3));
+
         ctx.beginPath();
         ctx.moveTo(it.x1, it.y1);
         ctx.lineTo(it.x2, y3);
         ctx.lineTo(x3, y3);
         ctx.stroke();
 
-        // text
         ctx.textAlign = align;
         ctx.textBaseline = "middle";
 
-        // stroke text (white) for contrast
         ctx.save();
         ctx.lineWidth = strokeW;
         ctx.strokeStyle = strokeColor;
@@ -639,12 +645,12 @@
         maintainAspectRatio:false,
         animation:false,
         cutout: "62%",
-        layout:{ padding:{ top: 16, right: 26, bottom: 16, left: 26 } }, // espacio para labels afuera
+        // ⬅️ MÁS PADDING para que no corte el texto afuera
+        layout:{ padding:{ top: 20, right: 56, bottom: 20, left: 56 } },
         plugins:{
           legend:{ position:"bottom", labels:{ color:TICK, font:{ weight:"900" } } },
           tooltip:{ enabled:true },
 
-          // Datlabel "interno" solo para porciones grandes
           datalabels:{
             color:"#111827",
             textStrokeColor:"#ffffff",
@@ -655,20 +661,17 @@
               const total = data.reduce((a,b)=>a+(+b||0),0) || 1;
               const p = (v/total)*100;
               if (!v) return "";
-              // si es pequeño, NO lo pintamos adentro (lo pinta el plugin afuera)
               if (p < ((outsideOpts?.minPercent) ?? 6)) return "";
               return `${v} (${Math.round(p)}%)`;
             }
           },
 
-          // Plugin labels externos (para pequeños)
           donutOutsideLabels: outsideOpts || { minPercent: 6 }
         }
       }
     });
   }
 
-  // Barra con labels legibles para "Por local"
   function mkBarReadable(canvasId, titleLabel){
     const canvas = document.getElementById(canvasId);
     if (!canvas) return null;
@@ -739,7 +742,6 @@
     });
   }
 
-  // Barra apilada por universidad: labels NO se cruzan
   function mkStackedUni(canvasId){
     const canvas = document.getElementById(canvasId);
     if (!canvas) return null;
@@ -782,17 +784,12 @@
             textStrokeColor:"#ffffff",
             textStrokeWidth:4,
             font:{ weight:"950", size: 13 },
-            // Diferenciar posición por dataset
             anchor:(ctx)=> ctx.datasetIndex === 0 ? "center" : "end",
             align:(ctx)=>  ctx.datasetIndex === 0 ? "center" : "end",
             offset:(ctx)=> ctx.datasetIndex === 0 ? 0 : 4,
             clamp:true,
             clip:false,
-            formatter:(v, ctx)=>{
-              if (!v || v<=0) return "";
-              // Activos adentro, Retiros afuera (arriba)
-              return v;
-            }
+            formatter:(v)=> (!v || v<=0) ? "" : v
           }
         },
         scales:{
@@ -985,25 +982,23 @@
       </div>
     `;
 
-    // Donut ESTADO: sacar labels pequeños afuera (retiro/cambio) con líneas
     state.ch_over_estado = mkDoughnutWithLabels(
       "over_estado",
       ["ACTIVO","RETIRO","CAMBIO"],
       [0,0,0],
       [EST_COLORS.ACTIVO, EST_COLORS.RETIRO, EST_COLORS.CAMBIO],
-      { minPercent: 6, outsideOffset: 22, minGap: 18, fontSize: 14 }
+      // ⬅️ fuera más lejos + más separación vertical (evita corte del texto)
+      { minPercent: 6, outsideOffset: 34, horizOffset: 26, minGap: 20, fontSize: 14 }
     );
 
-    // Donut MODALIDAD: también con anti-cruce (por si algún caso queda muy extremo)
     state.ch_over_modalidad = mkDoughnutWithLabels(
       "over_modalidad",
       ["PRESENCIAL","VIRTUAL"],
       [0,0],
       [MOD_COLORS.PRESENCIAL, MOD_COLORS.VIRTUAL],
-      { minPercent: 10, outsideOffset: 18, minGap: 18, fontSize: 14 }
+      { minPercent: 10, outsideOffset: 28, horizOffset: 22, minGap: 18, fontSize: 14 }
     );
 
-    // Barras apiladas universidad: activos adentro, retiros afuera
     state.ch_over_uni_stack = mkStackedUni("over_uni_stack");
 
     el.dataset.ready = "1";
@@ -1107,7 +1102,6 @@
     el.dataset.ready = "1";
   }
 
-  // ============================ RENDER ============================
   function renderOverview(){
     ensureOverviewLayout();
     applyFilters();
@@ -1215,7 +1209,6 @@
     document.getElementById("lk_cam").textContent = cambiosUnique.toLocaleString("es-PE");
 
     const activosPorSalon = salonesLocal.map(s => baseMat.filter(r=>r.salon===s && r.estado==="ACTIVO").length);
-
     const activosColors = salonesLocal.map(s=>{
       const conf = SALONES.find(x => x.salon===s && (fLocal==="__ALL__" ? true : x.local===fLocal));
       const uni = conf ? uniGroupFromCiclo(conf.ciclo) : "U.LIMA";
@@ -1279,7 +1272,6 @@
     if (state.view==="table") renderTable();
   }
 
-  // ============================ DATA LOAD ============================
   async function loadOneSalon(salon){
     const url = csvUrl(salon.gid) + "&v=" + Date.now();
     const res = await fetch(url, { cache:"no-store" });
@@ -1360,7 +1352,6 @@
     }
   }
 
-  // ============================ EVENTS ============================
   document.getElementById("nav_overview").addEventListener("click", ()=>setView("overview"));
   document.getElementById("nav_local").addEventListener("click", ()=>setView("local"));
   document.getElementById("nav_table").addEventListener("click", ()=>setView("table"));
@@ -1375,7 +1366,6 @@
   document.getElementById("q").addEventListener("input", render);
   document.getElementById("btnNowTop").addEventListener("click", loadAll);
 
-  // ============================ START ============================
   initFilters();
   loadAll();
   setInterval(loadAll, AUTO_REFRESH_MS);
