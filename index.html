@@ -338,28 +338,48 @@
     .schUniPill .b{
       width:10px;height:10px;border-radius:999px;display:inline-block;
     }
+    .schCell{
+  background: var(--schCell);
+  font-weight: 950;
+}
 
-    .schTableWrap{
-      padding:0 10px 12px;
-    }
 
-    .schTable{
-      width:100%;
-      border-collapse:collapse;
-      table-layout:fixed; /* <- todas las columnas iguales */
-      border:2px solid rgba(15,23,42,0.18);
-      border-radius: 14px;
-      overflow:hidden;
-    }
-    .schTable th, .schTable td{
-      border:1px solid rgba(15,23,42,0.28);
-      padding: 6px 6px;     /* compacto */
-      text-align:center;
-      vertical-align:middle;
-      white-space:normal;
-      word-break:break-word;
-      line-height:1.1;
-    }
+/* ====== FIX MÓVIL HORARIOS: NO COMPRESIÓN + NO ROMPER LETRAS ====== */
+.schTableWrap{
+  padding: 0 10px 12px;
+
+  /* ✅ permite ver todo “tipo gráfica” en celular */
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.schTable{
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;                /* columnas iguales */
+  border: 2px solid rgba(15,23,42,0.18);
+  border-radius: 14px;
+  overflow: hidden;
+
+  /* ✅ evita que el celular aplaste todo */
+  min-width: 760px;                   /* ajusta 720–900 si quieres */
+}
+
+/* IMPORTANTÍSIMO: esto es lo que evita “H I S” en vertical */
+.schTable th, .schTable td{
+  border: 1px solid rgba(15,23,42,0.28);
+  padding: 6px 6px;
+  text-align: center;
+  vertical-align: middle;
+  line-height: 1.1;
+
+  /* ❌ quita esto: word-break: break-word; */
+  word-break: normal;
+  overflow-wrap: normal;              /* no rompe por letras */
+  white-space: normal;                /* permite saltos por espacios */
+}
+/* ====== FIN FIX ====== */
+
 /* ====== CAMBIO DE TAMAÑOS (DÍAS + CURSOS) ====== */
 /* NO toques .timeHead ni .timeCell (horas) */
 
