@@ -9,16 +9,15 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0"></script>
 
-  <!-- ✅ Para descargar cada horario como PNG (completo, no “solo lo visible”) -->
+  <!-- ✅ PNG export (captura COMPLETA, no solo lo visible) -->
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 
   <style>
     /* ======================================================================
-      ✅ EDITA COLORES AQUÍ
-      - Verde cabecera horario:   --schHead
-      - Verde bloques cursos:     --schCell
-      - Líneas tabla:             --schGrid
-      - Columna horas:            --schTimeBg
+      ✅ EDITA COLORES AQUÍ (HORARIOS)
+      - AGRARIA: NO TOCAR (tú dijiste que está perfecto)
+      - PUCP: azul
+      - U.LIMA: naranja
     ====================================================================== */
     :root{
       --bg:#ffffff;
@@ -32,10 +31,10 @@
       --shadow: 0 14px 34px rgba(15,23,42,0.10);
       --radius:18px;
 
-      /* Universidades */
-      --pucp:#6ea8da;
-      --ulima:#ff9900;
-      --agraria:#4caf50;
+      /* Universidades (marcadores) */
+      --pucp:#6ea8da;     /* Azul */
+      --ulima:#ff9900;    /* Naranja */
+      --agraria:#4caf50;  /* Verde */
 
       /* Modalidad */
       --pres:#2bb673;
@@ -46,9 +45,19 @@
       --bad:#dc2626;
       --warn:#f59e0b;
 
-      /* Horarios */
-      --schHead:#1f5a1a;     /* ✅ verde cabecera */
-      --schCell:#cfe8c8;     /* ✅ verde bloque */
+      /* ===== AGRARIA (NO TOCAR) ===== */
+      --schHead_AGR:#1f5a1a;
+      --schCell_AGR:#cfe8c8;
+
+      /* ===== PUCP (AZUL) ===== */
+      --schHead_PUCP:#1f4e79;
+      --schCell_PUCP:#d6e9f7;
+
+      /* ===== U.LIMA (NARANJA) ===== */
+      --schHead_UL:#b85f00;
+      --schCell_UL:#ffe6c7;
+
+      /* Líneas de tabla / col horas */
       --schGrid:rgba(15,23,42,0.28);
       --schTimeBg:#ffffff;
     }
@@ -291,7 +300,7 @@
       text-transform: uppercase;
     }
 
-    /* ===================== HORARIOS (VISTA APARTE) ===================== */
+    /* ===================== HORARIOS ===================== */
     .schGridWrap{
       display:grid;
       grid-template-columns: repeat(2, 1fr);
@@ -365,14 +374,14 @@
       border-color: rgba(15,23,42,0.28);
       background:#fafafa;
     }
-    .schCard.exporting .schDl{ display:none; }
 
-    /* Laptop: sin scroll horizontal (se ajusta al contenedor) */
+    /* Contenedor tabla */
     .schTableWrap{
       padding:0 10px 12px;
-      overflow-x: hidden;
+      overflow-x: hidden; /* desktop */
     }
 
+    /* Tabla */
     .schTable{
       width:100%;
       border-collapse:collapse;
@@ -388,13 +397,12 @@
       padding: 6px 6px;
       text-align:center;
       vertical-align:middle;
-
       white-space:normal;
       word-break: normal;
       overflow-wrap: normal;
     }
 
-    /* Encabezado días */
+    /* Encabezado días (usa variables por UNI) */
     .schTable thead th{
       background: var(--schHead);
       color:#fff;
@@ -410,7 +418,6 @@
       font-size:12px;
     }
 
-    /* Columna horas (NO tocar tamaño si no quieres) */
     .schTable .timeCell{
       background: var(--schTimeBg);
       font-weight:950;
@@ -420,21 +427,16 @@
       white-space:nowrap;
     }
 
-    /* ✅ Celdas curso */
     .schCell{
       background: var(--schCell);
       font-weight:950;
-      padding: 6px 6px; /* mantiene compacto */
+      padding: 6px 6px;
     }
+    .schEmpty{ background:#fff; }
 
-    /* ============================================================
-      ✅ ESTÁNDAR “4 FILAS IMAGINARIAS” (sin líneas internas)
-      - Creamos 4 slots verticales dentro de cada celda.
-      - Si curso tiene 3 líneas -> slots 1,2,3. Docente slot 4.
-      - Si curso tiene 2 líneas -> slots 2,3. Docente slot 4.
-      - Si curso tiene 1 línea  -> slot 2. Docente slot 4.
-      Esto da el “orden tipo Excel” que pediste.
-    ============================================================ */
+    .schTable col.timeCol{ width: 92px; }
+
+    /* ✅ “4 líneas imaginarias” dentro de cada bloque */
     .cell4{
       width:100%;
       height:100%;
@@ -442,7 +444,6 @@
       grid-template-rows: repeat(4, 1fr);
       align-items:center;
       justify-items:center;
-      gap:0;
     }
     .cell4 .slot{
       width:100%;
@@ -454,22 +455,51 @@
       line-height:1.0;
     }
     .cell4 .cLine{
-      font-size:18px;     /* ✅ tamaño “curso” en laptop */
+      font-size:18px;
       font-weight:950;
       letter-spacing:.2px;
       text-transform:uppercase;
+      white-space:nowrap; /* ✅ evita que “ALG 1” se parta dentro de la misma línea */
     }
     .cell4 .tLine{
-      font-size:12px;     /* ✅ tamaño “docente” en laptop */
+      font-size:12px;
       font-weight:900;
       text-transform:uppercase;
       color:#111827;
+      white-space:nowrap;
     }
 
-    .schEmpty{ background:#fff; }
+    /* ===================== COLORES POR UNIVERSIDAD (HORARIOS) ===================== */
+    .schCard[data-uni="AGRARIA"]{
+      --schHead: var(--schHead_AGR);
+      --schCell: var(--schCell_AGR);
+    }
+    .schCard[data-uni="PUCP"]{
+      --schHead: var(--schHead_PUCP);
+      --schCell: var(--schCell_PUCP);
+    }
+    .schCard[data-uni="U.LIMA"]{
+      --schHead: var(--schHead_UL);
+      --schCell: var(--schCell_UL);
+    }
 
-    /* ancho fijo más delgado para horas */
-    .schTable col.timeCol{ width: 92px; }
+    /* ===================== MODO EXPORT PNG (SIEMPRE “HORIZONTAL BONITO”) ===================== */
+    body.exportMode .schCard{
+      width: 1120px !important;        /* ✅ fuerza aspecto tipo laptop aunque estés en móvil */
+      max-width: none !important;
+    }
+    body.exportMode .schTableWrap{
+      overflow: visible !important;
+      padding: 0 12px 12px !important;
+    }
+    body.exportMode .schTable{
+      width: 100% !important;
+      min-width: 0 !important;
+    }
+    body.exportMode .cell4 .cLine{ font-size:18px !important; }
+    body.exportMode .cell4 .tLine{ font-size:12px !important; }
+    body.exportMode .schTable thead th{ font-size:11px !important; }
+    body.exportMode .schTable .timeCell{ font-size:12px !important; }
 
     /* ===================== RESPONSIVE ===================== */
     @media (max-width: 1100px){
@@ -484,23 +514,20 @@
       .uniCards{ grid-template-columns: 1fr; }
       .schGridWrap{ grid-template-columns: 1fr; }
 
-      /* ✅ MÓVIL: permitir ver todo con scroll horizontal, PERO más pequeño */
+      /* ✅ MÓVIL: más compacto y con scroll horizontal para ver todo */
       .schTableWrap{
         overflow-x: auto;
         -webkit-overflow-scrolling: touch;
-        padding: 0 8px 10px; /* más pequeño */
+        padding: 0 8px 10px;
       }
-
-      /* ↓↓↓ “tamaño cómodo” en móvil */
       .schHead{ padding: 10px 10px 8px; }
       .schHead .loc{ font-size:16px; }
       .schHead .sal{ font-size:12px; }
       .schUniPill{ padding:8px 10px; font-size:12px; }
       .schDl{ padding:7px 9px; font-size:11px; }
 
-      .schTable{
-        min-width: 680px; /* ✅ menos grande que antes */
-      }
+      /* ✅ tamaño cómodo */
+      .schTable{ min-width: 860px; }
       .schTable th, .schTable td{ padding: 4px 4px; }
       .schTable thead th{ font-size:10px; }
       .schTable .timeCell{ font-size:11px; padding-left:8px; }
@@ -589,9 +616,9 @@
   const AUTO_REFRESH_MS = 30000;
 
   const UNI_COLORS = {
-    "PUCP": "#6ea8da",
-    "U.LIMA": "#ff9900",
-    "AGRARIA": "#4caf50",
+    "PUCP": getCss("--pucp"),
+    "U.LIMA": getCss("--ulima"),
+    "AGRARIA": getCss("--agraria"),
   };
 
   function getCss(varName){
@@ -1047,7 +1074,7 @@
       overview: ["RESUMEN GENERAL", "Panel estructurado para control de matrícula, modalidad y distribución por universidad."],
       local: ["POR LOCAL", "Monitoreo por salón (tutor) del local seleccionado."],
       table: ["TABLA", "Búsqueda y filtros para consulta interna."],
-      horarios: ["HORARIOS", "Plantillas de horarios por local y universidad (vista completa y estandarizada)."]
+      horarios: ["HORARIOS", "Plantillas de horarios por local y universidad (descarga PNG completa)."]
     };
     document.getElementById("viewTitle").textContent = titles[v][0];
     document.getElementById("viewDesc").textContent = titles[v][1];
@@ -1488,14 +1515,29 @@
     `).join("");
   }
 
-  // ===================== HORARIOS (AMBIENTE APARTE, EDITABLE MANUAL) =====================
+  // ===================== HORARIOS =====================
   /*
-    ✅ CÓMO EDITAS (SCHEDULES):
-      { day:"LUNES", start:"08:00", end:"09:30", course:"REF. MATES", teacher:"ANGEL" }
+    ✅ CÓMO PONER CURSOS / PROFES / HORAS
+    Cada bloque tiene:
+      { day:"LUNES", start:"08:00", end:"09:30", course:"ALG 1", teacher:"PEREZ" }
 
-    ✅ SI CAMBIA LA HORA:
-      - Cambias start y end.
-      - start y end deben coincidir con TIME_ROWS.
+    ✅ SI CAMBIA LA HORA DE UN CURSO:
+      - Cambia start y end y debe coincidir con TIME_MARKS (ver abajo).
+
+    ✅ CONTROL DE “4 LÍNEAS IMAGINARIAS” (SIN LÍNEAS DIBUJADAS):
+      - Internamente el cuadro tiene 4 “slots” verticales centrados.
+      - Slot 4 SIEMPRE es profesor.
+      - Para el curso:
+          * 1 línea  -> va al slot 2 (centrado)
+          * 2 líneas -> van a slot 2 y 3 (centrado)
+          * 3 líneas -> van a slot 1,2,3 (centrado)
+
+    ✅ MUY IMPORTANTE (LO QUE PEDISTE):
+      - “ALG 1”, “RV 1”, “FÍS 1”, etc. NO se separan: salen juntos en UNA MISMA línea.
+      - “REF. MATES” sí se separa en 2 líneas: “REF.” y “MATES”.
+      - Si tú quieres FORZAR líneas manualmente:
+          course: "REF. / MATES"   -> 2 líneas exactas
+          course: "PAL1 / PAL2 / PAL3" -> 3 líneas exactas
   */
 
   const DAYS = ["LUNES","MARTES","MIÉRCOLES","JUEVES","VIERNES","SÁBADO"];
@@ -1536,64 +1578,7 @@
     marks.push(TIME_ROWS[TIME_ROWS.length-1].end);
     return marks;
   })();
-
   function idxMark(t){ return TIME_MARKS.indexOf(t); }
-
-  /* ======================================================================
-    ✅ EDITA HORARIOS AQUÍ (SCHEDULES)
-  ====================================================================== */
-  const SCHEDULES = [
-    {
-      id:"AGR_LM_1",
-      local:"LA MOLINA",
-      uni:"AGRARIA",
-      salon:"AGRARIA LM 1",
-      blocks:[
-        { day:"LUNES", start:"08:00", end:"09:30", course:"HIS", teacher:"RIOJA" },
-        { day:"LUNES", start:"10:00", end:"11:30", course:"QUÍ 1", teacher:"COSTA" },
-        { day:"LUNES", start:"12:00", end:"13:30", course:"GGF", teacher:"RIOJA" },
-        { day:"LUNES", start:"15:00", end:"16:30", course:"QUÍ 2", teacher:"COSTA" },
-
-        { day:"MARTES", start:"08:00", end:"09:30", course:"ECO", teacher:"SOTO" },
-        { day:"MARTES", start:"10:00", end:"11:30", course:"ARI", teacher:"DIAZ" },
-        { day:"MARTES", start:"12:00", end:"13:30", course:"ÁLG 1", teacher:"UCANCIAL" },
-        { day:"MARTES", start:"15:00", end:"16:30", course:"ÁLG 2", teacher:"UCANCIAL" },
-
-        { day:"MIÉRCOLES", start:"08:00", end:"09:30", course:"RV 1", teacher:"TABER" },
-        { day:"MIÉRCOLES", start:"10:00", end:"11:30", course:"REF. MATES", teacher:"ANGEL" },
-        { day:"MIÉRCOLES", start:"12:00", end:"13:30", course:"TXT", teacher:"ZAVALA" },
-        { day:"MIÉRCOLES", start:"15:00", end:"16:30", course:"RV 2", teacher:"TABER" },
-
-        { day:"JUEVES", start:"08:00", end:"09:30", course:"GEO", teacher:"TORRES" },
-        { day:"JUEVES", start:"10:00", end:"11:30", course:"TRI", teacher:"TORRES" },
-        { day:"JUEVES", start:"12:00", end:"13:30", course:"BIO 1", teacher:"LUYO" },
-        { day:"JUEVES", start:"15:00", end:"16:30", course:"BIO 2", teacher:"LUYO" },
-
-        { day:"VIERNES", start:"08:00", end:"09:30", course:"FÍS 1", teacher:"RUBEN" },
-        { day:"VIERNES", start:"10:00", end:"11:30", course:"RM 1", teacher:"OBANDO" },
-        { day:"VIERNES", start:"12:00", end:"13:30", course:"FÍS 2", teacher:"RUBEN" },
-        { day:"VIERNES", start:"15:00", end:"16:30", course:"RM 2", teacher:"OBANDO" },
-
-        { day:"SÁBADO", start:"08:00", end:"10:00", course:"SIM", teacher:"" },
-      ]
-    },
-
-    { id:"UL_SB_1", local:"SAN BORJA", uni:"U.LIMA", salon:"U.LIMA SB 1", blocks:[] },
-    { id:"UL_SB_2", local:"SAN BORJA", uni:"U.LIMA", salon:"U.LIMA SB 2", blocks:[] },
-    { id:"UL_SM_1", local:"SAN MIGUEL", uni:"U.LIMA", salon:"U.LIMA SM 1", blocks:[] },
-    { id:"UL_SM_2", local:"SAN MIGUEL", uni:"U.LIMA", salon:"U.LIMA SM 2", blocks:[] },
-    { id:"UL_LM",   local:"LA MOLINA",  uni:"U.LIMA", salon:"U.LIMA LM",   blocks:[] },
-
-    { id:"PUCP_LM", local:"LA MOLINA", uni:"PUCP", salon:"PUCP LM", blocks:[] },
-    { id:"PUCP_SB", local:"SAN BORJA", uni:"PUCP", salon:"PUCP SB", blocks:[] },
-    { id:"PUCP_SM", local:"SAN MIGUEL", uni:"PUCP", salon:"PUCP SM", blocks:[] },
-  ];
-
-  function uniDotColor(uni){
-    if (uni==="AGRARIA") return getCss("--agraria");
-    if (uni==="PUCP") return getCss("--pucp");
-    return getCss("--ulima");
-  }
 
   function normalizeDayKey(d){
     const x = String(d||"").trim().toUpperCase();
@@ -1602,12 +1587,24 @@
     return x;
   }
 
+  // ✅ “ALG 1” o “RV 2” o “FÍS 1” => 1 sola línea
+  function isCodePlusNumber(tokens){
+    if (tokens.length !== 2) return false;
+    const left = tokens[0];
+    const right = tokens[1];
+    const num = /^[0-9]+$/.test(right);
+    if (!num) return false;
+    // left: letras + acentos + puntos (ej: FÍS, QUI, RV, RM, ÁLG)
+    const okLeft = /^[A-ZÁÉÍÓÚÑ\.]{2,}$/.test(left);
+    return okLeft;
+  }
+
   // ✅ Convierte course en 1–3 líneas (para slots 1–3). Docente siempre slot 4.
   function courseToLines(courseRaw){
     let s = norm(courseRaw || "");
     if (!s) return [];
 
-    // Si el usuario quiere forzar saltos, puede usar " / " o "\n"
+    // Forzado manual por el usuario
     if (s.includes("\n")){
       return s.split("\n").map(norm).filter(Boolean).slice(0,3);
     }
@@ -1615,26 +1612,54 @@
       return s.split(" / ").map(norm).filter(Boolean).slice(0,3);
     }
 
-    // División automática por espacios (REF. MATES -> ["REF.","MATES"])
     const tokens = s.split(" ").map(norm).filter(Boolean);
-    if (tokens.length <= 1) return [s];
+
+    // “ALG 1” => una línea
+    if (isCodePlusNumber(tokens)) return [`${tokens[0]} ${tokens[1]}`];
+
+    // 1 token => una línea
+    if (tokens.length === 1) return [tokens[0]];
+
+    // 2 tokens (no num) => dos líneas (REF. / MATES)
     if (tokens.length === 2) return [tokens[0], tokens[1]];
 
-    // 3 o más “cosas”: 3 líneas
+    // 3 o más => tres líneas (máximo)
     return [tokens[0], tokens[1], tokens.slice(2).join(" ")].slice(0,3);
   }
 
+  function renderCell4(courseRaw, teacherRaw){
+    const lines = courseToLines(courseRaw);
+    const teacher = norm(teacherRaw || "");
+
+    let slot1 = "", slot2 = "", slot3 = "";
+    if (lines.length === 3){
+      slot1 = lines[0]; slot2 = lines[1]; slot3 = lines[2];
+    } else if (lines.length === 2){
+      slot2 = lines[0]; slot3 = lines[1];
+    } else if (lines.length === 1){
+      slot2 = lines[0];
+    }
+
+    return `
+      <div class="cell4">
+        <div class="slot"><div class="cLine">${escapeHtml(slot1)}</div></div>
+        <div class="slot"><div class="cLine">${escapeHtml(slot2)}</div></div>
+        <div class="slot"><div class="cLine">${escapeHtml(slot3)}</div></div>
+        <div class="slot"><div class="tLine">${teacher ? escapeHtml(teacher) : "&nbsp;"}</div></div>
+      </div>
+    `;
+  }
+
   function buildScheduleMatrix(schedule){
-    const dayCols = DAYS.slice();
     const rows = TIME_ROWS.map(()=> {
       const o = {};
-      dayCols.forEach(d=>o[d] = { kind:"empty" });
+      DAYS.forEach(d=>o[d] = { kind:"empty" });
       return o;
     });
 
     for (const b of (schedule.blocks||[])){
       const day = normalizeDayKey(b.day);
-      if (!dayCols.includes(day)) continue;
+      if (!DAYS.includes(day)) continue;
 
       const s = idxMark(b.start);
       const e = idxMark(b.end);
@@ -1671,34 +1696,10 @@
     return rows;
   }
 
-  // ✅ Render celda con “4 slots imaginarios” (1–3 curso, 4 docente)
-  function renderCell4(courseRaw, teacherRaw){
-    const lines = courseToLines(courseRaw);
-    const teacher = norm(teacherRaw || "");
-
-    // Regla:
-    // - 3 líneas: slots 1,2,3
-    // - 2 líneas: slots 2,3
-    // - 1 línea : slot 2
-    const s1 = "";
-    let slot1 = "", slot2 = "", slot3 = "";
-
-    if (lines.length === 3){
-      slot1 = lines[0]; slot2 = lines[1]; slot3 = lines[2];
-    } else if (lines.length === 2){
-      slot2 = lines[0]; slot3 = lines[1];
-    } else if (lines.length === 1){
-      slot2 = lines[0];
-    }
-
-    return `
-      <div class="cell4">
-        <div class="slot"><div class="cLine">${escapeHtml(slot1)}</div></div>
-        <div class="slot"><div class="cLine">${escapeHtml(slot2)}</div></div>
-        <div class="slot"><div class="cLine">${escapeHtml(slot3)}</div></div>
-        <div class="slot"><div class="tLine">${teacher ? escapeHtml(teacher) : "&nbsp;"}</div></div>
-      </div>
-    `;
+  function uniDotColor(uni){
+    if (uni==="AGRARIA") return getCss("--agraria");
+    if (uni==="PUCP") return getCss("--pucp");
+    return getCss("--ulima");
   }
 
   function scheduleToHtmlCard(s){
@@ -1769,6 +1770,93 @@
     `;
   }
 
+  // ===================== ORDEN DE HORARIOS (LO QUE PEDISTE) =====================
+  const LOCAL_ORDER = ["LA MOLINA","SAN MIGUEL","SAN BORJA","VIRTUAL"];
+  const UNI_ORDER = ["AGRARIA","PUCP","U.LIMA"];
+
+  function sortSchedules(list){
+    const idxLoc = (x)=> {
+      const i = LOCAL_ORDER.indexOf(x.local);
+      return i<0 ? 999 : i;
+    };
+    const idxUni = (x)=> {
+      const i = UNI_ORDER.indexOf(x.uni);
+      return i<0 ? 999 : i;
+    };
+    return list.slice().sort((a,b)=>{
+      const dl = idxLoc(a) - idxLoc(b);
+      if (dl !== 0) return dl;
+      const du = idxUni(a) - idxUni(b);
+      if (du !== 0) return du;
+      return String(a.salon||"").localeCompare(String(b.salon||""), "es");
+    });
+  }
+
+  /* ======================================================================
+    ✅ EDITA / COMPLETA HORARIOS AQUÍ (SCHEDULES)
+    - Aquí es donde pones los cursos y profes de “los otros horarios”.
+    - Si un horario aún no lo llenas, déjalo con blocks: [] y se mostrará igual.
+  ====================================================================== */
+  const SCHEDULES = sortSchedules([
+    // ========================= AGRARIA =========================
+    {
+      id:"AGR_LM_1",
+      local:"LA MOLINA",
+      uni:"AGRARIA",
+      salon:"AGRARIA LM 1",
+      blocks:[
+        { day:"LUNES", start:"08:00", end:"09:30", course:"HIS", teacher:"RIOJA" },
+        { day:"MARTES", start:"08:00", end:"09:30", course:"ECO", teacher:"SOTO" },
+        { day:"MIÉRCOLES", start:"08:00", end:"09:30", course:"RV 1", teacher:"TABER" },
+        { day:"JUEVES", start:"08:00", end:"09:30", course:"GEO", teacher:"TORRES" },
+        { day:"VIERNES", start:"08:00", end:"09:30", course:"FÍS 1", teacher:"RUBEN" },
+        { day:"SÁBADO", start:"08:00", end:"10:00", course:"SIM", teacher:"" },
+
+        { day:"LUNES", start:"10:00", end:"11:30", course:"QUÍ 1", teacher:"COSTA" },
+        { day:"MARTES", start:"10:00", end:"11:30", course:"ARI", teacher:"DIAZ" },
+        { day:"MIÉRCOLES", start:"10:00", end:"11:30", course:"REF. MATES", teacher:"ANGEL" }, // ✅ REF. / MATES automático
+        { day:"JUEVES", start:"10:00", end:"11:30", course:"TRI", teacher:"TORRES" },
+        { day:"VIERNES", start:"10:00", end:"11:30", course:"RM 1", teacher:"OBANDO" },
+
+        { day:"LUNES", start:"12:00", end:"13:30", course:"GGF", teacher:"RIOJA" },
+        { day:"MARTES", start:"12:00", end:"13:30", course:"ÁLG 1", teacher:"UCANCIAL" }, // ✅ “ÁLG 1” se mantiene en una sola línea
+        { day:"MIÉRCOLES", start:"12:00", end:"13:30", course:"TXT", teacher:"ZAVALA" },
+        { day:"JUEVES", start:"12:00", end:"13:30", course:"BIO 1", teacher:"LUYO" },
+        { day:"VIERNES", start:"12:00", end:"13:30", course:"FÍS 2", teacher:"RUBEN" },
+
+        { day:"LUNES", start:"15:00", end:"16:30", course:"QUÍ 2", teacher:"COSTA" },
+        { day:"MARTES", start:"15:00", end:"16:30", course:"ÁLG 2", teacher:"UCANCIAL" },
+        { day:"MIÉRCOLES", start:"15:00", end:"16:30", course:"RV 2", teacher:"TABER" },
+        { day:"JUEVES", start:"15:00", end:"16:30", course:"BIO 2", teacher:"LUYO" },
+        { day:"VIERNES", start:"15:00", end:"16:30", course:"RM 2", teacher:"OBANDO" },
+      ]
+    },
+
+    // EJEMPLO: si quieres forzar 3 líneas:
+    // { day:"LUNES", start:"12:00", end:"13:30", course:"MAT / FIN / 1", teacher:"ALGO" }
+
+    { id:"AGR_LM_2", local:"LA MOLINA", uni:"AGRARIA", salon:"AGRARIA LM 2", blocks:[] },
+    { id:"AGR_SM",   local:"SAN MIGUEL", uni:"AGRARIA", salon:"AGRARIA SM", blocks:[] },
+    { id:"AGR_SB",   local:"SAN BORJA", uni:"AGRARIA", salon:"AGRARIA SB", blocks:[] },
+    { id:"AGR_VIRT", local:"VIRTUAL", uni:"AGRARIA", salon:"AGRARIA VIRTUAL", blocks:[] },
+
+    // ========================= PUCP (AZUL) =========================
+    { id:"PUCP_LM", local:"LA MOLINA", uni:"PUCP", salon:"PUCP LM", blocks:[] },
+    { id:"PUCP_SM", local:"SAN MIGUEL", uni:"PUCP", salon:"PUCP SM", blocks:[] },
+    { id:"PUCP_SB", local:"SAN BORJA", uni:"PUCP", salon:"PUCP SB", blocks:[] },
+
+    // ========================= U.LIMA (NARANJA) =========================
+    { id:"UL_LM",   local:"LA MOLINA", uni:"U.LIMA", salon:"U.LIMA LM", blocks:[] },
+    { id:"UL_SM_1", local:"SAN MIGUEL", uni:"U.LIMA", salon:"U.LIMA SM 1", blocks:[] },
+    { id:"UL_SM_2", local:"SAN MIGUEL", uni:"U.LIMA", salon:"U.LIMA SM 2", blocks:[] },
+    { id:"UL_SB_1", local:"SAN BORJA", uni:"U.LIMA", salon:"U.LIMA SB 1", blocks:[] },
+    { id:"UL_SB_2", local:"SAN BORJA", uni:"U.LIMA", salon:"U.LIMA SB 2", blocks:[] },
+
+    // Si quieres ESCOLAR como U.LIMA, usa uni:"U.LIMA" y en salon pon “U.LIMA ESCOLAR”
+    { id:"UL_ESC", local:"VIRTUAL", uni:"U.LIMA", salon:"U.LIMA ESCOLAR", blocks:[] },
+    { id:"UL_VIRT", local:"VIRTUAL", uni:"U.LIMA", salon:"U.LIMA VIRTUAL", blocks:[] },
+  ]);
+
   function ensureHorariosLayout(){
     const el = document.getElementById("view_horarios");
     if (el.dataset.ready === "1") return;
@@ -1786,7 +1874,7 @@
           <span class="pill"><span class="dot agraria"></span>AGRARIA</span>
           <span class="pill"><span class="dot pucp"></span>PUCP</span>
           <span class="pill"><span class="dot ulima"></span>U.LIMA</span>
-          <span class="pill">En celular puedes deslizar horizontalmente.</span>
+          <span class="pill">Descarga PNG siempre sale en “horizontal bonito”.</span>
         </div>
       </div>
 
@@ -1795,10 +1883,15 @@
       </div>
     `;
 
-    const locals = uniq(SCHEDULES.map(s=>s.local)).sort();
-    fillSelectKeep("hLocal", locals, "LOCAL: TODOS");
+    // ✅ Importante: por defecto mostrar TODO (LOCAL: TODOS)
+    const locals = uniq(SCHEDULES.map(s=>s.local));
+    fillSelectKeep("hLocal", sortByLocalOrder(locals), "LOCAL: TODOS");
     fillSelectKeep("hUni", ["AGRARIA","PUCP","U.LIMA"], "UNIVERSIDAD: TODAS");
+
+    document.getElementById("hLocal").value = "__ALL__";
+    document.getElementById("hUni").value = "__ALL__";
     rebuildHorariosSalonOptions();
+    document.getElementById("hSalon").value = "__ALL__";
 
     document.getElementById("hLocal").addEventListener("change", ()=>{
       rebuildHorariosSalonOptions();
@@ -1820,6 +1913,13 @@
     el.dataset.ready = "1";
   }
 
+  function sortByLocalOrder(values){
+    return values.slice().sort((a,b)=>{
+      const ia = LOCAL_ORDER.indexOf(a); const ib = LOCAL_ORDER.indexOf(b);
+      return (ia<0?999:ia) - (ib<0?999:ib);
+    });
+  }
+
   function rebuildHorariosSalonOptions(){
     const fLocal = document.getElementById("hLocal").value;
     const fUni = document.getElementById("hUni").value;
@@ -1828,7 +1928,7 @@
     if (fLocal !== "__ALL__") base = base.filter(s=>s.local===fLocal);
     if (fUni !== "__ALL__") base = base.filter(s=>s.uni===fUni);
 
-    const salones = uniq(base.map(s=>s.salon)).sort();
+    const salones = uniq(base.map(s=>s.salon)).sort((a,b)=>a.localeCompare(b,"es"));
     fillSelectKeep("hSalon", salones, "SALÓN: TODOS");
   }
 
@@ -1844,11 +1944,14 @@
     if (fUni !== "__ALL__") base = base.filter(s=>s.uni===fUni);
     if (fSalon !== "__ALL__") base = base.filter(s=>s.salon===fSalon);
 
+    // ✅ Siempre en el orden: LA MOLINA -> SAN MIGUEL -> SAN BORJA
+    base = sortSchedules(base);
+
     const grid = document.getElementById("schGrid");
     grid.innerHTML = base.map(scheduleToHtmlCard).join("");
   }
 
-  // ===================== ✅ DESCARGAR PNG COMPLETO (NO “solo lo visible”) =====================
+  // ===================== ✅ DESCARGAR PNG “HORIZONTAL BONITO” =====================
   function safeFileName(s){
     return String(s||"horario")
       .trim()
@@ -1861,59 +1964,30 @@
     const card = document.querySelector(`.schCard[data-id="${scheduleId}"]`);
     if (!card) return;
 
+    const prevBody = document.body.classList.contains("exportMode");
+    document.body.classList.add("exportMode");
+
+    // ocultar botón para que no salga en la imagen
+    const btn = card.querySelector(".schDl");
+    const prevBtnDisplay = btn ? btn.style.display : "";
+    if (btn) btn.style.display = "none";
+
+    // scroll al inicio de cualquier contenedor
     const wrap = card.querySelector(".schTableWrap");
-    const table = card.querySelector(".schTable");
+    if (wrap) wrap.scrollLeft = 0;
 
-    // Guardar estilos actuales
-    const prev = {
-      cardWidth: card.style.width,
-      wrapOverflowX: wrap ? wrap.style.overflowX : "",
-      wrapOverflow: wrap ? wrap.style.overflow : "",
-      wrapMaxWidth: wrap ? wrap.style.maxWidth : "",
-      tableMinWidth: table ? table.style.minWidth : "",
-      tableWidth: table ? table.style.width : ""
-    };
+    // esperar un frame para aplicar estilos exportMode
+    await new Promise(r=>requestAnimationFrame(()=>r()));
 
-    // Forzar “contenido completo” antes de capturar
-    card.classList.add("exporting");
-
-    if (wrap){
-      wrap.scrollLeft = 0;
-      wrap.style.overflow = "visible";
-      wrap.style.overflowX = "visible";
-      wrap.style.maxWidth = "none";
-    }
-    if (table){
-      table.style.minWidth = "0px";
-      table.style.width = table.scrollWidth + "px";
-    }
-    // Expandir la tarjeta para que quepa toda la tabla
-    const fullW = Math.max(card.scrollWidth, table ? table.scrollWidth : 0);
-    if (fullW > 0) card.style.width = fullW + "px";
-
-    // Captura completa del elemento (incluye lo que normalmente está scrolleable)
     const canvas = await html2canvas(card, {
       backgroundColor: "#ffffff",
       scale: 2,
-      useCORS: true,
-      scrollX: -window.scrollX,
-      scrollY: -window.scrollY,
-      windowWidth: fullW || card.scrollWidth,
-      windowHeight: card.scrollHeight
+      useCORS: true
     });
 
-    // Restaurar estilos
-    card.classList.remove("exporting");
-    card.style.width = prev.cardWidth;
-    if (wrap){
-      wrap.style.overflowX = prev.wrapOverflowX;
-      wrap.style.overflow = prev.wrapOverflow;
-      wrap.style.maxWidth = prev.wrapMaxWidth;
-    }
-    if (table){
-      table.style.minWidth = prev.tableMinWidth;
-      table.style.width = prev.tableWidth;
-    }
+    // restaurar
+    if (btn) btn.style.display = prevBtnDisplay;
+    if (!prevBody) document.body.classList.remove("exportMode");
 
     const nameLocal = safeFileName(card.getAttribute("data-local"));
     const nameSalon = safeFileName(card.getAttribute("data-salon"));
@@ -1933,6 +2007,7 @@
     downloadSchedulePNG(sid);
   });
 
+  // ===================== RENDER =====================
   function render(){
     if (state.view==="overview") renderOverview();
     if (state.view==="local") renderLocal();
@@ -1940,6 +2015,7 @@
     if (state.view==="horarios") renderHorarios();
   }
 
+  // ===================== LOAD DATA MATRÍCULA =====================
   async function loadOneSalon(salon){
     const url = csvUrl(salon.gid) + "&v=" + Date.now();
     const res = await fetch(url, { cache:"no-store" });
@@ -2020,6 +2096,7 @@
     }
   }
 
+  // ===================== EVENTS =====================
   document.getElementById("nav_overview").addEventListener("click", ()=>setView("overview"));
   document.getElementById("nav_local").addEventListener("click", ()=>setView("local"));
   document.getElementById("nav_table").addEventListener("click", ()=>setView("table"));
