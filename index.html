@@ -7,7 +7,7 @@
 
   <!-- Charts -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
 
   <!-- PNG export (captura COMPLETA del elemento, no solo lo visible) -->
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
@@ -2242,6 +2242,15 @@ const LISTAS = [
   { local:"VIRTUAL", name:"U.LIMA",    url:"https://docs.google.com/spreadsheets/d/1o22eorhLJWwKU3gyZgkB204MBVZX5tQ11jP3p73ll3s/edit?usp=drive_web&ouid=109996193497961946614" },
   { local:"VIRTUAL", name:"ESCOLAR",   url:"https://docs.google.com/spreadsheets/d/15JJwUgf7WARdS4yBjUPAxkUigrPXm3LjTqrFJBI1mxE/edit?usp=drive_web&ouid=109996193497961946614" },
 ];
+const LISTAS_LOCAL_ORDER = ["LA MOLINA","SAN MIGUEL","SAN BORJA","VIRTUAL"];
+
+function sortListasByLocalOrder(values){
+  return values.slice().sort((a,b)=>{
+    const ia = LISTAS_LOCAL_ORDER.indexOf(a); 
+    const ib = LISTAS_LOCAL_ORDER.indexOf(b);
+    return (ia<0?999:ia) - (ib<0?999:ib);
+  });
+}
 
 function ensureListasLayout(){
   const el = document.getElementById("view_listas");
@@ -2271,7 +2280,7 @@ function ensureListasLayout(){
   `;
 
   const locals = uniq(LISTAS.map(x=>x.local));
-  fillSelectKeep("lLocal", sortByLocalOrder(locals), "LOCAL: TODOS");
+  fillSelectKeep("lLocal", sortListasByLocalOrder(locals), "LOCAL: TODOS");
 
   document.getElementById("lReset").addEventListener("click", ()=>{
     document.getElementById("lLocal").value="__ALL__";
@@ -2302,7 +2311,8 @@ function renderListas(){
   }
 
   const orderedLocals = [...byLocal.keys()].sort((a,b)=>{
-    const ia = LOCAL_ORDER.indexOf(a); const ib = LOCAL_ORDER.indexOf(b);
+    const ia = LISTAS_LOCAL_ORDER.indexOf(a);
+    const ib = LISTAS_LOCAL_ORDER.indexOf(b);
     return (ia<0?999:ia) - (ib<0?999:ib);
   });
 
