@@ -1036,7 +1036,7 @@
 // ===================== PERSISTENCIA DE VISTA (FIX) =====================
 const VIEW_STORAGE_KEY = "LA_META_CURRENT_VIEW";
 
-function saveView(v){
+function persistView(v){
   try { localStorage.setItem(VIEW_STORAGE_KEY, v); } catch(e){}
 }
 function loadSavedView(){
@@ -1255,6 +1255,7 @@ function loadSavedView(){
   function setView(v){
     saveView(v); 
     state.view = v;
+    persistView(v);
     document.getElementById("nav_overview").classList.toggle("active", v==="overview");
     document.getElementById("nav_local").classList.toggle("active", v==="local");
     document.getElementById("nav_table").classList.toggle("active", v==="table");
@@ -3379,11 +3380,7 @@ const items = list.map(it=>{
       await loadImpresiones();
 
       initFilters();
-      const sv = loadSavedView();
-      if (sv && ["overview","local","table","horarios","impresiones","silabos","materiales","listas"].includes(sv)){
-        setView(sv);
-      } else {
-        render();
+      render();
       }
     } catch(e){
       console.error(e);
@@ -3415,6 +3412,13 @@ const items = list.map(it=>{
   document.getElementById("btnNowTop").addEventListener("click", loadAll);
 
   initFilters();
+  const boot = loadSavedView();
+  const allowed = ["overview","local","table","horarios","impresiones","silabos","materiales","listas"];
+  if (boot && allowed.includes(boot)){
+    setView(boot);
+  } else {
+    setView("overview");
+  }
   loadAll();
   setInterval(loadAll, AUTO_REFRESH_MS);
 </script>
