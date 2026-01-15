@@ -1086,15 +1086,26 @@
   // ===================== PERSISTENCIA DE VISTA (NO VOLVER A RESUMEN AL REFRESCAR) =====================
   const VIEW_KEY = "LA_META_VIEW";
 
-  function saveView(v){
-    state.view = v;
-    saveView(v);
-    try{
-      localStorage.setItem(VIEW_KEY, v);
-      // hash limpio para reabrir sección incluso al recargar
-      if (location.hash !== "#" + v) history.replaceState(null, "", "#" + v);
-    }catch(e){}
+// ===================== PERSISTENCIA DE VISTA =====================
+const VIEW_KEY = "LA_META_VIEW";
+
+function persistView(v){
+  try{
+    localStorage.setItem(VIEW_KEY, v);
+    if (location.hash !== "#" + v) history.replaceState(null, "", "#" + v);
+  }catch(e){}
+}
+
+function loadView(){
+  const h = (location.hash || "").replace("#","").trim();
+  if (h) return h;
+  try{
+    return localStorage.getItem(VIEW_KEY) || "overview";
+  }catch(e){
+    return "overview";
   }
+}
+
 
   function loadView(){
     const h = (location.hash || "").replace("#","").trim();
@@ -1317,6 +1328,8 @@
   // ============================ NAV ============================
   function setView(v){
     state.view = v;
+    persistView(v);
+
     document.getElementById("nav_overview").classList.toggle("active", v==="overview");
     document.getElementById("nav_local").classList.toggle("active", v==="local");
     document.getElementById("nav_table").classList.toggle("active", v==="table");
@@ -2163,93 +2176,87 @@
     el.dataset.ready = "1";
   }
 
-  function renderImpresiones(){
-    ;
+function renderImpresiones(){
+  ensureImpresionesLayout();
 
-    const locals = uniq(state.imprRows.map(x=>x.local)).sort((a,b)=>a.localeCompare(b,"es"));
-    fillSelectKeep("iLocal", locals, "LOCAL: TODOS");
+  const locals = uniq(state.imprRows.map(x=>x.local)).sort((a,b)=>a.localeCompare(b,"es"));
+  fillSelectKeep("iLocal", locals, "LOCAL: TODOS");
 
-    const fLocal = document.getElementById("iLocal").value;
+  const fLocal = document.getElementById("iLocal").value;
 
-    let rows = state.imprRows.slice();
-    if (fLocal !== "__ALL__") rows = rows.filter(x=>x.local === fLocal);
+  let rows = state.imprRows.slice();
+  if (fLocal !== "__ALL__") rows = rows.filter(x=>x.local === fLocal);
 
-    const total = rows.reduce((a,b)=>a+(+b.count||0),0);
-    document.getElementById("iTotal").textContent = total.toLocaleString("es-PE");
-    document.getElementById("iSalones").textContent = rows.length.toLocaleString("es-PE");
+  const total = rows.reduce((a,b)=>a+(+b.count||0),0);
+  document.getElementById("iTotal").textContent = total.toLocaleString("es-PE");
+  document.getElementById("iSalones").textContent = rows.length.toLocaleString("es-PE");
 
-    // agrupar por local
-    const byLocal = new Map();
-    for (const r of rows){
-      if (!byLocal.has(r.local)) byLocal.set(r.local, []);
-      byLocal.get(r.local).push(r);
-    }
+  const byLocal = new Map();
+  for (const r of rows){
+    if (!byLocal.has(r.local)) byLocal.set(r.local, []);
+    byLocal.get(r.local).push(r);
+  }
 
-    // Orden local fijo
-    const LOCAL_ORDER = ["LA MOLINA","SAN MIGUEL","SAN BORJA","VIRTUAL"];
-    const orderedLocals = [...byLocal.keys()].sort((a,b)=>{
-      const ia = LOCAL_ORDER.indexOf(a); const ib = LOCAL_ORDER.indexOf(b);
-      return (ia<0?999:ia) - (ib<0?999:ib);
+  const LOCAL_ORDER = ["LA MOLINA","SAN MIGUEL","SAN BORJA","VIRTUAL"];
+  const orderedLocals = [...byLocal.keys()].sort((a,b)=>{
+    const ia = LOCAL_ORDER.indexOf(a); const ib = LOCAL_ORDER.indexOf(b);
+    return (ia<0?999:ia) - (ib<0?999:ib);
+  });
+
+  function itemSortKey(it){
+    const meta = imprMetaFromSalon(it.salon);
+    return [meta.group, String(it.salon||"").toUpperCase()];
+  }
+
+  const blocks = orderedLocals.map(loc=>{
+    const list = byLocal.get(loc).slice().sort((a,b)=>{
+      const ka = itemSortKey(a);
+      const kb = itemSortKey(b);
+      if (ka[0] !== kb[0]) return ka[0] - kb[0];
+      return ka[1].localeCompare(kb[1], "es");
     });
 
-    // Orden de tarjetas dentro de cada local:
-    // AGRARIA (0) -> PUCP (1) -> U.LIMA (2) -> ROJO (3)
-    function itemSortKey(it){
+    const subTotal = list.reduce((x,y)=>x+(+y.count||0),0);
+
+    const items = list.map(it=>{
       const meta = imprMetaFromSalon(it.salon);
-      return [meta.group, String(it.salon||"").toUpperCase()];
-    }
-
-    const blocks = orderedLocals.map(loc=>{
-      const list = byLocal.get(loc).slice().sort((a,b)=>{
-        const ka = itemSortKey(a);
-        const kb = itemSortKey(b);
-        if (ka[0] !== kb[0]) return ka[0] - kb[0];
-        return ka[1].localeCompare(kb[1], "es");
-      });
-
-      const subTotal = list.reduce((x,y)=>x+(+y.count||0),0);
-
-      const items = list.map(it=>{
-        const meta = imprMetaFromSalon(it.salon);
-
-        return `
-          <div class="iItem">
-            <div class="iLeft">
-              <div class="iSalon">${escapeHtml(it.salon)}</div>
-              <div class="iMeta">
-                <span class="dot" style="background:${meta.dot};"></span>
-                <span>${escapeHtml(meta.label)}</span>
-              </div>
-            </div>
-            <div class="iNum" style="color:${meta.num};">
-              ${(+it.count||0).toLocaleString("es-PE")}
-            </div>
-          </div>
-        `;
-      }).join("");
-
       return `
-        <div class="card panel12">
-          <div class="iLocalHead">
-            <div class="cardtitle" style="margin:0;">${escapeHtml(loc)}</div>
-            <div class="iKpis">
-              <span class="iKpiPill">TOTAL: <b>${subTotal.toLocaleString("es-PE")}</b></span>
-              <span class="iKpiPill">SALONES: <b>${list.length}</b></span>
+        <div class="iItem">
+          <div class="iLeft">
+            <div class="iSalon">${escapeHtml(it.salon)}</div>
+            <div class="iMeta">
+              <span class="dot" style="background:${meta.dot};"></span>
+              <span>${escapeHtml(meta.label)}</span>
             </div>
           </div>
-          <div class="iGrid">${items}</div>
+          <div class="iNum" style="color:${meta.num};">
+            ${(+it.count||0).toLocaleString("es-PE")}
+          </div>
         </div>
       `;
     }).join("");
 
-    document.getElementById("iBlocks").innerHTML = blocks || `
+    return `
       <div class="card panel12">
-        <div class="cardtitle">SIN DATOS</div>
-        <div style="color:var(--muted); font-weight:900;">No se encontraron registros en IMPRESIONES.</div>
+        <div class="iLocalHead">
+          <div class="cardtitle" style="margin:0;">${escapeHtml(loc)}</div>
+          <div class="iKpis">
+            <span class="iKpiPill">TOTAL: <b>${subTotal.toLocaleString("es-PE")}</b></span>
+            <span class="iKpiPill">SALONES: <b>${list.length}</b></span>
+          </div>
+        </div>
+        <div class="iGrid">${items}</div>
       </div>
     `;
-  }
+  }).join("");
 
+  document.getElementById("iBlocks").innerHTML = blocks || `
+    <div class="card panel12">
+      <div class="cardtitle">SIN DATOS</div>
+      <div style="color:var(--muted); font-weight:900;">No se encontraron registros en IMPRESIONES.</div>
+    </div>
+  `;
+}
   async function loadImpresiones(){
     try{
       const url = csvUrl(IMPRESIONES_GID) + "&v=" + Date.now();
