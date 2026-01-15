@@ -1638,219 +1638,252 @@
   }
 
   // ===================== IMPRESIONES (NUEVO) =====================
-  const IMP_LOCALS = ["LA MOLINA","SAN MIGUEL","SAN BORJA"];
+// ===================== IMPRESIONES (NUEVO) =====================
+const IMP_LOCALS = ["LA MOLINA","SAN MIGUEL","SAN BORJA"];
 
-  function toInt(x){
-    const n = parseInt(String(x||"").replace(/[^\d]/g,""), 10);
-    return Number.isFinite(n) ? n : 0;
+function toInt(x){
+  const n = parseInt(String(x||"").replace(/[^\d]/g,""), 10);
+  return Number.isFinite(n) ? n : 0;
+}
+
+function inferUniFromSalonLabel(label){
+  const s = String(label||"").toUpperCase();
+  if (s.includes("AGRARIA")) return "AGRARIA";
+  if (s.includes("PUCP")) return "PUCP";
+  if (s.includes("U.LIMA") || s.includes("U LIMA") || s.includes("ULIMA")) return "U.LIMA";
+  return "OTRO";
+}
+
+/**
+ * Reglas solicitadas:
+ * 1) Quitar "ACTUALIZADO" (ya no se muestra en UI)
+ * 2) OTRO: punto ROJO + número ROJO (mismo color)
+ * 3) PARALELO: mostrar etiqueta "U.LIMA" pero en ROJO (no naranja)
+ * 4) Orden fijo en cada local: VERDE (AGRARIA) -> AZUL (PUCP) -> NARANJA (U.LIMA) -> ROJO (OTRO/PARALELO)
+ */
+function imprMetaFromSalon(salon){
+  const s = String(salon||"").toUpperCase();
+
+  // Caso especial: PARALELO -> etiqueta U.LIMA pero ROJO
+  if (s.includes("PARALELO")){
+    const red = getCss("--accent2");
+    return { group: 3, label: "U.LIMA", dot: red, num: red };
   }
 
-  function inferUniFromSalonLabel(label){
-    const s = String(label||"").toUpperCase();
-    if (s.includes("AGRARIA")) return "AGRARIA";
-    if (s.includes("PUCP")) return "PUCP";
-    if (s.includes("U.LIMA") || s.includes("U LIMA") || s.includes("ULIMA")) return "U.LIMA";
-    return "OTRO";
+  const uni = inferUniFromSalonLabel(salon);
+
+  if (uni === "AGRARIA"){
+    const c = getCss("--agraria");
+    return { group: 0, label: "AGRARIA", dot: c, num: c };
+  }
+  if (uni === "PUCP"){
+    const c = getCss("--pucp");
+    return { group: 1, label: "PUCP", dot: c, num: c };
+  }
+  if (uni === "U.LIMA"){
+    const c = getCss("--ulima");
+    return { group: 2, label: "U.LIMA", dot: c, num: c };
   }
 
-  function uniDotColorForImpr(uni){
-    if (uni==="AGRARIA") return getCss("--agraria");
-    if (uni==="PUCP") return getCss("--pucp");
-    if (uni==="U.LIMA") return getCss("--ulima");
-    return "rgba(15,23,42,0.35)";
+  // OTRO (ej: ADELANTO): punto ROJO + número ROJO
+  const red = getCss("--accent2");
+  return { group: 3, label: "OTRO", dot: red, num: red };
+}
+
+function parseImpresionesCSV(csvText){
+  const lines = csvText.split(/\r?\n/).filter(l=>l.trim().length>0);
+  const grid = lines.map(parseCSVLine).map(r=>r.map(norm));
+
+  // buscar fila cabecera donde aparezcan LA MOLINA / SAN MIGUEL / SAN BORJA
+  let headerRow = -1;
+  for (let r=0; r<Math.min(grid.length, 40); r++){
+    const rowU = grid[r].map(x=>String(x||"").toUpperCase());
+    const hits = IMP_LOCALS.filter(L => rowU.includes(L)).length;
+    if (hits >= 2){ headerRow = r; break; }
   }
+  if (headerRow < 0) return [];
 
-  function uniNumColorForImpr(uni){
-    if (uni==="AGRARIA") return getCss("--agraria");
-    if (uni==="PUCP") return getCss("--pucp");
-    if (uni==="U.LIMA") return getCss("--ulima");
-    return getCss("--accent2");
-  }
-
-  function parseImpresionesCSV(csvText){
-    const lines = csvText.split(/\r?\n/).filter(l=>l.trim().length>0);
-    const grid = lines.map(parseCSVLine).map(r=>r.map(norm));
-
-    // buscar fila cabecera donde aparezcan LA MOLINA / SAN MIGUEL / SAN BORJA
-    let headerRow = -1;
-    for (let r=0; r<Math.min(grid.length, 40); r++){
-      const rowU = grid[r].map(x=>String(x||"").toUpperCase());
-      const hits = IMP_LOCALS.filter(L => rowU.includes(L)).length;
-      if (hits >= 2){ headerRow = r; break; }
+  const rowU = grid[headerRow].map(x=>String(x||"").toUpperCase());
+  const cols = []; // { local, colSalon, colCount }
+  for (const loc of IMP_LOCALS){
+    const c = rowU.indexOf(loc);
+    if (c >= 0){
+      cols.push({ local: loc, colSalon: c, colCount: c+1 });
     }
-    if (headerRow < 0) return [];
+  }
+  if (!cols.length) return [];
 
-    const rowU = grid[headerRow].map(x=>String(x||"").toUpperCase());
-    const cols = []; // { local, colSalon, colCount }
-    for (const loc of IMP_LOCALS){
-      const c = rowU.indexOf(loc);
-      if (c >= 0){
-        cols.push({ local: loc, colSalon: c, colCount: c+1 });
-      }
+  const out = [];
+  for (let r=headerRow+1; r<grid.length; r++){
+    const anySalon = cols.some(cc => norm(grid[r][cc.colSalon] || "").length > 0);
+    const anyCount = cols.some(cc => norm(grid[r][cc.colCount] || "").length > 0);
+    if (!anySalon && !anyCount) continue;
+
+    for (const cc of cols){
+      const salon = norm(grid[r][cc.colSalon] || "");
+      if (!salon) continue;
+
+      const up = salon.toUpperCase();
+      if (up.includes("IMPRESION")) continue; // evita encabezados del estilo "# IMPRESIONES"
+
+      const count = toInt(grid[r][cc.colCount] || "0");
+      out.push({ local: cc.local, salon, count });
     }
-    if (!cols.length) return [];
-
-    const out = [];
-    for (let r=headerRow+1; r<grid.length; r++){
-      // si toda la fila está vacía en columnas de salón, se puede cortar (pero con tolerancia)
-      const anySalon = cols.some(cc => norm(grid[r][cc.colSalon] || "").length > 0);
-      const anyCount = cols.some(cc => norm(grid[r][cc.colCount] || "").length > 0);
-      if (!anySalon && !anyCount) continue;
-
-      for (const cc of cols){
-        const salon = norm(grid[r][cc.colSalon] || "");
-        if (!salon) continue;
-        const up = salon.toUpperCase();
-        if (up.includes("IMPRESION")) continue; // evitar "# IMPRESIONES"
-        const count = toInt(grid[r][cc.colCount] || "0");
-        out.push({ local: cc.local, salon, count });
-      }
-    }
-
-    // dedupe por (local + salon), manteniendo el último
-    const best = new Map();
-    for (const it of out){
-      const k = `${it.local}||${it.salon}`.toUpperCase();
-      best.set(k, it);
-    }
-    return [...best.values()];
   }
 
-  function ensureImpresionesLayout(){
-    const el = document.getElementById("view_impresiones");
-    if (el.dataset.ready === "1") return;
+  // dedupe por (local + salon), manteniendo el último
+  const best = new Map();
+  for (const it of out){
+    const k = `${it.local}||${it.salon}`.toUpperCase();
+    best.set(k, it);
+  }
+  return [...best.values()];
+}
 
-    el.innerHTML = `
-      <div class="card panel12">
-        <div class="cardtitle">FILTRO</div>
-        <div class="controls" style="justify-content:flex-start;">
-          <select id="iLocal"></select>
-          <button id="iReset">VER TODO</button>
-        </div>
-        <div class="panelHint" style="margin-top:10px;">
-          <span class="pill"><span class="dot agraria"></span>AGRARIA</span>
-          <span class="pill"><span class="dot pucp"></span>PUCP</span>
-          <span class="pill"><span class="dot ulima"></span>U.LIMA</span>
+function ensureImpresionesLayout(){
+  const el = document.getElementById("view_impresiones");
+  if (el.dataset.ready === "1") return;
+
+  // ✅ Se quitó el pill de ACTUALIZADO
+  el.innerHTML = `
+    <div class="card panel12">
+      <div class="cardtitle">FILTRO</div>
+      <div class="controls" style="justify-content:flex-start;">
+        <select id="iLocal"></select>
+        <button id="iReset">VER TODO</button>
+      </div>
+      <div class="panelHint" style="margin-top:10px;">
+        <span class="pill"><span class="dot agraria"></span>AGRARIA</span>
+        <span class="pill"><span class="dot pucp"></span>PUCP</span>
+        <span class="pill"><span class="dot ulima"></span>U.LIMA</span>
+        <span class="pill"><span class="dot" style="background:${getCss("--accent2")};"></span>OTRO / PARALELO</span>
+      </div>
+    </div>
+
+    <div class="card panel12">
+      <div class="iLocalHead">
+        <div class="cardtitle" style="margin:0;">RESUMEN GENERAL</div>
+        <div class="iKpis">
+          <span class="iKpiPill">TOTAL: <b id="iTotal">0</b></span>
+          <span class="iKpiPill">SALONES: <b id="iSalones">0</b></span>
         </div>
       </div>
+    </div>
 
-      <div class="card panel12">
-        <div class="iLocalHead">
-          <div class="cardtitle" style="margin:0;">RESUMEN GENERAL</div>
-          <div class="iKpis">
-            <span class="iKpiPill">TOTAL: <b id="iTotal">0</b></span>
-            <span class="iKpiPill">SALONES: <b id="iSalones">0</b></span>
-            <span class="iKpiPill">ACTUALIZADO: <b id="iUpd">—</b></span>
-          </div>
-        </div>
-      </div>
+    <div class="panel12" id="iBlocks"></div>
+  `;
 
-      <div class="panel12" id="iBlocks"></div>
-    `;
+  document.getElementById("iReset").addEventListener("click", ()=>{
+    document.getElementById("iLocal").value = "__ALL__";
+    renderImpresiones();
+  });
+  document.getElementById("iLocal").addEventListener("change", renderImpresiones);
 
-    document.getElementById("iReset").addEventListener("click", ()=>{
-      document.getElementById("iLocal").value = "__ALL__";
-      renderImpresiones();
-    });
-    document.getElementById("iLocal").addEventListener("change", renderImpresiones);
+  el.dataset.ready = "1";
+}
 
-    el.dataset.ready = "1";
+function renderImpresiones(){
+  ensureImpresionesLayout();
+
+  const locals = uniq(state.imprRows.map(x=>x.local)).sort((a,b)=>a.localeCompare(b,"es"));
+  fillSelectKeep("iLocal", locals, "LOCAL: TODOS");
+
+  const fLocal = document.getElementById("iLocal").value;
+
+  let rows = state.imprRows.slice();
+  if (fLocal !== "__ALL__") rows = rows.filter(x=>x.local === fLocal);
+
+  const total = rows.reduce((a,b)=>a+(+b.count||0),0);
+  document.getElementById("iTotal").textContent = total.toLocaleString("es-PE");
+  document.getElementById("iSalones").textContent = rows.length.toLocaleString("es-PE");
+
+  // agrupar por local
+  const byLocal = new Map();
+  for (const r of rows){
+    if (!byLocal.has(r.local)) byLocal.set(r.local, []);
+    byLocal.get(r.local).push(r);
   }
 
-  function renderImpresiones(){
-    ensureImpresionesLayout();
+  // Orden local fijo
+  const LOCAL_ORDER = ["LA MOLINA","SAN MIGUEL","SAN BORJA","VIRTUAL"];
+  const orderedLocals = [...byLocal.keys()].sort((a,b)=>{
+    const ia = LOCAL_ORDER.indexOf(a); const ib = LOCAL_ORDER.indexOf(b);
+    return (ia<0?999:ia) - (ib<0?999:ib);
+  });
 
-    const locals = uniq(state.imprRows.map(x=>x.local)).sort((a,b)=>a.localeCompare(b,"es"));
-    fillSelectKeep("iLocal", locals, "LOCAL: TODOS");
+  // Orden de tarjetas dentro de cada local:
+  // AGRARIA (0) -> PUCP (1) -> U.LIMA (2) -> ROJO (3)
+  function itemSortKey(it){
+    const meta = imprMetaFromSalon(it.salon);
+    return [meta.group, String(it.salon||"").toUpperCase()];
+  }
 
-    const fLocal = document.getElementById("iLocal").value;
-
-    let rows = state.imprRows.slice();
-    if (fLocal !== "__ALL__") rows = rows.filter(x=>x.local === fLocal);
-
-    const total = rows.reduce((a,b)=>a+(+b.count||0),0);
-    document.getElementById("iTotal").textContent = total.toLocaleString("es-PE");
-    document.getElementById("iSalones").textContent = rows.length.toLocaleString("es-PE");
-
-    const upd = state.imprUpdatedAt ? new Date(state.imprUpdatedAt) : null;
-    document.getElementById("iUpd").textContent = upd
-      ? upd.toLocaleTimeString("es-PE", { hour:"2-digit", minute:"2-digit", second:"2-digit" })
-      : "—";
-
-    const byLocal = new Map();
-    for (const r of rows){
-      if (!byLocal.has(r.local)) byLocal.set(r.local, []);
-      byLocal.get(r.local).push(r);
-    }
-
-    const LOCAL_ORDER = ["LA MOLINA","SAN MIGUEL","SAN BORJA","VIRTUAL"];
-    const orderedLocals = [...byLocal.keys()].sort((a,b)=>{
-      const ia = LOCAL_ORDER.indexOf(a); const ib = LOCAL_ORDER.indexOf(b);
-      return (ia<0?999:ia) - (ib<0?999:ib);
+  const blocks = orderedLocals.map(loc=>{
+    const list = byLocal.get(loc).slice().sort((a,b)=>{
+      const ka = itemSortKey(a);
+      const kb = itemSortKey(b);
+      if (ka[0] !== kb[0]) return ka[0] - kb[0];
+      return ka[1].localeCompare(kb[1], "es");
     });
 
-    const blocks = orderedLocals.map(loc=>{
-      const list = byLocal.get(loc).slice().sort((a,b)=>a.salon.localeCompare(b.salon,"es"));
-      const subTotal = list.reduce((x,y)=>x+(+y.count||0),0);
+    const subTotal = list.reduce((x,y)=>x+(+y.count||0),0);
 
-      const items = list.map(it=>{
-        const uni = inferUniFromSalonLabel(it.salon);
-        const dot = uniDotColorForImpr(uni);
-        const numColor = uniNumColorForImpr(uni);
-        const uniLabel = (uni==="OTRO") ? "OTRO" : uni;
-
-        return `
-          <div class="iItem">
-            <div class="iLeft">
-              <div class="iSalon">${escapeHtml(it.salon)}</div>
-              <div class="iMeta">
-                <span class="dot" style="background:${dot};"></span>
-                <span>${escapeHtml(uniLabel)}</span>
-              </div>
-            </div>
-            <div class="iNum" style="color:${numColor};">
-              ${(+it.count||0).toLocaleString("es-PE")}
-            </div>
-          </div>
-        `;
-      }).join("");
+    const items = list.map(it=>{
+      const meta = imprMetaFromSalon(it.salon);
 
       return `
-        <div class="card panel12">
-          <div class="iLocalHead">
-            <div class="cardtitle" style="margin:0;">${escapeHtml(loc)}</div>
-            <div class="iKpis">
-              <span class="iKpiPill">TOTAL: <b>${subTotal.toLocaleString("es-PE")}</b></span>
-              <span class="iKpiPill">SALONES: <b>${list.length}</b></span>
+        <div class="iItem">
+          <div class="iLeft">
+            <div class="iSalon">${escapeHtml(it.salon)}</div>
+            <div class="iMeta">
+              <span class="dot" style="background:${meta.dot};"></span>
+              <span>${escapeHtml(meta.label)}</span>
             </div>
           </div>
-          <div class="iGrid">${items}</div>
+          <div class="iNum" style="color:${meta.num};">
+            ${(+it.count||0).toLocaleString("es-PE")}
+          </div>
         </div>
       `;
     }).join("");
 
-    document.getElementById("iBlocks").innerHTML = blocks || `
+    return `
       <div class="card panel12">
-        <div class="cardtitle">SIN DATOS</div>
-        <div style="color:var(--muted); font-weight:900;">No se encontraron registros en IMPRESIONES.</div>
+        <div class="iLocalHead">
+          <div class="cardtitle" style="margin:0;">${escapeHtml(loc)}</div>
+          <div class="iKpis">
+            <span class="iKpiPill">TOTAL: <b>${subTotal.toLocaleString("es-PE")}</b></span>
+            <span class="iKpiPill">SALONES: <b>${list.length}</b></span>
+          </div>
+        </div>
+        <div class="iGrid">${items}</div>
       </div>
     `;
-  }
+  }).join("");
 
-  async function loadImpresiones(){
-    try{
-      const url = csvUrl(IMPRESIONES_GID) + "&v=" + Date.now();
-      const res = await fetch(url, { cache:"no-store" });
-      if (!res.ok) throw new Error("HTTP "+res.status);
-      const text = await res.text();
+  document.getElementById("iBlocks").innerHTML = blocks || `
+    <div class="card panel12">
+      <div class="cardtitle">SIN DATOS</div>
+      <div style="color:var(--muted); font-weight:900;">No se encontraron registros en IMPRESIONES.</div>
+    </div>
+  `;
+}
 
-      state.imprRows = parseImpresionesCSV(text);
-      state.imprUpdatedAt = Date.now();
-    } catch(e){
-      console.error("IMPRESIONES:", e);
-      state.imprRows = state.imprRows || [];
-    }
+async function loadImpresiones(){
+  try{
+    const url = csvUrl(IMPRESIONES_GID) + "&v=" + Date.now();
+    const res = await fetch(url, { cache:"no-store" });
+    if (!res.ok) throw new Error("HTTP "+res.status);
+    const text = await res.text();
+
+    state.imprRows = parseImpresionesCSV(text);
+    state.imprUpdatedAt = Date.now(); // se conserva, pero ya no se muestra en pantalla
+  } catch(e){
+    console.error("IMPRESIONES:", e);
+    state.imprRows = state.imprRows || [];
   }
+}
+// ===================== FIN IMPRESIONES =====================
 
   // ===================== HORARIOS =====================
   const DAYS = ["LUNES","MARTES","MIÉRCOLES","JUEVES","VIERNES","SÁBADO"];
