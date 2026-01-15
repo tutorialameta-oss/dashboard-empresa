@@ -1665,7 +1665,7 @@ function imprMetaFromSalon(salon){
   const s = String(salon||"").toUpperCase();
 
   // Caso especial: PARALELO -> etiqueta U.LIMA pero ROJO
-  if (s.includes("PARALELO")){
+  if (s.includes("PARALELO") || s.includes("ADELANTO")){
     const red = getCss("--accent2");
     return { group: 3, label: "U.LIMA", dot: red, num: red };
   }
