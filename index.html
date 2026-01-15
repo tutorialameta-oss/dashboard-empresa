@@ -1060,6 +1060,7 @@ function loadSavedView(){
 
     ch_loc_activos_salon: null,
     ch_loc_retiros_salon: null,
+    booted: false
   };
 
   Chart.register(ChartDataLabels, donutOutsideLabels);
@@ -3410,16 +3411,28 @@ const items = list.map(it=>{
   document.getElementById("q").addEventListener("input", render);
   document.getElementById("btnNowTop").addEventListener("click", loadAll);
 
+// ✅ FIX: init + setView SOLO 1 vez, luego solo render para no “saltarse” de vista
+if (!state.booted){
   initFilters();
-  const boot = loadSavedView();
-  const allowed = ["overview","local","table","horarios","impresiones","silabos","materiales","listas"];
-  if (boot && allowed.includes(boot)){
-    setView(boot);
+
+  const sv = loadSavedView();
+  if (sv && ["overview","local","table","horarios","impresiones","silabos","materiales","listas"].includes(sv)){
+    setView(sv);     // primera vez sí
   } else {
-    setView("overview");
+    render();
   }
-  loadAll();
-  setInterval(loadAll, AUTO_REFRESH_MS);
+
+  state.booted = true;
+} else {
+  // Updates (manual o cada 30s): NO cambies la vista, NO llames setView()
+  // Solo refresca opciones si estás en vistas que usan esos selects:
+  if (state.view === "overview" || state.view === "local" || state.view === "table"){
+    rebuildSalonOptions();
+  }
+
+  render();
+}
+
 </script>
 </body>
 </html>
