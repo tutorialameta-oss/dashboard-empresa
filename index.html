@@ -723,6 +723,9 @@
         <button id="nav_impresiones">IMPRESIONES</button>
         <!-- ✅ NUEVO -->
         <button id="nav_silabos">SÍLABOS</button>
+        <button id="nav_materiales">MATERIALES</button>
+        <button id="nav_listas">LISTAS</button>
+
       </div>
     </aside>
 
@@ -754,6 +757,9 @@
       <div id="view_impresiones" class="grid" style="display:none;"></div>
       <!-- ✅ NUEVO -->
       <div id="view_silabos" class="grid" style="display:none;"></div>
+      <div id="view_materiales" class="grid" style="display:none;"></div>
+      <div id="view_listas" class="grid" style="display:none;"></div>
+
     </main>
   </div>
 
@@ -1026,6 +1032,17 @@
       ctx.restore();
     }
   };
+// ===================== PERSISTENCIA DE VISTA (NUEVO) =====================
+const VIEW_STORAGE_KEY = "LA_META_CURRENT_VIEW";
+
+function saveView(v){
+  saveView(v);
+  state.view = v;
+  try { localStorage.setItem(VIEW_STORAGE_KEY, v); } catch(e){}
+}
+function loadSavedView(){
+  try { return localStorage.getItem(VIEW_STORAGE_KEY) || ""; } catch(e){ return ""; }
+}
 
   const state = {
     view: "overview",
@@ -1244,6 +1261,9 @@
     document.getElementById("nav_horarios").classList.toggle("active", v==="horarios");
     document.getElementById("nav_impresiones").classList.toggle("active", v==="impresiones");
     document.getElementById("nav_silabos").classList.toggle("active", v==="silabos");
+    document.getElementById("nav_materiales").classList.toggle("active", v==="materiales");
+    document.getElementById("nav_listas").classList.toggle("active", v==="listas");
+
 
     document.getElementById("view_overview").style.display = (v==="overview") ? "" : "none";
     document.getElementById("view_local").style.display = (v==="local") ? "" : "none";
@@ -1251,8 +1271,13 @@
     document.getElementById("view_horarios").style.display = (v==="horarios") ? "" : "none";
     document.getElementById("view_impresiones").style.display = (v==="impresiones") ? "" : "none";
     document.getElementById("view_silabos").style.display = (v==="silabos") ? "" : "none";
+    document.getElementById("view_materiales").style.display = (v==="materiales") ? "" : "none";
+    document.getElementById("view_listas").style.display     = (v==="listas") ? "" : "none";
 
-    document.getElementById("controlsMatricula").style.display = (v==="horarios" || v==="impresiones" || v==="silabos") ? "none" : "";
+
+    document.getElementById("controlsMatricula").style.display =
+      (v==="horarios" || v==="impresiones" || v==="silabos" || v==="materiales" || v==="listas") ? "none" : "";
+
 
     // ✅ estado solo visible en ALUMNOS (tabla)
     document.getElementById("fEstado").style.display = (v==="table") ? "" : "none";
@@ -1263,7 +1288,10 @@
       table: ["ALUMNOS", "Búsqueda y filtros para consulta interna."],
       horarios: ["HORARIOS", "Plantillas de horarios por local y universidad."],
       impresiones: ["IMPRESIONES", "Control en tiempo real de hojas a imprimir por local y salón."],
-      silabos: ["SÍLABOS", "Acceso directo a sílabos por universidad. Haga clic en el curso para abrir el Excel."]
+      silabos: ["SÍLABOS", "Acceso directo a sílabos por universidad. Haga clic en el curso para abrir el Excel."],
+      materiales: ["MATERIALES", "Acceso directo a carpetas por universidad."],
+      listas: ["LISTAS", "Acceso directo a listas por sede y grupo."]
+
     };
     document.getElementById("viewTitle").textContent = titles[v][0];
     document.getElementById("viewDesc").textContent = titles[v][1];
@@ -2136,6 +2164,55 @@
     `;
   }
   // ===================== FIN SÍLABOS =====================
+// ===================== MATERIALES (NUEVO) =====================
+const MATERIALES = [
+  { uni:"AGRARIA", url:"https://drive.google.com/drive/folders/1IXvAs551Wzjm2NbU2Ljoa9H4CudSG5he" },
+  { uni:"PUCP",    url:"https://drive.google.com/drive/folders/1uKPA66xWD56-hObLiNzf7fafFH0GbXkw" },
+  { uni:"U.LIMA",  url:"https://drive.google.com/drive/folders/1bFR0PRaSJFGnSJy6Ii6jU8SvHKCJrC9n" },
+];
+
+function ensureMaterialesLayout(){
+  const el = document.getElementById("view_materiales");
+  if (el.dataset.ready === "1") return;
+
+  el.innerHTML = `
+    <div class="card panel12">
+      <div class="cardtitle">MATERIALES</div>
+      <div style="color:var(--muted); font-weight:900; margin-bottom:12px;">
+        Acceso directo a carpetas por universidad.
+      </div>
+
+      <div class="iGrid" id="matGrid"></div>
+    </div>
+  `;
+  el.dataset.ready = "1";
+}
+
+function renderMateriales(){
+  ensureMaterialesLayout();
+
+  const grid = document.getElementById("matGrid");
+  grid.innerHTML = MATERIALES.map(x => {
+    const dot =
+      x.uni === "AGRARIA" ? getCss("--agraria") :
+      x.uni === "PUCP"    ? getCss("--pucp") :
+                            getCss("--ulima");
+
+    return `
+      <a class="iItem" href="${escapeHtml(x.url)}" target="_blank" rel="noopener"
+         style="text-decoration:none; color:inherit;">
+        <div class="iLeft">
+          <div class="iSalon">${escapeHtml(x.uni)}</div>
+          <div class="iMeta">
+            <span class="dot" style="background:${dot};"></span>
+            <span>ABRIR CARPETA</span>
+          </div>
+        </div>
+        <div class="iNum" style="color:${dot};">→</div>
+      </a>
+    `;
+  }).join("");
+}
 
   // ===================== HORARIOS =====================
   const DAYS = ["LUNES","MARTES","MIÉRCOLES","JUEVES","VIERNES","SÁBADO"];
@@ -3028,6 +3105,8 @@
     if (state.view==="horarios") renderHorarios();
     if (state.view==="impresiones") renderImpresiones();
     if (state.view==="silabos") renderSilabos();
+    if (state.view==="materiales") renderMateriales();
+    if (state.view==="listas") renderListas();
   }
 
   // ===================== LOAD DATA MATRÍCULA =====================
@@ -3108,7 +3187,12 @@
       await loadImpresiones();
 
       initFilters();
-      render();
+      const sv = loadSavedView();
+      if (sv && ["overview","local","table","horarios","impresiones","silabos","materiales","listas"].includes(sv)){
+        setView(sv);
+      } else {
+        render();
+      }
     } catch(e){
       console.error(e);
     }
@@ -3122,6 +3206,9 @@
   document.getElementById("nav_impresiones").addEventListener("click", ()=>setView("impresiones"));
   // ✅ NUEVO
   document.getElementById("nav_silabos").addEventListener("click", ()=>setView("silabos"));
+  document.getElementById("nav_materiales").addEventListener("click", ()=>setView("materiales"));
+  document.getElementById("nav_listas").addEventListener("click", ()=>setView("listas"));
+
 
   ["fLocal","fUni","fSalon","fModalidad","fEstado"].forEach(id=>{
     const el = document.getElementById(id);
