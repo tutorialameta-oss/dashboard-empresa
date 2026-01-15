@@ -2292,6 +2292,37 @@ function ensureListasLayout(){
 
   el.dataset.ready = "1";
 }
+function listaMetaFromName(name){
+  const s = String(name || "").toUpperCase();
+
+  // Paralelo / Adelanto => rojo al final
+  if (s.includes("PARALELO") || s.includes("ADELANTO")){
+    const red = getCss("--accent2");
+    return { group: 3, dot: red, label: "PARALELO / ADELANTO" };
+  }
+
+  // AGRARIA => verde
+  if (s.includes("AGRARIA")){
+    const c = getCss("--agraria");
+    return { group: 0, dot: c, label: "AGRARIA" };
+  }
+
+  // PUCP => azul
+  if (s.includes("PUCP")){
+    const c = getCss("--pucp");
+    return { group: 1, dot: c, label: "PUCP" };
+  }
+
+  // U.LIMA / LIMA / ESCOLAR => naranja
+  if (s.includes("U.LIMA") || s.includes("U LIMA") || s.includes("ULIMA") || s.includes("LIMA") || s.includes("ESCOLAR")){
+    const c = getCss("--ulima");
+    return { group: 2, dot: c, label: "U.LIMA" };
+  }
+
+  // Si algo no calza, lo mandamos al final en rojo
+  const red = getCss("--accent2");
+  return { group: 3, dot: red, label: "OTRO" };
+}
 
 function renderListas(){
   ensureListasLayout();
@@ -2319,21 +2350,32 @@ function renderListas(){
   let totalLinks = 0;
 
   const blocks = orderedLocals.map(loc=>{
-    const list = byLocal.get(loc).slice().sort((a,b)=>a.name.localeCompare(b.name,"es"));
+    const list = byLocal.get(loc).slice().sort((a,b)=>{
+      const ma = listaMetaFromName(a.name);
+      const mb = listaMetaFromName(b.name);
+      if (ma.group !== mb.group) return ma.group - mb.group;
+      return String(a.name||"").localeCompare(String(b.name||""), "es");
+    });
+
     totalLinks += list.length;
 
-    const items = list.map(it=>`
-      <a class="syItem" href="${escapeHtml(it.url)}" target="_blank" rel="noopener noreferrer">
-        <div class="syLeft">
-          <div class="syCourse">${escapeHtml(it.name)}</div>
-          <div class="syMeta">
-            <span class="dot" style="background:${getCss("--accent2")};"></span>
-            <span>${escapeHtml(loc)}</span>
-          </div>
+const items = list.map(it=>{
+  const meta = listaMetaFromName(it.name);
+
+  return `
+    <a class="syItem" href="${escapeHtml(it.url)}" target="_blank" rel="noopener noreferrer">
+      <div class="syLeft">
+        <div class="syCourse">${escapeHtml(it.name)}</div>
+        <div class="syMeta">
+          <span class="dot" style="background:${meta.dot};"></span>
+          <span>${escapeHtml(loc)}</span>
         </div>
-        <div class="syOpen">ABRIR</div>
-      </a>
-    `).join("");
+      </div>
+      <div class="syOpen">ABRIR</div>
+    </a>
+  `;
+}).join("");
+
 
     return `
       <div class="card panel12">
