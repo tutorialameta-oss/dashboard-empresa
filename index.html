@@ -1253,7 +1253,6 @@ function loadSavedView(){
 
   // ============================ NAV ============================
   function setView(v){
-    saveView(v); 
     state.view = v;
     persistView(v);
     document.getElementById("nav_overview").classList.toggle("active", v==="overview");
