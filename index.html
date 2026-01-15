@@ -506,6 +506,57 @@
     body.exportMode .cell4 .tLine{ font-size:11px !important; font-weight:500 !important; }
     body.exportMode .schTable thead th{ font-size:11px !important; }
     body.exportMode .schTable .timeCell{ font-size:12px !important; }
+    /* ===================== LINKS (SÍLABOS / MATERIALES / LISTAS) ===================== */
+    .linkGrid{
+      display:grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-top: 12px;
+    }
+    .linkItem{
+      border:1px solid var(--border);
+      border-radius: 16px;
+      padding: 12px;
+      background:#fff;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      box-shadow: var(--shadow);
+    }
+    .linkLeft{ min-width:0; display:flex; flex-direction:column; gap:6px; }
+    .linkTitle{
+      font-weight:950;
+      text-transform:uppercase;
+      font-size:12px;
+      line-height:1.1;
+    }
+    .linkMeta{
+      display:flex; align-items:center; gap:8px;
+      color: var(--muted);
+      font-weight:900;
+      font-size:12px;
+      text-transform:uppercase;
+    }
+    .linkGo{
+      flex:0 0 auto;
+      text-decoration:none;
+      font-weight:950;
+      border:1px solid rgba(15,23,42,0.12);
+      background:#fff;
+      padding:10px 12px;
+      border-radius: 14px;
+      color: var(--accent2);
+      white-space:nowrap;
+    }
+    .linkGo:hover{
+      border-color: rgba(15,23,42,0.28);
+      background:#fafafa;
+    }
+
+    @media (max-width: 1100px){
+      .linkGrid{ grid-template-columns: 1fr; }
+    }
 
     /* ===================== IMPRESIONES ===================== */
     .iGrid{
@@ -723,6 +774,9 @@
         <button id="nav_impresiones">IMPRESIONES</button>
         <!-- ✅ NUEVO -->
         <button id="nav_silabos">SÍLABOS</button>
+        <button id="nav_materiales">MATERIALES</button>
+        <button id="nav_listas">LISTAS</button>
+
       </div>
     </aside>
 
@@ -754,6 +808,9 @@
       <div id="view_impresiones" class="grid" style="display:none;"></div>
       <!-- ✅ NUEVO -->
       <div id="view_silabos" class="grid" style="display:none;"></div>
+      <div id="view_materiales" class="grid" style="display:none;"></div>
+      <div id="view_listas" class="grid" style="display:none;"></div>
+
     </main>
   </div>
 
@@ -1026,6 +1083,28 @@
       ctx.restore();
     }
   };
+  // ===================== PERSISTENCIA DE VISTA (NO VOLVER A RESUMEN AL REFRESCAR) =====================
+  const VIEW_KEY = "LA_META_VIEW";
+
+  function saveView(v){
+    state.view = v;
+    saveView(v);
+    try{
+      localStorage.setItem(VIEW_KEY, v);
+      // hash limpio para reabrir sección incluso al recargar
+      if (location.hash !== "#" + v) history.replaceState(null, "", "#" + v);
+    }catch(e){}
+  }
+
+  function loadView(){
+    const h = (location.hash || "").replace("#","").trim();
+    if (h) return h;
+    try{
+      return localStorage.getItem(VIEW_KEY) || "overview";
+    }catch(e){
+      return "overview";
+    }
+  }
 
   const state = {
     view: "overview",
@@ -1244,15 +1323,24 @@
     document.getElementById("nav_horarios").classList.toggle("active", v==="horarios");
     document.getElementById("nav_impresiones").classList.toggle("active", v==="impresiones");
     document.getElementById("nav_silabos").classList.toggle("active", v==="silabos");
-
+    document.getElementById("nav_materiales").classList.toggle("active", v==="materiales");
+    document.getElementById("nav_listas").classList.toggle("active", v==="listas")
+    
     document.getElementById("view_overview").style.display = (v==="overview") ? "" : "none";
     document.getElementById("view_local").style.display = (v==="local") ? "" : "none";
     document.getElementById("view_table").style.display = (v==="table") ? "" : "none";
     document.getElementById("view_horarios").style.display = (v==="horarios") ? "" : "none";
     document.getElementById("view_impresiones").style.display = (v==="impresiones") ? "" : "none";
     document.getElementById("view_silabos").style.display = (v==="silabos") ? "" : "none";
+    document.getElementById("view_materiales").style.display = (v==="materiales") ? "" : "none";
+    document.getElementById("view_listas").style.display = (v==="listas") ? "" : "none";
 
-    document.getElementById("controlsMatricula").style.display = (v==="horarios" || v==="impresiones" || v==="silabos") ? "none" : "";
+
+
+    document.getElementById("controlsMatricula").style.display =
+      (v==="horarios" || v==="impresiones" || v==="silabos" || v==="materiales" || v==="listas")
+      ? "none" : "";
+
 
     // ✅ estado solo visible en ALUMNOS (tabla)
     document.getElementById("fEstado").style.display = (v==="table") ? "" : "none";
@@ -1263,7 +1351,10 @@
       table: ["ALUMNOS", "Búsqueda y filtros para consulta interna."],
       horarios: ["HORARIOS", "Plantillas de horarios por local y universidad."],
       impresiones: ["IMPRESIONES", "Control en tiempo real de hojas a imprimir por local y salón."],
-      silabos: ["SÍLABOS", "Acceso directo a sílabos por universidad. Haga clic en el curso para abrir el Excel."]
+      silabos: ["SÍLABOS", "Acceso directo a sílabos por universidad. Haga clic en el curso para abrir el Excel."],
+      materiales: ["MATERIALES", "Acceso directo a carpetas por universidad."],
+      listas: ["LISTAS", "Acceso rápido a listas por local y modalidad."]
+
     };
     document.getElementById("viewTitle").textContent = titles[v][0];
     document.getElementById("viewDesc").textContent = titles[v][1];
@@ -1733,6 +1824,63 @@
       </tr>
     `).join("");
   }
+  // ===================== MATERIALES (NUEVO) =====================
+  const MATERIALES = [
+    { uni:"AGRARIA", label:"AGRARIA", url:"https://drive.google.com/drive/folders/1IXvAs551Wzjm2NbU2Ljoa9H4CudSG5he" },
+    { uni:"PUCP",    label:"PUCP",    url:"https://drive.google.com/drive/folders/1uKPA66xWD56-hObLiNzf7fafFH0GbXkw" },
+    { uni:"U.LIMA",  label:"U.LIMA",  url:"https://drive.google.com/drive/folders/1bFR0PRaSJFGnSJy6Ii6jU8SvHKCJrC9n" },
+  ];
+
+  // ===================== LISTAS (NUEVO) =====================
+  const LISTAS = [
+    {
+      local:"LA MOLINA",
+      items:[
+        { name:"AGRARIA 1", tag:"AGRARIA", url:"https://drive.google.com/drive/folders/1k8A1SPGB84Z7zg8yS1DfHXwZk7POyCRW" },
+        { name:"AGRARIA 2", tag:"AGRARIA", url:"https://docs.google.com/spreadsheets/d/12JXoFV7DE8o9_hrPK_QgRpsOhv9mD7wxVqVMlTgVdt0/edit?usp=drive_web&ouid=109996193497961946614" },
+        { name:"PUCP",      tag:"PUCP",    url:"https://docs.google.com/spreadsheets/d/11ccHJmPBzkCuWgMWfUKwRfOUgyWG4_8a2rM8Ur_BYq0/edit" },
+        { name:"U.LIMA",    tag:"U.LIMA",  url:"https://docs.google.com/spreadsheets/d/1y3hfwo3NYmrShRNBOdwLCwM9AUd9Aj2YoJtfgvlZrOY/edit?usp=drive_web&ouid=109996193497961946614" },
+        { name:"PARALELO",  tag:"OTRO",    url:"https://docs.google.com/spreadsheets/d/1uqJMpS3_QY6DmvnDjatf8tWcArf8kCtyYjIt7mSpJXU/edit?usp=drive_web&ouid=109996193497961946614" },
+        { name:"ADELANTO",  tag:"OTRO",    url:"https://docs.google.com/spreadsheets/d/1k6oglFw7pd-XqFyv4NZf5xl0MM7PYZ507vuSFkp6uFU/edit?gid=1104164959#gid=1104164959" },
+      ]
+    },
+    {
+      local:"SAN MIGUEL",
+      items:[
+        { name:"AGRARIA",   tag:"AGRARIA", url:"https://docs.google.com/spreadsheets/d/1m1AYybda5vQFrhth8GogCdF9Y-ukbt9g5kgnAssTZcc/edit" },
+        { name:"PUCP",      tag:"PUCP",    url:"https://docs.google.com/spreadsheets/d/1a2H6-1tUwosj2cRCXQ_kzcfT0CILTIJLomS-xcr7WsM/edit?usp=drive_web&ouid=109996193497961946614" },
+        { name:"U.LIMA 1",  tag:"U.LIMA",  url:"https://docs.google.com/spreadsheets/d/1epSbc_HEN0VfVQXE581x6uU-QcuDZ0kESwL5WlRwYgU/edit?usp=drive_web&ouid=109996193497961946614" },
+        { name:"U.LIMA 2",  tag:"U.LIMA",  url:"https://docs.google.com/spreadsheets/d/1--AqnIDhIdZvbeIUjYC_BPwdHHHOAhSIqOnmIODNUkU/edit?usp=drive_web&ouid=109996193497961946614" },
+        { name:"PARALELO",  tag:"OTRO",    url:"https://docs.google.com/spreadsheets/d/1KlFuLnC99juHJoI7VT9Ez6cVN3c-X76eZzcZS17IXqM/edit?gid=1104164959#gid=1104164959" },
+        { name:"ADELANTO",  tag:"OTRO",    url:"https://docs.google.com/spreadsheets/d/1SrjJdlBjeNf12I0XFZ0FuripltmSNNmPOa_bTD0pZa8/edit?usp=drive_web&ouid=109996193497961946614" },
+      ]
+    },
+    {
+      local:"SAN BORJA",
+      items:[
+        { name:"AGRARIA",   tag:"AGRARIA", url:"https://docs.google.com/spreadsheets/d/1m9Ysoosg3G37OLpjQqk2jhqZ6wDJARBYm-6VbY5CaZA/edit?usp=drive_web&ouid=109996193497961946614" },
+        { name:"PUCP",      tag:"PUCP",    url:"https://docs.google.com/spreadsheets/d/1MUPBs6yAWzUgU02Qz2PnJ-kVmVtS82XdM89IXlnwF8g/edit?usp=drive_web&ouid=109996193497961946614" },
+        { name:"U.LIMA 1",  tag:"U.LIMA",  url:"https://docs.google.com/spreadsheets/d/1yPhbG38WC0tl97qQ5LXahAS2L6jqSdga6u3vAkuneC0/edit?usp=drive_web&ouid=109996193497961946614" },
+        { name:"U.LIMA 2",  tag:"U.LIMA",  url:"https://docs.google.com/spreadsheets/d/1BJSLmUr2ECAfanxuI2py0R2Yi_eqovmkHuLcUNgMFSw/edit?usp=drive_web&ouid=109996193497961946614" },
+      ]
+    },
+    {
+      local:"VIRTUAL",
+      items:[
+        { name:"AGRARIA",   tag:"AGRARIA", url:"https://docs.google.com/spreadsheets/d/1IaN_cx4XYJUf5-lFW8RcB8qAZAfox8jd-lJyc4A37hs/edit?gid=1104164959#gid=1104164959" },
+        { name:"U.LIMA",    tag:"U.LIMA",  url:"https://docs.google.com/spreadsheets/d/1o22eorhLJWwKU3gyZgkB204MBVZX5tQ11jP3p73ll3s/edit?usp=drive_web&ouid=109996193497961946614" },
+        { name:"ESCOLAR",   tag:"U.LIMA",  url:"https://docs.google.com/spreadsheets/d/15JJwUgf7WARdS4yBjUPAxkUigrPXm3LjTqrFJBI1mxE/edit?usp=drive_web&ouid=109996193497961946614" },
+      ]
+    }
+  ];
+
+  function tagDotColor(tag){
+    const t = String(tag||"").toUpperCase();
+    if (t === "AGRARIA") return getCss("--agraria");
+    if (t === "PUCP") return getCss("--pucp");
+    if (t === "U.LIMA") return getCss("--ulima");
+    return getCss("--accent2"); // OTRO (rojo)
+  }
 
   // ===================== IMPRESIONES (NUEVO) =====================
   // ===================== IMPRESIONES (NUEVO) =====================
@@ -1836,6 +1984,142 @@
     }
     return [...best.values()];
   }
+  // ===================== MATERIALES (RENDER) =====================
+  function ensureMaterialesLayout(){
+    const el = document.getElementById("view_materiales");
+    if (el.dataset.ready === "1") return;
+
+    el.innerHTML = `
+      <div class="card panel12">
+        <div class="cardtitle">MATERIALES</div>
+        <div class="panelHint">
+          <span class="pill"><span class="dot agraria"></span>AGRARIA</span>
+          <span class="pill"><span class="dot pucp"></span>PUCP</span>
+          <span class="pill"><span class="dot ulima"></span>U.LIMA</span>
+        </div>
+        <div class="linkGrid" id="matGrid"></div>
+      </div>
+    `;
+    el.dataset.ready = "1";
+  }
+
+  function renderMateriales(){
+    ensureMaterialesLayout();
+    const grid = document.getElementById("matGrid");
+
+    grid.innerHTML = MATERIALES.map(x=>{
+      const dot = tagDotColor(x.uni);
+      return `
+        <div class="linkItem">
+          <div class="linkLeft">
+            <div class="linkTitle">${escapeHtml(x.label)}</div>
+            <div class="linkMeta">
+              <span class="dot" style="background:${dot};"></span>
+              <span>CARPETA DIRECTA</span>
+            </div>
+          </div>
+          <a class="linkGo" href="${escapeHtml(x.url)}" target="_blank" rel="noopener noreferrer">ABRIR</a>
+        </div>
+      `;
+    }).join("");
+  }
+
+  // ===================== LISTAS (RENDER) =====================
+  function ensureListasLayout(){
+    const el = document.getElementById("view_listas");
+    if (el.dataset.ready === "1") return;
+
+    el.innerHTML = `
+      <div class="card panel12">
+        <div class="cardtitle">FILTRO</div>
+        <div class="controls" style="justify-content:flex-start;">
+          <select id="lLocal"></select>
+          <button id="lReset">VER TODO</button>
+        </div>
+
+        <div class="panelHint" style="margin-top:10px;">
+          <span class="pill"><span class="dot agraria"></span>AGRARIA</span>
+          <span class="pill"><span class="dot pucp"></span>PUCP</span>
+          <span class="pill"><span class="dot ulima"></span>U.LIMA</span>
+          <span class="pill"><span class="dot" style="background:${getCss("--accent2")};"></span>OTRO (ROJO)</span>
+        </div>
+      </div>
+
+      <div class="card panel12">
+        <div class="iLocalHead">
+          <div class="cardtitle" style="margin:0;">RESUMEN</div>
+          <div class="iKpis">
+            <span class="iKpiPill">LOCALES: <b id="lLocs">0</b></span>
+            <span class="iKpiPill">ENLACES: <b id="lLinks">0</b></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel12" id="lBlocks"></div>
+    `;
+
+    document.getElementById("lReset").addEventListener("click", ()=>{
+      document.getElementById("lLocal").value = "__ALL__";
+      renderListas();
+    });
+    document.getElementById("lLocal").addEventListener("change", renderListas);
+
+    el.dataset.ready = "1";
+  }
+
+  function renderListas(){
+    ensureListasLayout();
+
+    const locals = LISTAS.map(x=>x.local);
+    fillSelectKeep("lLocal", sortByLocalOrder(locals), "LOCAL: TODOS");
+
+    const fLocal = document.getElementById("lLocal").value;
+
+    let blocks = LISTAS.slice();
+    if (fLocal !== "__ALL__") blocks = blocks.filter(b=>b.local === fLocal);
+
+    const totalLinks = blocks.reduce((a,b)=>a + (b.items?.length || 0), 0);
+
+    document.getElementById("lLocs").textContent = blocks.length.toLocaleString("es-PE");
+    document.getElementById("lLinks").textContent = totalLinks.toLocaleString("es-PE");
+
+    const html = blocks.map(b=>{
+      const items = (b.items || []).map(it=>{
+        const dot = tagDotColor(it.tag);
+        return `
+          <div class="linkItem">
+            <div class="linkLeft">
+              <div class="linkTitle">${escapeHtml(it.name)}</div>
+              <div class="linkMeta">
+                <span class="dot" style="background:${dot};"></span>
+                <span>${escapeHtml(String(it.tag||"OTRO").toUpperCase())}</span>
+              </div>
+            </div>
+            <a class="linkGo" href="${escapeHtml(it.url)}" target="_blank" rel="noopener noreferrer">ABRIR</a>
+          </div>
+        `;
+      }).join("");
+
+      return `
+        <div class="card panel12">
+          <div class="iLocalHead">
+            <div class="cardtitle" style="margin:0;">${escapeHtml(b.local)}</div>
+            <div class="iKpis">
+              <span class="iKpiPill">ENLACES: <b>${(b.items?.length || 0)}</b></span>
+            </div>
+          </div>
+          <div class="linkGrid">${items}</div>
+        </div>
+      `;
+    }).join("");
+
+    document.getElementById("lBlocks").innerHTML = html || `
+      <div class="card panel12">
+        <div class="cardtitle">SIN DATOS</div>
+        <div style="color:var(--muted); font-weight:900;">No se encontraron registros.</div>
+      </div>
+    `;
+  }
 
   function ensureImpresionesLayout(){
     const el = document.getElementById("view_impresiones");
@@ -1880,7 +2164,7 @@
   }
 
   function renderImpresiones(){
-    ensureImpresionesLayout();
+    ;
 
     const locals = uniq(state.imprRows.map(x=>x.local)).sort((a,b)=>a.localeCompare(b,"es"));
     fillSelectKeep("iLocal", locals, "LOCAL: TODOS");
@@ -3028,6 +3312,9 @@
     if (state.view==="horarios") renderHorarios();
     if (state.view==="impresiones") renderImpresiones();
     if (state.view==="silabos") renderSilabos();
+    if (state.view==="materiales") renderMateriales();
+    if (state.view==="listas") renderListas();
+
   }
 
   // ===================== LOAD DATA MATRÍCULA =====================
@@ -3122,6 +3409,9 @@
   document.getElementById("nav_impresiones").addEventListener("click", ()=>setView("impresiones"));
   // ✅ NUEVO
   document.getElementById("nav_silabos").addEventListener("click", ()=>setView("silabos"));
+  document.getElementById("nav_materiales").addEventListener("click", ()=>setView("materiales"));
+  document.getElementById("nav_listas").addEventListener("click", ()=>setView("listas"));
+
 
   ["fLocal","fUni","fSalon","fModalidad","fEstado"].forEach(id=>{
     const el = document.getElementById(id);
@@ -3136,6 +3426,7 @@
   document.getElementById("btnNowTop").addEventListener("click", loadAll);
 
   initFilters();
+  setView(loadView()); 
   loadAll();
   setInterval(loadAll, AUTO_REFRESH_MS);
 </script>
