@@ -507,6 +507,71 @@
     body.exportMode .schTable thead th{ font-size:11px !important; }
     body.exportMode .schTable .timeCell{ font-size:12px !important; }
 
+    /* ===================== IMPRESIONES ===================== */
+    .iGrid{
+      display:grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-top: 12px;
+    }
+    .iItem{
+      border:1px solid var(--border);
+      border-radius: 16px;
+      padding: 12px;
+      background:#fff;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+    }
+    .iLeft{ min-width:0; }
+    .iSalon{
+      font-weight:950;
+      text-transform:uppercase;
+      font-size:12px;
+      line-height:1.1;
+    }
+    .iMeta{
+      margin-top:6px;
+      display:flex;
+      align-items:center;
+      gap:8px;
+      color: var(--muted);
+      font-weight:900;
+      font-size:12px;
+      text-transform:uppercase;
+    }
+    .iNum{
+      font-weight:950;
+      font-size:28px;
+      line-height:1;
+      flex:0 0 auto;
+    }
+    .iLocalHead{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      flex-wrap:wrap;
+    }
+    .iKpis{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+    }
+    .iKpiPill{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding:8px 12px;
+      border-radius:999px;
+      border:1px solid var(--border);
+      background:#fafafa;
+      font-weight:950;
+      font-size:12px;
+      text-transform:uppercase;
+    }
+
     /* ===================== RESPONSIVE ===================== */
     @media (max-width: 1100px){
       .app{ grid-template-columns: 1fr; }
@@ -541,6 +606,10 @@
       .cell4{ row-gap: 2px; }
       .cell4 .cLine{ font-size:16px; }
       .cell4 .tLine{ font-size:10px; font-weight:500; }
+
+      /* IMPRESIONES */
+      .iGrid{ grid-template-columns: 1fr; }
+      .iNum{ font-size:26px; }
     }
   </style>
 </head>
@@ -563,6 +632,7 @@
         <button id="nav_local">POR LOCAL</button>
         <button id="nav_table">ALUMNOS</button>
         <button id="nav_horarios">HORARIOS</button>
+        <button id="nav_impresiones">IMPRESIONES</button>
       </div>
     </aside>
 
@@ -591,6 +661,7 @@
       <div id="view_local" class="grid" style="display:none;"></div>
       <div id="view_table" class="grid" style="display:none;"></div>
       <div id="view_horarios" class="grid" style="display:none;"></div>
+      <div id="view_impresiones" class="grid" style="display:none;"></div>
     </main>
   </div>
 
@@ -624,6 +695,9 @@
   ];
 
   const AUTO_REFRESH_MS = 30000;
+
+  // ===================== IMPRESIONES (NUEVO) =====================
+  const IMPRESIONES_GID = 281158959; // hoja "IMPRESIONES"
 
   const UNI_COLORS = {
     "PUCP": getCss("--pucp"),
@@ -868,6 +942,10 @@
     cambiosRows: [],
     filtered: [],
 
+    // IMPRESIONES (nuevo)
+    imprRows: [],
+    imprUpdatedAt: null,
+
     ch_over_estado: null,
     ch_over_modalidad: null,
     ch_over_uni_stack: null,
@@ -1072,13 +1150,15 @@
     document.getElementById("nav_local").classList.toggle("active", v==="local");
     document.getElementById("nav_table").classList.toggle("active", v==="table");
     document.getElementById("nav_horarios").classList.toggle("active", v==="horarios");
+    document.getElementById("nav_impresiones").classList.toggle("active", v==="impresiones");
 
     document.getElementById("view_overview").style.display = (v==="overview") ? "" : "none";
     document.getElementById("view_local").style.display = (v==="local") ? "" : "none";
     document.getElementById("view_table").style.display = (v==="table") ? "" : "none";
     document.getElementById("view_horarios").style.display = (v==="horarios") ? "" : "none";
+    document.getElementById("view_impresiones").style.display = (v==="impresiones") ? "" : "none";
 
-    document.getElementById("controlsMatricula").style.display = (v==="horarios") ? "none" : "";
+    document.getElementById("controlsMatricula").style.display = (v==="horarios" || v==="impresiones") ? "none" : "";
 
     // ✅ estado solo visible en ALUMNOS (tabla)
     document.getElementById("fEstado").style.display = (v==="table") ? "" : "none";
@@ -1087,7 +1167,8 @@
       overview: ["RESUMEN GENERAL", "Panel estructurado para control de matrícula, modalidad y distribución por universidad."],
       local: ["POR LOCAL", "Monitoreo por salón (tutor) del local seleccionado."],
       table: ["ALUMNOS", "Búsqueda y filtros para consulta interna."],
-      horarios: ["HORARIOS", "Plantillas de horarios por local y universidad."]
+      horarios: ["HORARIOS", "Plantillas de horarios por local y universidad."],
+      impresiones: ["IMPRESIONES", "Control en tiempo real de hojas a imprimir por local y salón."]
     };
     document.getElementById("viewTitle").textContent = titles[v][0];
     document.getElementById("viewDesc").textContent = titles[v][1];
@@ -1099,12 +1180,12 @@
       salSel.value = "__ALL__";
       uniSel.disabled = true;
       salSel.disabled = true;
-    } else if (v !== "horarios") {
+    } else if (v !== "horarios" && v !== "impresiones") {
       uniSel.disabled = false;
       salSel.disabled = false;
     }
 
-    if (v !== "horarios"){
+    if (v !== "horarios" && v !== "impresiones"){
       rebuildSalonOptions();
     }
     render();
@@ -1554,6 +1635,221 @@
         <td>${escapeHtml(r.estado)}</td>
       </tr>
     `).join("");
+  }
+
+  // ===================== IMPRESIONES (NUEVO) =====================
+  const IMP_LOCALS = ["LA MOLINA","SAN MIGUEL","SAN BORJA"];
+
+  function toInt(x){
+    const n = parseInt(String(x||"").replace(/[^\d]/g,""), 10);
+    return Number.isFinite(n) ? n : 0;
+  }
+
+  function inferUniFromSalonLabel(label){
+    const s = String(label||"").toUpperCase();
+    if (s.includes("AGRARIA")) return "AGRARIA";
+    if (s.includes("PUCP")) return "PUCP";
+    if (s.includes("U.LIMA") || s.includes("U LIMA") || s.includes("ULIMA")) return "U.LIMA";
+    return "OTRO";
+  }
+
+  function uniDotColorForImpr(uni){
+    if (uni==="AGRARIA") return getCss("--agraria");
+    if (uni==="PUCP") return getCss("--pucp");
+    if (uni==="U.LIMA") return getCss("--ulima");
+    return "rgba(15,23,42,0.35)";
+  }
+
+  function uniNumColorForImpr(uni){
+    if (uni==="AGRARIA") return getCss("--agraria");
+    if (uni==="PUCP") return getCss("--pucp");
+    if (uni==="U.LIMA") return getCss("--ulima");
+    return getCss("--accent2");
+  }
+
+  function parseImpresionesCSV(csvText){
+    const lines = csvText.split(/\r?\n/).filter(l=>l.trim().length>0);
+    const grid = lines.map(parseCSVLine).map(r=>r.map(norm));
+
+    // buscar fila cabecera donde aparezcan LA MOLINA / SAN MIGUEL / SAN BORJA
+    let headerRow = -1;
+    for (let r=0; r<Math.min(grid.length, 40); r++){
+      const rowU = grid[r].map(x=>String(x||"").toUpperCase());
+      const hits = IMP_LOCALS.filter(L => rowU.includes(L)).length;
+      if (hits >= 2){ headerRow = r; break; }
+    }
+    if (headerRow < 0) return [];
+
+    const rowU = grid[headerRow].map(x=>String(x||"").toUpperCase());
+    const cols = []; // { local, colSalon, colCount }
+    for (const loc of IMP_LOCALS){
+      const c = rowU.indexOf(loc);
+      if (c >= 0){
+        cols.push({ local: loc, colSalon: c, colCount: c+1 });
+      }
+    }
+    if (!cols.length) return [];
+
+    const out = [];
+    for (let r=headerRow+1; r<grid.length; r++){
+      // si toda la fila está vacía en columnas de salón, se puede cortar (pero con tolerancia)
+      const anySalon = cols.some(cc => norm(grid[r][cc.colSalon] || "").length > 0);
+      const anyCount = cols.some(cc => norm(grid[r][cc.colCount] || "").length > 0);
+      if (!anySalon && !anyCount) continue;
+
+      for (const cc of cols){
+        const salon = norm(grid[r][cc.colSalon] || "");
+        if (!salon) continue;
+        const up = salon.toUpperCase();
+        if (up.includes("IMPRESION")) continue; // evitar "# IMPRESIONES"
+        const count = toInt(grid[r][cc.colCount] || "0");
+        out.push({ local: cc.local, salon, count });
+      }
+    }
+
+    // dedupe por (local + salon), manteniendo el último
+    const best = new Map();
+    for (const it of out){
+      const k = `${it.local}||${it.salon}`.toUpperCase();
+      best.set(k, it);
+    }
+    return [...best.values()];
+  }
+
+  function ensureImpresionesLayout(){
+    const el = document.getElementById("view_impresiones");
+    if (el.dataset.ready === "1") return;
+
+    el.innerHTML = `
+      <div class="card panel12">
+        <div class="cardtitle">FILTRO</div>
+        <div class="controls" style="justify-content:flex-start;">
+          <select id="iLocal"></select>
+          <button id="iReset">VER TODO</button>
+        </div>
+        <div class="panelHint" style="margin-top:10px;">
+          <span class="pill"><span class="dot agraria"></span>AGRARIA</span>
+          <span class="pill"><span class="dot pucp"></span>PUCP</span>
+          <span class="pill"><span class="dot ulima"></span>U.LIMA</span>
+        </div>
+      </div>
+
+      <div class="card panel12">
+        <div class="iLocalHead">
+          <div class="cardtitle" style="margin:0;">RESUMEN GENERAL</div>
+          <div class="iKpis">
+            <span class="iKpiPill">TOTAL: <b id="iTotal">0</b></span>
+            <span class="iKpiPill">SALONES: <b id="iSalones">0</b></span>
+            <span class="iKpiPill">ACTUALIZADO: <b id="iUpd">—</b></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel12" id="iBlocks"></div>
+    `;
+
+    document.getElementById("iReset").addEventListener("click", ()=>{
+      document.getElementById("iLocal").value = "__ALL__";
+      renderImpresiones();
+    });
+    document.getElementById("iLocal").addEventListener("change", renderImpresiones);
+
+    el.dataset.ready = "1";
+  }
+
+  function renderImpresiones(){
+    ensureImpresionesLayout();
+
+    const locals = uniq(state.imprRows.map(x=>x.local)).sort((a,b)=>a.localeCompare(b,"es"));
+    fillSelectKeep("iLocal", locals, "LOCAL: TODOS");
+
+    const fLocal = document.getElementById("iLocal").value;
+
+    let rows = state.imprRows.slice();
+    if (fLocal !== "__ALL__") rows = rows.filter(x=>x.local === fLocal);
+
+    const total = rows.reduce((a,b)=>a+(+b.count||0),0);
+    document.getElementById("iTotal").textContent = total.toLocaleString("es-PE");
+    document.getElementById("iSalones").textContent = rows.length.toLocaleString("es-PE");
+
+    const upd = state.imprUpdatedAt ? new Date(state.imprUpdatedAt) : null;
+    document.getElementById("iUpd").textContent = upd
+      ? upd.toLocaleTimeString("es-PE", { hour:"2-digit", minute:"2-digit", second:"2-digit" })
+      : "—";
+
+    const byLocal = new Map();
+    for (const r of rows){
+      if (!byLocal.has(r.local)) byLocal.set(r.local, []);
+      byLocal.get(r.local).push(r);
+    }
+
+    const LOCAL_ORDER = ["LA MOLINA","SAN MIGUEL","SAN BORJA","VIRTUAL"];
+    const orderedLocals = [...byLocal.keys()].sort((a,b)=>{
+      const ia = LOCAL_ORDER.indexOf(a); const ib = LOCAL_ORDER.indexOf(b);
+      return (ia<0?999:ia) - (ib<0?999:ib);
+    });
+
+    const blocks = orderedLocals.map(loc=>{
+      const list = byLocal.get(loc).slice().sort((a,b)=>a.salon.localeCompare(b.salon,"es"));
+      const subTotal = list.reduce((x,y)=>x+(+y.count||0),0);
+
+      const items = list.map(it=>{
+        const uni = inferUniFromSalonLabel(it.salon);
+        const dot = uniDotColorForImpr(uni);
+        const numColor = uniNumColorForImpr(uni);
+        const uniLabel = (uni==="OTRO") ? "OTRO" : uni;
+
+        return `
+          <div class="iItem">
+            <div class="iLeft">
+              <div class="iSalon">${escapeHtml(it.salon)}</div>
+              <div class="iMeta">
+                <span class="dot" style="background:${dot};"></span>
+                <span>${escapeHtml(uniLabel)}</span>
+              </div>
+            </div>
+            <div class="iNum" style="color:${numColor};">
+              ${(+it.count||0).toLocaleString("es-PE")}
+            </div>
+          </div>
+        `;
+      }).join("");
+
+      return `
+        <div class="card panel12">
+          <div class="iLocalHead">
+            <div class="cardtitle" style="margin:0;">${escapeHtml(loc)}</div>
+            <div class="iKpis">
+              <span class="iKpiPill">TOTAL: <b>${subTotal.toLocaleString("es-PE")}</b></span>
+              <span class="iKpiPill">SALONES: <b>${list.length}</b></span>
+            </div>
+          </div>
+          <div class="iGrid">${items}</div>
+        </div>
+      `;
+    }).join("");
+
+    document.getElementById("iBlocks").innerHTML = blocks || `
+      <div class="card panel12">
+        <div class="cardtitle">SIN DATOS</div>
+        <div style="color:var(--muted); font-weight:900;">No se encontraron registros en IMPRESIONES.</div>
+      </div>
+    `;
+  }
+
+  async function loadImpresiones(){
+    try{
+      const url = csvUrl(IMPRESIONES_GID) + "&v=" + Date.now();
+      const res = await fetch(url, { cache:"no-store" });
+      if (!res.ok) throw new Error("HTTP "+res.status);
+      const text = await res.text();
+
+      state.imprRows = parseImpresionesCSV(text);
+      state.imprUpdatedAt = Date.now();
+    } catch(e){
+      console.error("IMPRESIONES:", e);
+      state.imprRows = state.imprRows || [];
+    }
   }
 
   // ===================== HORARIOS =====================
@@ -2445,6 +2741,7 @@
     if (state.view==="local") renderLocal();
     if (state.view==="table") renderTable();
     if (state.view==="horarios") renderHorarios();
+    if (state.view==="impresiones") renderImpresiones();
   }
 
   // ===================== LOAD DATA MATRÍCULA =====================
@@ -2521,6 +2818,9 @@
 
       state.cambiosRows = state.rawRows.filter(r => r.estado==="CAMBIO");
 
+      // ✅ NUEVO: impresiones en tiempo real
+      await loadImpresiones();
+
       initFilters();
       render();
     } catch(e){
@@ -2533,6 +2833,7 @@
   document.getElementById("nav_local").addEventListener("click", ()=>setView("local"));
   document.getElementById("nav_table").addEventListener("click", ()=>setView("table"));
   document.getElementById("nav_horarios").addEventListener("click", ()=>setView("horarios"));
+  document.getElementById("nav_impresiones").addEventListener("click", ()=>setView("impresiones"));
 
   ["fLocal","fUni","fSalon","fModalidad","fEstado"].forEach(id=>{
     const el = document.getElementById(id);
