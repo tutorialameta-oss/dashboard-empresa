@@ -572,6 +572,91 @@
       text-transform:uppercase;
     }
 
+    /* ===================== SÍLABOS (NUEVO) ===================== */
+    .syWrap{
+      display:grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-top: 12px;
+    }
+    .syItem{
+      border:1px solid var(--border);
+      border-radius: 16px;
+      padding: 12px;
+      background:#fff;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      text-decoration:none;
+      color: var(--text);
+      transition: transform .06s ease, box-shadow .06s ease, border-color .06s ease;
+    }
+    .syItem:hover{
+      transform: translateY(-1px);
+      border-color: rgba(15,23,42,0.18);
+      box-shadow: 0 16px 40px rgba(15,23,42,0.12);
+    }
+    .syLeft{ min-width:0; display:flex; flex-direction:column; gap:6px; }
+    .syCourse{
+      font-weight:950;
+      text-transform:uppercase;
+      font-size:12px;
+      line-height:1.15;
+      letter-spacing:.2px;
+    }
+    .syMeta{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      color: var(--muted);
+      font-weight:900;
+      font-size:12px;
+      text-transform:uppercase;
+      flex-wrap:wrap;
+    }
+    .syOpen{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding:8px 12px;
+      border-radius: 999px;
+      border:1px solid rgba(15,23,42,0.12);
+      background:#f8fafc;
+      font-weight:950;
+      font-size:12px;
+      white-space:nowrap;
+      color: var(--accent2);
+    }
+    .syOpen:hover{
+      border-color: rgba(209,11,11,0.35);
+      background: rgba(209,11,11,0.08);
+    }
+    .syLocalHead{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      flex-wrap:wrap;
+    }
+    .syKpis{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+    }
+    .syKpiPill{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding:8px 12px;
+      border-radius:999px;
+      border:1px solid var(--border);
+      background:#fafafa;
+      font-weight:950;
+      font-size:12px;
+      text-transform:uppercase;
+    }
+
     /* ===================== RESPONSIVE ===================== */
     @media (max-width: 1100px){
       .app{ grid-template-columns: 1fr; }
@@ -610,6 +695,9 @@
       /* IMPRESIONES */
       .iGrid{ grid-template-columns: 1fr; }
       .iNum{ font-size:26px; }
+
+      /* SÍLABOS */
+      .syWrap{ grid-template-columns: 1fr; }
     }
   </style>
 </head>
@@ -633,6 +721,8 @@
         <button id="nav_table">ALUMNOS</button>
         <button id="nav_horarios">HORARIOS</button>
         <button id="nav_impresiones">IMPRESIONES</button>
+        <!-- ✅ NUEVO -->
+        <button id="nav_silabos">SÍLABOS</button>
       </div>
     </aside>
 
@@ -662,6 +752,8 @@
       <div id="view_table" class="grid" style="display:none;"></div>
       <div id="view_horarios" class="grid" style="display:none;"></div>
       <div id="view_impresiones" class="grid" style="display:none;"></div>
+      <!-- ✅ NUEVO -->
+      <div id="view_silabos" class="grid" style="display:none;"></div>
     </main>
   </div>
 
@@ -1151,14 +1243,16 @@
     document.getElementById("nav_table").classList.toggle("active", v==="table");
     document.getElementById("nav_horarios").classList.toggle("active", v==="horarios");
     document.getElementById("nav_impresiones").classList.toggle("active", v==="impresiones");
+    document.getElementById("nav_silabos").classList.toggle("active", v==="silabos");
 
     document.getElementById("view_overview").style.display = (v==="overview") ? "" : "none";
     document.getElementById("view_local").style.display = (v==="local") ? "" : "none";
     document.getElementById("view_table").style.display = (v==="table") ? "" : "none";
     document.getElementById("view_horarios").style.display = (v==="horarios") ? "" : "none";
     document.getElementById("view_impresiones").style.display = (v==="impresiones") ? "" : "none";
+    document.getElementById("view_silabos").style.display = (v==="silabos") ? "" : "none";
 
-    document.getElementById("controlsMatricula").style.display = (v==="horarios" || v==="impresiones") ? "none" : "";
+    document.getElementById("controlsMatricula").style.display = (v==="horarios" || v==="impresiones" || v==="silabos") ? "none" : "";
 
     // ✅ estado solo visible en ALUMNOS (tabla)
     document.getElementById("fEstado").style.display = (v==="table") ? "" : "none";
@@ -1168,7 +1262,8 @@
       local: ["POR LOCAL", "Monitoreo por salón (tutor) del local seleccionado."],
       table: ["ALUMNOS", "Búsqueda y filtros para consulta interna."],
       horarios: ["HORARIOS", "Plantillas de horarios por local y universidad."],
-      impresiones: ["IMPRESIONES", "Control en tiempo real de hojas a imprimir por local y salón."]
+      impresiones: ["IMPRESIONES", "Control en tiempo real de hojas a imprimir por local y salón."],
+      silabos: ["SÍLABOS", "Acceso directo a sílabos por universidad. Haga clic en el curso para abrir el Excel."]
     };
     document.getElementById("viewTitle").textContent = titles[v][0];
     document.getElementById("viewDesc").textContent = titles[v][1];
@@ -1180,12 +1275,12 @@
       salSel.value = "__ALL__";
       uniSel.disabled = true;
       salSel.disabled = true;
-    } else if (v !== "horarios" && v !== "impresiones") {
+    } else if (v !== "horarios" && v !== "impresiones" && v !== "silabos") {
       uniSel.disabled = false;
       salSel.disabled = false;
     }
 
-    if (v !== "horarios" && v !== "impresiones"){
+    if (v !== "horarios" && v !== "impresiones" && v !== "silabos"){
       rebuildSalonOptions();
     }
     render();
@@ -1526,8 +1621,10 @@
 
     document.getElementById("uA_act").textContent = aAct;
     document.getElementById("uA_ret").textContent = aRet;
+
     document.getElementById("uP_act").textContent = pAct;
     document.getElementById("uP_ret").textContent = pRet;
+
     document.getElementById("uL_act").textContent = lAct;
     document.getElementById("uL_ret").textContent = lRet;
 
@@ -1638,252 +1735,407 @@
   }
 
   // ===================== IMPRESIONES (NUEVO) =====================
-// ===================== IMPRESIONES (NUEVO) =====================
-const IMP_LOCALS = ["LA MOLINA","SAN MIGUEL","SAN BORJA"];
+  // ===================== IMPRESIONES (NUEVO) =====================
+  const IMP_LOCALS = ["LA MOLINA","SAN MIGUEL","SAN BORJA"];
 
-function toInt(x){
-  const n = parseInt(String(x||"").replace(/[^\d]/g,""), 10);
-  return Number.isFinite(n) ? n : 0;
-}
+  function toInt(x){
+    const n = parseInt(String(x||"").replace(/[^\d]/g,""), 10);
+    return Number.isFinite(n) ? n : 0;
+  }
 
-function inferUniFromSalonLabel(label){
-  const s = String(label||"").toUpperCase();
-  if (s.includes("AGRARIA")) return "AGRARIA";
-  if (s.includes("PUCP")) return "PUCP";
-  if (s.includes("U.LIMA") || s.includes("U LIMA") || s.includes("ULIMA")) return "U.LIMA";
-  return "OTRO";
-}
+  function inferUniFromSalonLabel(label){
+    const s = String(label||"").toUpperCase();
+    if (s.includes("AGRARIA")) return "AGRARIA";
+    if (s.includes("PUCP")) return "PUCP";
+    if (s.includes("U.LIMA") || s.includes("U LIMA") || s.includes("ULIMA")) return "U.LIMA";
+    return "OTRO";
+  }
 
-/**
- * Reglas solicitadas:
- * 1) Quitar "ACTUALIZADO" (ya no se muestra en UI)
- * 2) OTRO: punto ROJO + número ROJO (mismo color)
- * 3) PARALELO: mostrar etiqueta "U.LIMA" pero en ROJO (no naranja)
- * 4) Orden fijo en cada local: VERDE (AGRARIA) -> AZUL (PUCP) -> NARANJA (U.LIMA) -> ROJO (OTRO/PARALELO)
- */
-function imprMetaFromSalon(salon){
-  const s = String(salon||"").toUpperCase();
+  /**
+   * Reglas solicitadas:
+   * 1) Quitar "ACTUALIZADO" (ya no se muestra en UI)
+   * 2) OTRO: punto ROJO + número ROJO (mismo color)
+   * 3) PARALELO: mostrar etiqueta "U.LIMA" pero en ROJO (no naranja)
+   * 4) Orden fijo en cada local: VERDE (AGRARIA) -> AZUL (PUCP) -> NARANJA (U.LIMA) -> ROJO (OTRO/PARALELO)
+   */
+  function imprMetaFromSalon(salon){
+    const s = String(salon||"").toUpperCase();
 
-  // Caso especial: PARALELO -> etiqueta U.LIMA pero ROJO
-  if (s.includes("PARALELO") || s.includes("ADELANTO")){
+    // Caso especial: PARALELO -> etiqueta U.LIMA pero ROJO
+    if (s.includes("PARALELO") || s.includes("ADELANTO")){
+      const red = getCss("--accent2");
+      return { group: 3, label: "U.LIMA", dot: red, num: red };
+    }
+
+    const uni = inferUniFromSalonLabel(salon);
+
+    if (uni === "AGRARIA"){
+      const c = getCss("--agraria");
+      return { group: 0, label: "AGRARIA", dot: c, num: c };
+    }
+    if (uni === "PUCP"){
+      const c = getCss("--pucp");
+      return { group: 1, label: "PUCP", dot: c, num: c };
+    }
+    if (uni === "U.LIMA"){
+      const c = getCss("--ulima");
+      return { group: 2, label: "U.LIMA", dot: c, num: c };
+    }
+
+    // OTRO (ej: ADELANTO): punto ROJO + número ROJO
     const red = getCss("--accent2");
-    return { group: 3, label: "U.LIMA", dot: red, num: red };
+    return { group: 3, label: "OTRO", dot: red, num: red };
   }
 
-  const uni = inferUniFromSalonLabel(salon);
+  function parseImpresionesCSV(csvText){
+    const lines = csvText.split(/\r?\n/).filter(l=>l.trim().length>0);
+    const grid = lines.map(parseCSVLine).map(r=>r.map(norm));
 
-  if (uni === "AGRARIA"){
-    const c = getCss("--agraria");
-    return { group: 0, label: "AGRARIA", dot: c, num: c };
-  }
-  if (uni === "PUCP"){
-    const c = getCss("--pucp");
-    return { group: 1, label: "PUCP", dot: c, num: c };
-  }
-  if (uni === "U.LIMA"){
-    const c = getCss("--ulima");
-    return { group: 2, label: "U.LIMA", dot: c, num: c };
-  }
-
-  // OTRO (ej: ADELANTO): punto ROJO + número ROJO
-  const red = getCss("--accent2");
-  return { group: 3, label: "OTRO", dot: red, num: red };
-}
-
-function parseImpresionesCSV(csvText){
-  const lines = csvText.split(/\r?\n/).filter(l=>l.trim().length>0);
-  const grid = lines.map(parseCSVLine).map(r=>r.map(norm));
-
-  // buscar fila cabecera donde aparezcan LA MOLINA / SAN MIGUEL / SAN BORJA
-  let headerRow = -1;
-  for (let r=0; r<Math.min(grid.length, 40); r++){
-    const rowU = grid[r].map(x=>String(x||"").toUpperCase());
-    const hits = IMP_LOCALS.filter(L => rowU.includes(L)).length;
-    if (hits >= 2){ headerRow = r; break; }
-  }
-  if (headerRow < 0) return [];
-
-  const rowU = grid[headerRow].map(x=>String(x||"").toUpperCase());
-  const cols = []; // { local, colSalon, colCount }
-  for (const loc of IMP_LOCALS){
-    const c = rowU.indexOf(loc);
-    if (c >= 0){
-      cols.push({ local: loc, colSalon: c, colCount: c+1 });
+    // buscar fila cabecera donde aparezcan LA MOLINA / SAN MIGUEL / SAN BORJA
+    let headerRow = -1;
+    for (let r=0; r<Math.min(grid.length, 40); r++){
+      const rowU = grid[r].map(x=>String(x||"").toUpperCase());
+      const hits = IMP_LOCALS.filter(L => rowU.includes(L)).length;
+      if (hits >= 2){ headerRow = r; break; }
     }
-  }
-  if (!cols.length) return [];
+    if (headerRow < 0) return [];
 
-  const out = [];
-  for (let r=headerRow+1; r<grid.length; r++){
-    const anySalon = cols.some(cc => norm(grid[r][cc.colSalon] || "").length > 0);
-    const anyCount = cols.some(cc => norm(grid[r][cc.colCount] || "").length > 0);
-    if (!anySalon && !anyCount) continue;
-
-    for (const cc of cols){
-      const salon = norm(grid[r][cc.colSalon] || "");
-      if (!salon) continue;
-
-      const up = salon.toUpperCase();
-      if (up.includes("IMPRESION")) continue; // evita encabezados del estilo "# IMPRESIONES"
-
-      const count = toInt(grid[r][cc.colCount] || "0");
-      out.push({ local: cc.local, salon, count });
+    const rowU = grid[headerRow].map(x=>String(x||"").toUpperCase());
+    const cols = []; // { local, colSalon, colCount }
+    for (const loc of IMP_LOCALS){
+      const c = rowU.indexOf(loc);
+      if (c >= 0){
+        cols.push({ local: loc, colSalon: c, colCount: c+1 });
+      }
     }
+    if (!cols.length) return [];
+
+    const out = [];
+    for (let r=headerRow+1; r<grid.length; r++){
+      const anySalon = cols.some(cc => norm(grid[r][cc.colSalon] || "").length > 0);
+      const anyCount = cols.some(cc => norm(grid[r][cc.colCount] || "").length > 0);
+      if (!anySalon && !anyCount) continue;
+
+      for (const cc of cols){
+        const salon = norm(grid[r][cc.colSalon] || "");
+        if (!salon) continue;
+
+        const up = salon.toUpperCase();
+        if (up.includes("IMPRESION")) continue; // evita encabezados del estilo "# IMPRESIONES"
+
+        const count = toInt(grid[r][cc.colCount] || "0");
+        out.push({ local: cc.local, salon, count });
+      }
+    }
+
+    // dedupe por (local + salon), manteniendo el último
+    const best = new Map();
+    for (const it of out){
+      const k = `${it.local}||${it.salon}`.toUpperCase();
+      best.set(k, it);
+    }
+    return [...best.values()];
   }
 
-  // dedupe por (local + salon), manteniendo el último
-  const best = new Map();
-  for (const it of out){
-    const k = `${it.local}||${it.salon}`.toUpperCase();
-    best.set(k, it);
-  }
-  return [...best.values()];
-}
+  function ensureImpresionesLayout(){
+    const el = document.getElementById("view_impresiones");
+    if (el.dataset.ready === "1") return;
 
-function ensureImpresionesLayout(){
-  const el = document.getElementById("view_impresiones");
-  if (el.dataset.ready === "1") return;
-
-  // ✅ Se quitó el pill de ACTUALIZADO
-  el.innerHTML = `
-    <div class="card panel12">
-      <div class="cardtitle">FILTRO</div>
-      <div class="controls" style="justify-content:flex-start;">
-        <select id="iLocal"></select>
-        <button id="iReset">VER TODO</button>
-      </div>
-      <div class="panelHint" style="margin-top:10px;">
-        <span class="pill"><span class="dot agraria"></span>AGRARIA</span>
-        <span class="pill"><span class="dot pucp"></span>PUCP</span>
-        <span class="pill"><span class="dot ulima"></span>U.LIMA</span>
-        <span class="pill"><span class="dot" style="background:${getCss("--accent2")};"></span>ADELANTO / PARALELO</span>
-      </div>
-    </div>
-
-    <div class="card panel12">
-      <div class="iLocalHead">
-        <div class="cardtitle" style="margin:0;">RESUMEN GENERAL</div>
-        <div class="iKpis">
-          <span class="iKpiPill">TOTAL: <b id="iTotal">0</b></span>
-          <span class="iKpiPill">SALONES: <b id="iSalones">0</b></span>
+    // ✅ Se quitó el pill de ACTUALIZADO
+    el.innerHTML = `
+      <div class="card panel12">
+        <div class="cardtitle">FILTRO</div>
+        <div class="controls" style="justify-content:flex-start;">
+          <select id="iLocal"></select>
+          <button id="iReset">VER TODO</button>
+        </div>
+        <div class="panelHint" style="margin-top:10px;">
+          <span class="pill"><span class="dot agraria"></span>AGRARIA</span>
+          <span class="pill"><span class="dot pucp"></span>PUCP</span>
+          <span class="pill"><span class="dot ulima"></span>U.LIMA</span>
+          <span class="pill"><span class="dot" style="background:${getCss("--accent2")};"></span>ADELANTO / PARALELO</span>
         </div>
       </div>
-    </div>
 
-    <div class="panel12" id="iBlocks"></div>
-  `;
+      <div class="card panel12">
+        <div class="iLocalHead">
+          <div class="cardtitle" style="margin:0;">RESUMEN GENERAL</div>
+          <div class="iKpis">
+            <span class="iKpiPill">TOTAL: <b id="iTotal">0</b></span>
+            <span class="iKpiPill">SALONES: <b id="iSalones">0</b></span>
+          </div>
+        </div>
+      </div>
 
-  document.getElementById("iReset").addEventListener("click", ()=>{
-    document.getElementById("iLocal").value = "__ALL__";
-    renderImpresiones();
-  });
-  document.getElementById("iLocal").addEventListener("change", renderImpresiones);
+      <div class="panel12" id="iBlocks"></div>
+    `;
 
-  el.dataset.ready = "1";
-}
+    document.getElementById("iReset").addEventListener("click", ()=>{
+      document.getElementById("iLocal").value = "__ALL__";
+      renderImpresiones();
+    });
+    document.getElementById("iLocal").addEventListener("change", renderImpresiones);
 
-function renderImpresiones(){
-  ensureImpresionesLayout();
-
-  const locals = uniq(state.imprRows.map(x=>x.local)).sort((a,b)=>a.localeCompare(b,"es"));
-  fillSelectKeep("iLocal", locals, "LOCAL: TODOS");
-
-  const fLocal = document.getElementById("iLocal").value;
-
-  let rows = state.imprRows.slice();
-  if (fLocal !== "__ALL__") rows = rows.filter(x=>x.local === fLocal);
-
-  const total = rows.reduce((a,b)=>a+(+b.count||0),0);
-  document.getElementById("iTotal").textContent = total.toLocaleString("es-PE");
-  document.getElementById("iSalones").textContent = rows.length.toLocaleString("es-PE");
-
-  // agrupar por local
-  const byLocal = new Map();
-  for (const r of rows){
-    if (!byLocal.has(r.local)) byLocal.set(r.local, []);
-    byLocal.get(r.local).push(r);
+    el.dataset.ready = "1";
   }
 
-  // Orden local fijo
-  const LOCAL_ORDER = ["LA MOLINA","SAN MIGUEL","SAN BORJA","VIRTUAL"];
-  const orderedLocals = [...byLocal.keys()].sort((a,b)=>{
-    const ia = LOCAL_ORDER.indexOf(a); const ib = LOCAL_ORDER.indexOf(b);
-    return (ia<0?999:ia) - (ib<0?999:ib);
-  });
+  function renderImpresiones(){
+    ensureImpresionesLayout();
 
-  // Orden de tarjetas dentro de cada local:
-  // AGRARIA (0) -> PUCP (1) -> U.LIMA (2) -> ROJO (3)
-  function itemSortKey(it){
-    const meta = imprMetaFromSalon(it.salon);
-    return [meta.group, String(it.salon||"").toUpperCase()];
-  }
+    const locals = uniq(state.imprRows.map(x=>x.local)).sort((a,b)=>a.localeCompare(b,"es"));
+    fillSelectKeep("iLocal", locals, "LOCAL: TODOS");
 
-  const blocks = orderedLocals.map(loc=>{
-    const list = byLocal.get(loc).slice().sort((a,b)=>{
-      const ka = itemSortKey(a);
-      const kb = itemSortKey(b);
-      if (ka[0] !== kb[0]) return ka[0] - kb[0];
-      return ka[1].localeCompare(kb[1], "es");
+    const fLocal = document.getElementById("iLocal").value;
+
+    let rows = state.imprRows.slice();
+    if (fLocal !== "__ALL__") rows = rows.filter(x=>x.local === fLocal);
+
+    const total = rows.reduce((a,b)=>a+(+b.count||0),0);
+    document.getElementById("iTotal").textContent = total.toLocaleString("es-PE");
+    document.getElementById("iSalones").textContent = rows.length.toLocaleString("es-PE");
+
+    // agrupar por local
+    const byLocal = new Map();
+    for (const r of rows){
+      if (!byLocal.has(r.local)) byLocal.set(r.local, []);
+      byLocal.get(r.local).push(r);
+    }
+
+    // Orden local fijo
+    const LOCAL_ORDER = ["LA MOLINA","SAN MIGUEL","SAN BORJA","VIRTUAL"];
+    const orderedLocals = [...byLocal.keys()].sort((a,b)=>{
+      const ia = LOCAL_ORDER.indexOf(a); const ib = LOCAL_ORDER.indexOf(b);
+      return (ia<0?999:ia) - (ib<0?999:ib);
     });
 
-    const subTotal = list.reduce((x,y)=>x+(+y.count||0),0);
-
-    const items = list.map(it=>{
+    // Orden de tarjetas dentro de cada local:
+    // AGRARIA (0) -> PUCP (1) -> U.LIMA (2) -> ROJO (3)
+    function itemSortKey(it){
       const meta = imprMetaFromSalon(it.salon);
+      return [meta.group, String(it.salon||"").toUpperCase()];
+    }
 
-      return `
-        <div class="iItem">
-          <div class="iLeft">
-            <div class="iSalon">${escapeHtml(it.salon)}</div>
-            <div class="iMeta">
-              <span class="dot" style="background:${meta.dot};"></span>
-              <span>${escapeHtml(meta.label)}</span>
+    const blocks = orderedLocals.map(loc=>{
+      const list = byLocal.get(loc).slice().sort((a,b)=>{
+        const ka = itemSortKey(a);
+        const kb = itemSortKey(b);
+        if (ka[0] !== kb[0]) return ka[0] - kb[0];
+        return ka[1].localeCompare(kb[1], "es");
+      });
+
+      const subTotal = list.reduce((x,y)=>x+(+y.count||0),0);
+
+      const items = list.map(it=>{
+        const meta = imprMetaFromSalon(it.salon);
+
+        return `
+          <div class="iItem">
+            <div class="iLeft">
+              <div class="iSalon">${escapeHtml(it.salon)}</div>
+              <div class="iMeta">
+                <span class="dot" style="background:${meta.dot};"></span>
+                <span>${escapeHtml(meta.label)}</span>
+              </div>
+            </div>
+            <div class="iNum" style="color:${meta.num};">
+              ${(+it.count||0).toLocaleString("es-PE")}
             </div>
           </div>
-          <div class="iNum" style="color:${meta.num};">
-            ${(+it.count||0).toLocaleString("es-PE")}
+        `;
+      }).join("");
+
+      return `
+        <div class="card panel12">
+          <div class="iLocalHead">
+            <div class="cardtitle" style="margin:0;">${escapeHtml(loc)}</div>
+            <div class="iKpis">
+              <span class="iKpiPill">TOTAL: <b>${subTotal.toLocaleString("es-PE")}</b></span>
+              <span class="iKpiPill">SALONES: <b>${list.length}</b></span>
+            </div>
+          </div>
+          <div class="iGrid">${items}</div>
+        </div>
+      `;
+    }).join("");
+
+    document.getElementById("iBlocks").innerHTML = blocks || `
+      <div class="card panel12">
+        <div class="cardtitle">SIN DATOS</div>
+        <div style="color:var(--muted); font-weight:900;">No se encontraron registros en IMPRESIONES.</div>
+      </div>
+    `;
+  }
+
+  async function loadImpresiones(){
+    try{
+      const url = csvUrl(IMPRESIONES_GID) + "&v=" + Date.now();
+      const res = await fetch(url, { cache:"no-store" });
+      if (!res.ok) throw new Error("HTTP "+res.status);
+      const text = await res.text();
+
+      state.imprRows = parseImpresionesCSV(text);
+      state.imprUpdatedAt = Date.now(); // se conserva, pero ya no se muestra en pantalla
+    } catch(e){
+      console.error("IMPRESIONES:", e);
+      state.imprRows = state.imprRows || [];
+    }
+  }
+  // ===================== FIN IMPRESIONES =====================
+
+  // ===================== SÍLABOS (NUEVO) =====================
+  const SILABOS = {
+    "AGRARIA": [
+      { name:"RAZ. MATEMÁTICO", url:"https://docs.google.com/spreadsheets/d/1cost_xvSR9VRFb271chp9H6kWOWl9tcML_YW0oa7yRw/edit" },
+      { name:"RAZ. VERBAL", url:"https://docs.google.com/spreadsheets/d/15o_A2VH5mK23k99a9uUVM19lnDvQXgvFpBTyDeQct6k/edit" },
+      { name:"ARITMÉTICA", url:"https://docs.google.com/spreadsheets/d/1ecqBHOiGPcJZHK-pQLgZVL05DJ11nojEV8m3_cFszrs/edit" },
+      { name:"ÁLGEBRA", url:"https://docs.google.com/spreadsheets/d/1AeOuMxAbq9BMCe6SDYbfH9KxC4JG-naCVr-ePVoupYY/edit?gid=11988891#gid=11988891" },
+      { name:"GEOMETRÍA", url:"https://docs.google.com/spreadsheets/d/1NEqVFKLJUSFNuVdhPcVj8zt98IpJZyvxNqhjcquovkk/edit?gid=11988891#gid=11988891" },
+      { name:"TRIGONOMETRÍA", url:"https://docs.google.com/spreadsheets/d/1FBu6heTtfsvZfLZyhihECQfLpuozdTZFgQUEza8DnAA/edit?gid=11988891#gid=11988891" },
+      { name:"FÍSICA", url:"https://docs.google.com/spreadsheets/d/1WrpeZk4CxJLh9T5qylMbOBTD6kAPF_3dhbmaJRKtE10/edit?usp=drive_web&ouid=109996193497961946614" },
+      { name:"QUÍMICA", url:"https://docs.google.com/spreadsheets/d/1VDu1iJP4nXOAJVkrqot4ZKqRlfmSttkdmDGA9mlZj_U/edit?gid=11988891#gid=11988891" },
+      { name:"BIOLOGÍA", url:"https://docs.google.com/spreadsheets/d/1JdUEKgdVFdSMzNsqmLxVs8CTh_bbdJlPNKegi05QFjk/edit" },
+      { name:"ECONOMÍA", url:"https://docs.google.com/spreadsheets/d/1cPs5QW6GZuBOIXH_bXrgamUG_mgTPzCPp0myMHJzt9Y/edit?gid=482549845#gid=482549845" },
+      { name:"HISTORIA", url:"https://docs.google.com/spreadsheets/d/1BlbP3Oxo0WZKNs9NT9829Eq7mcI28qrLy_71Ui4O0vo/edit?gid=376763430#gid=376763430" },
+      { name:"GEOGRAFÍA", url:"https://docs.google.com/spreadsheets/d/115VUXKuIaFyHV5gpSs0QsBpWRGomMhVPVg0H2kroG1M/edit" },
+    ],
+    "PUCP": [
+      { name:"TEXTOS", url:"https://docs.google.com/spreadsheets/d/11PPCqit8X-uD5e2coD0vHsAPv7ro6uLRsp5_jyMl0rQ/edit" },
+      { name:"NÚMEROS Y OPERACIONES", url:"https://docs.google.com/spreadsheets/d/1JmMRZKDt2455BMyXNK-wwc6aMucArgtgJFHwLVvv-yQ/edit?usp=drive_web&ouid=109996193497961946614" },
+      { name:"ÁLGEBRA", url:"https://docs.google.com/spreadsheets/d/1BVZUYGBZgeVjgi-FVwoGTiCnUDnbBwDTRxPxRX4cbk4/edit?usp=drive_web&ouid=109996193497961946614" },
+      { name:"GEOMETRÍA Y MEDIDA", url:"https://docs.google.com/spreadsheets/d/1kS4G-2eCe14yo96lbvoMATNkNMcY7ASu8dqgxztlgk4/edit?gid=11988891#gid=11988891" },
+      { name:"ESTADÍSTICA", url:"https://docs.google.com/spreadsheets/d/1Gz_o4RWmabJqRVGwEAJQKQqpP-J5AKl-yZpLhjSo-ho/edit" },
+      { name:"HABILIDAD OPERATIVA", url:"https://docs.google.com/spreadsheets/d/1_HS6Go17zYGNPtjOU3voSJ-wOvE0UYPNSA-Acrdc0Z0/edit" },
+    ],
+    "U.LIMA": [
+      { name:"RAZ. MATEMÁTICO", url:"https://docs.google.com/spreadsheets/d/12Z20sVKqSanxX2sw9cQ_jT0HroEV-fzz4RWLEKvVQYY/edit?gid=11988891#gid=11988891" },
+      { name:"ÁLGEBRA", url:"https://docs.google.com/spreadsheets/d/1SXpr5vnKQaEnxBpiauxBTyBzN_iSnAso1A7EpVOXy1E/edit" },
+      { name:"GEOMETRÍA Y TRIGONOMETRÍA", url:"https://docs.google.com/spreadsheets/d/1PX97aFUQy_yzugcQ7c4Fgpg3-xHA-Eb7VFOK-MFUcc0/edit?gid=11988891#gid=11988891" },
+      { name:"ARITMÉTICA", url:"https://docs.google.com/spreadsheets/d/1N_eSBLRHiUcE5EevFw4pnnC-4tV_pPmm1bp7o8DtE04/edit" },
+      { name:"RAZ. VERBAL", url:"https://docs.google.com/spreadsheets/d/10akBiiuoasqVOMfv7g1uHiMKBJ_PHYUjR98fQMqzyQA/edit" },
+      { name:"TEXTOS", url:"https://docs.google.com/spreadsheets/d/1vgmeTjdoPPfzauwUhqWcCdr6j7UWodDSWhtmX9P-lG0/edit" },
+      { name:"LENGUAJE", url:"https://docs.google.com/spreadsheets/d/1e79bVVbVYL7QdFLiMWFMdDGYQrz1ye9FQAHVxcPUyUU/edit" },
+      { name:"PROCESOS", url:"https://docs.google.com/spreadsheets/d/1ISwc2A8G-jISa5ni-oebxF6D8C2l0O0QJkD8eKTPcjI/edit" },
+      { name:"HABILIDAD OPERATIVA", url:"https://docs.google.com/spreadsheets/d/1SebdIqWuN8y1Rt9ypqu5Q3TZfh91_EpP6RwAV5i8oCw/edit" },
+    ]
+  };
+
+  function uniDot(uni){
+    if (uni==="AGRARIA") return getCss("--agraria");
+    if (uni==="PUCP") return getCss("--pucp");
+    return getCss("--ulima");
+  }
+
+  function ensureSilabosLayout(){
+    const el = document.getElementById("view_silabos");
+    if (el.dataset.ready === "1") return;
+
+    el.innerHTML = `
+      <div class="card panel12">
+        <div class="cardtitle">FILTROS</div>
+        <div class="controls" style="justify-content:flex-start;">
+          <select id="sUni"></select>
+          <input id="sQ" type="text" placeholder="Buscar curso (ej: álgebra, física, textos)"/>
+          <button id="sReset">VER TODO</button>
+        </div>
+        <div class="panelHint" style="margin-top:10px;">
+          <span class="pill"><span class="dot agraria"></span>AGRARIA</span>
+          <span class="pill"><span class="dot pucp"></span>PUCP</span>
+          <span class="pill"><span class="dot ulima"></span>U.LIMA</span>
+        </div>
+      </div>
+
+      <div class="card panel12">
+        <div class="syLocalHead">
+          <div class="cardtitle" style="margin:0;">RESUMEN GENERAL</div>
+          <div class="syKpis">
+            <span class="syKpiPill">CURSOS: <b id="sTotal">0</b></span>
+            <span class="syKpiPill">UNIVERSIDADES: <b id="sUnis">3</b></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel12" id="sBlocks"></div>
+    `;
+
+    fillSelectKeep("sUni", ["AGRARIA","PUCP","U.LIMA"], "UNIVERSIDAD: TODAS");
+
+    document.getElementById("sReset").addEventListener("click", ()=>{
+      document.getElementById("sUni").value="__ALL__";
+      document.getElementById("sQ").value="";
+      renderSilabos();
+    });
+    document.getElementById("sUni").addEventListener("change", renderSilabos);
+    document.getElementById("sQ").addEventListener("input", renderSilabos);
+
+    el.dataset.ready = "1";
+  }
+
+  function renderSilabos(){
+    ensureSilabosLayout();
+
+    const fUni = document.getElementById("sUni").value;
+    const q = low(document.getElementById("sQ").value);
+
+    const uniOrder = ["AGRARIA","PUCP","U.LIMA"];
+    let unis = uniOrder.slice();
+    if (fUni !== "__ALL__") unis = unis.filter(u=>u===fUni);
+
+    let totalCourses = 0;
+
+    const blocks = unis.map(uni=>{
+      const dot = uniDot(uni);
+      let list = (SILABOS[uni] || []).slice();
+
+      if (q){
+        list = list.filter(x => low(x.name).includes(q));
+      }
+
+      totalCourses += list.length;
+
+      const items = list.map(it=>{
+        return `
+          <a class="syItem" href="${escapeHtml(it.url)}" target="_blank" rel="noopener noreferrer">
+            <div class="syLeft">
+              <div class="syCourse">${escapeHtml(it.name)}</div>
+              <div class="syMeta">
+                <span class="dot" style="background:${dot};"></span>
+                <span>${escapeHtml(uni)}</span>
+              </div>
+            </div>
+            <div class="syOpen">ABRIR EXCEL</div>
+          </a>
+        `;
+      }).join("");
+
+      return `
+        <div class="card panel12">
+          <div class="syLocalHead">
+            <div class="cardtitle" style="margin:0;">
+              ${escapeHtml(uni)}
+            </div>
+            <div class="syKpis">
+              <span class="syKpiPill">CURSOS: <b>${list.length}</b></span>
+            </div>
+          </div>
+          <div class="syWrap">
+            ${items || `<div class="card panel12" style="box-shadow:none;">
+              <div class="cardtitle">SIN RESULTADOS</div>
+              <div style="color:var(--muted); font-weight:900;">No se encontraron cursos con el filtro actual.</div>
+            </div>`}
           </div>
         </div>
       `;
     }).join("");
 
-    return `
+    document.getElementById("sTotal").textContent = totalCourses.toLocaleString("es-PE");
+    document.getElementById("sBlocks").innerHTML = blocks || `
       <div class="card panel12">
-        <div class="iLocalHead">
-          <div class="cardtitle" style="margin:0;">${escapeHtml(loc)}</div>
-          <div class="iKpis">
-            <span class="iKpiPill">TOTAL: <b>${subTotal.toLocaleString("es-PE")}</b></span>
-            <span class="iKpiPill">SALONES: <b>${list.length}</b></span>
-          </div>
-        </div>
-        <div class="iGrid">${items}</div>
+        <div class="cardtitle">SIN DATOS</div>
+        <div style="color:var(--muted); font-weight:900;">No se encontraron sílabos para mostrar.</div>
       </div>
     `;
-  }).join("");
-
-  document.getElementById("iBlocks").innerHTML = blocks || `
-    <div class="card panel12">
-      <div class="cardtitle">SIN DATOS</div>
-      <div style="color:var(--muted); font-weight:900;">No se encontraron registros en IMPRESIONES.</div>
-    </div>
-  `;
-}
-
-async function loadImpresiones(){
-  try{
-    const url = csvUrl(IMPRESIONES_GID) + "&v=" + Date.now();
-    const res = await fetch(url, { cache:"no-store" });
-    if (!res.ok) throw new Error("HTTP "+res.status);
-    const text = await res.text();
-
-    state.imprRows = parseImpresionesCSV(text);
-    state.imprUpdatedAt = Date.now(); // se conserva, pero ya no se muestra en pantalla
-  } catch(e){
-    console.error("IMPRESIONES:", e);
-    state.imprRows = state.imprRows || [];
   }
-}
-// ===================== FIN IMPRESIONES =====================
+  // ===================== FIN SÍLABOS =====================
 
   // ===================== HORARIOS =====================
   const DAYS = ["LUNES","MARTES","MIÉRCOLES","JUEVES","VIERNES","SÁBADO"];
@@ -2775,6 +3027,7 @@ async function loadImpresiones(){
     if (state.view==="table") renderTable();
     if (state.view==="horarios") renderHorarios();
     if (state.view==="impresiones") renderImpresiones();
+    if (state.view==="silabos") renderSilabos();
   }
 
   // ===================== LOAD DATA MATRÍCULA =====================
@@ -2867,6 +3120,8 @@ async function loadImpresiones(){
   document.getElementById("nav_table").addEventListener("click", ()=>setView("table"));
   document.getElementById("nav_horarios").addEventListener("click", ()=>setView("horarios"));
   document.getElementById("nav_impresiones").addEventListener("click", ()=>setView("impresiones"));
+  // ✅ NUEVO
+  document.getElementById("nav_silabos").addEventListener("click", ()=>setView("silabos"));
 
   ["fLocal","fUni","fSalon","fModalidad","fEstado"].forEach(id=>{
     const el = document.getElementById(id);
