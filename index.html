@@ -15,7 +15,7 @@
   <style>
     /* ======================================================================
       ✅ EDITA COLORES AQUÍ (HORARIOS)
-      - AGRARIA: NO TOCAR (me dijiste que está perfecto)
+      - AGRARIA: NO TOCAR
       - PUCP: azul
       - U.LIMA: naranja
     ====================================================================== */
@@ -436,19 +436,14 @@
 
     .schTable col.timeCol{ width: 92px; }
 
-    /* ============================================================
-      ✅ (CORRECCIÓN IMPORTANTE) “4 líneas imaginarias” BIEN CENTRADAS
-      - Antes estabas usando 4 filas 1fr y eso metía mucho aire.
-      - Ahora se centra el BLOQUE de texto con separación corta (row-gap).
-      - Resultado: “HIS” y “RIOJA” quedan uno debajo del otro, CERCA y bonito.
-    ============================================================ */
+    /* ===================== CELDA 4 LÍNEAS: ORDENADA + PROFESOR SIN NEGRITA ===================== */
     .cell4{
       width:100%;
       height:100%;
       display:grid;
       grid-template-rows: repeat(4, auto);
-      place-content:center;   /* centra TODO el conjunto verticalmente */
-      row-gap: 2px;           /* separación pequeña y uniforme */
+      place-content:center;
+      row-gap: 2px;
       align-items:center;
       justify-items:center;
     }
@@ -461,17 +456,19 @@
       padding:0 2px;
       line-height:1.05;
     }
+    /* Cursos (arriba) */
     .cell4 .cLine{
       font-size:18px;
       font-weight:950;
       letter-spacing:.2px;
       text-transform:uppercase;
-      white-space:nowrap; /* evita que “ÁLG 1” se parta */
+      white-space:nowrap; /* evita “ÁLG 1” partido */
       line-height:1.05;
     }
+    /* Profesor (abajo): SIN negrita y ligeramente menor */
     .cell4 .tLine{
-      font-size:12px;
-      font-weight:900;
+      font-size:11px;
+      font-weight:500;
       text-transform:uppercase;
       color:#111827;
       white-space:nowrap;
@@ -492,9 +489,9 @@
       --schCell: var(--schCell_UL);
     }
 
-    /* ===================== MODO EXPORT PNG (SIEMPRE “HORIZONTAL BONITO”) ===================== */
+    /* ===================== MODO EXPORT PNG (FORMATO HORIZONTAL) ===================== */
     body.exportMode .schCard{
-      width: 1120px !important;        /* fuerza aspecto tipo laptop aunque estés en móvil */
+      width: 1120px !important;
       max-width: none !important;
     }
     body.exportMode .schTableWrap{
@@ -506,7 +503,7 @@
       min-width: 0 !important;
     }
     body.exportMode .cell4 .cLine{ font-size:18px !important; }
-    body.exportMode .cell4 .tLine{ font-size:12px !important; }
+    body.exportMode .cell4 .tLine{ font-size:11px !important; font-weight:500 !important; }
     body.exportMode .schTable thead th{ font-size:11px !important; }
     body.exportMode .schTable .timeCell{ font-size:12px !important; }
 
@@ -535,7 +532,6 @@
       .schUniPill{ padding:8px 10px; font-size:12px; }
       .schDl{ padding:7px 9px; font-size:11px; }
 
-      /* tamaño cómodo: NO enorme */
       .schTable{ min-width: 820px; }
       .schTable th, .schTable td{ padding: 4px 4px; }
       .schTable thead th{ font-size:10px; }
@@ -544,7 +540,7 @@
 
       .cell4{ row-gap: 2px; }
       .cell4 .cLine{ font-size:16px; }
-      .cell4 .tLine{ font-size:11px; }
+      .cell4 .tLine{ font-size:10px; font-weight:500; }
     }
   </style>
 </head>
@@ -565,7 +561,7 @@
       <div class="nav">
         <button id="nav_overview" class="active">RESUMEN GENERAL</button>
         <button id="nav_local">POR LOCAL</button>
-        <button id="nav_table">TABLA</button>
+        <button id="nav_table">ALUMNOS</button>
         <button id="nav_horarios">HORARIOS</button>
       </div>
     </aside>
@@ -581,6 +577,10 @@
           <select id="fLocal"></select>
           <select id="fUni"></select>
           <select id="fSalon"></select>
+
+          <!-- ✅ NUEVO: filtro de estado SOLO para ALUMNOS (incluye CAMBIO) -->
+          <select id="fEstado" style="display:none;"></select>
+
           <select id="fModalidad"></select>
           <input id="q" type="text" placeholder="Buscar por nombre"/>
           <button id="btnNowTop">ACTUALIZAR</button>
@@ -1080,11 +1080,14 @@
 
     document.getElementById("controlsMatricula").style.display = (v==="horarios") ? "none" : "";
 
+    // ✅ estado solo visible en ALUMNOS (tabla)
+    document.getElementById("fEstado").style.display = (v==="table") ? "" : "none";
+
     const titles = {
       overview: ["RESUMEN GENERAL", "Panel estructurado para control de matrícula, modalidad y distribución por universidad."],
       local: ["POR LOCAL", "Monitoreo por salón (tutor) del local seleccionado."],
-      table: ["TABLA", "Búsqueda y filtros para consulta interna."],
-      horarios: ["HORARIOS", "Plantillas de horarios por local y universidad (descarga PNG completa)."]
+      table: ["ALUMNOS", "Búsqueda y filtros para consulta interna."],
+      horarios: ["HORARIOS", "Plantillas de horarios por local y universidad."]
     };
     document.getElementById("viewTitle").textContent = titles[v][0];
     document.getElementById("viewDesc").textContent = titles[v][1];
@@ -1114,13 +1117,35 @@
     fillSelectKeep("fUni", ["AGRARIA","PUCP","U.LIMA"], "UNIVERSIDAD: TODAS");
     rebuildSalonOptions();
     fillSelectKeep("fModalidad", ["PRESENCIAL","VIRTUAL"], "MODALIDAD: TODAS");
+
+    // ✅ Estado para tabla (incluye CAMBIO)
+    fillSelectKeep("fEstado", ["ACTIVO","RETIRO","CAMBIO"], "ESTADO: TODOS");
+  }
+
+  function getBaseForCurrentView(){
+    // Overview/Local: solo matrícula (ACTIVO/RETIRO) dedupe
+    if (state.view !== "table"){
+      return state.canonical.slice();
+    }
+
+    // Tabla: permitir CAMBIO y TODOS
+    const fEstado = document.getElementById("fEstado").value;
+
+    if (fEstado === "CAMBIO"){
+      return state.cambiosRows.slice();
+    }
+    if (fEstado === "ACTIVO" || fEstado === "RETIRO"){
+      return state.canonical.filter(r=>r.estado===fEstado);
+    }
+    // TODOS (tabla): activos+retiros dedupe + cambios (sin dedupe)
+    return state.canonical.concat(state.cambiosRows);
   }
 
   function rebuildSalonOptions(){
     const fLocal = document.getElementById("fLocal").value;
     const fUni = document.getElementById("fUni").value;
 
-    let base = state.canonical;
+    let base = getBaseForCurrentView();
     if (fLocal !== "__ALL__") base = base.filter(r=>r.local===fLocal);
     if (fUni !== "__ALL__") base = base.filter(r=>uniGroupFromCiclo(r.ciclo)===fUni);
 
@@ -1135,7 +1160,7 @@
     const fMod   = document.getElementById("fModalidad").value;
     const q      = low(document.getElementById("q").value);
 
-    let base = state.canonical;
+    let base = getBaseForCurrentView();
 
     base = base.filter(r=>{
       if (fLocal!=="__ALL__" && r.local!==fLocal) return false;
@@ -1340,7 +1365,7 @@
 
     el.innerHTML = `
       <div class="card panel12">
-        <div class="cardtitle">TABLA</div>
+        <div class="cardtitle">ALUMNOS</div>
         <div style="overflow:auto; max-height: 75vh;">
           <table>
             <thead>
@@ -1363,7 +1388,12 @@
 
   function renderOverview(){
     ensureOverviewLayout();
+
+    // ✅ overview siempre con matrícula ACTIVO/RETIRO (NO CAMBIO)
+    const prevView = state.view;
+    state.view = "overview";
     applyFilters();
+    state.view = prevView;
 
     const rows = state.filtered;
 
@@ -1437,6 +1467,7 @@
       .map(s => s.salon);
     salonesLocal = uniq(salonesLocal);
 
+    // local = matrícula dedupe (sin cambios)
     let baseMat = state.canonical;
     if (fLocal!=="__ALL__") baseMat = baseMat.filter(r=>r.local===fLocal);
     if (fMod!=="__ALL__") baseMat = baseMat.filter(r=>r.modalidad===fMod);
@@ -1513,7 +1544,7 @@
 
     const rows = state.filtered;
     const tbody = document.getElementById("tb_body");
-    tbody.innerHTML = rows.slice(0,800).map(r=>`
+    tbody.innerHTML = rows.slice(0,1200).map(r=>`
       <tr>
         <td>${escapeHtml(r.nombre)}</td>
         <td>${escapeHtml(r.local)}</td>
@@ -1526,32 +1557,8 @@
   }
 
   // ===================== HORARIOS =====================
-  /*
-    ✅ CÓMO EDITAR CURSOS / PROFES / HORAS (PARA TODOS LOS HORARIOS)
-    Cada bloque:
-      { day:"LUNES", start:"08:00", end:"09:50", course:"ÁLG 1", teacher:"PEREZ" }
-
-    ✅ SI CAMBIA LA HORA DE UN CURSO:
-      - Cambia start y end.
-      - Deben ser horas existentes en TIME_MARKS (lista de marcas abajo).
-
-    ✅ 4 LÍNEAS IMAGINARIAS
-      - Slot 4 SIEMPRE es profesor.
-      - Para el curso:
-          * 1 línea  -> slot 2
-          * 2 líneas -> slot 2 y 3
-          * 3 líneas -> slot 1,2,3
-      - Si quieres FORZAR líneas manualmente:
-          course: "REF. / MATES"   -> 2 líneas exactas
-          course: "PAL1 / PAL2 / PAL3" -> 3 líneas exactas
-
-    ✅ NO SEPARAR "ÁLG 1", "RV 2", "FÍS 1", etc.
-      - Se mantienen juntos en UNA línea.
-  */
-
   const DAYS = ["LUNES","MARTES","MIÉRCOLES","JUEVES","VIERNES","SÁBADO"];
 
-  // ✅ MISMAS HORAS PARA TODOS (NO CAMBIAR AQUÍ, SOLO USARLAS)
   const TIME_ROWS = [
     { start:"08:00", end:"08:30", label:"8:00 - 8:30" },
     { start:"08:30", end:"09:00", label:"8:30 - 9:00" },
@@ -1597,14 +1604,16 @@
     return x;
   }
 
-  // “ÁLG 1” / “RV 2” / “FÍS 1” => 1 sola línea
+  // “ÁLG 1” / “RV 2” / “FÍS 1” / “G&M 1” / “G&T 2” => 1 sola línea
   function isCodePlusNumber(tokens){
     if (tokens.length !== 2) return false;
     const left = tokens[0];
     const right = tokens[1];
     const num = /^[0-9]+$/.test(right);
     if (!num) return false;
-    const okLeft = /^[A-ZÁÉÍÓÚÑ\.]{2,}$/.test(left);
+
+    // ✅ acepta & y puntos (G&M, G&T, REF.)
+    const okLeft = /^[A-ZÁÉÍÓÚÑ&\.]{2,}$/.test(left);
     return okLeft;
   }
 
@@ -1623,13 +1632,26 @@
 
     const tokens = s.split(" ").map(norm).filter(Boolean);
 
+    // ✅ Caso “REF. ÁLG 2” o “REF RM 2”:
+    // REF. arriba, “ÁLG 2” al centro (como bloque), profesor abajo
+    const t0 = (tokens[0] || "").toUpperCase();
+    const isRef = (t0 === "REF" || t0 === "REF." || t0.startsWith("REF."));
+    if (isRef && tokens.length >= 2){
+      const rest = tokens.slice(1);
+      if (isCodePlusNumber(rest.slice(0,2)) && rest.length === 2){
+        return [tokens[0], `${rest[0]} ${rest[1]}`];
+      }
+      // si no es code+num, lo dejamos como segunda línea completa
+      return [tokens[0], rest.join(" ")].slice(0,3);
+    }
+
     // “ÁLG 1” => una línea
     if (isCodePlusNumber(tokens)) return [`${tokens[0]} ${tokens[1]}`];
 
     // 1 token => una línea
     if (tokens.length === 1) return [tokens[0]];
 
-    // 2 tokens (no num) => dos líneas (REF. / MATES)
+    // 2 tokens => dos líneas
     if (tokens.length === 2) return [tokens[0], tokens[1]];
 
     // 3 o más => tres líneas (máximo)
@@ -1640,11 +1662,15 @@
     const lines = courseToLines(courseRaw);
     const teacher = norm(teacherRaw || "");
 
+    // ✅ Reglas de colocación:
+    // - 1 línea => centro (slot2)
+    // - 2 líneas => arriba + centro (slot1 + slot2)  [más ordenado]
+    // - 3 líneas => slot1 + slot2 + slot3
     let slot1 = "", slot2 = "", slot3 = "";
     if (lines.length === 3){
       slot1 = lines[0]; slot2 = lines[1]; slot3 = lines[2];
     } else if (lines.length === 2){
-      slot2 = lines[0]; slot3 = lines[1];
+      slot1 = lines[0]; slot2 = lines[1];
     } else if (lines.length === 1){
       slot2 = lines[0];
     }
@@ -1779,7 +1805,7 @@
     `;
   }
 
-  // ===================== ORDEN DE HORARIOS (LO QUE PEDISTE) =====================
+  // ===================== ORDEN DE HORARIOS =====================
   const LOCAL_ORDER = ["LA MOLINA","SAN MIGUEL","SAN BORJA","VIRTUAL"];
   const UNI_ORDER = ["AGRARIA","PUCP","U.LIMA"];
 
@@ -1802,13 +1828,10 @@
   }
 
   /* ======================================================================
-    ✅ AQUÍ COMPLETAS LOS HORARIOS (SCHEDULES)
-    - Ya están TODOS llenos con ejemplos.
-    - Tú solo reemplazas course y teacher, y si cambian horas, cambia start/end.
-    - Usa SOLO las horas de TIME_MARKS.
+    HORARIOS (SCHEDULES)
   ====================================================================== */
   const SCHEDULES = sortSchedules([
-    // ========================= AGRARIA (VERDE - NO TOCAR COLORES) =========================
+    // ========================= AGRARIA =========================
     {
       id:"AGR_LM_1",
       local:"LA MOLINA",
@@ -1824,12 +1847,12 @@
 
         { day:"LUNES", start:"10:00", end:"11:50", course:"QUÍ 1", teacher:"COSTA" },
         { day:"MARTES", start:"10:00", end:"11:50", course:"ARI", teacher:"DIAZ" },
-        { day:"MIÉRCOLES", start:"10:00", end:"11:50", course:"REF. MAT", teacher:"ANGEL" }, /* auto: REF. / MATES */
+        { day:"MIÉRCOLES", start:"10:00", end:"11:50", course:"REF. MAT", teacher:"ANGEL" },
         { day:"JUEVES", start:"10:00", end:"11:50", course:"TRI", teacher:"TORRES" },
         { day:"VIERNES", start:"10:00", end:"11:50", course:"RM 1", teacher:"OBANDO" },
 
         { day:"LUNES", start:"12:00", end:"13:50", course:"GGF", teacher:"RIOJA" },
-        { day:"MARTES", start:"12:00", end:"13:50", course:"ÁLG 1", teacher:"UCANCIAL" }, /* 1 sola línea */
+        { day:"MARTES", start:"12:00", end:"13:50", course:"ÁLG 1", teacher:"UCANCIAL" },
         { day:"MIÉRCOLES", start:"12:00", end:"13:50", course:"TXT", teacher:"ZAVALA" },
         { day:"JUEVES", start:"12:00", end:"13:50", course:"BIO 1", teacher:"LUYO" },
         { day:"VIERNES", start:"12:00", end:"13:50", course:"FÍS 2", teacher:"RUBEN" },
@@ -1974,7 +1997,7 @@
       ]
     },
 
-    // ========================= PUCP (AZUL) =========================
+    // ========================= PUCP =========================
     {
       id:"PUCP_LM",
       local:"LA MOLINA",
@@ -2064,7 +2087,7 @@
       ]
     },
 
-    // ========================= U.LIMA (NARANJA) =========================
+    // ========================= U.LIMA =========================
     {
       id:"UL_LM",
       local:"LA MOLINA",
@@ -2277,7 +2300,7 @@
 
     el.innerHTML = `
       <div class="card panel12">
-        <div class="cardtitle">FILTROS (HORARIOS)</div>
+        <div class="cardtitle">FILTROS</div>
         <div class="controls" style="justify-content:flex-start;">
           <select id="hLocal"></select>
           <select id="hUni"></select>
@@ -2288,7 +2311,6 @@
           <span class="pill"><span class="dot agraria"></span>AGRARIA</span>
           <span class="pill"><span class="dot pucp"></span>PUCP</span>
           <span class="pill"><span class="dot ulima"></span>U.LIMA</span>
-          <span class="pill">Descarga PNG siempre sale en “horizontal bonito”.</span>
         </div>
       </div>
 
@@ -2301,7 +2323,6 @@
     fillSelectKeep("hLocal", sortByLocalOrder(locals), "LOCAL: TODOS");
     fillSelectKeep("hUni", ["AGRARIA","PUCP","U.LIMA"], "UNIVERSIDAD: TODAS");
 
-    // ✅ Por defecto: mostrar TODO
     document.getElementById("hLocal").value = "__ALL__";
     document.getElementById("hUni").value = "__ALL__";
     rebuildHorariosSalonOptions();
@@ -2358,14 +2379,13 @@
     if (fUni !== "__ALL__") base = base.filter(s=>s.uni===fUni);
     if (fSalon !== "__ALL__") base = base.filter(s=>s.salon===fSalon);
 
-    // ✅ Orden: LA MOLINA -> SAN MIGUEL -> SAN BORJA -> VIRTUAL
     base = sortSchedules(base);
 
     const grid = document.getElementById("schGrid");
     grid.innerHTML = base.map(scheduleToHtmlCard).join("");
   }
 
-  // ===================== DESCARGAR PNG “HORIZONTAL BONITO” =====================
+  // ===================== DESCARGAR PNG =====================
   function safeFileName(s){
     return String(s||"horario")
       .trim()
@@ -2513,8 +2533,10 @@
   document.getElementById("nav_table").addEventListener("click", ()=>setView("table"));
   document.getElementById("nav_horarios").addEventListener("click", ()=>setView("horarios"));
 
-  ["fLocal","fUni","fSalon","fModalidad"].forEach(id=>{
-    document.getElementById(id).addEventListener("change", ()=>{
+  ["fLocal","fUni","fSalon","fModalidad","fEstado"].forEach(id=>{
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.addEventListener("change", ()=>{
       rebuildSalonOptions();
       render();
     });
