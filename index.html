@@ -1032,11 +1032,10 @@
       ctx.restore();
     }
   };
-// ===================== PERSISTENCIA DE VISTA (NUEVO) =====================
 // ===================== PERSISTENCIA DE VISTA (FIX) =====================
 const VIEW_STORAGE_KEY = "LA_META_CURRENT_VIEW";
 
-function persistView(v){
+function saveView(v){
   try { localStorage.setItem(VIEW_STORAGE_KEY, v); } catch(e){}
 }
 function loadSavedView(){
@@ -1255,6 +1254,7 @@ function loadSavedView(){
   // ============================ NAV ============================
   function setView(v){
     state.view = v;
+    saveView(v);
     persistView(v);
     document.getElementById("nav_overview").classList.toggle("active", v==="overview");
     document.getElementById("nav_local").classList.toggle("active", v==="local");
@@ -3361,6 +3361,8 @@ const items = list.map(it=>{
     return { salon, rows: out, error: null };
   }
 
+let FIRST_LOAD_DONE = false;
+
 async function loadAll(){
   try{
     const results = await Promise.allSettled(SALONES.map(loadOneSalon));
@@ -3383,26 +3385,17 @@ async function loadAll(){
     if (!state.booted){
       initFilters();
 
-      const sv = loadSavedView();
-      if (sv && ["overview","local","table","horarios","impresiones","silabos","materiales","listas"].includes(sv)){
-        setView(sv); // primera vez sí
+      const allowed = ["overview","local","table","horarios","impresiones","silabos","materiales","listas"];
+
+      if (!FIRST_LOAD_DONE){
+        const sv = loadSavedView();
+        if (sv && allowed.includes(sv)) setView(sv);
+        else render();
+        FIRST_LOAD_DONE = true;
       } else {
-        render();
+        // ✅ En refresh NO cambiar de vista (evita el flash a RESUMEN)
+        setView(state.view);
       }
-
-      state.booted = true;
-    } else {
-      // Updates: NO setView()
-      if (state.view === "overview" || state.view === "local" || state.view === "table"){
-        rebuildSalonOptions();
-      }
-      render();
-    }
-
-  } catch(e){
-    console.error(e);
-  }
-}
 
 // ===================== EVENTS =====================
 document.getElementById("nav_overview").addEventListener("click", ()=>setView("overview"));
