@@ -3438,19 +3438,22 @@ async function loadAll(){
   } finally {
     LOADING = false;
 
-    // si hubo una llamada “pendiente”, la ejecutamos 1 vez al terminar
-    if (PENDING){
+    // si hubo una llamada “pendiente” mientras cargábamos, ejecutamos 1 refresh adicional
+    if (PENDING) {
       PENDING = false;
       loadAll();
     }
   }
 }
 
-// ✅ AFUERA (solo una vez)
-loadAll();
-setInterval(()=>{ if(!LOADING) loadAll(); }, AUTO_REFRESH_MS);
+// ✅ Arranque inicial + auto refresh
+window.addEventListener("load", () => {
+  loadAll();
+  setInterval(loadAll, AUTO_REFRESH_MS);
+});
 
 </script>
 </body>
 </html>
+
 
