@@ -1255,7 +1255,6 @@ function loadSavedView(){
   function setView(v){
     state.view = v;
     saveView(v);
-    persistView(v);
     document.getElementById("nav_overview").classList.toggle("active", v==="overview");
     document.getElementById("nav_local").classList.toggle("active", v==="local");
     document.getElementById("nav_table").classList.toggle("active", v==="table");
@@ -3378,49 +3377,60 @@ async function loadAll(){
 
     state.cambiosRows = state.rawRows.filter(r => r.estado==="CAMBIO");
 
-    // ✅ impresiones
+    // impresiones
     await loadImpresiones();
 
-    // ✅ FIX: init + setView SOLO 1 vez, luego solo render (sin saltos de vista)
+    // ✅ boot SOLO una vez
     if (!state.booted){
       initFilters();
 
       const allowed = ["overview","local","table","horarios","impresiones","silabos","materiales","listas"];
+      const sv = loadSavedView();
 
-      if (!FIRST_LOAD_DONE){
-        const sv = loadSavedView();
-        if (sv && allowed.includes(sv)) setView(sv);
-        else render();
-        FIRST_LOAD_DONE = true;
+      if (sv && allowed.includes(sv)){
+        state.view = sv;
+        setView(sv);
       } else {
-        // ✅ En refresh NO cambiar de vista (evita el flash a RESUMEN)
-        setView(state.view);
+        render();
       }
+      FIRST_LOAD_DONE = true;
 
-// ===================== EVENTS =====================
-document.getElementById("nav_overview").addEventListener("click", ()=>setView("overview"));
-document.getElementById("nav_local").addEventListener("click", ()=>setView("local"));
-document.getElementById("nav_table").addEventListener("click", ()=>setView("table"));
-document.getElementById("nav_horarios").addEventListener("click", ()=>setView("horarios"));
-document.getElementById("nav_impresiones").addEventListener("click", ()=>setView("impresiones"));
-document.getElementById("nav_silabos").addEventListener("click", ()=>setView("silabos"));
-document.getElementById("nav_materiales").addEventListener("click", ()=>setView("materiales"));
-document.getElementById("nav_listas").addEventListener("click", ()=>setView("listas"));
+      // eventos NAV
+      document.getElementById("nav_overview").addEventListener("click", ()=>setView("overview"));
+      document.getElementById("nav_local").addEventListener("click", ()=>setView("local"));
+      document.getElementById("nav_table").addEventListener("click", ()=>setView("table"));
+      document.getElementById("nav_horarios").addEventListener("click", ()=>setView("horarios"));
+      document.getElementById("nav_impresiones").addEventListener("click", ()=>setView("impresiones"));
+      document.getElementById("nav_silabos").addEventListener("click", ()=>setView("silabos"));
+      document.getElementById("nav_materiales").addEventListener("click", ()=>setView("materiales"));
+      document.getElementById("nav_listas").addEventListener("click", ()=>setView("listas"));
 
-["fLocal","fUni","fSalon","fModalidad","fEstado"].forEach(id=>{
-  const el = document.getElementById(id);
-  if (!el) return;
-  el.addEventListener("change", ()=>{
-    rebuildSalonOptions();
+      // eventos filtros matrícula
+      ["fLocal","fUni","fSalon","fModalidad","fEstado"].forEach(id=>{
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.addEventListener("change", ()=>{
+          rebuildSalonOptions();
+          render();
+        });
+      });
+
+      document.getElementById("q").addEventListener("input", render);
+      document.getElementById("btnNowTop").addEventListener("click", loadAll);
+
+      state.booted = true;
+      return; // ✅ ya renderizó por setView/render
+    }
+
+    // ✅ refresh: NO cambies la vista (evita el “flash/delay”)
     render();
-  });
-});
 
-document.getElementById("q").addEventListener("input", render);
-document.getElementById("btnNowTop").addEventListener("click", loadAll);
+  } catch(e){
+    console.error("loadAll:", e);
+  }
+}
 
-// ✅ Solo esto afuera:
+// ✅ esto va AFUERA (solo una vez)
 loadAll();
 setInterval(loadAll, AUTO_REFRESH_MS);
-
 
