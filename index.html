@@ -3404,32 +3404,32 @@ async function loadAll(){
   }
 }
 
+// ===================== EVENTS =====================
+document.getElementById("nav_overview").addEventListener("click", ()=>setView("overview"));
+document.getElementById("nav_local").addEventListener("click", ()=>setView("local"));
+document.getElementById("nav_table").addEventListener("click", ()=>setView("table"));
+document.getElementById("nav_horarios").addEventListener("click", ()=>setView("horarios"));
+document.getElementById("nav_impresiones").addEventListener("click", ()=>setView("impresiones"));
+document.getElementById("nav_silabos").addEventListener("click", ()=>setView("silabos"));
+document.getElementById("nav_materiales").addEventListener("click", ()=>setView("materiales"));
+document.getElementById("nav_listas").addEventListener("click", ()=>setView("listas"));
 
-  // ===================== EVENTS =====================
-  document.getElementById("nav_overview").addEventListener("click", ()=>setView("overview"));
-  document.getElementById("nav_local").addEventListener("click", ()=>setView("local"));
-  document.getElementById("nav_table").addEventListener("click", ()=>setView("table"));
-  document.getElementById("nav_horarios").addEventListener("click", ()=>setView("horarios"));
-  document.getElementById("nav_impresiones").addEventListener("click", ()=>setView("impresiones"));
-  // ✅ NUEVO
-  document.getElementById("nav_silabos").addEventListener("click", ()=>setView("silabos"));
-  document.getElementById("nav_materiales").addEventListener("click", ()=>setView("materiales"));
-  document.getElementById("nav_listas").addEventListener("click", ()=>setView("listas"));
-
-
-  ["fLocal","fUni","fSalon","fModalidad","fEstado"].forEach(id=>{
-    const el = document.getElementById(id);
-    if (!el) return;
-    el.addEventListener("change", ()=>{
-      rebuildSalonOptions();
-      render();
-    });
+["fLocal","fUni","fSalon","fModalidad","fEstado"].forEach(id=>{
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.addEventListener("change", ()=>{
+    rebuildSalonOptions();
+    render();
   });
+});
 
-  document.getElementById("q").addEventListener("input", render);
-  document.getElementById("btnNowTop").addEventListener("click", loadAll);
+document.getElementById("q").addEventListener("input", render);
+document.getElementById("btnNowTop").addEventListener("click", loadAll);
+
+// ✅ Solo esto afuera:
 loadAll();
 setInterval(loadAll, AUTO_REFRESH_MS);
+
 
 // ✅ FIX: init + setView SOLO 1 vez, luego solo render para no “saltarse” de vista
 
