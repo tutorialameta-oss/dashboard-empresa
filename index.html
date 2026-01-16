@@ -725,6 +725,7 @@
         <button id="nav_silabos">SÍLABOS</button>
         <button id="nav_materiales">MATERIALES</button>
         <button id="nav_listas">LISTAS</button>
+        <button id="nav_reportes">ENVÍO DE REPORTES</button>
 
       </div>
     </aside>
@@ -759,6 +760,7 @@
       <div id="view_silabos" class="grid" style="display:none;"></div>
       <div id="view_materiales" class="grid" style="display:none;"></div>
       <div id="view_listas" class="grid" style="display:none;"></div>
+      <div id="view_reportes" class="grid" style="display:none;"></div>
 
     </main>
   </div>
@@ -1034,7 +1036,7 @@
   };
 // ===================== PERSISTENCIA DE VISTA (FIX) =====================
 const VIEW_STORAGE_KEY = "LA_META_CURRENT_VIEW";
-const ALLOWED_VIEWS = ["overview","local","table","horarios","impresiones","silabos","materiales","listas"];
+const ALLOWED_VIEWS = ["overview","local","table","horarios","impresiones","silabos","materiales","listas","reportes"];
 
 function saveView(v){
   try { localStorage.setItem(VIEW_STORAGE_KEY, v); } catch(e){}
@@ -1267,6 +1269,7 @@ function loadSavedView(){
     document.getElementById("nav_silabos").classList.toggle("active", v==="silabos");
     document.getElementById("nav_materiales").classList.toggle("active", v==="materiales");
     document.getElementById("nav_listas").classList.toggle("active", v==="listas");
+    document.getElementById("nav_reportes").classList.toggle("active", v==="reportes");
 
 
     document.getElementById("view_overview").style.display = (v==="overview") ? "" : "none";
@@ -1277,10 +1280,11 @@ function loadSavedView(){
     document.getElementById("view_silabos").style.display = (v==="silabos") ? "" : "none";
     document.getElementById("view_materiales").style.display = (v==="materiales") ? "" : "none";
     document.getElementById("view_listas").style.display     = (v==="listas") ? "" : "none";
+    document.getElementById("view_reportes").style.display   = (v==="reportes") ? "" : "none";
 
 
     document.getElementById("controlsMatricula").style.display =
-      (v==="horarios" || v==="impresiones" || v==="silabos" || v==="materiales" || v==="listas") ? "none" : "";
+      (v==="horarios" || v==="impresiones" || v==="silabos" || v==="materiales" || v==="listas" || v==="reportes") ? "none" : "";
 
 
     // ✅ estado solo visible en ALUMNOS (tabla)
@@ -1294,7 +1298,8 @@ function loadSavedView(){
       impresiones: ["IMPRESIONES", "Control en tiempo real de hojas a imprimir por local y salón."],
       silabos: ["SÍLABOS", "Acceso directo a sílabos por universidad. Haga clic en el curso para abrir el Excel."],
       materiales: ["MATERIALES", "Acceso directo a carpetas por universidad."],
-      listas: ["LISTAS", "Acceso directo a listas por sede y grupo."]
+      listas: ["LISTAS", "Acceso directo a listas por sede y grupo."],
+      reportes: ["ENVÍO DE REPORTES", "Acceso directo a enlaces por sede y aula (tutor)."]
 
     };
     document.getElementById("viewTitle").textContent = titles[v][0];
@@ -2410,6 +2415,176 @@ const items = list.map(it=>{
 }
 // ===================== FIN LISTAS =====================
 
+// ===================== ENVÍO DE REPORTES (NUEVO) =====================
+// ✅ Pega tus enlaces en el campo url (deja "" si aún no tienes el link).
+// ✅ Se mantiene el mismo ORDEN y COLORES que en LISTAS (AGRARIA verde, PUCP azul, U.LIMA/ESCOLAR naranja, ADELANTO/PARALELO rojo).
+const REPORTES = [
+  // ================= LA MOLINA =================
+  { local:"LA MOLINA", name:"AGRARIA LM 1",      url:"" },
+  { local:"LA MOLINA", name:"AGRARIA LM 2",      url:"" },
+  { local:"LA MOLINA", name:"PUCP LM",           url:"" },
+  { local:"LA MOLINA", name:"U.LIMA LM",         url:"" },
+  { local:"LA MOLINA", name:"ADELANTO LM",       url:"" },
+  { local:"LA MOLINA", name:"PARALELO LM",       url:"" },
+
+  // ================= SAN MIGUEL =================
+  { local:"SAN MIGUEL", name:"AGRARIA SM",       url:"" },
+  { local:"SAN MIGUEL", name:"PUCP SM",          url:"" },
+  { local:"SAN MIGUEL", name:"U.LIMA SM 1",      url:"" },
+  { local:"SAN MIGUEL", name:"U.LIMA SM 2",      url:"" },
+  { local:"SAN MIGUEL", name:"ADELANTO SM",      url:"" },
+  { local:"SAN MIGUEL", name:"PARALELO SM",      url:"" },
+
+  // ================= SAN BORJA =================
+  { local:"SAN BORJA",  name:"AGRARIA SB",       url:"" },
+  { local:"SAN BORJA",  name:"PUCP SB",          url:"" },
+  { local:"SAN BORJA",  name:"U.LIMA SB 1",      url:"" },
+  { local:"SAN BORJA",  name:"U.LIMA SB 2",      url:"" },
+
+  // ================= VIRTUAL =================
+  { local:"VIRTUAL",    name:"AGRARIA VIRTUAL",  url:"" },
+  { local:"VIRTUAL",    name:"U.LIMA VIRTUAL",   url:"" },
+  { local:"VIRTUAL",    name:"U.LIMA ESCOLAR",   url:"" },
+];
+
+function ensureReportesLayout(){
+  const el = document.getElementById("view_reportes");
+  if (el.dataset.ready === "1") return;
+
+  el.innerHTML = `
+    <div class="card panel12">
+      <div class="cardtitle">FILTROS</div>
+      <div class="controls" style="justify-content:flex-start;">
+        <select id="rLocal"></select>
+        <input id="rQ" type="text" placeholder="Buscar (ej: agraria, pucp, u.lima, paralelo, adelanto, virtual)"/>
+        <button id="rReset">VER TODO</button>
+      </div>
+    </div>
+
+    <div class="card panel12">
+      <div class="syLocalHead">
+        <div class="cardtitle" style="margin:0;">RESUMEN</div>
+        <div class="syKpis">
+          <span class="syKpiPill">AULAS: <b id="rTotal">0</b></span>
+          <span class="syKpiPill">SEDES: <b id="rLocs">0</b></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel12" id="rBlocks"></div>
+  `;
+
+  const locals = uniq(REPORTES.map(x=>x.local));
+  fillSelectKeep("rLocal", sortListasByLocalOrder(locals), "LOCAL: TODOS");
+
+  document.getElementById("rReset").addEventListener("click", ()=>{
+    document.getElementById("rLocal").value="__ALL__";
+    document.getElementById("rQ").value="";
+    renderReportes();
+  });
+  document.getElementById("rLocal").addEventListener("change", renderReportes);
+  document.getElementById("rQ").addEventListener("input", renderReportes);
+
+  el.dataset.ready = "1";
+}
+
+function renderReportes(){
+  ensureReportesLayout();
+
+  const fLocal = document.getElementById("rLocal").value;
+  const q = low(document.getElementById("rQ").value);
+
+  let base = REPORTES.slice();
+  if (fLocal !== "__ALL__") base = base.filter(x=>x.local===fLocal);
+  if (q) base = base.filter(x => low(x.name).includes(q) || low(x.local).includes(q));
+
+  // agrupar por local (orden fijo)
+  const byLocal = new Map();
+  for (const it of base){
+    if (!byLocal.has(it.local)) byLocal.set(it.local, []);
+    byLocal.get(it.local).push(it);
+  }
+
+  const orderedLocals = [...byLocal.keys()].sort((a,b)=>{
+    const ia = LISTAS_LOCAL_ORDER.indexOf(a);
+    const ib = LISTAS_LOCAL_ORDER.indexOf(b);
+    return (ia<0?999:ia) - (ib<0?999:ib);
+  });
+
+  let total = 0;
+
+  const blocks = orderedLocals.map(loc=>{
+    const list = byLocal.get(loc).slice().sort((a,b)=>{
+      const ma = listaMetaFromName(a.name);
+      const mb = listaMetaFromName(b.name);
+      if (ma.group !== mb.group) return ma.group - mb.group;
+      return String(a.name||"").localeCompare(String(b.name||""), "es");
+    });
+
+    total += list.length;
+
+    const items = list.map(it=>{
+      const meta = listaMetaFromName(it.name);
+      const hasUrl = !!(it.url && String(it.url).trim().length>0);
+
+      if (!hasUrl){
+        return `
+          <div class="syItem" style="opacity:.70; cursor:default;">
+            <div class="syLeft">
+              <div class="syCourse">${escapeHtml(it.name)}</div>
+              <div class="syMeta">
+                <span class="dot" style="background:${meta.dot};"></span>
+                <span>${escapeHtml(loc)}</span>
+              </div>
+            </div>
+            <div class="syOpen">PENDIENTE</div>
+          </div>
+        `;
+      }
+
+      return `
+        <a class="syItem" href="${escapeHtml(it.url)}" target="_blank" rel="noopener noreferrer">
+          <div class="syLeft">
+            <div class="syCourse">${escapeHtml(it.name)}</div>
+            <div class="syMeta">
+              <span class="dot" style="background:${meta.dot};"></span>
+              <span>${escapeHtml(loc)}</span>
+            </div>
+          </div>
+          <div class="syOpen">IR AL REPORTE</div>
+        </a>
+      `;
+    }).join("");
+
+    return `
+      <div class="card panel12">
+        <div class="syLocalHead">
+          <div class="cardtitle" style="margin:0;">${escapeHtml(loc)}</div>
+          <div class="syKpis">
+            <span class="syKpiPill">AULAS: <b>${list.length}</b></span>
+          </div>
+        </div>
+        <div class="syWrap">
+          ${items || `<div class="card panel12" style="box-shadow:none;">
+            <div class="cardtitle">SIN RESULTADOS</div>
+            <div style="color:var(--muted); font-weight:900;">No hay aulas con el filtro actual.</div>
+          </div>`}
+        </div>
+      </div>
+    `;
+  }).join("");
+
+  document.getElementById("rTotal").textContent = total.toLocaleString("es-PE");
+  document.getElementById("rLocs").textContent  = orderedLocals.length.toLocaleString("es-PE");
+  document.getElementById("rBlocks").innerHTML  = blocks || `
+    <div class="card panel12">
+      <div class="cardtitle">SIN DATOS</div>
+      <div style="color:var(--muted); font-weight:900;">No se encontraron reportes para mostrar.</div>
+    </div>
+  `;
+}
+// ===================== FIN ENVÍO DE REPORTES =====================
+
   // ===================== HORARIOS =====================
   const DAYS = ["LUNES","MARTES","MIÉRCOLES","JUEVES","VIERNES","SÁBADO"];
 
@@ -3303,6 +3478,7 @@ const items = list.map(it=>{
     if (state.view==="silabos") renderSilabos();
     if (state.view==="materiales") renderMateriales();
     if (state.view==="listas") renderListas();
+    if (state.view==="reportes") renderReportes();
   }
 
   // ===================== LOAD DATA MATRÍCULA =====================
@@ -3380,6 +3556,7 @@ function ensureBoot(){
   document.getElementById("nav_silabos").addEventListener("click", ()=>setView("silabos"));
   document.getElementById("nav_materiales").addEventListener("click", ()=>setView("materiales"));
   document.getElementById("nav_listas").addEventListener("click", ()=>setView("listas"));
+  document.getElementById("nav_reportes").addEventListener("click", ()=>setView("reportes"));
 
   // eventos filtros matrícula
   ["fLocal","fUni","fSalon","fModalidad","fEstado"].forEach(id=>{
