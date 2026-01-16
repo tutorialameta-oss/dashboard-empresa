@@ -3431,21 +3431,3 @@ loadAll();
 setInterval(loadAll, AUTO_REFRESH_MS);
 
 
-// ✅ FIX: init + setView SOLO 1 vez, luego solo render para no “saltarse” de vista
-
-
-  state.booted = true;
-} else {
-  // Updates (manual o cada 30s): NO cambies la vista, NO llames setView()
-  // Solo refresca opciones si estás en vistas que usan esos selects:
-  if (state.view === "overview" || state.view === "local" || state.view === "table"){
-    rebuildSalonOptions();
-  }
-
-  render();
-}
-
-</script>
-</body>
-</html>
-
