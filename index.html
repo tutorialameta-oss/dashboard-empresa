@@ -3362,7 +3362,16 @@ const items = list.map(it=>{
 
 let FIRST_LOAD_DONE = false;
 
+let LOADING = false;
+let PENDING = false;
+
 async function loadAll(){
+  if (LOADING){
+    PENDING = true;     // si ya está cargando, solo marcamos que hay una pendiente
+    return;
+  }
+  LOADING = true;
+
   try{
     const results = await Promise.allSettled(SALONES.map(loadOneSalon));
     let rows = [];
@@ -3387,15 +3396,7 @@ async function loadAll(){
       const allowed = ["overview","local","table","horarios","impresiones","silabos","materiales","listas"];
       const sv = loadSavedView();
 
-      if (sv && allowed.includes(sv)){
-        state.view = sv;
-        setView(sv);
-      } else {
-        render();
-      }
-      FIRST_LOAD_DONE = true;
-
-      // eventos NAV
+      // eventos NAV (una sola vez)
       document.getElementById("nav_overview").addEventListener("click", ()=>setView("overview"));
       document.getElementById("nav_local").addEventListener("click", ()=>setView("local"));
       document.getElementById("nav_table").addEventListener("click", ()=>setView("table"));
@@ -3419,18 +3420,37 @@ async function loadAll(){
       document.getElementById("btnNowTop").addEventListener("click", loadAll);
 
       state.booted = true;
-      return; // ✅ ya renderizó por setView/render
+
+      // ✅ restaurar vista guardada
+      if (sv && allowed.includes(sv)){
+        setView(sv);
+      } else {
+        setView("overview");
+      }
+      return;
     }
 
-    // ✅ refresh: NO cambies la vista (evita el “flash/delay”)
+    // ✅ refresh: NO cambies la vista
     render();
 
   } catch(e){
     console.error("loadAll:", e);
+  } finally {
+    LOADING = false;
+
+    // si hubo una llamada “pendiente”, la ejecutamos 1 vez al terminar
+    if (PENDING){
+      PENDING = false;
+      loadAll();
+    }
   }
 }
 
-// ✅ esto va AFUERA (solo una vez)
+// ✅ AFUERA (solo una vez)
 loadAll();
-setInterval(loadAll, AUTO_REFRESH_MS);
+setInterval(()=>{ if(!LOADING) loadAll(); }, AUTO_REFRESH_MS);
+
+</script>
+</body>
+</html>
 
