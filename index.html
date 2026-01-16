@@ -1034,13 +1034,17 @@
   };
 // ===================== PERSISTENCIA DE VISTA (FIX) =====================
 const VIEW_STORAGE_KEY = "LA_META_CURRENT_VIEW";
+const ALLOWED_VIEWS = ["overview","local","table","horarios","impresiones","silabos","materiales","listas"];
 
 function saveView(v){
   try { localStorage.setItem(VIEW_STORAGE_KEY, v); } catch(e){}
 }
+
 function loadSavedView(){
-  try { return localStorage.getItem(VIEW_STORAGE_KEY) || ""; } catch(e){ return ""; }
+  try { return localStorage.getItem(VIEW_STORAGE_KEY) || ""; }
+  catch(e){ return ""; }
 }
+
 
   const state = {
     view: "overview",
@@ -3360,77 +3364,78 @@ const items = list.map(it=>{
     return { salon, rows: out, error: null };
   }
 
-let FIRST_LOAD_DONE = false;
-
+// ===================== LOAD ALL (SIN DELAY / SIN FLASH) =====================
 let LOADING = false;
 let PENDING = false;
 
+function ensureBoot(){
+  if (state.booted) return;
+
+  // eventos NAV (una sola vez)
+  document.getElementById("nav_overview").addEventListener("click", ()=>setView("overview"));
+  document.getElementById("nav_local").addEventListener("click", ()=>setView("local"));
+  document.getElementById("nav_table").addEventListener("click", ()=>setView("table"));
+  document.getElementById("nav_horarios").addEventListener("click", ()=>setView("horarios"));
+  document.getElementById("nav_impresiones").addEventListener("click", ()=>setView("impresiones"));
+  document.getElementById("nav_silabos").addEventListener("click", ()=>setView("silabos"));
+  document.getElementById("nav_materiales").addEventListener("click", ()=>setView("materiales"));
+  document.getElementById("nav_listas").addEventListener("click", ()=>setView("listas"));
+
+  // eventos filtros matrícula
+  ["fLocal","fUni","fSalon","fModalidad","fEstado"].forEach(id=>{
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.addEventListener("change", ()=>{
+      rebuildSalonOptions();
+      render();
+    });
+  });
+
+  const q = document.getElementById("q");
+  if (q) q.addEventListener("input", render);
+
+  const btn = document.getElementById("btnNowTop");
+  if (btn) btn.addEventListener("click", loadAll);
+
+  state.booted = true;
+}
+
 async function loadAll(){
+  // candado anti-overlap
   if (LOADING){
-    PENDING = true;     // si ya está cargando, solo marcamos que hay una pendiente
+    PENDING = true;
     return;
   }
   LOADING = true;
 
   try{
+    // ✅ 1) Restaurar vista INMEDIATO (antes de descargar)
+    const sv = loadSavedView();
+    if (sv && ALLOWED_VIEWS.includes(sv) && state.view !== sv){
+      setView(sv);
+    }
+
+    // ✅ 2) Descargar matrícula
     const results = await Promise.allSettled(SALONES.map(loadOneSalon));
     let rows = [];
     for (const r of results){
-      if (r.status==="fulfilled") rows = rows.concat(r.value.rows);
+      if (r.status === "fulfilled") rows = rows.concat(r.value.rows);
     }
 
     state.rawRows = rows;
 
     const matriculaRows = state.rawRows.filter(r => r.estado==="ACTIVO" || r.estado==="RETIRO");
     state.canonical = dedupeMatriculaByName(matriculaRows);
-
     state.cambiosRows = state.rawRows.filter(r => r.estado==="CAMBIO");
 
-    // impresiones
+    // ✅ 3) Descargar impresiones
     await loadImpresiones();
 
-    // ✅ boot SOLO una vez
-    if (!state.booted){
-      initFilters();
+    // ✅ 4) Boot una sola vez + filtros + render
+    ensureBoot();
 
-      const allowed = ["overview","local","table","horarios","impresiones","silabos","materiales","listas"];
-      const sv = loadSavedView();
-
-      // eventos NAV (una sola vez)
-      document.getElementById("nav_overview").addEventListener("click", ()=>setView("overview"));
-      document.getElementById("nav_local").addEventListener("click", ()=>setView("local"));
-      document.getElementById("nav_table").addEventListener("click", ()=>setView("table"));
-      document.getElementById("nav_horarios").addEventListener("click", ()=>setView("horarios"));
-      document.getElementById("nav_impresiones").addEventListener("click", ()=>setView("impresiones"));
-      document.getElementById("nav_silabos").addEventListener("click", ()=>setView("silabos"));
-      document.getElementById("nav_materiales").addEventListener("click", ()=>setView("materiales"));
-      document.getElementById("nav_listas").addEventListener("click", ()=>setView("listas"));
-
-      // eventos filtros matrícula
-      ["fLocal","fUni","fSalon","fModalidad","fEstado"].forEach(id=>{
-        const el = document.getElementById(id);
-        if (!el) return;
-        el.addEventListener("change", ()=>{
-          rebuildSalonOptions();
-          render();
-        });
-      });
-
-      document.getElementById("q").addEventListener("input", render);
-      document.getElementById("btnNowTop").addEventListener("click", loadAll);
-
-      state.booted = true;
-
-      // ✅ restaurar vista guardada
-      if (sv && allowed.includes(sv)){
-        setView(sv);
-      } else {
-        setView("overview");
-      }
-      return;
-    }
-
-    // ✅ refresh: NO cambies la vista
+    // Importante: initFilters puede rearmar selects; se ejecuta aquí para mantener data al día
+    initFilters();
     render();
 
   } catch(e){
@@ -3438,22 +3443,28 @@ async function loadAll(){
   } finally {
     LOADING = false;
 
-    // si hubo una llamada “pendiente” mientras cargábamos, ejecutamos 1 refresh adicional
-    if (PENDING) {
+    // si hubo refresh pendiente, ejecuta 1 más (sin overlap)
+    if (PENDING){
       PENDING = false;
       loadAll();
     }
   }
 }
 
-// ✅ Arranque inicial + auto refresh
-window.addEventListener("load", () => {
+// ✅ Arranque: lo antes posible (para reducir flash)
+window.addEventListener("DOMContentLoaded", () => {
+  ensureBoot();
+
+  // si había una vista guardada, aplícala apenas cargue el DOM
+  const sv = loadSavedView();
+  if (sv && ALLOWED_VIEWS.includes(sv) && state.view !== sv){
+    setView(sv);
+  }
+
   loadAll();
   setInterval(loadAll, AUTO_REFRESH_MS);
 });
-
 </script>
 </body>
 </html>
-
 
