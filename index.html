@@ -3361,31 +3361,49 @@ const items = list.map(it=>{
     return { salon, rows: out, error: null };
   }
 
-  async function loadAll(){
-    try{
-      const results = await Promise.allSettled(SALONES.map(loadOneSalon));
-      let rows = [];
-      for (const r of results){
-        if (r.status==="fulfilled") rows = rows.concat(r.value.rows);
-      }
-
-      state.rawRows = rows;
-
-      const matriculaRows = state.rawRows.filter(r => r.estado==="ACTIVO" || r.estado==="RETIRO");
-      state.canonical = dedupeMatriculaByName(matriculaRows);
-
-      state.cambiosRows = state.rawRows.filter(r => r.estado==="CAMBIO");
-
-      // ✅ NUEVO: impresiones en tiempo real
-      await loadImpresiones();
-
-      initFilters();
-      render();
-      }
-    } catch(e){
-      console.error(e);
+async function loadAll(){
+  try{
+    const results = await Promise.allSettled(SALONES.map(loadOneSalon));
+    let rows = [];
+    for (const r of results){
+      if (r.status==="fulfilled") rows = rows.concat(r.value.rows);
     }
+
+    state.rawRows = rows;
+
+    const matriculaRows = state.rawRows.filter(r => r.estado==="ACTIVO" || r.estado==="RETIRO");
+    state.canonical = dedupeMatriculaByName(matriculaRows);
+
+    state.cambiosRows = state.rawRows.filter(r => r.estado==="CAMBIO");
+
+    // ✅ impresiones
+    await loadImpresiones();
+
+    // ✅ FIX: init + setView SOLO 1 vez, luego solo render (sin saltos de vista)
+    if (!state.booted){
+      initFilters();
+
+      const sv = loadSavedView();
+      if (sv && ["overview","local","table","horarios","impresiones","silabos","materiales","listas"].includes(sv)){
+        setView(sv); // primera vez sí
+      } else {
+        render();
+      }
+
+      state.booted = true;
+    } else {
+      // Updates: NO setView()
+      if (state.view === "overview" || state.view === "local" || state.view === "table"){
+        rebuildSalonOptions();
+      }
+      render();
+    }
+
+  } catch(e){
+    console.error(e);
   }
+}
+
 
   // ===================== EVENTS =====================
   document.getElementById("nav_overview").addEventListener("click", ()=>setView("overview"));
@@ -3410,17 +3428,11 @@ const items = list.map(it=>{
 
   document.getElementById("q").addEventListener("input", render);
   document.getElementById("btnNowTop").addEventListener("click", loadAll);
+loadAll();
+setInterval(loadAll, AUTO_REFRESH_MS);
 
 // ✅ FIX: init + setView SOLO 1 vez, luego solo render para no “saltarse” de vista
-if (!state.booted){
-  initFilters();
 
-  const sv = loadSavedView();
-  if (sv && ["overview","local","table","horarios","impresiones","silabos","materiales","listas"].includes(sv)){
-    setView(sv);     // primera vez sí
-  } else {
-    render();
-  }
 
   state.booted = true;
 } else {
