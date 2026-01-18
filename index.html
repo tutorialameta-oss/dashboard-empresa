@@ -1791,28 +1791,60 @@ function loadSavedView(){
     const el = document.getElementById("view_table");
     if (el.dataset.ready === "1") return;
 
+    const isTutor = (CURRENT_ROLE === "tutor");
+
+    const theadTutor = `
+      <tr>
+        <th>NOMBRE</th>
+        <th>LOCAL</th>
+        <th>UNIVERSIDAD</th>
+        <th>SALÓN</th>
+        <th>MODALIDAD</th>
+        <th>ESTADO</th>
+        <th>USUARIO</th>
+        <th>CONTRASEÑA</th>
+      </tr>
+    `;
+
+    const theadAdmin = `
+      <tr>
+        <th>NOMBRES COMPLETOS</th>
+        <th>LOCAL</th>
+        <th>UNIVERSIDAD</th>
+        <th>SALÓN</th>
+        <th>MODALIDAD</th>
+        <th>ESTADO</th>
+
+        <th>CORREO</th>
+        <th>DNI</th>
+        <th>CELULAR</th>
+        <th>ACADEMIA</th>
+        <th>CARRERA</th>
+
+        <th>APODERADO</th>
+        <th>CEL APODERADO</th>
+        <th>DNI APODERADO</th>
+        <th>CORREO APODERADO</th>
+
+        <th>USUARIO</th>
+        <th>CONTRASEÑA</th>
+      </tr>
+    `;
+
     el.innerHTML = `
       <div class="card panel12">
         <div class="cardtitle">ALUMNOS</div>
         <div style="overflow:auto; max-height: 75vh;">
           <table>
             <thead>
-              <tr>
-                <th>NOMBRE</th>
-                <th>LOCAL</th>
-                <th>UNIVERSIDAD</th>
-                <th>SALÓN</th>
-                <th>MODALIDAD</th>
-                <th>ESTADO</th>
-                <th>ACCESO 1</th>
-                <th>ACCESO 2</th>
-              </tr>
+              ${isTutor ? theadTutor : theadAdmin}
             </thead>
             <tbody id="tb_body"></tbody>
           </table>
         </div>
       </div>
     `;
+
     el.dataset.ready = "1";
   }
 
@@ -1974,8 +2006,28 @@ function loadSavedView(){
     ensureTableLayout();
     applyFilters();
 
+    const isTutor = (CURRENT_ROLE === "tutor");
     const rows = state.filtered;
+
     const tbody = document.getElementById("tb_body");
+
+    if (isTutor){
+      tbody.innerHTML = rows.slice(0,1200).map(r=>`
+        <tr>
+          <td>${escapeHtml(r.nombre)}</td>
+          <td>${escapeHtml(r.local)}</td>
+          <td>${escapeHtml(uniGroupFromCiclo(r.ciclo))}</td>
+          <td>${escapeHtml(r.salon)}</td>
+          <td>${escapeHtml(r.modalidad)}</td>
+          <td>${escapeHtml(r.estado)}</td>
+          <td>${escapeHtml(r.usuario || "")}</td>
+          <td>${escapeHtml(r.contrasena || "")}</td>
+        </tr>
+      `).join("");
+      return;
+    }
+
+    // ADMIN: mostrar datos ampliados
     tbody.innerHTML = rows.slice(0,1200).map(r=>`
       <tr>
         <td>${escapeHtml(r.nombre)}</td>
@@ -1984,8 +2036,20 @@ function loadSavedView(){
         <td>${escapeHtml(r.salon)}</td>
         <td>${escapeHtml(r.modalidad)}</td>
         <td>${escapeHtml(r.estado)}</td>
-        <td>${escapeHtml(r.acceso1 || "")}</td>
-        <td>${escapeHtml(r.acceso2 || "")}</td>
+
+        <td>${escapeHtml(r.correo_al || "")}</td>
+        <td>${escapeHtml(r.dni_al || "")}</td>
+        <td>${escapeHtml(r.celular_al || "")}</td>
+        <td>${escapeHtml(r.academia || "")}</td>
+        <td>${escapeHtml(r.carrera || "")}</td>
+
+        <td>${escapeHtml(r.nombre_apo || "")}</td>
+        <td>${escapeHtml(r.cel_apo || "")}</td>
+        <td>${escapeHtml(r.dni_apo || "")}</td>
+        <td>${escapeHtml(r.correo_apo || "")}</td>
+
+        <td>${escapeHtml(r.usuario || "")}</td>
+        <td>${escapeHtml(r.contrasena || "")}</td>
       </tr>
     `).join("");
   }
@@ -3730,6 +3794,39 @@ function renderReportes(){
     const iMod = idx(HEAD.MODALIDAD);
     const iEst = idx(HEAD.ESTADO);
 
+    const idxAll = (label) => {
+      const L = String(label||"").toUpperCase();
+      const arr = [];
+      for (let i=0;i<header.length;i++){
+        if (String(header[i]||"").toUpperCase() === L) arr.push(i);
+      }
+      return arr;
+    };
+
+    // ✅ Columnas del sheet (estructura 26.0)
+    // Alumno
+    const iCorreoAl = idxAll("CORREO")[0] ?? -1;
+    const dniIdxs = idxAll("DNI");
+    const iDniAl = dniIdxs[0] ?? -1;
+    const iCelAl = idxAll("CELULAR")[0] ?? -1;
+    const iUniAl = idxAll("UNIVERSIDAD")[0] ?? -1;
+    const iAcademia = idxAll("ACADEMIA")[0] ?? -1;
+    const iCarrera = idxAll("CARRERA")[0] ?? -1;
+
+    // Apoderado
+    const iNombreApo = idxAll("NOMBRE COMPLETO").slice(-1)[0] ?? -1;
+    const iCelApo = idxAll("CEL")[0] ?? -1;
+    const correoIdxs = idxAll("CORREO");
+    const iCorreoApo = correoIdxs.length > 1 ? correoIdxs[correoIdxs.length-1] : -1;
+
+    // Accesos
+    const iUsuario = idxAll("USUARIO")[0] ?? -1;
+    let iPass = idxAll("CONTRASEÑA")[0] ?? -1;
+    if (iPass < 0) iPass = idxAll("CONTRASENA")[0] ?? -1;
+
+    // Ajuste: si DNI solo aparece una vez, no hay DNI apoderado
+    const iDniApo2 = dniIdxs.length > 1 ? dniIdxs[dniIdxs.length-1] : -1;
+
     const out = [];
     for (let i=headerIdx+1; i<lines.length; i++){
       const cells = parseCSVLine(lines[i]);
@@ -3743,10 +3840,21 @@ function renderReportes(){
 
       const estado = normalizeEstado(cells[iEst]);
 
-      // ✅ NUEVO: ACCESOS (Columnas T y U del sheet)
-      // Nota: CSV export incluye columnas desde A. T=19 y U=20 (0-based).
-      const acceso1 = norm(cells[19] || "");
-      const acceso2 = norm(cells[20] || "");
+      // ✅ Extraer datos por columnas (si no existe, queda vacío)
+      const correo_al = (iCorreoAl>=0) ? norm(cells[iCorreoAl] || "") : "";
+      const dni_al = (iDniAl>=0) ? norm(cells[iDniAl] || "") : "";
+      const celular_al = (iCelAl>=0) ? norm(cells[iCelAl] || "") : "";
+      const uni_sheet = (iUniAl>=0) ? norm(cells[iUniAl] || "") : "";
+      const academia = (iAcademia>=0) ? norm(cells[iAcademia] || "") : "";
+      const carrera = (iCarrera>=0) ? norm(cells[iCarrera] || "") : "";
+
+      const nombre_apo = (iNombreApo>=0) ? norm(cells[iNombreApo] || "") : "";
+      const cel_apo = (iCelApo>=0) ? norm(cells[iCelApo] || "") : "";
+      const dni_apo = (iDniApo2>=0) ? norm(cells[iDniApo2] || "") : "";
+      const correo_apo = (iCorreoApo>=0) ? norm(cells[iCorreoApo] || "") : "";
+
+      const usuario = (iUsuario>=0) ? norm(cells[iUsuario] || "") : "";
+      const contrasena = (iPass>=0) ? norm(cells[iPass] || "") : "";
 
       out.push({
         nombre,
@@ -3755,7 +3863,25 @@ function renderReportes(){
         local: salon.local,
         ciclo: salon.ciclo,
         salon: salon.salon,
-        gid: salon.gid
+        gid: salon.gid,
+
+        // alumno
+        correo_al,
+        dni_al,
+        celular_al,
+        uni_sheet,
+        academia,
+        carrera,
+
+        // apoderado
+        nombre_apo,
+        cel_apo,
+        dni_apo,
+        correo_apo,
+
+        // accesos
+        usuario,
+        contrasena
       });
     }
 
