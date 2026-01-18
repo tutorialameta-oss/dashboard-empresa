@@ -699,13 +699,109 @@
       /* SÍLABOS */
       .syWrap{ grid-template-columns: 1fr; }
     }
+  
+
+    /* ===================== AUTH (ADMIN / TUTOR) ===================== */
+    .authOverlay{
+      position:fixed;
+      inset:0;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:22px;
+      background: rgba(15,23,42,0.55);
+      backdrop-filter: blur(6px);
+      z-index: 9999;
+    }
+    .authCard{
+      width:min(520px, 96vw);
+      background:#fff;
+      border:1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding:18px;
+    }
+    .authTitle{ font-weight:950; font-size:16px; margin:0 0 8px 0; text-transform:uppercase; }
+    .authSub{ color:var(--muted); font-weight:800; margin:0 0 14px 0; font-size:12px; }
+    .roleRow{ display:flex; gap:10px; flex-wrap:wrap; margin-bottom:12px; }
+    .roleBtn{
+      flex:1;
+      min-width: 160px;
+      padding:10px 12px;
+      border-radius: 14px;
+      border:1px solid var(--border);
+      background:#fff;
+      font-weight:950;
+      cursor:pointer;
+    }
+    .roleBtn.active{ border-color: var(--accent); box-shadow: 0 0 0 3px rgba(209,11,11,0.15); }
+    .authRow{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+    .authRow input{
+      flex:1;
+      padding:10px 12px;
+      border-radius: 14px;
+      border:1px solid var(--border);
+      font-weight:850;
+      outline:none;
+    }
+    .authRow button{
+      padding:10px 12px;
+      border-radius: 14px;
+      border:1px solid var(--border);
+      background: linear-gradient(90deg,var(--accent2),var(--accent));
+      color:#fff;
+      font-weight:950;
+      cursor:pointer;
+    }
+    .authErr{ margin-top:10px; color: var(--bad); font-weight:900; font-size:12px; display:none; }
+
+    .userBox{
+      margin-top:14px;
+      padding:12px;
+      border:1px dashed var(--border);
+      border-radius: var(--radius);
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+    }
+    .userRole{ font-weight:950; font-size:12px; color: var(--muted); text-transform:uppercase; }
+    .logoutBtn{
+      width:100%;
+      padding:10px 12px;
+      border-radius: 14px;
+      border:1px solid var(--border);
+      background:#fff;
+      font-weight:950;
+      cursor:pointer;
+    }
+
   </style>
 </head>
 
 <body>
   <div class="topbar"></div>
 
-  <div class="app">
+  <!-- ===================== ACCESO (ADMIN / TUTOR) ===================== -->
+  <div id="authOverlay" class="authOverlay">
+    <div class="authCard">
+      <p class="authTitle">ACCESO AL PANEL</p>
+      <p class="authSub">Seleccione su tipo de acceso e ingrese la clave.</p>
+
+      <div class="roleRow">
+        <button id="roleAdmin" class="roleBtn" type="button">ADMIN</button>
+        <button id="roleTutor" class="roleBtn" type="button">TUTOR</button>
+      </div>
+
+      <div class="authRow">
+        <input id="authPass" type="password" placeholder="Clave" autocomplete="current-password" />
+        <button id="btnLogin" type="button">ENTRAR</button>
+      </div>
+
+      <div id="authErr" class="authErr">Clave incorrecta o rol no seleccionado.</div>
+    </div>
+  </div>
+
+  <div id="appShell" class="app" style="display:none;">
     <aside class="sidebar">
       <div class="brand">
         <img src="logo.png" alt="LA META" onerror="this.style.display='none'"/>
@@ -727,6 +823,11 @@
         <button id="nav_listas">LISTAS</button>
         <button id="nav_reportes">ENVÍO DE REPORTES</button>
 
+      </div>
+
+      <div class="userBox">
+        <div class="userRole" id="userRole">ROL: -</div>
+        <button id="btnLogout" class="logoutBtn" type="button">SALIR</button>
       </div>
     </aside>
 
@@ -768,6 +869,116 @@
 <script>
   // ===================== MATRÍCULA (TU CÓDIGO) =====================
   const SPREADSHEET_ID = "1nHCBQLuJ8RZNtLisvAqD916pcxbUmtqPrMnO4V0ewvs";
+
+  // ===================== ACCESO (ADMIN / TUTOR) =====================
+  // ⚠️ CAMBIA ESTAS CLAVES AQUÍ
+  const AUTH_ADMIN_PASS = "202619";
+  const AUTH_TUTOR_PASS = "MBMLaMeta";
+
+  const ROLE_KEY = "lameta_role";
+  let CURRENT_ROLE = null; // "admin" | "tutor"
+
+  function setRole(role){
+    CURRENT_ROLE = role;
+    localStorage.setItem(ROLE_KEY, role);
+    applyRoleUI();
+  }
+
+  function loadRole(){
+    const r = localStorage.getItem(ROLE_KEY);
+    return (r === "admin" || r === "tutor") ? r : null;
+  }
+
+  function clearRole(){
+    localStorage.removeItem(ROLE_KEY);
+    CURRENT_ROLE = null;
+  }
+
+  function canAccessView(v){
+    // Tutor NO puede ver RESUMEN GENERAL ni CONTROL DE SEDES
+    if (CURRENT_ROLE === "tutor" && (v === "overview" || v === "local")) return false;
+    return true;
+  }
+
+  function applyRoleUI(){
+    const roleLabel = document.getElementById("userRole");
+    if (roleLabel) roleLabel.textContent = CURRENT_ROLE ? ("ROL: " + CURRENT_ROLE.toUpperCase()) : "ROL: -";
+
+    const isTutor = (CURRENT_ROLE === "tutor");
+    const btnOverview = document.getElementById("nav_overview");
+    const btnLocal = document.getElementById("nav_local");
+
+    // Ocultar
+    if (btnOverview) btnOverview.style.display = isTutor ? "none" : "";
+    if (btnLocal) btnLocal.style.display = isTutor ? "none" : "";
+
+    // Bloquear: si la vista actual no está permitida, enviar a ALUMNOS
+    if (state && state.view && !canAccessView(state.view)){
+      setView("table");
+    }
+  }
+
+  function showAuth(show){
+    const o = document.getElementById("authOverlay");
+    const app = document.getElementById("appShell");
+    if (o) o.style.display = show ? "flex" : "none";
+    if (app) app.style.display = show ? "none" : "grid";
+  }
+
+  function initAuth(){
+    const saved = loadRole();
+    if (saved){
+      CURRENT_ROLE = saved;
+      showAuth(false);
+      applyRoleUI();
+      return true;
+    }
+
+    showAuth(true);
+
+    let selected = null;
+    const bA = document.getElementById("roleAdmin");
+    const bT = document.getElementById("roleTutor");
+    const pass = document.getElementById("authPass");
+    const err = document.getElementById("authErr");
+
+    function pick(r){
+      selected = r;
+      if (bA) bA.classList.toggle("active", r === "admin");
+      if (bT) bT.classList.toggle("active", r === "tutor");
+      if (err) err.style.display = "none";
+      if (pass) pass.focus();
+    }
+
+    if (bA) bA.addEventListener("click", ()=>pick("admin"));
+    if (bT) bT.addEventListener("click", ()=>pick("tutor"));
+
+    function doLogin(){
+      const p = String(pass?.value || "");
+      const ok = (selected === "admin" && p === AUTH_ADMIN_PASS) || (selected === "tutor" && p === AUTH_TUTOR_PASS);
+      if (!ok){
+        if (err) err.style.display = "block";
+        return;
+      }
+      setRole(selected);
+      showAuth(false);
+      if (pass) pass.value = "";
+      // Al entrar, fuerza vista permitida
+      if (!canAccessView(loadSavedView() || state.view)) setView("table");
+    }
+
+    const btn = document.getElementById("btnLogin");
+    if (btn) btn.addEventListener("click", doLogin);
+
+    if (pass) pass.addEventListener("keydown", (e)=>{
+      if (e.key === "Enter") doLogin();
+    });
+
+    // Por defecto, sugiere TUTOR (más común)
+    pick("tutor");
+    return false;
+  }
+
 
   const SALONES = [
     { local:"LA MOLINA", ciclo:"AGRARIA",  salon:"AGRARIA LM 1", gid:115906280 },
@@ -1259,6 +1470,10 @@ function loadSavedView(){
 
   // ============================ NAV ============================
   function setView(v){
+    if (!canAccessView(v)){
+      // Bloqueo por rol: redirige a ALUMNOS
+      v = "table";
+    }
     state.view = v;
     saveView(v);
     document.getElementById("nav_overview").classList.toggle("active", v==="overview");
@@ -1589,6 +1804,8 @@ function loadSavedView(){
                 <th>SALÓN</th>
                 <th>MODALIDAD</th>
                 <th>ESTADO</th>
+                <th>ACCESO 1</th>
+                <th>ACCESO 2</th>
               </tr>
             </thead>
             <tbody id="tb_body"></tbody>
@@ -1767,6 +1984,8 @@ function loadSavedView(){
         <td>${escapeHtml(r.salon)}</td>
         <td>${escapeHtml(r.modalidad)}</td>
         <td>${escapeHtml(r.estado)}</td>
+        <td>${escapeHtml(r.acceso1 || "")}</td>
+        <td>${escapeHtml(r.acceso2 || "")}</td>
       </tr>
     `).join("");
   }
@@ -3524,6 +3743,11 @@ function renderReportes(){
 
       const estado = normalizeEstado(cells[iEst]);
 
+      // ✅ NUEVO: ACCESOS (Columnas T y U del sheet)
+      // Nota: CSV export incluye columnas desde A. T=19 y U=20 (0-based).
+      const acceso1 = norm(cells[19] || "");
+      const acceso2 = norm(cells[20] || "");
+
       out.push({
         nombre,
         modalidad,
@@ -3556,6 +3780,14 @@ function ensureBoot(){
   document.getElementById("nav_listas").addEventListener("click", ()=>setView("listas"));
   document.getElementById("nav_reportes").addEventListener("click", ()=>setView("reportes"));
 
+
+
+  // logout
+  const outBtn = document.getElementById("btnLogout");
+  if (outBtn) outBtn.addEventListener("click", ()=>{
+    clearRole();
+    location.reload();
+  });
   // eventos filtros matrícula
   ["fLocal","fUni","fSalon","fModalidad","fEstado"].forEach(id=>{
     const el = document.getElementById(id);
@@ -3626,11 +3858,13 @@ async function loadAll(){
   }
 }
 
-// ✅ Arranque: lo antes posible (para reducir flash)
-window.addEventListener("DOMContentLoaded", () => {
-  ensureBoot();
 
-  // si había una vista guardada, aplícala apenas cargue el DOM
+
+function startApp(){
+  ensureBoot();
+  applyRoleUI();
+
+  // si había una vista guardada, aplícala
   const sv = loadSavedView();
   if (sv && ALLOWED_VIEWS.includes(sv) && state.view !== sv){
     setView(sv);
@@ -3638,9 +3872,31 @@ window.addEventListener("DOMContentLoaded", () => {
 
   loadAll();
   setInterval(loadAll, AUTO_REFRESH_MS);
+}
+
+// ✅ Arranque: lo antes posible (para reducir flash)
+window.addEventListener("DOMContentLoaded", () => {
+  // 1) Auth primero
+  const hasSession = initAuth();
+
+  // 2) Si no hay sesión, esperar a que el usuario inicie (overlay)
+  //    (La app se inicia cuando el overlay se oculta tras login)
+  if (!hasSession){
+    // Al primer login exitoso se ejecutará esto automáticamente:
+    const observer = new MutationObserver(() => {
+      const o = document.getElementById("authOverlay");
+      if (o && o.style.display === "none"){
+        observer.disconnect();
+        startApp();
+      }
+    });
+    observer.observe(document.body, { attributes:true, childList:false, subtree:true });
+    return;
+  }
+
+  // 3) Sesión existente: iniciar app
+  startApp();
 });
 </script>
 </body>
 </html>
-
-
