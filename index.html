@@ -1002,7 +1002,8 @@
 
     { local:"VIRTUAL", ciclo:"AGRARIA",     salon:"AGRARIA VIRTUAL", gid:709062846 },
     { local:"VIRTUAL", ciclo:"ESC. U.LIMA", salon:"U.LIMA ESCOLAR",  gid:315999969 },
-    { local:"VIRTUAL", ciclo:"U.LIMA",      salon:"U.LIMA VIRTUAL",  gid:1667430860 },
+    { local:"VIRTUAL", ciclo:"U.LIMA",      salon:"U.LIMA VIRTUAL 1",  gid:1667430860 },
+    { local:"VIRTUAL", ciclo:"U.LIMA",      salon:"U.LIMA VIRTUAL 2",  gid:951960453 },
   ];
 
   const AUTO_REFRESH_MS = 30000;
@@ -2724,7 +2725,8 @@ const REPORTES = [
 
   // ================= VIRTUAL =================
   { local:"VIRTUAL",    name:"AGRARIA VIRTUAL",  url:"https://colab.research.google.com/drive/1jmxIzW1yB3h_k4J3Y9cbcqS8t3QwUW6P" },
-  { local:"VIRTUAL",    name:"U.LIMA VIRTUAL",   url:"https://colab.research.google.com/drive/1tX_yYM7H1s_dHACnLoPJo4kTePWVc8jJ" },
+  { local:"VIRTUAL",    name:"U.LIMA VIRTUAL 1",   url:"https://colab.research.google.com/drive/1wLAf1p8LmF4dI-qLVjTv8Ax0XmJH2vHr" },
+  { local:"VIRTUAL",    name:"U.LIMA VIRTUAL 2",   url:"https://colab.research.google.com/drive/1AKoWoQ4LzXg7DCJNF_Vaqw9kmUXxuuWu" },
   { local:"VIRTUAL",    name:"U.LIMA ESCOLAR",   url:"https://colab.research.google.com/drive/1Wmj0Py2AdOihL_hXZCT-kfbj2ezqvbDe" },
 ];
 
@@ -3575,11 +3577,40 @@ function renderReportes(){
       ]
     },
 
-    {
-      id:"UL_VIRT",
+        {
+      id:"UL_VIRT_1",
       local:"VIRTUAL",
       uni:"U.LIMA",
-      salon:"U.LIMA VIRTUAL",
+      salon:"U.LIMA VIRTUAL 1",
+      blocks:[
+        { day:"LUNES", start:"08:00", end:"09:50", course:"G&T 1", teacher:"JULCA" },
+        { day:"MARTES", start:"08:00", end:"09:50", course:"ARI 1", teacher:"CHAMBI J." },
+        { day:"MIÉRCOLES", start:"08:00", end:"09:50", course:"RM 1", teacher:"SOTO" },
+        { day:"JUEVES", start:"08:00", end:"09:50", course:"HOP", teacher:"TORERO" },
+        { day:"VIERNES", start:"08:00", end:"09:50", course:"LEN", teacher:"JARA" },
+        { day:"SÁBADO", start:"08:00", end:"10:00", course:"SIM", teacher:"" },
+
+        { day:"LUNES", start:"10:00", end:"11:50", course:"SOL", teacher:"MARCELA" },
+        { day:"MARTES", start:"10:00", end:"11:50", course:"REF G&T", teacher:"JULCA" },
+        { day:"MIÉRCOLES", start:"10:00", end:"11:50", course:"RM 2", teacher:"SOTO" },
+        { day:"JUEVES", start:"10:00", end:"11:50", course:"REF. RM", teacher:"CHAMBI R." },
+        { day:"VIERNES", start:"10:00", end:"11:50", course:"RV", teacher:"TABER" },
+
+        { day:"LUNES", start:"12:00", end:"13:50", course:"G&T 2", teacher:"JULCA" },
+        { day:"MARTES", start:"12:00", end:"13:50", course:"ARI 2", teacher:"CHAMBI J." },
+        { day:"MIÉRCOLES", start:"12:00", end:"13:50", course:"ÁLG 1", teacher:"UCANCIAL" },
+        { day:"JUEVES", start:"12:00", end:"13:50", course:"REF. ARI", teacher:"MARCO" },
+        { day:"VIERNES", start:"13:00", end:"15:00", course:"ÁLG 2", teacher:"UCANCIAL" },
+
+        { day:"MARTES", start:"15:00", end:"17:00", course:"VIRT PRO", teacher:"RIOJA" },
+      ]
+    },
+
+    {
+      id:"UL_VIRT_2",
+      local:"VIRTUAL",
+      uni:"U.LIMA",
+      salon:"U.LIMA VIRTUAL 2",
       blocks:[
         { day:"LUNES", start:"08:00", end:"09:50", course:"SOL", teacher:"MARCELA" },
         { day:"MARTES", start:"08:00", end:"09:50", course:"LEN", teacher:"VALDIVIA" },
