@@ -955,6 +955,8 @@
   // ✅ API (Apps Script Web App) para ALUMNOS (login + guardar respuestas)
   const STUDENT_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxHaXXfPIsGODuJo5J1TZvESJuYBslDloH4p8AphemCIPScRROxPjlMdJNluMqxgnMh/exec";
 
+  const FORCE_AUTH_EVERY_LOAD = true; // ✅ PON EN false cuando ya esté estable
+
   const ROLE_KEY = "lameta_role";
   let CURRENT_ROLE = null; // "admin" | "tutor" | "alumno"
 
@@ -1051,6 +1053,10 @@
   }
 
   function initAuth(){
+    if (FORCE_AUTH_EVERY_LOAD){
+      clearRole();
+      clearStudentSession();
+    }
     const saved = loadRole();
 
     // ✅ Si es alumno, exige sesión guardada
@@ -4444,6 +4450,10 @@ async function startStudentPortal_(){
 
 function startApp(){
   ensureBoot();
+  if (!CURRENT_ROLE){
+    showAuth(true);
+    return;
+  }
   applyRoleUI();
 
   // Alumno: no cargar panel admin; solo portal
