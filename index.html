@@ -851,6 +851,34 @@
       background:#fff;
     }
 
+  
+    /* ====== STUDENT UI v5 (ancho + ordenado) ====== */
+    .studentWrapWide{ max-width:1100px; margin:0 auto; display:flex; flex-direction:column; gap:14px; }
+    .studentKicker{ font-weight:900; color:var(--muted); font-size:12px; letter-spacing:.06em; }
+    .studentHeroTop{ display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap; align-items:center; }
+    .studentCols{ display:grid; gap:14px; grid-template-columns:1fr; }
+    @media(min-width: 980px){ .studentCols{ grid-template-columns: 0.9fr 1.1fr; } }
+    .cardBox{ border:1px solid var(--border); border-radius: var(--radius); background:#fff; box-shadow: var(--shadow); padding:16px; }
+    .cardTitle{ font-weight:950; margin:0 0 10px 0; }
+    .kv{ display:grid; gap:10px; }
+    .kv > div{ display:flex; justify-content:space-between; gap:12px; }
+    .kv span{ color:var(--muted); font-weight:800; font-size:12px; }
+    .kv b{ font-weight:950; }
+    .mutedBox{ margin:8px 0 12px; color:var(--muted); font-weight:800; font-size:12px; }
+    .matList{ margin:0; padding-left:18px; }
+    .matList li{ margin:6px 0; }
+    .matList a{ color:#1d4ed8; font-weight:900; text-decoration:none; }
+    .matList a:hover{ text-decoration:underline; }
+    .accWrap{ display:flex; flex-direction:column; gap:10px; margin-top:12px; }
+    details.acc{ border:1px solid var(--border); border-radius: var(--radius); background:#fff; overflow:hidden; }
+    details.acc > summary{ cursor:pointer; padding:12px 14px; font-weight:950; list-style:none; }
+    details.acc > summary::-webkit-details-marker{ display:none; }
+    details.acc[open] > summary{ border-bottom:1px solid var(--border); background: var(--soft); }
+    .accBody{ padding:12px 14px; display:flex; flex-direction:column; gap:12px; }
+    .pill{ display:inline-block; padding:6px 10px; border-radius:999px; background:#f1f5f9; color:var(--muted); font-weight:900; font-size:12px; }
+    .qOpt{ color:var(--muted); font-weight:800; font-size:12px; margin-left:6px; }
+    .sendRow{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-top:8px; }
+
   </style>
 </head>
 
@@ -957,6 +985,20 @@
 
   // ✅ API (Apps Script Web App) para ALUMNOS (login + guardar respuestas)
   const STUDENT_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxHaXXfPIsGODuJo5J1TZvESJuYBslDloH4p8AphemCIPScRROxPjlMdJNluMqxgnMh/exec";
+
+  // ✅ BUILD para limpiar caché/localStorage cuando actualizamos (evita depender de incógnito)
+  const BUILD_ID_STUDENT = "JSONP-STUDENT-V5";
+  (function(){
+    const k="lameta_build_student";
+    const prev=localStorage.getItem(k);
+    if(prev!==BUILD_ID_STUDENT){
+      try{ localStorage.removeItem("lameta_role"); }catch(e){}
+      try{ localStorage.removeItem("lameta_student"); }catch(e){}
+      try{ localStorage.removeItem("lameta_student_scroll"); }catch(e){}
+      localStorage.setItem(k, BUILD_ID_STUDENT);
+    }
+  })();
+
 
   const FORCE_AUTH_EVERY_LOAD = true; // ✅ PON EN false cuando ya esté estable
 
@@ -1171,7 +1213,7 @@
           return;
         }
         // guardar sesión del alumno
-        saveStudentSession({ nombre: res.alumno.nombre, clave: p });
+        saveStudentSession({ nombre: res.alumno.nombre, clave: p, pos: res.alumno.pos });
         setRole("alumno");
         showAuth(false);
         if (pass) pass.value = "";
@@ -4295,82 +4337,161 @@ async function loadAlgebraSchedule_(){
   return out;
 }
 
+
 function buildStudentUI_(student, blocks){
   const root = document.getElementById("view_student");
   if (!root) return;
 
-  const hero = `
-    <div class="studentWrap">
+  // Datos del alumno (si el Apps Script devuelve posición)
+  const pos = (student && (student.pos !== undefined && student.pos !== null)) ? String(student.pos) : "";
+
+  // Materiales: lista única de PDFs disponibles
+  const materials = [];
+  const seen = new Set();
+  for (const b of (blocks || [])){
+    const link = String(b.link || "").trim();
+    if (!link) continue;
+    if (seen.has(link)) continue;
+    seen.add(link);
+    materials.push({
+      titulo: `Bloque ${b.bloque} • ${b.tema || "(sin tema)"} (${b.fecha})`,
+      link
+    });
+  }
+
+  // Agrupar por fecha
+  const groups = {};
+  for (const b of (blocks || [])){
+    const f = String(b.fecha || "").trim() || "Sin fecha";
+    (groups[f] = groups[f] || []).push(b);
+  }
+
+  const parseFecha = (s) => {
+    // acepta d/m/yyyy o dd/mm/yyyy
+    const m = String(s||"").match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
+    if (!m) return 0;
+    const d = Number(m[1]), mo = Number(m[2]), y = Number(m[3]);
+    const dt = new Date(y, mo-1, d);
+    return isNaN(dt.getTime()) ? 0 : dt.getTime();
+  };
+
+  const fechas = Object.keys(groups).sort((a,b)=> parseFecha(a) - parseFecha(b));
+
+  root.innerHTML = `
+    <div class="studentWrapWide">
       <div class="studentHero">
-        <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center;">
+        <div class="studentHeroTop">
           <div>
-            <h3>Bienvenido, ${escapeHtmlS_(student.nombre)}</h3>
-            <div class="studentMeta">Curso: ÁLGEBRA • Ingrese su clave y responda 5 preguntas por bloque.</div>
+            <div class="studentKicker">PORTAL ALUMNO</div>
+            <h3>Bienvenido, ${escapeHtmlS_(student.nombre || "")}</h3>
+            <div class="studentMeta">
+              Curso: <b>ÁLGEBRA</b>${pos ? ` • Posición: <b>${escapeHtmlS_(pos)}</b>` : ""} • Puede enviar aunque deje preguntas en blanco.
+            </div>
           </div>
           <button id="btnLogoutAlumno" class="btnSmall" type="button">SALIR</button>
         </div>
       </div>
 
-      <div class="studentGrid" id="studentBlocks"></div>
+      <div class="studentCols">
+        <!-- Columna 1 -->
+        <div>
+          <div class="cardBox">
+            <div class="cardTitle">Datos del alumno</div>
+            <div class="kv">
+              <div><span>Nombre</span><b>${escapeHtmlS_(student.nombre || "")}</b></div>
+              ${pos ? `<div><span>Posición (lista)</span><b>${escapeHtmlS_(pos)}</b></div>` : ``}
+              <div><span>Curso</span><b>ÁLGEBRA</b></div>
+            </div>
+          </div>
+
+          <div class="cardBox" style="margin-top:14px;">
+            <div class="cardTitle">Materiales (PDF)</div>
+            ${materials.length ? `
+              <ul class="matList">
+                ${materials.map(m => `<li><a href="${escapeAttrS_(m.link)}" target="_blank" rel="noopener">${escapeHtmlS_(m.titulo)}</a></li>`).join("")}
+              </ul>
+            ` : `<div class="mutedBox">Aún no hay links cargados en el cronograma.</div>`}
+          </div>
+        </div>
+
+        <!-- Columna 2 -->
+        <div class="cardBox">
+          <div class="cardTitle">Evaluaciones (por semana)</div>
+          <div class="mutedBox">Despliegue una fecha, abra el PDF y responda. <b>ENVIAR</b> registra en la hoja <b>R</b>.</div>
+
+          <div class="accWrap" id="studentAcc">
+            ${fechas.map(f => `
+              <details class="acc" data-fecha="${escapeAttrS_(f)}">
+                <summary>${escapeHtmlS_(f)}</summary>
+                <div class="accBody">
+                  ${(groups[f] || []).sort((x,y)=> (x.bloque||"").localeCompare(y.bloque||"")).map((b, i) => {
+                    const globalIdx = (blocks||[]).indexOf(b);
+                    const cardId = `blk_${globalIdx}`;
+                    const linkBtn = b.link
+                      ? `<a class="btnSmall" href="${escapeAttrS_(b.link)}" target="_blank" rel="noopener">Abrir PDF</a>`
+                      : `<span class="pill">Sin link</span>`;
+                    return `
+                      <div class="blockCard">
+                        <div class="blockTop">
+                          <div>
+                            <div class="blockTitle">Bloque ${escapeHtmlS_(b.bloque)} • ${escapeHtmlS_(b.tema || "(sin tema)")}</div>
+                            <div class="blockSub">Fecha: ${escapeHtmlS_(b.fecha)}</div>
+                          </div>
+                          <div class="blockActions">
+                            ${linkBtn}
+                            <button class="btnSmall btnPrimary" type="button" onclick="toggleEval_('${cardId}')">Responder</button>
+                          </div>
+                        </div>
+
+                        <div class="qGrid" id="${cardId}" data-eval="1" style="display:none;margin-top:12px;">
+                          ${[1,2,3,4,5].map(q => `
+                            <div class="qRow">
+                              <div class="qLabel">Pregunta ${q} <span class="qOpt">(opcional)</span></div>
+                              <div class="optRow">
+                                ${["A","B","C","D","E"].map(opt => `
+                                  <label><input type="radio" name="${cardId}_q${q}" value="${opt}"> ${opt}</label>
+                                `).join("")}
+                              </div>
+                            </div>
+                          `).join("")}
+
+                          <div class="sendRow">
+                            <button class="btnSmall btnPrimary" type="button" onclick="sendEval_('${cardId}', ${globalIdx})">ENVIAR</button>
+                            <span class="blockSub" id="${cardId}_msg"></span>
+                          </div>
+                        </div>
+                      </div>
+                    `;
+                  }).join("")}
+                </div>
+              </details>
+            `).join("")}
+          </div>
+        </div>
+      </div>
 
       <div class="studentNote">
-        Nota: Al presionar <b>ENVIAR</b>, sus respuestas se guardaron en la hoja <b>R</b> del Google Sheets.
+        Consejo: al recargar, se conservará tu posición de lectura en la página.
       </div>
     </div>
   `;
 
-  root.innerHTML = hero;
-
-  const wrap = document.getElementById("studentBlocks");
-  if (!wrap) return;
-
-  if (!blocks.length){
-    wrap.innerHTML = `<div class="blockCard"><div class="blockTitle">No hay bloques para mostrar.</div><div class="blockSub">Revise el cronograma del Sheet (gid ${ALG_SCHEDULE_GID}).</div></div>`;
-    return;
+  // Logout
+  const btnOut = document.getElementById("btnLogoutAlumno");
+  if (btnOut){
+    btnOut.onclick = () => {
+      clearStudentSession();
+      clearRole();
+      location.reload();
+    };
   }
 
-  wrap.innerHTML = blocks.map((b, i) => {
-    const cardId = `blk_${i}`;
-    const linkBtn = b.link ? `<a class="btnSmall" href="${escapeAttrS_(b.link)}" target="_blank" rel="noopener">Abrir PDF</a>` : `<span class="blockSub">Sin link</span>`;
-    return `
-      <div class="blockCard" id="${cardId}">
-        <div class="blockTop">
-          <div>
-            <div class="blockTitle">Bloque ${b.bloque} • ${escapeHtmlS_(b.tema || "(sin tema)")}</div>
-            <div class="blockSub">Fecha: ${escapeHtmlS_(b.fecha)}</div>
-          </div>
-          <div class="blockActions">
-            ${linkBtn}
-            <button class="btnSmall btnPrimary" type="button" onclick="toggleEval_('${cardId}')">Responder</button>
-          </div>
-        </div>
-
-        <div class="qGrid" data-eval="1" style="display:none;margin-top:12px;">
-          ${[1,2,3,4,5].map(q => `
-            <div class="qRow">
-              <div class="qLabel">Pregunta ${q}</div>
-              <div class="optRow">
-                ${["A","B","C","D","E"].map(opt => `
-                  <label><input type="radio" name="${cardId}_q${q}" value="${opt}"> ${opt}</label>
-                `).join("")}
-              </div>
-            </div>
-          `).join("")}
-
-          <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
-            <button class="btnSmall btnPrimary" type="button" onclick="sendEval_('${cardId}', ${i})">ENVIAR</button>
-            <span class="blockSub" id="${cardId}_msg"></span>
-          </div>
-        </div>
-      </div>
-    `;
-  }).join("");
+  // Guardar/restaurar scroll (por alumno)
+  setupStudentScroll_(student);
 }
 
 function toggleEval_(cardId){
-  const card = document.getElementById(cardId);
-  if (!card) return;
-  const box = card.querySelector('[data-eval="1"]');
+  const box = document.getElementById(cardId);
   if (!box) return;
   box.style.display = (box.style.display === "none" || box.style.display === "") ? "block" : "none";
 }
@@ -4378,6 +4499,25 @@ function toggleEval_(cardId){
 function getAnswer_(name){
   const el = document.querySelector(`input[name="${CSS.escape(name)}"]:checked`);
   return el ? el.value : "";
+}
+
+function setupStudentScroll_(student){
+  const key = "lameta_student_scroll_" + String(student && student.clave ? student.clave : "x");
+  // restaurar
+  const saved = Number(localStorage.getItem(key) || "0");
+  if (saved > 0){
+    setTimeout(() => { try{ window.scrollTo({ top: saved, behavior: "instant" }); }catch(e){ window.scrollTo(0, saved); } }, 200);
+  }
+  // guardar
+  let ticking = false;
+  window.addEventListener("scroll", () => {
+    if (ticking) return;
+    ticking = true;
+    requestAnimationFrame(() => {
+      try{ localStorage.setItem(key, String(window.scrollY || 0)); }catch(e){}
+      ticking = false;
+    });
+  }, { passive:true });
 }
 
 async function sendEval_(cardId, idx){
@@ -4396,16 +4536,12 @@ async function sendEval_(cardId, idx){
   const q4 = getAnswer_(cardId + "_q4");
   const q5 = getAnswer_(cardId + "_q5");
 
-  if (![q1,q2,q3,q4,q5].every(x => x)){
-    if (msg) msg.textContent = "Marque A–E en las 5 preguntas.";
-    return;
-  }
-
   if (msg) msg.textContent = "Enviando...";
 
   try{
     const res = await apiStudent("save", {
       clave: student.clave,
+      pos: student.pos || "",
       curso: "ALG",
       fecha: b.fecha,
       bloque: b.bloque,
@@ -4420,11 +4556,12 @@ async function sendEval_(cardId, idx){
     }
   }catch(e){
     console.error(e);
-    if (msg) msg.textContent = "Error de conexión.";
+    if (msg) msg.textContent = `Error de conexión (${e && e.message ? e.message : "error"})`;
   }
 }
 
 function escapeHtmlS_(s){
+
   return String(s ?? "")
     .replaceAll("&","&amp;")
     .replaceAll("<","&lt;")
