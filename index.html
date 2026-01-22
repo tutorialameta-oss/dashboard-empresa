@@ -1179,7 +1179,7 @@
       }catch(e){
         console.error(e);
         if (err){
-          err.textContent = "No se pudo conectar (" + (e && e.message ? e.message : "error") + "). Si esto persiste, recargue con Ctrl+F5 o abra en incógnito.";
+          err.textContent = "Error al ingresar (" + (e && e.message ? e.message : "error") + "). Si esto persiste, recargue con Ctrl+F5 o abra en incógnito.";
           err.style.display = "block";
         }
       }
@@ -1728,6 +1728,7 @@ function loadSavedView(){
 
     const titles = {
       overview: ["RESUMEN GENERAL", "Panel estructurado para control de matrícula, modalidad y distribución por universidad."],
+      student: ["PORTAL ALUMNO", "Materiales y evaluaciones del alumno (envío automático a la hoja R)."],
       local: ["POR LOCAL", "Monitoreo por salón (tutor) del local seleccionado."],
       table: ["ALUMNOS", "Búsqueda y filtros para consulta interna."],
       horarios: ["HORARIOS", "Plantillas de horarios por local y universidad."],
