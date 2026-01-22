@@ -994,9 +994,10 @@
     localStorage.removeItem(STUDENT_KEY);
   }
   function apiStudent(action, payload){
-    // ✅ IFRAME + postMessage (evita CORS y evita bloqueos de script-src)
+    // ✅ JSONP via <script> (evita CORS en GitHub Pages)
     return new Promise((resolve, reject) => {
-      const rid = "rid_" + Date.now() + "_" + Math.random().toString(16).slice(2);
+      const cb = "lameta_cb_" + Date.now() + "_" + Math.random().toString(16).slice(2);
+
       const params = new URLSearchParams();
       params.set("action", String(action || ""));
       const data = payload || {};
@@ -1005,45 +1006,32 @@
         if (v === undefined || v === null) return;
         params.set(k, String(v));
       });
-      params.set("embed", "1");
-      params.set("rid", rid);
-      params.set("parent_origin", window.location.origin);
+      params.set("callback", cb);
 
-      let iframe = document.getElementById("lametaStudentIframe");
-      if (!iframe){
-        iframe = document.createElement("iframe");
-        iframe.id = "lametaStudentIframe";
-        iframe.style.width = "0";
-        iframe.style.height = "0";
-        iframe.style.border = "0";
-        iframe.style.position = "absolute";
-        iframe.style.left = "-9999px";
-        iframe.style.top = "-9999px";
-        document.body.appendChild(iframe);
-      }
-
+      const script = document.createElement("script");
       const timer = setTimeout(() => {
-        window.removeEventListener("message", onMsg);
+        cleanup();
         reject(new Error("timeout"));
       }, 15000);
 
-      function onMsg(ev){
-        // aceptar solo mensajes de Apps Script
-        if (!ev || !ev.data) return;
-        const d = ev.data;
-        if (d.__lameta !== 1) return;
-        if (d.rid !== rid) return;
+      function cleanup(){
         clearTimeout(timer);
-        window.removeEventListener("message", onMsg);
-        if (d.ok === true || d.ok === false){
-          resolve(d);
-        }else{
-          reject(new Error("bad_response"));
-        }
+        if (script && script.parentNode) script.parentNode.removeChild(script);
+        try{ delete window[cb]; }catch(e){ window[cb] = undefined; }
       }
 
-      window.addEventListener("message", onMsg);
-      iframe.src = STUDENT_WEBAPP_URL + "?" + params.toString();
+      window[cb] = (res) => {
+        cleanup();
+        resolve(res);
+      };
+
+      script.onerror = () => {
+        cleanup();
+        reject(new Error("network"));
+      };
+
+      script.src = STUDENT_WEBAPP_URL + "?" + params.toString();
+      document.body.appendChild(script);
     });
   }
 
