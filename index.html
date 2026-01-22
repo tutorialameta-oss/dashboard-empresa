@@ -993,11 +993,10 @@
   function clearStudentSession(){
     localStorage.removeItem(STUDENT_KEY);
   }
-
   function apiStudent(action, payload){
-    // JSONP (evita bloqueos CORS en Apps Script desde GitHub Pages)
+    // ✅ IFRAME + postMessage (evita CORS y evita bloqueos de script-src)
     return new Promise((resolve, reject) => {
-      const cb = "__lameta_cb_" + Math.random().toString(36).slice(2);
+      const rid = "rid_" + Date.now() + "_" + Math.random().toString(16).slice(2);
       const params = new URLSearchParams();
       params.set("action", String(action || ""));
       const data = payload || {};
@@ -1006,36 +1005,45 @@
         if (v === undefined || v === null) return;
         params.set(k, String(v));
       });
-      params.set("callback", cb);
+      params.set("embed", "1");
+      params.set("rid", rid);
+      params.set("parent_origin", window.location.origin);
 
-      const script = document.createElement("script");
-      let done = false;
+      let iframe = document.getElementById("lametaStudentIframe");
+      if (!iframe){
+        iframe = document.createElement("iframe");
+        iframe.id = "lametaStudentIframe";
+        iframe.style.width = "0";
+        iframe.style.height = "0";
+        iframe.style.border = "0";
+        iframe.style.position = "absolute";
+        iframe.style.left = "-9999px";
+        iframe.style.top = "-9999px";
+        document.body.appendChild(iframe);
+      }
 
-      const cleanup = () => {
-        if (done) return;
-        done = true;
-        try { delete window[cb]; } catch(e) { window[cb] = undefined; }
-        if (script.parentNode) script.parentNode.removeChild(script);
-        clearTimeout(tmr);
-      };
-
-      const tmr = setTimeout(() => {
-        cleanup();
+      const timer = setTimeout(() => {
+        window.removeEventListener("message", onMsg);
         reject(new Error("timeout"));
       }, 15000);
 
-      window[cb] = (resp) => {
-        cleanup();
-        resolve(resp);
-      };
+      function onMsg(ev){
+        // aceptar solo mensajes de Apps Script
+        if (!ev || !ev.data) return;
+        const d = ev.data;
+        if (d.__lameta !== 1) return;
+        if (d.rid !== rid) return;
+        clearTimeout(timer);
+        window.removeEventListener("message", onMsg);
+        if (d.ok === true || d.ok === false){
+          resolve(d);
+        }else{
+          reject(new Error("bad_response"));
+        }
+      }
 
-      script.onerror = () => {
-        cleanup();
-        reject(new Error("network"));
-      };
-
-      script.src = STUDENT_WEBAPP_URL + "?" + params.toString();
-      document.body.appendChild(script);
+      window.addEventListener("message", onMsg);
+      iframe.src = STUDENT_WEBAPP_URL + "?" + params.toString();
     });
   }
 
