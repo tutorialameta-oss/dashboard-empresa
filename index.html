@@ -723,6 +723,8 @@
     }
     .authTitle{ font-weight:950; font-size:16px; margin:0 0 8px 0; text-transform:uppercase; }
     .authSub{ color:var(--muted); font-weight:800; margin:0 0 14px 0; font-size:12px; }
+
+    .authBuild{margin:6px 0 0;color:#6b7280;font-size:12px}
     .roleRow{ display:flex; gap:10px; flex-wrap:wrap; margin-bottom:12px; }
     .roleBtn{
       flex:1;
@@ -860,6 +862,7 @@
     <div class="authCard">
       <p class="authTitle">ACCESO AL PANEL</p>
       <p class="authSub">Seleccione su tipo de acceso e ingrese la clave.</p>
+      <p class="authBuild">BUILD: JSONP-3</p>
 
       <div class="roleRow">
         <button id="roleAdmin" class="roleBtn" type="button">ADMIN</button>
@@ -1012,7 +1015,7 @@
       const timer = setTimeout(() => {
         cleanup();
         reject(new Error("timeout"));
-      }, 15000);
+      }, 60000);
 
       function cleanup(){
         clearTimeout(timer);
@@ -1176,7 +1179,7 @@
       }catch(e){
         console.error(e);
         if (err){
-          err.textContent = "No se pudo conectar. Revise su internet e intente de nuevo.";
+          err.textContent = "No se pudo conectar (" + (e && e.message ? e.message : "error") + "). Si esto persiste, recargue con Ctrl+F5 o abra en incógnito.";
           err.style.display = "block";
         }
       }
