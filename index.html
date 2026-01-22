@@ -775,6 +775,80 @@
       cursor:pointer;
     }
 
+    /* ===================== ALUMNO (PORTAL) ===================== */
+    .studentMode{ grid-template-columns: 1fr !important; }
+    .studentMode .sidebar{ display:none !important; }
+    .studentWrap{
+      display:flex; flex-direction:column; gap:14px;
+    }
+    .studentHero{
+      border:1px solid var(--border);
+      border-radius: var(--radius);
+      background: #fff;
+      box-shadow: var(--shadow);
+      padding:16px;
+    }
+    .studentHero h3{ margin:0 0 6px 0; font-size:18px; font-weight:950; }
+    .studentMeta{ color:var(--muted); font-weight:800; font-size:12px; }
+    .studentGrid{ display:grid; gap:12px; grid-template-columns: 1fr; }
+    .blockCard{
+      border:1px solid var(--border);
+      border-radius: var(--radius);
+      background:#fff;
+      box-shadow: 0 10px 24px rgba(15,23,42,0.08);
+      padding:14px;
+    }
+    .blockTop{ display:flex; justify-content:space-between; gap:10px; align-items:flex-start; flex-wrap:wrap; }
+    .blockTitle{ font-weight:950; }
+    .blockSub{ color:var(--muted); font-weight:800; font-size:12px; }
+    .blockActions{ display:flex; gap:8px; flex-wrap:wrap; }
+    .btnSmall{
+      padding:8px 10px;
+      border-radius: 12px;
+      border:1px solid var(--border);
+      background:#fff;
+      font-weight:900;
+      cursor:pointer;
+      text-decoration:none;
+      color:inherit;
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+    }
+    .btnPrimary{
+      background: linear-gradient(90deg,var(--accent2),var(--accent));
+      color:#fff;
+      border-color: transparent;
+    }
+    .qGrid{ display:grid; gap:10px; margin-top:12px; }
+    .qRow{
+      border:1px solid var(--border);
+      border-radius: 14px;
+      padding:10px;
+      background: #fafafa;
+    }
+    .qLabel{ font-weight:950; font-size:12px; margin-bottom:8px; color:var(--text); }
+    .optRow{ display:flex; gap:10px; flex-wrap:wrap; }
+    .optRow label{
+      display:flex; gap:6px; align-items:center;
+      padding:6px 8px;
+      border:1px solid var(--border);
+      border-radius: 999px;
+      background:#fff;
+      font-weight:900;
+      cursor:pointer;
+      user-select:none;
+    }
+    .studentNote{
+      border:1px dashed var(--border);
+      border-radius: var(--radius);
+      padding:12px;
+      color:var(--muted);
+      font-weight:800;
+      font-size:12px;
+      background:#fff;
+    }
+
   </style>
 </head>
 
@@ -788,9 +862,9 @@
       <p class="authSub">Seleccione su tipo de acceso e ingrese la clave.</p>
 
       <div class="roleRow">
-        <button id="roleAlumno" class="roleBtn" type="button">ALUMNO</button>
-        <button id="roleTutor" class="roleBtn" type="button">TUTOR</button>
         <button id="roleAdmin" class="roleBtn" type="button">ADMIN</button>
+        <button id="roleTutor" class="roleBtn" type="button">TUTOR</button>
+        <button id="roleAlumno" class="roleBtn" type="button">ALUMNO</button>
       </div>
 
       <div class="authRow">
@@ -813,7 +887,6 @@
       </div>
 
       <div class="nav">
-        <button id="nav_student">PORTAL ALUMNO</button>
         <button id="nav_overview" class="active">RESUMEN GENERAL</button>
         <button id="nav_local">CONTROL DE SEDES</button>
         <button id="nav_table">ALUMNOS</button>
@@ -854,7 +927,6 @@
         </div>
       </div>
 
-      <div id="view_student" class="grid" style="display:none;"></div>
       <div id="view_overview" class="grid"></div>
       <div id="view_local" class="grid" style="display:none;"></div>
       <div id="view_table" class="grid" style="display:none;"></div>
@@ -865,6 +937,8 @@
       <div id="view_materiales" class="grid" style="display:none;"></div>
       <div id="view_listas" class="grid" style="display:none;"></div>
       <div id="view_reportes" class="grid" style="display:none;"></div>
+      <!-- ✅ NUEVO: PORTAL ALUMNO -->
+      <div id="view_student" class="grid" style="display:none;"></div>
 
     </main>
   </div>
@@ -878,63 +952,11 @@
   const AUTH_ADMIN_PASS = "202619";
   const AUTH_TUTOR_PASS = "MBMLaMeta";
 
+  // ✅ API (Apps Script Web App) para ALUMNOS (login + guardar respuestas)
+  const STUDENT_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxHaXXfPIsGODuJo5J1TZvESJuYBslDloH4p8AphemCIPScRROxPjlMdJNluMqxgnMh/exec";
+
   const ROLE_KEY = "lameta_role";
   let CURRENT_ROLE = null; // "admin" | "tutor" | "alumno"
-
-  // ===================== PORTAL ALUMNO =====================
-  const STUDENT_SESSION_KEY = "lameta_student_session_v1";
-  let CURRENT_STUDENT = null;
-
-  // ⚠️ Para listar archivos del Drive por carpeta (opcional)
-  // 1) Comparta la carpeta como "Cualquiera con el enlace"
-  // 2) Cree una API KEY de Google Cloud y habilite "Google Drive API"
-  // 3) Pegue la key aquí
-  const DRIVE_API_KEY = ""; // ← opcional
-  const STUDENT_DRIVE_FOLDER_ID = "1NdWTEKC91lWSKZ93tKRw4PbZBXjmSfRm";
-
-  // ⚠️ Para registrar respuestas en Google Sheets desde GitHub Pages (necesita Apps Script)
-  // 1) Cree un Apps Script Web App (código al final del archivo)
-  // 2) Despliegue como Web App: acceso "Cualquiera"
-  // 3) Pegue la URL aquí
-  const SHEETS_WEBAPP_URL = ""; // ← requerido para guardar respuestas
-
-  function saveStudentSession(obj){
-    try{ localStorage.setItem(STUDENT_SESSION_KEY, JSON.stringify(obj||{})); }catch(e){}
-    CURRENT_STUDENT = obj || null;
-  }
-  function loadStudentSession(){
-    try{
-      const raw = localStorage.getItem(STUDENT_SESSION_KEY);
-      if (!raw) return null;
-      const obj = JSON.parse(raw);
-      return (obj && typeof obj === "object") ? obj : null;
-    }catch(e){ return null; }
-  }
-  function clearStudentSession(){
-    try{ localStorage.removeItem(STUDENT_SESSION_KEY); }catch(e){}
-    CURRENT_STUDENT = null;
-  }
-
-  async function findStudentByPassword(pass){
-    const p = String(pass||"").trim();
-    if (!p) return null;
-    // Busca por contraseña en todas las hojas (SALONES) y se detiene al encontrar coincidencia.
-    for (const s of SALONES){
-      try{
-        const r = await loadOneSalon(s);
-        const hit = (r.rows || []).find(x => String(x.contrasena||"").trim() === p);
-        if (hit) return hit;
-      } catch(e){ /* continuar */ }
-    }
-    return null;
-  }
-
-  function studentUniLabel(stu){
-    // Preferencia: UNIVERSIDAD (columna del sheet), si existe; si no, CICLO/GRUPO.
-    const u = String(stu?.uni_sheet||"").trim();
-    if (u) return u;
-    return String(stu?.ciclo||"").trim();
-  }
 
   function setRole(role){
     CURRENT_ROLE = role;
@@ -950,19 +972,43 @@
   function clearRole(){
     localStorage.removeItem(ROLE_KEY);
     CURRENT_ROLE = null;
-    clearStudentSession();
   }
 
-  function canAccessView(v){
-    // Alumno: solo portal
-    if (CURRENT_ROLE === "alumno") return (v === "student");
 
+  const STUDENT_KEY = "lameta_student";
+
+  function saveStudentSession(obj){
+    localStorage.setItem(STUDENT_KEY, JSON.stringify(obj || {}));
+  }
+  function loadStudentSession(){
+    try{
+      const raw = localStorage.getItem(STUDENT_KEY);
+      const o = raw ? JSON.parse(raw) : null;
+      if (o && o.clave && o.nombre) return o;
+    }catch(e){}
+    return null;
+  }
+  function clearStudentSession(){
+    localStorage.removeItem(STUDENT_KEY);
+  }
+
+  async function apiStudent(action, payload){
+    const body = JSON.stringify(Object.assign({ action }, payload || {}));
+    const r = await fetch(STUDENT_WEBAPP_URL, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body
+    });
+    // Apps Script responde JSON
+    return await r.json();
+  }
+
+
+  function canAccessView(v){
+    // Alumno: solo PORTAL
+    if (CURRENT_ROLE === "alumno") return (v === "student");
     // Tutor NO puede ver RESUMEN GENERAL ni CONTROL DE SEDES
     if (CURRENT_ROLE === "tutor" && (v === "overview" || v === "local")) return false;
-
-    // Admin/Tutor: no requieren portal alumno
-    if ((CURRENT_ROLE === "admin" || CURRENT_ROLE === "tutor") && v === "student") return false;
-
     return true;
   }
 
@@ -970,40 +1016,30 @@
     const roleLabel = document.getElementById("userRole");
     if (roleLabel) roleLabel.textContent = CURRENT_ROLE ? ("ROL: " + CURRENT_ROLE.toUpperCase()) : "ROL: -";
 
-    const isTutor  = (CURRENT_ROLE === "tutor");
+    const isTutor = (CURRENT_ROLE === "tutor");
     const isAlumno = (CURRENT_ROLE === "alumno");
+    const app = document.getElementById("appShell");
+    if (app) app.classList.toggle("studentMode", isAlumno);
 
-    const btnStudent = document.getElementById("nav_student");
     const btnOverview = document.getElementById("nav_overview");
     const btnLocal = document.getElementById("nav_local");
-    const btnTable = document.getElementById("nav_table");
-    const btnHorarios = document.getElementById("nav_horarios");
-    const btnImpr = document.getElementById("nav_impresiones");
-    const btnSilabos = document.getElementById("nav_silabos");
-    const btnMat = document.getElementById("nav_materiales");
-    const btnListas = document.getElementById("nav_listas");
-    const btnRep = document.getElementById("nav_reportes");
 
-    // Mostrar/ocultar por rol
-    if (btnStudent) btnStudent.style.display = isAlumno ? "" : "none";
+    // Ocultar
+    // Alumno: ocultar todo el menú (modo portal)
+    const nav = document.querySelector(".sidebar .nav");
+    if (nav) nav.style.display = isAlumno ? "none" : "";
+    const userBox = document.querySelector(".sidebar .userBox");
+    if (userBox) userBox.style.display = isAlumno ? "none" : "";
 
-    if (btnOverview) btnOverview.style.display = (isTutor || isAlumno) ? "none" : "";
-    if (btnLocal)    btnLocal.style.display    = (isTutor || isAlumno) ? "none" : "";
+    if (btnOverview) btnOverview.style.display = isTutor ? "none" : "";
+    if (btnLocal) btnLocal.style.display = isTutor ? "none" : "";
 
-    // El resto no debe verse para ALUMNO
-    const others = [btnTable, btnHorarios, btnImpr, btnSilabos, btnMat, btnListas, btnRep];
-    for (const b of others){
-      if (!b) continue;
-      b.style.display = isAlumno ? "none" : "";
-    }
-
-    // En ALUMNO, bloquear selects/búsqueda desde UI
-    const controls = document.getElementById("controlsMatricula");
-    if (controls) controls.style.display = isAlumno ? "none" : "";
-
-    // Bloquear: si la vista actual no está permitida, enviar a una vista permitida
+    // Bloquear: si la vista actual no está permitida, enviar a ALUMNOS
     if (state && state.view && !canAccessView(state.view)){
       setView(isAlumno ? "student" : "table");
+    }
+    if (isAlumno){
+      setView("student");
     }
   }
 
@@ -1016,9 +1052,23 @@
 
   function initAuth(){
     const saved = loadRole();
-    if (saved){
+
+    // ✅ Si es alumno, exige sesión guardada
+    if (saved === "alumno"){
+      const ss = loadStudentSession();
+      if (ss){
+        CURRENT_ROLE = "alumno";
+        showAuth(false);
+        applyRoleUI();
+        return true;
+      }
+      // si no hay sesión válida, limpia y pide login
+      clearRole();
+      clearStudentSession();
+    }
+
+    if (saved === "admin" || saved === "tutor"){
       CURRENT_ROLE = saved;
-      CURRENT_STUDENT = loadStudentSession();
       showAuth(false);
       applyRoleUI();
       return true;
@@ -1027,36 +1077,43 @@
     showAuth(true);
 
     let selected = null;
-    const bAl = document.getElementById("roleAlumno");
-    const bT  = document.getElementById("roleTutor");
-    const bA  = document.getElementById("roleAdmin");
+    const bA = document.getElementById("roleAdmin");
+    const bT = document.getElementById("roleTutor");
+    const bS = document.getElementById("roleAlumno");
     const pass = document.getElementById("authPass");
     const err = document.getElementById("authErr");
 
     function pick(r){
       selected = r;
-      if (bAl) bAl.classList.toggle("active", r === "alumno");
-      if (bT)  bT.classList.toggle("active", r === "tutor");
-      if (bA)  bA.classList.toggle("active", r === "admin");
-      if (err) err.style.display = "none";
-      if (pass) pass.focus();
+      if (bA) bA.classList.toggle("active", r === "admin");
+      if (bT) bT.classList.toggle("active", r === "tutor");
+      if (bS) bS.classList.toggle("active", r === "alumno");
+      if (err){ err.style.display = "none"; err.textContent = "Clave incorrecta o rol no seleccionado."; }
+      if (pass){
+        pass.value = "";
+        pass.placeholder = (r === "alumno") ? "Clave de alumno" : "Clave";
+        pass.focus();
+      }
     }
 
-    if (bAl) bAl.addEventListener("click", ()=>pick("alumno"));
-    if (bT)  bT.addEventListener("click", ()=>pick("tutor"));
-    if (bA)  bA.addEventListener("click", ()=>pick("admin"));
+    if (bA) bA.addEventListener("click", ()=>pick("admin"));
+    if (bT) bT.addEventListener("click", ()=>pick("tutor"));
+    if (bS) bS.addEventListener("click", ()=>pick("alumno"));
 
     async function doLogin(){
-      const p = String(pass?.value || "");
+      const p = String(pass?.value || "").trim();
+      if (!selected){
+        if (err) err.style.display = "block";
+        return;
+      }
 
-      // Admin / Tutor
+      // ADMIN / TUTOR (local)
       if (selected === "admin" || selected === "tutor"){
         const ok = (selected === "admin" && p === AUTH_ADMIN_PASS) || (selected === "tutor" && p === AUTH_TUTOR_PASS);
         if (!ok){
           if (err) err.style.display = "block";
           return;
         }
-        clearStudentSession();
         setRole(selected);
         showAuth(false);
         if (pass) pass.value = "";
@@ -1064,62 +1121,40 @@
         return;
       }
 
-      // Alumno (por contraseña personal)
-      if (selected === "alumno"){
-        if (!p.trim()){
-          if (err) err.style.display = "block";
+      // ALUMNO (Apps Script)
+      try{
+        const res = await apiStudent("login", { clave: p });
+        if (!res || !res.ok){
+          if (err){
+            err.textContent = (res && res.error) ? res.error : "Clave incorrecta.";
+            err.style.display = "block";
+          }
           return;
         }
-
-        // 🔎 Buscar alumno por contraseña en las hojas
-        const oldTxt = err ? err.textContent : "";
-        if (err){ err.textContent = "Verificando contraseña de alumno..."; err.style.display = "block"; }
-
-        const hit = await findStudentByPassword(p.trim());
-        if (!hit){
-          if (err){ err.textContent = "Contraseña de alumno incorrecta o no registrada."; err.style.display = "block"; }
-          return;
-        }
-
-        // Guardar sesión del alumno (sin tocar data existente)
-        saveStudentSession({
-          nombre: hit.nombre,
-          local: hit.local,
-          ciclo: hit.ciclo,
-          salon: hit.salon,
-          modalidad: hit.modalidad,
-          estado: hit.estado,
-          usuario: hit.usuario,
-          contrasena: hit.contrasena,
-          correo_al: hit.correo_al,
-          dni_al: hit.dni_al,
-          celular_al: hit.celular_al,
-          uni_sheet: hit.uni_sheet,
-          academia: hit.academia,
-          carrera: hit.carrera
-        });
-
-        if (err){ err.textContent = oldTxt || ""; err.style.display = "none"; }
+        // guardar sesión del alumno
+        saveStudentSession({ nombre: res.alumno.nombre, clave: p });
         setRole("alumno");
         showAuth(false);
         if (pass) pass.value = "";
-        // En alumno, forzar portal
         setView("student");
-        return;
+      }catch(e){
+        console.error(e);
+        if (err){
+          err.textContent = "No se pudo conectar. Revise su internet e intente de nuevo.";
+          err.style.display = "block";
+        }
       }
-
-      if (err) err.style.display = "block";
     }
 
     const btn = document.getElementById("btnLogin");
-    if (btn) btn.addEventListener("click", ()=>{ doLogin(); });
+    if (btn) btn.addEventListener("click", ()=>doLogin());
 
     if (pass) pass.addEventListener("keydown", (e)=>{
       if (e.key === "Enter") doLogin();
     });
 
-    // Por defecto: ALUMNO (porque es el portal de inicio)
-    pick("alumno");
+    // Por defecto, sugiere TUTOR (más común)
+    pick("tutor");
     return false;
   }
 
@@ -1392,7 +1427,7 @@
   };
 // ===================== PERSISTENCIA DE VISTA (FIX) =====================
 const VIEW_STORAGE_KEY = "LA_META_CURRENT_VIEW";
-const ALLOWED_VIEWS = ["student","overview","local","table","horarios","impresiones","silabos","materiales","listas","reportes"];
+const ALLOWED_VIEWS = ["overview","local","table","horarios","impresiones","silabos","materiales","listas","reportes","student"];
 
 function saveView(v){
   try { localStorage.setItem(VIEW_STORAGE_KEY, v); } catch(e){}
@@ -1616,12 +1651,11 @@ function loadSavedView(){
   // ============================ NAV ============================
   function setView(v){
     if (!canAccessView(v)){
-      // Bloqueo por rol
-      v = (CURRENT_ROLE === "alumno") ? "student" : "table";
+      // Bloqueo por rol: redirige a ALUMNOS
+      v = "table";
     }
     state.view = v;
     saveView(v);
-    document.getElementById("nav_student").classList.toggle("active", v==="student");
     document.getElementById("nav_overview").classList.toggle("active", v==="overview");
     document.getElementById("nav_local").classList.toggle("active", v==="local");
     document.getElementById("nav_table").classList.toggle("active", v==="table");
@@ -1631,9 +1665,9 @@ function loadSavedView(){
     document.getElementById("nav_materiales").classList.toggle("active", v==="materiales");
     document.getElementById("nav_listas").classList.toggle("active", v==="listas");
     document.getElementById("nav_reportes").classList.toggle("active", v==="reportes");
+    // (Alumno) no hay botón en menú
 
 
-    document.getElementById("view_student").style.display = (v==="student") ? "" : "none";
     document.getElementById("view_overview").style.display = (v==="overview") ? "" : "none";
     document.getElementById("view_local").style.display = (v==="local") ? "" : "none";
     document.getElementById("view_table").style.display = (v==="table") ? "" : "none";
@@ -1643,17 +1677,17 @@ function loadSavedView(){
     document.getElementById("view_materiales").style.display = (v==="materiales") ? "" : "none";
     document.getElementById("view_listas").style.display     = (v==="listas") ? "" : "none";
     document.getElementById("view_reportes").style.display   = (v==="reportes") ? "" : "none";
+    document.getElementById("view_student").style.display   = (v==="student") ? "" : "none";
 
 
     document.getElementById("controlsMatricula").style.display =
-      (v==="student" || v==="horarios" || v==="impresiones" || v==="silabos" || v==="materiales" || v==="listas" || v==="reportes") ? "none" : "";
+      (v==="horarios" || v==="impresiones" || v==="silabos" || v==="materiales" || v==="listas" || v==="reportes" || v==="student") ? "none" : "";
 
 
     // ✅ estado solo visible en ALUMNOS (tabla)
     document.getElementById("fEstado").style.display = (v==="table") ? "" : "none";
 
     const titles = {
-      student: ["PORTAL ALUMNO", "Acceso personalizado: datos del alumno, materiales y registro de respuestas."],
       overview: ["RESUMEN GENERAL", "Panel estructurado para control de matrícula, modalidad y distribución por universidad."],
       local: ["POR LOCAL", "Monitoreo por salón (tutor) del local seleccionado."],
       table: ["ALUMNOS", "Búsqueda y filtros para consulta interna."],
@@ -1994,279 +2028,6 @@ function loadSavedView(){
     `;
 
     el.dataset.ready = "1";
-  }
-
-
-
-  // ===================== PORTAL ALUMNO (NUEVO) =====================
-  function ensureStudentLayout(){
-    const el = document.getElementById("view_student");
-    if (!el || el.dataset.ready === "1") return;
-
-    el.innerHTML = `
-      <div class="card panel12">
-        <div class="cardtitle">BIENVENIDO(A), <span id="stu_name">-</span></div>
-        <div class="hint" style="font-weight:850; margin-top:6px;">
-          Universidad: <b id="stu_uni">-</b> &nbsp;|&nbsp;
-          Local: <b id="stu_local">-</b> &nbsp;|&nbsp;
-          Salón: <b id="stu_salon">-</b>
-        </div>
-
-        <div style="overflow:auto; margin-top:10px;">
-          <table>
-            <thead>
-              <tr>
-                <th>DATO</th>
-                <th>VALOR</th>
-              </tr>
-            </thead>
-            <tbody id="stu_info"></tbody>
-          </table>
-        </div>
-      </div>
-
-      <div class="card panel12">
-        <div class="cardtitle">MATERIALES (CARPETA)</div>
-        <div class="hint">Se listan los archivos del Drive y se abren en una nueva pestaña.</div>
-
-        <div id="stu_materials_note" class="hint" style="margin-top:10px; color:var(--muted);">
-          Cargando materiales...
-        </div>
-
-        <div style="margin-top:10px;">
-          <ul id="stu_materials" style="margin:0; padding-left:18px; line-height:1.8;"></ul>
-        </div>
-      </div>
-
-      <div class="card panel12">
-        <div class="cardtitle">MARCAR RESPUESTA (A–E)</div>
-        <div class="hint">Elija una opción. Se registrará automáticamente con su nombre.</div>
-
-        <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:12px;" id="stu_opts">
-          ${["A","B","C","D","E"].map(o => `
-            <label style="display:flex; align-items:center; gap:8px; border:1px solid var(--border); padding:10px 12px; border-radius:14px; cursor:pointer; background:#fff;">
-              <input type="radio" name="stu_opt" value="${o}" style="margin:0;">
-              <span style="font-weight:950;">${o}</span>
-            </label>
-          `).join("")}
-        </div>
-
-        <div id="stu_submit_msg" class="hint" style="margin-top:12px;"></div>
-      </div>
-
-      <div class="card panel12" style="border:1px dashed var(--border);">
-        <div class="cardtitle">NOTA IMPORTANTE</div>
-        <div class="hint" style="line-height:1.6;">
-          Por seguridad, GitHub Pages (sitio estático) no puede proteger contraseñas como un servidor real.
-          Este portal valida por contraseña para uso interno, pero <b>no es un sistema seguro</b> si el repositorio es público.
-          Si desea seguridad real, lo correcto es mover autenticación y registro a un backend (por ejemplo, Firebase/Auth o un servidor propio).
-        </div>
-      </div>
-    `;
-
-    // Listener: envío automático
-    el.addEventListener("change", (ev)=>{
-      const t = ev.target;
-      if (t && t.name === "stu_opt"){
-        submitStudentAnswer(String(t.value||"").trim());
-      }
-    });
-
-    el.dataset.ready = "1";
-  }
-
-  async function loadStudentDriveFiles(){
-    // Lista automática vía Drive API (requiere API key y carpeta pública)
-    if (!DRIVE_API_KEY){
-      return { ok:false, reason:"no_key", files:[] };
-    }
-    const q = encodeURIComponent(`'${STUDENT_DRIVE_FOLDER_ID}' in parents and trashed=false`);
-    const fields = encodeURIComponent("files(id,name,mimeType,webViewLink,webContentLink),nextPageToken");
-    const url = `https://www.googleapis.com/drive/v3/files?q=${q}&fields=${fields}&pageSize=1000&key=${encodeURIComponent(DRIVE_API_KEY)}`;
-    const res = await fetch(url);
-    if (!res.ok){
-      return { ok:false, reason:"http_" + res.status, files:[] };
-    }
-    const js = await res.json();
-    const files = (js.files || []).slice().sort((a,b)=>String(a.name||"").localeCompare(String(b.name||""), "es"));
-    return { ok:true, reason:"ok", files };
-  }
-
-  function driveLinkFromFile(f){
-    const id = String(f?.id||"").trim();
-    const w = String(f?.webViewLink||"").trim();
-    if (w) return w;
-    if (id) return `https://drive.google.com/file/d/${id}/view`;
-    return "#";
-  }
-
-  async function renderStudentMaterials(){
-    const note = document.getElementById("stu_materials_note");
-    const ul = document.getElementById("stu_materials");
-    if (!ul) return;
-
-    ul.innerHTML = "";
-    if (note) note.textContent = "Cargando materiales...";
-
-    try{
-      const r = await loadStudentDriveFiles();
-
-      if (!r.ok){
-        if (note){
-          if (r.reason === "no_key"){
-            note.innerHTML = `
-              Para mostrar cada archivo como hipervínculo, se requiere configurar DRIVE_API_KEY (Drive API) o, alternativamente, pegar una lista manual.
-              <br><br>
-              Mientras tanto, puede abrir la carpeta aquí: 
-              <a href="https://drive.google.com/drive/folders/${STUDENT_DRIVE_FOLDER_ID}" target="_blank" rel="noopener">Abrir carpeta de materiales</a>
-            `;
-          }else{
-            note.innerHTML = `
-              No se pudo listar la carpeta automáticamente (motivo: <b>${escapeHtml(r.reason)}</b>).
-              <br><br>
-              Abra la carpeta aquí: 
-              <a href="https://drive.google.com/drive/folders/${STUDENT_DRIVE_FOLDER_ID}" target="_blank" rel="noopener">Abrir carpeta de materiales</a>
-            `;
-          }
-        }
-        return;
-      }
-
-      if (note) note.textContent = `${r.files.length} archivo(s) encontrado(s).`;
-
-      for (const f of r.files){
-        const li = document.createElement("li");
-        const a = document.createElement("a");
-        a.href = driveLinkFromFile(f);
-        a.target = "_blank";
-        a.rel = "noopener";
-        a.textContent = f.name || "(sin nombre)";
-        li.appendChild(a);
-        ul.appendChild(li);
-      }
-
-      if (!r.files.length && note){
-        note.innerHTML = `La carpeta está vacía o no es pública. Abra la carpeta aquí: 
-          <a href="https://drive.google.com/drive/folders/${STUDENT_DRIVE_FOLDER_ID}" target="_blank" rel="noopener">Abrir carpeta de materiales</a>`;
-      }
-    }catch(e){
-      if (note){
-        note.innerHTML = `Error al cargar materiales. Abra la carpeta aquí: 
-          <a href="https://drive.google.com/drive/folders/${STUDENT_DRIVE_FOLDER_ID}" target="_blank" rel="noopener">Abrir carpeta de materiales</a>`;
-      }
-    }
-  }
-
-  async function submitStudentAnswer(option){
-    const msg = document.getElementById("stu_submit_msg");
-    const stu = CURRENT_STUDENT || loadStudentSession();
-
-    if (!stu){
-      if (msg) msg.textContent = "No se encontró la sesión del alumno. Vuelva a iniciar sesión.";
-      return;
-    }
-
-    if (!option || !"ABCDE".includes(option)){
-      if (msg) msg.textContent = "Opción inválida.";
-      return;
-    }
-
-    if (!SHEETS_WEBAPP_URL){
-      if (msg){
-        msg.innerHTML = `
-          No está configurada la URL del Web App (Apps Script) para guardar en Google Sheets.
-          <br>Configure <b>SHEETS_WEBAPP_URL</b> en el código.
-        `;
-      }
-      return;
-    }
-
-    const payload = {
-      ts: new Date().toISOString(),
-      nombre: stu.nombre || "",
-      universidad: studentUniLabel(stu),
-      local: stu.local || "",
-      salon: stu.salon || "",
-      opcion: option,
-      usuario: stu.usuario || ""
-    };
-
-    if (msg) msg.textContent = "Enviando...";
-
-    try{
-      const res = await fetch(SHEETS_WEBAPP_URL, {
-        method: "POST",
-        headers: { "Content-Type":"application/json" },
-        body: JSON.stringify(payload),
-        mode: "cors"
-      });
-
-      // Apps Script suele responder 200 con JSON
-      if (res.ok){
-        if (msg) msg.textContent = `Registrado: opción ${option}.`;
-      }else{
-        if (msg) msg.textContent = `No se pudo registrar (HTTP ${res.status}).`;
-      }
-    }catch(e){
-      if (msg) msg.textContent = "Error de red al registrar. Revise la URL del Web App y permisos.";
-    }
-  }
-
-  function renderStudent(){
-    ensureStudentLayout();
-
-    const stu = CURRENT_STUDENT || loadStudentSession();
-    if (!stu){
-      // forzar logout
-      clearRole();
-      location.reload();
-      return;
-    }
-
-    CURRENT_STUDENT = stu;
-
-    const nameEl = document.getElementById("stu_name");
-    const uniEl = document.getElementById("stu_uni");
-    const locEl = document.getElementById("stu_local");
-    const salEl = document.getElementById("stu_salon");
-    if (nameEl) nameEl.textContent = stu.nombre || "-";
-    if (uniEl) uniEl.textContent = studentUniLabel(stu) || "-";
-    if (locEl) locEl.textContent = stu.local || "-";
-    if (salEl) salEl.textContent = stu.salon || "-";
-
-    const tbody = document.getElementById("stu_info");
-    if (tbody){
-      const rows = [
-        ["NOMBRE COMPLETO", stu.nombre || ""],
-        ["UNIVERSIDAD", studentUniLabel(stu) || ""],
-        ["LOCAL", stu.local || ""],
-        ["SALÓN", stu.salon || ""],
-        ["MODALIDAD", stu.modalidad || ""],
-        ["ESTADO", stu.estado || ""],
-        ["USUARIO", stu.usuario || ""],
-        ["CORREO", stu.correo_al || ""],
-        ["DNI", stu.dni_al || ""],
-        ["CELULAR", stu.celular_al || ""],
-        ["ACADEMIA", stu.academia || ""],
-        ["CARRERA", stu.carrera || ""],
-      ].filter(r => String(r[1]||"").trim().length>0);
-
-      tbody.innerHTML = rows.map(([k,v])=>`
-        <tr>
-          <td style="font-weight:950;">${escapeHtml(k)}</td>
-          <td>${escapeHtml(v)}</td>
-        </tr>
-      `).join("") || `
-        <tr><td colspan="2" style="color:var(--muted);">Sin datos.</td></tr>
-      `;
-    }
-
-    // Cargar materiales una sola vez por sesión de vista
-    const el = document.getElementById("view_student");
-    if (el && el.dataset.materialsLoaded !== "1"){
-      el.dataset.materialsLoaded = "1";
-      renderStudentMaterials();
-    }
   }
 
   function renderOverview(){
@@ -4203,7 +3964,6 @@ function renderReportes(){
 
   // ===================== RENDER =====================
   function render(){
-    if (state.view==="student") renderStudent();
     if (state.view==="overview") renderOverview();
     if (state.view==="local") renderLocal();
     if (state.view==="table") renderTable();
@@ -4349,7 +4109,6 @@ function ensureBoot(){
   if (state.booted) return;
 
   // eventos NAV (una sola vez)
-  document.getElementById("nav_student").addEventListener("click", ()=>setView("student"));
   document.getElementById("nav_overview").addEventListener("click", ()=>setView("overview"));
   document.getElementById("nav_local").addEventListener("click", ()=>setView("local"));
   document.getElementById("nav_table").addEventListener("click", ()=>setView("table"));
@@ -4440,24 +4199,261 @@ async function loadAll(){
 
 
 
+
+// ===================== PORTAL ALUMNO =====================
+const ALG_SCHEDULE_GID = 502858541; // hoja: FECHA / BLOQUES / ALGEBRA / HIPERVÍNCULOS
+
+function parseFechaES_(s){
+  const t = norm(s).toLowerCase();
+  // formatos esperados: "5-ene", "12-ene", "2-feb", etc.
+  const m = t.match(/^(\d{1,2})\s*[-/]\s*([a-záéíóúñ]{3,})/i);
+  if (!m) return null;
+  const day = parseInt(m[1], 10);
+  const monStr = m[2].slice(0,3);
+  const map = { ene:0, feb:1, mar:2, abr:3, may:4, jun:5, jul:6, ago:7, sep:8, oct:9, nov:10, dic:11 };
+  const mon = map[monStr] ?? null;
+  if (mon === null || !day) return null;
+  // Año fijo para este ciclo de prueba
+  return new Date(2026, mon, day);
+}
+
+function fmtISO_(d){
+  const y = d.getFullYear();
+  const m = String(d.getMonth()+1).padStart(2,'0');
+  const da = String(d.getDate()).padStart(2,'0');
+  return `${y}-${m}-${da}`;
+}
+
+async function loadAlgebraSchedule_(){
+  const url = csvUrl(ALG_SCHEDULE_GID);
+  const r = await fetch(url, { cache:"no-store" });
+  if (!r.ok) throw new Error("No se pudo leer el cronograma (revise permisos del Sheet).");
+  const csv = await r.text();
+  const lines = csv.split(/\r?\n/).filter(x => x.trim().length>0);
+  if (lines.length < 2) return [];
+
+  const header = parseCSVLine(lines[0]).map(h => norm(h).toUpperCase());
+  const idxFecha = header.findIndex(h => h.includes("FECHA"));
+  const idxBloque = header.findIndex(h => h.includes("BLOQUE"));
+  const idxTema = header.findIndex(h => h.includes("ALGEBRA"));
+  const idxLink = header.findIndex(h => h.includes("HIPER"));
+
+  let lastFecha = "";
+  const out = [];
+  for (let i=1;i<lines.length;i++){
+    const row = parseCSVLine(lines[i]);
+    const fecha = norm(row[idxFecha] ?? "") || lastFecha;
+    if (fecha) lastFecha = fecha;
+    const bloque = norm(row[idxBloque] ?? "");
+    const tema = norm(row[idxTema] ?? "");
+    const link = norm(row[idxLink] ?? "");
+    if (!fecha && !bloque && !tema && !link) continue;
+    // solo filas con bloque A/B/C
+    if (!/^[ABC]$/i.test(bloque)) continue;
+    out.push({ fecha, bloque: bloque.toUpperCase(), tema, link });
+  }
+  return out;
+}
+
+function buildStudentUI_(student, blocks){
+  const root = document.getElementById("view_student");
+  if (!root) return;
+
+  const hero = `
+    <div class="studentWrap">
+      <div class="studentHero">
+        <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center;">
+          <div>
+            <h3>Bienvenido, ${escapeHtmlS_(student.nombre)}</h3>
+            <div class="studentMeta">Curso: ÁLGEBRA • Ingrese su clave y responda 5 preguntas por bloque.</div>
+          </div>
+          <button id="btnLogoutAlumno" class="btnSmall" type="button">SALIR</button>
+        </div>
+      </div>
+
+      <div class="studentGrid" id="studentBlocks"></div>
+
+      <div class="studentNote">
+        Nota: Al presionar <b>ENVIAR</b>, sus respuestas se guardaron en la hoja <b>R</b> del Google Sheets.
+      </div>
+    </div>
+  `;
+
+  root.innerHTML = hero;
+
+  const wrap = document.getElementById("studentBlocks");
+  if (!wrap) return;
+
+  if (!blocks.length){
+    wrap.innerHTML = `<div class="blockCard"><div class="blockTitle">No hay bloques para mostrar.</div><div class="blockSub">Revise el cronograma del Sheet (gid ${ALG_SCHEDULE_GID}).</div></div>`;
+    return;
+  }
+
+  wrap.innerHTML = blocks.map((b, i) => {
+    const cardId = `blk_${i}`;
+    const linkBtn = b.link ? `<a class="btnSmall" href="${escapeAttrS_(b.link)}" target="_blank" rel="noopener">Abrir PDF</a>` : `<span class="blockSub">Sin link</span>`;
+    return `
+      <div class="blockCard" id="${cardId}">
+        <div class="blockTop">
+          <div>
+            <div class="blockTitle">Bloque ${b.bloque} • ${escapeHtmlS_(b.tema || "(sin tema)")}</div>
+            <div class="blockSub">Fecha: ${escapeHtmlS_(b.fecha)}</div>
+          </div>
+          <div class="blockActions">
+            ${linkBtn}
+            <button class="btnSmall btnPrimary" type="button" onclick="toggleEval_('${cardId}')">Responder</button>
+          </div>
+        </div>
+
+        <div class="qGrid" data-eval="1" style="display:none;margin-top:12px;">
+          ${[1,2,3,4,5].map(q => `
+            <div class="qRow">
+              <div class="qLabel">Pregunta ${q}</div>
+              <div class="optRow">
+                ${["A","B","C","D","E"].map(opt => `
+                  <label><input type="radio" name="${cardId}_q${q}" value="${opt}"> ${opt}</label>
+                `).join("")}
+              </div>
+            </div>
+          `).join("")}
+
+          <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+            <button class="btnSmall btnPrimary" type="button" onclick="sendEval_('${cardId}', ${i})">ENVIAR</button>
+            <span class="blockSub" id="${cardId}_msg"></span>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join("");
+}
+
+function toggleEval_(cardId){
+  const card = document.getElementById(cardId);
+  if (!card) return;
+  const box = card.querySelector('[data-eval="1"]');
+  if (!box) return;
+  box.style.display = (box.style.display === "none" || box.style.display === "") ? "block" : "none";
+}
+
+function getAnswer_(name){
+  const el = document.querySelector(`input[name="${CSS.escape(name)}"]:checked`);
+  return el ? el.value : "";
+}
+
+async function sendEval_(cardId, idx){
+  const student = loadStudentSession();
+  const blocks = window.__ALG_BLOCKS__ || [];
+  const b = blocks[idx];
+  const msg = document.getElementById(cardId + "_msg");
+  if (!student || !b){
+    if (msg) msg.textContent = "Sesión inválida. Vuelva a ingresar.";
+    return;
+  }
+
+  const q1 = getAnswer_(cardId + "_q1");
+  const q2 = getAnswer_(cardId + "_q2");
+  const q3 = getAnswer_(cardId + "_q3");
+  const q4 = getAnswer_(cardId + "_q4");
+  const q5 = getAnswer_(cardId + "_q5");
+
+  if (![q1,q2,q3,q4,q5].every(x => x)){
+    if (msg) msg.textContent = "Marque A–E en las 5 preguntas.";
+    return;
+  }
+
+  if (msg) msg.textContent = "Enviando...";
+
+  try{
+    const res = await apiStudent("save", {
+      clave: student.clave,
+      curso: "ALG",
+      fecha: b.fecha,
+      bloque: b.bloque,
+      tema: b.tema,
+      q1, q2, q3, q4, q5
+    });
+
+    if (res && res.ok){
+      if (msg) msg.textContent = "✅ Guardado.";
+    }else{
+      if (msg) msg.textContent = (res && res.error) ? res.error : "No se pudo guardar.";
+    }
+  }catch(e){
+    console.error(e);
+    if (msg) msg.textContent = "Error de conexión.";
+  }
+}
+
+function escapeHtmlS_(s){
+  return String(s ?? "")
+    .replaceAll("&","&amp;")
+    .replaceAll("<","&lt;")
+    .replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;")
+    .replaceAll("'","&#39;");
+}
+function escapeAttrS_(s){ return escapeHtmlS_(s); }
+
+async function startStudentPortal_(){
+  // Ajustes de cabecera
+  const title = document.getElementById("viewTitle");
+  const desc = document.getElementById("viewDesc");
+  if (title) title.textContent = "PORTAL DE ALUMNOS";
+  if (desc) desc.textContent = "Acceso a material y evaluación (Álgebra).";
+
+  const student = loadStudentSession();
+  if (!student){
+    // si no hay sesión, vuelve al overlay
+    clearRole(); clearStudentSession();
+    showAuth(true);
+    return;
+  }
+
+  try{
+    const blocks = await loadAlgebraSchedule_();
+    window.__ALG_BLOCKS__ = blocks;
+
+    buildStudentUI_(student, blocks);
+
+    const btn = document.getElementById("btnLogoutAlumno");
+    if (btn){
+      btn.addEventListener("click", ()=>{
+        clearRole();
+        clearStudentSession();
+        location.reload();
+      });
+    }
+  }catch(e){
+    console.error(e);
+    buildStudentUI_(student, []);
+    const wrap = document.getElementById("studentBlocks");
+    if (wrap){
+      wrap.innerHTML = `<div class="blockCard"><div class="blockTitle">No se pudo cargar el cronograma.</div><div class="blockSub">${escapeHtmlS_(e.message || "Revise permisos del Sheet.")}</div></div>`;
+    }
+    const btn = document.getElementById("btnLogoutAlumno");
+    if (btn){
+      btn.addEventListener("click", ()=>{
+        clearRole();
+        clearStudentSession();
+        location.reload();
+      });
+    }
+  }
+}
+
+
 function startApp(){
   ensureBoot();
   applyRoleUI();
 
-  // === Alumno: NO cargar toda la matrícula (solo portal) ===
+  // Alumno: no cargar panel admin; solo portal
   if (CURRENT_ROLE === "alumno"){
-    const stu = loadStudentSession();
-    if (!stu){
-      clearRole();
-      location.reload();
-      return;
-    }
-    CURRENT_STUDENT = stu;
     setView("student");
+    startStudentPortal_();
     return;
   }
 
-  // === Admin / Tutor (flujo original) ===
+  // si había una vista guardada, aplícala
   const sv = loadSavedView();
   if (sv && ALLOWED_VIEWS.includes(sv) && state.view !== sv){
     setView(sv);
@@ -4491,52 +4487,5 @@ window.addEventListener("DOMContentLoaded", () => {
   startApp();
 });
 </script>
-
-<!-- =====================================================================
-  ✅ GOOGLE APPS SCRIPT (WEB APP) – PEGAR EN script.google.com
-  Objetivo: recibir el POST del portal alumno y registrar en la hoja
-  Spreadsheet: 1nHCBQLuJ8RZNtLisvAqD916pcxbUmtqPrMnO4V0ewvs
-  Sugerencia: crear una pestaña llamada "RESPUESTAS_PORTAL" (o usar el gid 502858541).
-  Luego:
-    1) Publicar como Web App (Deploy → New deployment → Web app)
-    2) Execute as: Me
-    3) Who has access: Anyone
-    4) Copiar la URL y pegarla en SHEETS_WEBAPP_URL (arriba, en el JS)
-
-  ---- Código Apps Script (Code.gs) ----
-
-  function doPost(e){
-    try{
-      const ss = SpreadsheetApp.openById("1nHCBQLuJ8RZNtLisvAqD916pcxbUmtqPrMnO4V0ewvs");
-      const shName = "RESPUESTAS_PORTAL";
-      const sh = ss.getSheetByName(shName) || ss.insertSheet(shName);
-
-      if (sh.getLastRow() === 0){
-        sh.appendRow(["timestamp_utc","nombre","universidad","local","salon","usuario","opcion"]);
-      }
-
-      const data = JSON.parse(e.postData.contents || "{}");
-      sh.appendRow([
-        data.ts || "",
-        data.nombre || "",
-        data.universidad || "",
-        data.local || "",
-        data.salon || "",
-        data.usuario || "",
-        data.opcion || ""
-      ]);
-
-      return ContentService
-        .createTextOutput(JSON.stringify({ok:true}))
-        .setMimeType(ContentService.MimeType.JSON);
-    }catch(err){
-      return ContentService
-        .createTextOutput(JSON.stringify({ok:false, error:String(err)}))
-        .setMimeType(ContentService.MimeType.JSON);
-    }
-  }
-
-===================================================================== -->
-
 </body>
 </html>
