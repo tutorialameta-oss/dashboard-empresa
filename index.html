@@ -1080,7 +1080,34 @@
     localStorage.removeItem(STUDENT_KEY);
   }
 
-  function withParams(base, params){
+  
+
+function renderStudentFromSession_(){
+  // Renders student portal if a student session exists.
+  const s = loadStudentSession();
+  if (!s){
+    // No student logged in: show login.
+    setView("login");
+    showAuth(true);
+    return;
+  }
+  setView("student");
+  showAuth(false);
+  try{
+    renderStudentView_(s);
+  }catch(e){
+    console.error(e);
+    const viewEl = document.getElementById("view_student");
+    if (viewEl){
+      viewEl.innerHTML = '<div class="card" style="max-width:900px;margin:24px auto;padding:16px;">'
+        + '<h3 style="margin:0 0 8px;">No se pudo cargar el portal del alumno</h3>'
+        + '<div style="color:#b00020;font-weight:700;">' + escapeHtmlS_(e && e.message ? e.message : String(e)) + '</div>'
+        + '</div>';
+    }
+  }
+}
+
+function withParams(base, params){
     const qs = Object.entries(params)
       .filter(([_,v]) => v !== undefined && v !== null && v !== "")
       .map(([k,v]) => `${encodeURIComponent(k)}=${encodeURIComponent(String(v))}`)
@@ -4870,18 +4897,14 @@ async function sendEval_(cardId, idx){
     return;
   }
 
-  const q1 = getAnswer_(cardId + "_q1");
-  const q2 = getAnswer_(cardId + "_q2");
-  const q3 = getAnswer_(cardId + "_q3");
-  const q4 = getAnswer_(cardId + "_q4");
-  const q5 = getAnswer_(cardId + "_q5");
+  const q1 = getAnswer_(cardId + "_q1") || "";
+  const q2 = getAnswer_(cardId + "_q2") || "";
+  const q3 = getAnswer_(cardId + "_q3") || "";
+  const q4 = getAnswer_(cardId + "_q4") || "";
+  const q5 = getAnswer_(cardId + "_q5") || "";
 
-  if (![q1,q2,q3,q4,q5].every(x => x)){
-    if (msg) msg.textContent = "Marque A–E en las 5 preguntas.";
-    return;
-  }
-
-  if (msg) msg.textContent = "Enviando...";
+  // Las respuestas son opcionales: si el alumno no marca nada, igual se envía (se guarda vacío).
+if (msg) msg.textContent = "Enviando...";
 
   try{
     const res = await apiStudent("save", {
