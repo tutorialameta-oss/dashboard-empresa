@@ -6,113 +6,11 @@
   <title>LA META | PANEL DE CONTROL</title>
 
   <!-- Charts -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js">
-  // ===================== PORTAL ALUMNO (RESUMEN) =====================
-  function showAlumnoPortal(){
-    // Mostrar solo MI ESPACIO en menú
-    document.querySelectorAll(".navBtn").forEach(b=>{
-      const v = b.getAttribute("data-view") || "";
-      b.style.display = (v === "view_alumno") ? "block" : "none";
-    });
-    const badge = document.getElementById("roleBadge");
-    if(badge) badge.textContent = "ROL: ALUMNO";
-    renderAlumnoResumen_();
-    showView("view_alumno");
-  }
-
-  function renderAlumnoResumen_(){
-    const box = document.getElementById("view_alumno");
-    if(!box) return;
-    const sess = getStudentSession();
-    if(!sess || !sess.alumno){
-      box.innerHTML = `<div class="card"><div class="h2">Sesión no válida</div></div>`;
-      return;
-    }
-    const a = sess.alumno;
-    box.innerHTML = `
-      <div class="card">
-        <div class="h2">MI RESUMEN</div>
-        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:10px;">
-          <div><div class="k">NOMBRE COMPLETO</div><div class="v">${escapeHtml_(a.nombre||"")}</div></div>
-          <div><div class="k">USUARIO</div><div class="v">${escapeHtml_(a.usuario||"")}</div></div>
-          <div><div class="k">FILA (CONTROL)</div><div class="v">${escapeHtml_(String(sess.row||""))}</div></div>
-        </div>
-      </div>`;
-  }
-
-</script>
-  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js">
-  // ===================== PORTAL ALUMNO (RESUMEN) =====================
-  function showAlumnoPortal(){
-    // Mostrar solo MI ESPACIO en menú
-    document.querySelectorAll(".navBtn").forEach(b=>{
-      const v = b.getAttribute("data-view") || "";
-      b.style.display = (v === "view_alumno") ? "block" : "none";
-    });
-    const badge = document.getElementById("roleBadge");
-    if(badge) badge.textContent = "ROL: ALUMNO";
-    renderAlumnoResumen_();
-    showView("view_alumno");
-  }
-
-  function renderAlumnoResumen_(){
-    const box = document.getElementById("view_alumno");
-    if(!box) return;
-    const sess = getStudentSession();
-    if(!sess || !sess.alumno){
-      box.innerHTML = `<div class="card"><div class="h2">Sesión no válida</div></div>`;
-      return;
-    }
-    const a = sess.alumno;
-    box.innerHTML = `
-      <div class="card">
-        <div class="h2">MI RESUMEN</div>
-        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:10px;">
-          <div><div class="k">NOMBRE COMPLETO</div><div class="v">${escapeHtml_(a.nombre||"")}</div></div>
-          <div><div class="k">USUARIO</div><div class="v">${escapeHtml_(a.usuario||"")}</div></div>
-          <div><div class="k">FILA (CONTROL)</div><div class="v">${escapeHtml_(String(sess.row||""))}</div></div>
-        </div>
-      </div>`;
-  }
-
-</script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
 
   <!-- PNG export (captura COMPLETA del elemento, no solo lo visible) -->
-  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js">
-  // ===================== PORTAL ALUMNO (RESUMEN) =====================
-  function showAlumnoPortal(){
-    // Mostrar solo MI ESPACIO en menú
-    document.querySelectorAll(".navBtn").forEach(b=>{
-      const v = b.getAttribute("data-view") || "";
-      b.style.display = (v === "view_alumno") ? "block" : "none";
-    });
-    const badge = document.getElementById("roleBadge");
-    if(badge) badge.textContent = "ROL: ALUMNO";
-    renderAlumnoResumen_();
-    showView("view_alumno");
-  }
-
-  function renderAlumnoResumen_(){
-    const box = document.getElementById("view_alumno");
-    if(!box) return;
-    const sess = getStudentSession();
-    if(!sess || !sess.alumno){
-      box.innerHTML = `<div class="card"><div class="h2">Sesión no válida</div></div>`;
-      return;
-    }
-    const a = sess.alumno;
-    box.innerHTML = `
-      <div class="card">
-        <div class="h2">MI RESUMEN</div>
-        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:10px;">
-          <div><div class="k">NOMBRE COMPLETO</div><div class="v">${escapeHtml_(a.nombre||"")}</div></div>
-          <div><div class="k">USUARIO</div><div class="v">${escapeHtml_(a.usuario||"")}</div></div>
-          <div><div class="k">FILA (CONTROL)</div><div class="v">${escapeHtml_(String(sess.row||""))}</div></div>
-        </div>
-      </div>`;
-  }
-
-</script>
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 
   <style>
     /* ======================================================================
@@ -877,13 +775,12 @@
       cursor:pointer;
     }
 
-    .roleBtnWide{ grid-column:1 / -1; }
-  .roleBtn{ pointer-events:auto; }
-  .roleBtn.active{ border:2px solid #dc2626; background:#fff1f2; }
+    .roleBtnWide{ grid-column: 1 / -1; }
+  .roleRow{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
 </style>
 
 <script>
-/* ===== ROLE PICKER + SYNC (v17) ===== */
+/* ===== ROLE PICKER FAILSAFE (v16) ===== */
 (function(){
   function set(role){
     window.__ROLE__ = role;
@@ -901,6 +798,7 @@
   }
   window.__pickRole = function(role){ set(role); };
 
+  // Capture by coordinates even if an overlay steals the click
   function within(r,x,y){ return x>=r.left && x<=r.right && y>=r.top && y<=r.bottom; }
   document.addEventListener('pointerdown', function(ev){
     const a = document.getElementById('roleAdmin');
@@ -919,40 +817,6 @@
     }
   }, true);
 })();
-
-  // ===================== PORTAL ALUMNO (RESUMEN) =====================
-  function showAlumnoPortal(){
-    // Mostrar solo MI ESPACIO en menú
-    document.querySelectorAll(".navBtn").forEach(b=>{
-      const v = b.getAttribute("data-view") || "";
-      b.style.display = (v === "view_alumno") ? "block" : "none";
-    });
-    const badge = document.getElementById("roleBadge");
-    if(badge) badge.textContent = "ROL: ALUMNO";
-    renderAlumnoResumen_();
-    showView("view_alumno");
-  }
-
-  function renderAlumnoResumen_(){
-    const box = document.getElementById("view_alumno");
-    if(!box) return;
-    const sess = getStudentSession();
-    if(!sess || !sess.alumno){
-      box.innerHTML = `<div class="card"><div class="h2">Sesión no válida</div></div>`;
-      return;
-    }
-    const a = sess.alumno;
-    box.innerHTML = `
-      <div class="card">
-        <div class="h2">MI RESUMEN</div>
-        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:10px;">
-          <div><div class="k">NOMBRE COMPLETO</div><div class="v">${escapeHtml_(a.nombre||"")}</div></div>
-          <div><div class="k">USUARIO</div><div class="v">${escapeHtml_(a.usuario||"")}</div></div>
-          <div><div class="k">FILA (CONTROL)</div><div class="v">${escapeHtml_(String(sess.row||""))}</div></div>
-        </div>
-      </div>`;
-  }
-
 </script>
 
 </head>
@@ -965,7 +829,6 @@
     <div class="authCard">
       <p class="authTitle">ACCESO AL PANEL</p>
       <p class="authSub">Seleccione su tipo de acceso e ingrese la clave.</p>
-      <p style="margin:6px 0 12px; color:#94a3b8; font-weight:800;">Build: v17</p><p></p>
 
       <div class="roleRow">
         <button id="roleAdmin" class="roleBtn" type="button" onclick="__pickRole('admin')">ADMIN</button>
@@ -1070,23 +933,14 @@
         try{ delete window[cbName]; }catch(e){ window[cbName]=undefined; }
       }
       const timer = setTimeout(()=>{
-        if(done) return;
-        done = true;
-        cleanup();
+        if(done) return; done = true; cleanup();
         reject(new Error("Tiempo de espera agotado"));
       }, timeoutMs);
       window[cbName] = (data)=>{
-        if(done) return;
-        done = true;
-        clearTimeout(timer);
-        cleanup();
-        resolve(data);
+        if(done) return; done = true; clearTimeout(timer); cleanup(); resolve(data);
       };
       script.onerror = ()=>{
-        if(done) return;
-        done = true;
-        clearTimeout(timer);
-        cleanup();
+        if(done) return; done = true; clearTimeout(timer); cleanup();
         reject(new Error("No se pudo conectar con el servidor"));
       };
       const joiner = url.includes("?") ? "&" : "?";
@@ -1094,16 +948,17 @@
       document.body.appendChild(script);
     });
   }
-
   function setStudentSession(obj){ localStorage.setItem(STUDENT_KEY, JSON.stringify(obj||{})); }
   function getStudentSession(){ try{ return JSON.parse(localStorage.getItem(STUDENT_KEY)||"null"); }catch(e){ return null; } }
-  function clearStudentSession(){ localStorage.removeItem(STUDENT_KEY); }
 
 
   const ROLE_KEY = "lameta_role";
   let CURRENT_ROLE = null; // "admin" | "tutor" | "alumno"
 
   function setRole(role){
+    // sync with failsafe
+    if(window.__ROLE__) role = window.__ROLE__;
+
     CURRENT_ROLE = role;
     localStorage.setItem(ROLE_KEY, role);
     applyRoleUI();
@@ -4280,40 +4135,6 @@ window.addEventListener("DOMContentLoaded", () => {
   // 3) Sesión existente: iniciar app
   startApp();
 });
-
-  // ===================== PORTAL ALUMNO (RESUMEN) =====================
-  function showAlumnoPortal(){
-    // Mostrar solo MI ESPACIO en menú
-    document.querySelectorAll(".navBtn").forEach(b=>{
-      const v = b.getAttribute("data-view") || "";
-      b.style.display = (v === "view_alumno") ? "block" : "none";
-    });
-    const badge = document.getElementById("roleBadge");
-    if(badge) badge.textContent = "ROL: ALUMNO";
-    renderAlumnoResumen_();
-    showView("view_alumno");
-  }
-
-  function renderAlumnoResumen_(){
-    const box = document.getElementById("view_alumno");
-    if(!box) return;
-    const sess = getStudentSession();
-    if(!sess || !sess.alumno){
-      box.innerHTML = `<div class="card"><div class="h2">Sesión no válida</div></div>`;
-      return;
-    }
-    const a = sess.alumno;
-    box.innerHTML = `
-      <div class="card">
-        <div class="h2">MI RESUMEN</div>
-        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:10px;">
-          <div><div class="k">NOMBRE COMPLETO</div><div class="v">${escapeHtml_(a.nombre||"")}</div></div>
-          <div><div class="k">USUARIO</div><div class="v">${escapeHtml_(a.usuario||"")}</div></div>
-          <div><div class="k">FILA (CONTROL)</div><div class="v">${escapeHtml_(String(sess.row||""))}</div></div>
-        </div>
-      </div>`;
-  }
-
 </script>
 </body>
 </html>
