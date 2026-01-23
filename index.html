@@ -790,6 +790,7 @@
       <div class="roleRow">
         <button id="roleAdmin" class="roleBtn" type="button">ADMIN</button>
         <button id="roleTutor" class="roleBtn" type="button">TUTOR</button>
+        <button id="roleAlumno" class="roleBtn" type="button">ALUMNO</button>
       </div>
 
       <div class="authRow">
@@ -815,6 +816,7 @@
         <button id="nav_overview" class="active">RESUMEN GENERAL</button>
         <button id="nav_local">CONTROL DE SEDES</button>
         <button id="nav_table">ALUMNOS</button>
+        <button id="nav_student">PORTAL ALUMNO</button>
         <button id="nav_horarios">HORARIOS</button>
         <button id="nav_impresiones">IMPRESIONES</button>
         <!-- ✅ NUEVO -->
@@ -855,6 +857,7 @@
       <div id="view_overview" class="grid"></div>
       <div id="view_local" class="grid" style="display:none;"></div>
       <div id="view_table" class="grid" style="display:none;"></div>
+      <div id="view_student" class="grid" style="display:none;"></div>
       <div id="view_horarios" class="grid" style="display:none;"></div>
       <div id="view_impresiones" class="grid" style="display:none;"></div>
       <!-- ✅ NUEVO -->
@@ -875,8 +878,11 @@
   const AUTH_ADMIN_PASS = "202619";
   const AUTH_TUTOR_PASS = "MBMLaMeta";
 
+  // ✅ API (Google Apps Script Web App) para PORTAL ALUMNO (pega aquí tu URL /exec)
+  const STUDENT_API_URL = "https://script.google.com/macros/s/AKfycbzWE1G1EwtGfF4xk6ON2ArMe_Kwfwnj6M2YUXWxkFJGU4iwscmmPelMErwHMtNR4cvg/exec";
+
   const ROLE_KEY = "lameta_role";
-  let CURRENT_ROLE = null; // "admin" | "tutor"
+  let CURRENT_ROLE = null; // "admin" | "tutor" | "alumno"
 
   function setRole(role){
     CURRENT_ROLE = role;
@@ -886,7 +892,7 @@
 
   function loadRole(){
     const r = localStorage.getItem(ROLE_KEY);
-    return (r === "admin" || r === "tutor") ? r : null;
+    return (r === "admin" || r === "tutor" || r === "alumno") ? r : null;
   }
 
   function clearRole(){
@@ -897,6 +903,8 @@
   function canAccessView(v){
     // Tutor NO puede ver RESUMEN GENERAL ni CONTROL DE SEDES
     if (CURRENT_ROLE === "tutor" && (v === "overview" || v === "local")) return false;
+    // Alumno SOLO puede ver su portal
+    if (CURRENT_ROLE === "alumno" && v !== "student") return false;
     return true;
   }
 
@@ -905,16 +913,23 @@
     if (roleLabel) roleLabel.textContent = CURRENT_ROLE ? ("ROL: " + CURRENT_ROLE.toUpperCase()) : "ROL: -";
 
     const isTutor = (CURRENT_ROLE === "tutor");
+    const isAlumno = (CURRENT_ROLE === "alumno");
     const btnOverview = document.getElementById("nav_overview");
     const btnLocal = document.getElementById("nav_local");
 
     // Ocultar
-    if (btnOverview) btnOverview.style.display = isTutor ? "none" : "";
-    if (btnLocal) btnLocal.style.display = isTutor ? "none" : "";
+    if (btnOverview) btnOverview.style.display = (isTutor || isAlumno) ? "none" : "";
+    if (btnLocal) btnLocal.style.display = (isTutor || isAlumno) ? "none" : "";
+
+    // Alumno: solo mostrar PORTAL ALUMNO
+    const idsToHide = ["nav_table","nav_horarios","nav_impresiones","nav_silabos","nav_materiales","nav_listas","nav_reportes"];
+    const btnStudent = document.getElementById("nav_student");
+    if (btnStudent) btnStudent.style.display = isAlumno ? "" : "none";
+    idsToHide.forEach(id=>{ const b=document.getElementById(id); if (b) b.style.display = isAlumno ? "none" : ""; });
 
     // Bloquear: si la vista actual no está permitida, enviar a ALUMNOS
     if (state && state.view && !canAccessView(state.view)){
-      setView("table");
+      setView(CURRENT_ROLE==="alumno" ? "student" : "table");
     }
   }
 
@@ -939,6 +954,7 @@
     let selected = null;
     const bA = document.getElementById("roleAdmin");
     const bT = document.getElementById("roleTutor");
+    const bS = document.getElementById("roleAlumno");
     const pass = document.getElementById("authPass");
     const err = document.getElementById("authErr");
 
@@ -946,25 +962,73 @@
       selected = r;
       if (bA) bA.classList.toggle("active", r === "admin");
       if (bT) bT.classList.toggle("active", r === "tutor");
+      if (bS) bS.classList.toggle("active", r === "alumno");
       if (err) err.style.display = "none";
       if (pass) pass.focus();
     }
 
     if (bA) bA.addEventListener("click", ()=>pick("admin"));
     if (bT) bT.addEventListener("click", ()=>pick("tutor"));
+    if (bS) bS.addEventListener("click", ()=>pick("alumno"));
 
     function doLogin(){
       const p = String(pass?.value || "");
-      const ok = (selected === "admin" && p === AUTH_ADMIN_PASS) || (selected === "tutor" && p === AUTH_TUTOR_PASS);
-      if (!ok){
+      if (!selected){
         if (err) err.style.display = "block";
         return;
       }
-      setRole(selected);
-      showAuth(false);
-      if (pass) pass.value = "";
-      // Al entrar, fuerza vista permitida
-      if (!canAccessView(loadSavedView() || state.view)) setView("table");
+
+      // ===== ADMIN / TUTOR (clave fija) =====
+      const okBase = (selected === "admin" && p === AUTH_ADMIN_PASS) || (selected === "tutor" && p === AUTH_TUTOR_PASS);
+      if (selected !== "alumno"){
+        if (!okBase){
+          if (err) err.style.display = "block";
+          return;
+        }
+        setRole(selected);
+        showAuth(false);
+        if (pass) pass.value = "";
+        if (!canAccessView(loadSavedView() || state.view)) setView("table");
+        return;
+      }
+
+      // ===== ALUMNO (solo contraseña -> valida en Apps Script) =====
+      if (!STUDENT_API_URL || STUDENT_API_URL.indexOf("PEGAR_AQUI_URL_WEBAPP_APPS_SCRIPT") !== -1){
+        if (err){
+          err.textContent = "Falta configurar la URL del Web App (Apps Script) en STUDENT_API_URL.";
+          err.style.display = "block";
+        }
+        return;
+      }
+
+      // Loading simple
+      const btnLogin = document.getElementById("btnLogin");
+      if (btnLogin) btnLogin.disabled = true;
+      if (err) err.style.display = "none";
+
+      apiStudent("studentAuth", { password: p })
+        .then(r=>{
+          if (!r || !r.ok) throw new Error(r?.error || "No autorizado");
+          // Guarda sesión alumno
+          localStorage.setItem("lameta_student_password", p);
+          localStorage.setItem("lameta_student_profile", JSON.stringify(r.profile || {}));
+          setRole("alumno");
+          showAuth(false);
+          if (pass) pass.value = "";
+          setView("student");
+          // Render inmediato portal
+          startStudentApp();
+        })
+        .catch(e=>{
+          console.error(e);
+          if (err){
+            err.textContent = "Contraseña inválida.";
+            err.style.display = "block";
+          }
+        })
+        .finally(()=>{
+          if (btnLogin) btnLogin.disabled = false;
+        });
     }
 
     const btn = document.getElementById("btnLogin");
@@ -1050,6 +1114,30 @@
   function csvUrl(gid){
     return `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/export?format=csv&gid=${gid}`;
   }
+
+  // ===================== API PORTAL ALUMNO (Apps Script) =====================
+  async function apiStudent(action, payload){
+    const res = await fetch(STUDENT_API_URL, {
+      method: "POST",
+      headers: { "Content-Type":"application/json" },
+      body: JSON.stringify({ action, ...payload })
+    });
+    const t = await res.text();
+    try { return JSON.parse(t); } catch(e){ return { ok:false, error:"Respuesta no JSON", raw:t }; }
+  }
+
+  function getStudentPassword(){
+    return localStorage.getItem("lameta_student_password") || "";
+  }
+  function getStudentProfile(){
+    try { return JSON.parse(localStorage.getItem("lameta_student_profile") || "{}"); } catch(e){ return {}; }
+  }
+  function clearStudentSession(){
+    localStorage.removeItem("lameta_student_password");
+    localStorage.removeItem("lameta_student_profile");
+  }
+  // =================== FIN API PORTAL ALUMNO ===================
+
 
   function parseCSVLine(line){
     const out = [];
@@ -1248,7 +1336,7 @@
   };
 // ===================== PERSISTENCIA DE VISTA (FIX) =====================
 const VIEW_STORAGE_KEY = "LA_META_CURRENT_VIEW";
-const ALLOWED_VIEWS = ["overview","local","table","horarios","impresiones","silabos","materiales","listas","reportes"];
+const ALLOWED_VIEWS = ["overview","local","table","student","horarios","impresiones","silabos","materiales","listas","reportes"];
 
 function saveView(v){
   try { localStorage.setItem(VIEW_STORAGE_KEY, v); } catch(e){}
@@ -1472,8 +1560,8 @@ function loadSavedView(){
   // ============================ NAV ============================
   function setView(v){
     if (!canAccessView(v)){
-      // Bloqueo por rol: redirige a ALUMNOS
-      v = "table";
+      // Bloqueo por rol: redirige a vista permitida
+      v = (CURRENT_ROLE==="alumno") ? "student" : "table";
     }
     state.view = v;
     saveView(v);
@@ -1486,11 +1574,15 @@ function loadSavedView(){
     document.getElementById("nav_materiales").classList.toggle("active", v==="materiales");
     document.getElementById("nav_listas").classList.toggle("active", v==="listas");
     document.getElementById("nav_reportes").classList.toggle("active", v==="reportes");
+    const navStudent = document.getElementById("nav_student");
+    if (navStudent) navStudent.classList.toggle("active", v==="student");
 
 
     document.getElementById("view_overview").style.display = (v==="overview") ? "" : "none";
     document.getElementById("view_local").style.display = (v==="local") ? "" : "none";
     document.getElementById("view_table").style.display = (v==="table") ? "" : "none";
+    const vs = document.getElementById("view_student");
+    if (vs) vs.style.display = (v==="student") ? "" : "none";
     document.getElementById("view_horarios").style.display = (v==="horarios") ? "" : "none";
     document.getElementById("view_impresiones").style.display = (v==="impresiones") ? "" : "none";
     document.getElementById("view_silabos").style.display = (v==="silabos") ? "" : "none";
@@ -1500,7 +1592,7 @@ function loadSavedView(){
 
 
     document.getElementById("controlsMatricula").style.display =
-      (v==="horarios" || v==="impresiones" || v==="silabos" || v==="materiales" || v==="listas" || v==="reportes") ? "none" : "";
+      (v==="student" || v==="horarios" || v==="impresiones" || v==="silabos" || v==="materiales" || v==="listas" || v==="reportes") ? "none" : "";
 
 
     // ✅ estado solo visible en ALUMNOS (tabla)
@@ -1510,6 +1602,7 @@ function loadSavedView(){
       overview: ["RESUMEN GENERAL", "Panel estructurado para control de matrícula, modalidad y distribución por universidad."],
       local: ["POR LOCAL", "Monitoreo por salón (tutor) del local seleccionado."],
       table: ["ALUMNOS", "Búsqueda y filtros para consulta interna."],
+      student: ["PORTAL ALUMNO", "Acceso a datos personales y evaluaciones."],
       horarios: ["HORARIOS", "Plantillas de horarios por local y universidad."],
       impresiones: ["IMPRESIONES", "Control en tiempo real de hojas a imprimir por local y salón."],
       silabos: ["SÍLABOS", "Acceso directo a sílabos por universidad. Haga clic en el curso para abrir el Excel."],
@@ -1849,7 +1942,260 @@ function loadSavedView(){
     el.dataset.ready = "1";
   }
 
-  function renderOverview(){
+  
+  // ===================== PORTAL ALUMNO =====================
+  function ensureStudentLayout(){
+    const el = document.getElementById("view_student");
+    if (!el || el.dataset.ready === "1") return;
+
+    el.innerHTML = `
+      <div class="card panel12">
+        <div class="cardtitle">DATOS DEL ALUMNO</div>
+        <div id="stu_profile" style="display:grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap:10px;"></div>
+      </div>
+
+      <div class="card panel12">
+        <div class="cardtitle">EVALUACIONES</div>
+        <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:10px;">
+          <select id="stu_course" style="min-width:220px;">
+            <option value="ALGEBRA">ALGEBRA</option>
+            <option value="ARITMETICA" disabled>ARITMETICA (próximamente)</option>
+            <option value="GEOMETRIA" disabled>GEOMETRIA (próximamente)</option>
+            <option value="TRIGONOMETRIA" disabled>TRIGONOMETRIA (próximamente)</option>
+            <option value="FISICA" disabled>FISICA (próximamente)</option>
+            <option value="QUIMICA" disabled>QUIMICA (próximamente)</option>
+            <option value="BIOLOGIA" disabled>BIOLOGIA (próximamente)</option>
+            <option value="RAZ_MAT" disabled>RAZ. MATEMATICO (próximamente)</option>
+            <option value="RAZ_VER" disabled>RAZ. VERBAL (próximamente)</option>
+            <option value="HISTORIA" disabled>HISTORIA (próximamente)</option>
+            <option value="GEOGRAFIA" disabled>GEOGRAFIA (próximamente)</option>
+            <option value="ECONOMIA" disabled>ECONOMIA (próximamente)</option>
+          </select>
+          <button id="stu_reload" type="button">ACTUALIZAR</button>
+        </div>
+
+        <div id="stu_eval_list" style="display:grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap:12px;"></div>
+      </div>
+
+      <div id="stu_modal" style="display:none; position:fixed; inset:0; background:rgba(15,23,42,0.55); z-index:9999; padding:24px; overflow:auto;">
+        <div style="max-width:880px; margin:0 auto; background:#fff; border-radius:18px; padding:18px; box-shadow: var(--shadow);">
+          <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
+            <div>
+              <div style="font-weight:1000; font-size:18px;" id="stu_modal_title">EVALUACIÓN</div>
+              <div style="color:var(--muted); font-weight:800;" id="stu_modal_sub">Responde las 5 preguntas y envía.</div>
+            </div>
+            <button id="stu_modal_close" type="button" style="border:1px solid var(--border); background:#fff; border-radius:12px; padding:8px 12px; font-weight:900; cursor:pointer;">CERRAR</button>
+          </div>
+
+          <div style="display:flex; gap:10px; flex-wrap:wrap; margin:12px 0;">
+            <a id="stu_modal_pdf" target="_blank" rel="noopener" style="display:inline-flex; align-items:center; gap:8px; border:1px solid var(--border); padding:10px 12px; border-radius:12px; font-weight:900; text-decoration:none; color:var(--text);">
+              ABRIR PDF
+            </a>
+            <div id="stu_modal_msg" style="font-weight:900; color:var(--muted);"></div>
+          </div>
+
+          <form id="stu_form" style="display:grid; gap:12px;"></form>
+
+          <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:14px;">
+            <button id="stu_send" type="button" style="background:var(--accent); color:#fff; border:none; border-radius:14px; padding:12px 16px; font-weight:1000; cursor:pointer;">ENVIAR</button>
+          </div>
+        </div>
+      </div>
+    `;
+
+    el.dataset.ready = "1";
+  }
+
+  function kv(label, value){
+    return `
+      <div style="border:1px solid var(--border); border-radius:14px; padding:10px 12px;">
+        <div style="font-size:12px; color:var(--muted); font-weight:900;">${escapeHtml(label)}</div>
+        <div style="font-size:14px; font-weight:1000;">${escapeHtml(value || "-")}</div>
+      </div>
+    `;
+  }
+
+  function buildQuestion(i){
+    const letters = ["A","B","C","D","E"];
+    const opts = letters.map(L => `
+      <label style="display:flex; align-items:center; gap:10px; border:1px solid var(--border); border-radius:14px; padding:10px 12px; cursor:pointer;">
+        <input type="radio" name="q${i}" value="${L}" />
+        <span style="font-weight:1000;">${L}</span>
+      </label>
+    `).join("");
+
+    return `
+      <div style="border:1px solid var(--border); border-radius:16px; padding:12px;">
+        <div style="font-weight:1000; margin-bottom:10px;">Pregunta ${i}</div>
+        <div style="display:grid; grid-template-columns: repeat(5, minmax(0,1fr)); gap:10px;">${opts}</div>
+      </div>
+    `;
+  }
+
+  function openStudentModal(ctx){
+    const modal = document.getElementById("stu_modal");
+    const title = document.getElementById("stu_modal_title");
+    const pdf = document.getElementById("stu_modal_pdf");
+    const form = document.getElementById("stu_form");
+    const msg = document.getElementById("stu_modal_msg");
+    if (!modal || !title || !pdf || !form || !msg) return;
+
+    title.textContent = `${ctx.course} | ${ctx.dateLabel} | BLOQUE ${ctx.block}`;
+    pdf.href = ctx.pdfUrl || "#";
+    pdf.style.pointerEvents = ctx.pdfUrl ? "" : "none";
+    pdf.style.opacity = ctx.pdfUrl ? "1" : "0.5";
+    msg.textContent = "";
+
+    form.innerHTML = [1,2,3,4,5].map(buildQuestion).join("");
+    modal.style.display = "block";
+
+    const close = document.getElementById("stu_modal_close");
+    if (close) close.onclick = ()=>{ modal.style.display = "none"; };
+
+    const send = document.getElementById("stu_send");
+    if (send){
+      send.onclick = async ()=>{
+        const answers = [];
+        for (let i=1;i<=5;i++){
+          const v = form.querySelector(`input[name="q${i}"]:checked`)?.value || "";
+          answers.push(v);
+        }
+        if (answers.some(x=>!x)){
+          msg.textContent = "Completa las 5 respuestas antes de enviar.";
+          msg.style.color = "#dc2626";
+          return;
+        }
+
+        send.disabled = true;
+        send.style.opacity = "0.7";
+        msg.textContent = "Enviando...";
+        msg.style.color = "var(--muted)";
+
+        const password = getStudentPassword();
+        const resp = await apiStudent("submitEval", {
+          password,
+          course: ctx.course,
+          dateISO: ctx.dateISO,
+          block: ctx.block,
+          answers
+        });
+
+        if (!resp || !resp.ok){
+          msg.textContent = resp?.error || "No se pudo enviar.";
+          msg.style.color = "#dc2626";
+          send.disabled = false;
+          send.style.opacity = "1";
+          return;
+        }
+
+        msg.textContent = resp.score !== null && resp.score !== undefined
+          ? `EVALUACIÓN RESUELTA ✅  Puntaje: ${resp.score}/5`
+          : "Enviado ✅ (pendiente de clave)";
+        msg.style.color = "var(--ok)";
+
+        // refresca lista y cierra luego
+        await renderStudentEvaluations();
+        setTimeout(()=>{ modal.style.display = "none"; }, 900);
+      };
+    }
+  }
+
+  function renderStudent(){
+    ensureStudentLayout();
+
+    const profile = getStudentProfile() || {};
+    const p = document.getElementById("stu_profile");
+    if (p){
+      p.innerHTML = [
+        kv("NOMBRE COMPLETO", profile.nombre || profile.nombres || ""),
+        kv("LOCAL", profile.local || ""),
+        kv("UNIVERSIDAD", profile.universidad || profile.ciclo || ""),
+        kv("SALÓN", profile.salon || ""),
+        kv("MODALIDAD", profile.modalidad || ""),
+        kv("ESTADO", profile.estado || ""),
+        kv("CORREO", profile.correo || ""),
+        kv("DNI", profile.dni || ""),
+        kv("CELULAR", profile.celular || ""),
+        kv("APODERADO", profile.apoderado || ""),
+        kv("CEL APODERADO", profile.cel_apoderado || ""),
+        kv("DNI APODERADO", profile.dni_apoderado || ""),
+        kv("CORREO APODERADO", profile.correo_apoderado || "")
+      ].join("");
+    }
+
+    const btn = document.getElementById("stu_reload");
+    if (btn) btn.onclick = renderStudentEvaluations;
+
+    renderStudentEvaluations();
+  }
+
+  async function renderStudentEvaluations(){
+    const list = document.getElementById("stu_eval_list");
+    const courseSel = document.getElementById("stu_course");
+    if (!list || !courseSel) return;
+
+    list.innerHTML = `<div class="card panel12"><div class="cardtitle">CARGANDO...</div><div style="color:var(--muted); font-weight:900;">Espere un momento.</div></div>`;
+
+    const password = getStudentPassword();
+    const course = courseSel.value || "ALGEBRA";
+    const resp = await apiStudent("getStudentEvaluations", { password, course });
+
+    if (!resp || !resp.ok){
+      list.innerHTML = `<div class="card panel12"><div class="cardtitle">ERROR</div><div style="color:#dc2626; font-weight:900;">${escapeHtml(resp?.error || "No se pudo cargar.")}</div></div>`;
+      return;
+    }
+
+    const items = resp.items || [];
+    if (!items.length){
+      list.innerHTML = `<div class="card panel12"><div class="cardtitle">SIN EVALUACIONES</div><div style="color:var(--muted); font-weight:900;">No hay evaluaciones disponibles.</div></div>`;
+      return;
+    }
+
+    list.innerHTML = items.map(it=>{
+      const disabled = !it.available || it.submitted;
+      const statusTxt = it.submitted
+        ? (it.score !== null && it.score !== undefined ? `RESUELTA (${it.score}/5)` : "ENVIADA")
+        : (it.available ? "PENDIENTE" : "NO DISPONIBLE");
+
+      const statusColor = it.submitted ? "var(--ok)" : (it.available ? "var(--warn)" : "var(--muted)");
+
+      return `
+        <div style="border:1px solid var(--border); border-radius:18px; padding:14px; background:#fff;">
+          <div style="font-weight:1000; font-size:15px;">${escapeHtml(it.course)} | ${escapeHtml(it.dateLabel)} | BLOQUE ${escapeHtml(it.block)}</div>
+          <div style="margin-top:6px; font-weight:1000; color:${statusColor};">${escapeHtml(statusTxt)}</div>
+
+          <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:12px;">
+            <a target="_blank" rel="noopener" href="${escapeHtml(it.pdfUrl || "#")}"
+               style="text-decoration:none; border:1px solid var(--border); padding:10px 12px; border-radius:14px; font-weight:1000; color:var(--text); ${it.pdfUrl ? "" : "pointer-events:none; opacity:0.5;"}">
+              ABRIR PDF
+            </a>
+            <button type="button"
+              ${disabled ? "disabled" : ""}
+              data-date="${escapeHtml(it.dateISO)}"
+              data-block="${escapeHtml(it.block)}"
+              style="border:none; border-radius:14px; padding:10px 12px; font-weight:1000; cursor:${disabled ? "not-allowed" : "pointer"}; background:${disabled ? "#f1f5f9" : "var(--accent)"}; color:${disabled ? "var(--muted)" : "#fff"};">
+              ${it.submitted ? "ENVIADO" : "RESPONDER"}
+            </button>
+          </div>
+        </div>
+      `;
+    }).join("");
+
+    // bind responder buttons
+    list.querySelectorAll('button[data-date]').forEach(b=>{
+      b.addEventListener("click", ()=>{
+        const dateISO = b.getAttribute("data-date");
+        const block = b.getAttribute("data-block");
+        const it = items.find(x => x.dateISO===dateISO && x.block===block);
+        if (!it) return;
+        openStudentModal(it);
+      });
+    });
+  }
+  // =================== FIN PORTAL ALUMNO ===================
+
+
+function renderOverview(){
     ensureOverviewLayout();
 
     // ✅ overview siempre con matrícula ACTIVO/RETIRO (NO CAMBIO)
@@ -3931,6 +4277,8 @@ function ensureBoot(){
   document.getElementById("nav_overview").addEventListener("click", ()=>setView("overview"));
   document.getElementById("nav_local").addEventListener("click", ()=>setView("local"));
   document.getElementById("nav_table").addEventListener("click", ()=>setView("table"));
+  const ns = document.getElementById("nav_student");
+  if (ns) ns.addEventListener("click", ()=>setView("student"));
   document.getElementById("nav_horarios").addEventListener("click", ()=>setView("horarios"));
   document.getElementById("nav_impresiones").addEventListener("click", ()=>setView("impresiones"));
   document.getElementById("nav_silabos").addEventListener("click", ()=>setView("silabos"));
@@ -3943,6 +4291,7 @@ function ensureBoot(){
   // logout
   const outBtn = document.getElementById("btnLogout");
   if (outBtn) outBtn.addEventListener("click", ()=>{
+    clearStudentSession();
     clearRole();
     location.reload();
   });
@@ -4018,7 +4367,34 @@ async function loadAll(){
 
 
 
+function startStudentApp(){
+  ensureBoot();
+  applyRoleUI();
+  setView("student");
+  renderStudent();
+}
+
+function startStudentApp(){
+  ensureBoot();
+  applyRoleUI();
+  setView("student");
+  renderStudent();
+}
+
+function startStudentApp(){
+  ensureBoot();
+  applyRoleUI();
+  setView("student");
+  renderStudent();
+}
+
 function startApp(){
+  // Alumno no descarga toda la matrícula
+  if (CURRENT_ROLE === "alumno"){
+    startStudentApp();
+    return;
+  }
+
   ensureBoot();
   applyRoleUI();
 
