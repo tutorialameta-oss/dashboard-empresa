@@ -1164,9 +1164,6 @@
       document.body.appendChild(script);
     });
   });
-    const t = await res.text();
-    try { return JSON.parse(t); } catch(e){ return { ok:false, error:"Respuesta no JSON", raw:t }; }
-  }
 
   function getStudentPassword(){
     return localStorage.getItem("lameta_student_password") || "";
