@@ -1039,7 +1039,7 @@
 
   // ✅ API (Apps Script Web App) para ALUMNOS (login + guardar respuestas)
   const STUDENT_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxHaXXfPIsGODuJo5J1TZvESJuYBslDloH4p8AphemCIPScRROxPjlMdJNluMqxgnMh/exec";
-  const BUILD = "V10-STUDENTDEBUG";
+  const BUILD = "V11-STUDENTFIX";
 
   const FORCE_AUTH_EVERY_LOAD = true; // ✅ PON EN false cuando ya esté estable
 
@@ -1285,7 +1285,7 @@ let done = false;
       }catch(e){
         console.error(e);
         if (err){
-          err.textContent = role==="student" ? `No se pudo conectar. URL: ${window.__lastStudentUrl||"(sin url)"} ` : "No se pudo conectar. Revise su internet e intente de nuevo.";
+          err.textContent = (selected==="alumno") ? `No se pudo conectar con el servidor de ALUMNOS. URL: ${window.__lastStudentUrl||"(sin url)"} | ${String(e&&e.message?e.message:e)}` : "No se pudo conectar. Revise su internet e intente de nuevo.";
           err.style.display = "block";
         }
       }
