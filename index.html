@@ -723,8 +723,7 @@
     }
     .authTitle{ font-weight:950; font-size:16px; margin:0 0 8px 0; text-transform:uppercase; }
     .authSub{ color:var(--muted); font-weight:800; margin:0 0 14px 0; font-size:12px; }
-        .authBuild{margin:6px 0 0;color:#6b7280;font-size:12px;}
-.roleRow{ display:flex; gap:10px; flex-wrap:wrap; margin-bottom:12px; }
+    .roleRow{ display:flex; gap:10px; flex-wrap:wrap; margin-bottom:12px; }
     .roleBtn{
       flex:1;
       min-width: 160px;
@@ -776,163 +775,6 @@
       cursor:pointer;
     }
 
-    /* ===================== ALUMNO (PORTAL) ===================== */
-    .studentMode{ grid-template-columns: 1fr !important; }
-    .studentMode .sidebar{ display:none !important; }
-    .studentWrap{
-      display:flex; flex-direction:column; gap:14px;
-    }
-    .studentHero{
-      border:1px solid var(--border);
-      border-radius: var(--radius);
-      background: #fff;
-      box-shadow: var(--shadow);
-      padding:16px;
-    }
-    .studentHero h3{ margin:0 0 6px 0; font-size:18px; font-weight:950; }
-    .studentMeta{ color:var(--muted); font-weight:800; font-size:12px; }
-    .studentGrid{ display:grid; gap:12px; grid-template-columns: 1fr; }
-
-    .page{ max-width: 1200px; margin:0 auto; padding: 18px 18px 60px; }
-    .pageHead{ display:flex; align-items:flex-start; justify-content:space-between; gap:16px; margin-bottom:14px; }
-    .pageHead .h1{ margin:0; }
-    .pageHead .sub{ margin:6px 0 0; color:var(--muted); font-weight:800; }
-    .hero{ padding:18px; }
-    .studentGrid{ grid-template-columns: 1fr; }
-    @media(min-width: 980px){
-      .studentGrid{ grid-template-columns: 1fr; }
-    }
-
-    .section{
-      border:1px solid var(--border);
-      border-radius: var(--radius);
-      background:#fff;
-      box-shadow: var(--shadow);
-      overflow:hidden;
-    }
-    .section > summary{
-      padding:14px 16px;
-      font-weight:950;
-      cursor:pointer;
-      list-style:none;
-    }
-    .section > summary::-webkit-details-marker{ display:none; }
-    .sectionBody{ padding: 12px 16px 16px; border-top:1px solid var(--border); }
-
-    .kv{ display:grid; gap:8px; }
-    .kvRow{ display:grid; grid-template-columns: 160px 1fr; gap:12px; align-items:start; }
-    .kvK{ color:var(--muted); font-weight:900; }
-    .kvV{ font-weight:900; }
-
-    .row{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:12px; }
-    .lbl{ font-weight:950; color:var(--muted); }
-    .sel{ min-width: 280px; padding:10px 12px; border:1px solid var(--border); border-radius: 12px; font-weight:900; background:#fff; }
-
-    .tabs{ display:flex; gap:8px; margin: 8px 0 14px; flex-wrap:wrap; }
-    .tab{
-      padding:10px 12px;
-      border:1px solid var(--border);
-      border-radius: 999px;
-      background:#fff;
-      font-weight:950;
-      cursor:pointer;
-    }
-    .tab.active{ border-color: rgba(185,28,28,0.55); box-shadow: 0 0 0 4px rgba(185,28,28,0.10); }
-    .tab:disabled{ opacity:0.5; cursor:not-allowed; }
-
-    .evalWeek{
-      border:1px solid var(--border);
-      border-radius: 16px;
-      background:#fff;
-      overflow:hidden;
-      margin-bottom:10px;
-    }
-    .evalWeek > summary{
-      padding: 12px 14px;
-      font-weight:950;
-      cursor:pointer;
-      list-style:none;
-      background: rgba(185,28,28,0.04);
-    }
-    .evalWeek > summary::-webkit-details-marker{ display:none; }
-    .evalWeekBody{ padding: 12px; display:flex; flex-direction:column; gap:12px; }
-
-    .blockTitle{ font-weight:950; }
-    .blockBtns{ display:flex; gap:8px; align-items:center; }
-    .qa{ display:flex; flex-direction:column; gap:12px; margin-top: 10px; }
-    .q{ border-top:1px dashed rgba(15,23,42,0.12); padding-top:10px; }
-    .qTitle{ font-weight:950; margin-bottom:8px; }
-    .optRow{ display:flex; gap:10px; flex-wrap:wrap; }
-    .opt{
-      display:inline-flex; align-items:center; gap:8px;
-      border:1px solid var(--border);
-      padding:10px 12px;
-      border-radius: 14px;
-      background:#fff;
-      font-weight:950;
-      cursor:pointer;
-      user-select:none;
-    }
-    .opt input{ accent-color: var(--accent); }
-
-    .blockCard{
-      border:1px solid var(--border);
-      border-radius: var(--radius);
-      background:#fff;
-      box-shadow: 0 10px 24px rgba(15,23,42,0.08);
-      padding:14px;
-    }
-    .blockTop{ display:flex; justify-content:space-between; gap:10px; align-items:flex-start; flex-wrap:wrap; }
-    .blockTitle{ font-weight:950; }
-    .blockSub{ color:var(--muted); font-weight:800; font-size:12px; }
-    .blockActions{ display:flex; gap:8px; flex-wrap:wrap; }
-    .btnSmall{
-      padding:8px 10px;
-      border-radius: 12px;
-      border:1px solid var(--border);
-      background:#fff;
-      font-weight:900;
-      cursor:pointer;
-      text-decoration:none;
-      color:inherit;
-      display:inline-flex;
-      align-items:center;
-      gap:6px;
-    }
-    .btnPrimary{
-      background: linear-gradient(90deg,var(--accent2),var(--accent));
-      color:#fff;
-      border-color: transparent;
-    }
-    .qGrid{ display:grid; gap:10px; margin-top:12px; }
-    .qRow{
-      border:1px solid var(--border);
-      border-radius: 14px;
-      padding:10px;
-      background: #fafafa;
-    }
-    .qLabel{ font-weight:950; font-size:12px; margin-bottom:8px; color:var(--text); }
-    .optRow{ display:flex; gap:10px; flex-wrap:wrap; }
-    .optRow label{
-      display:flex; gap:6px; align-items:center;
-      padding:6px 8px;
-      border:1px solid var(--border);
-      border-radius: 999px;
-      background:#fff;
-      font-weight:900;
-      cursor:pointer;
-      user-select:none;
-    }
-    .studentNote{
-      border:1px dashed var(--border);
-      border-radius: var(--radius);
-      padding:12px;
-      color:var(--muted);
-      font-weight:800;
-      font-size:12px;
-      background:#fff;
-    }
-
   </style>
 </head>
 
@@ -944,12 +786,10 @@
     <div class="authCard">
       <p class="authTitle">ACCESO AL PANEL</p>
       <p class="authSub">Seleccione su tipo de acceso e ingrese la clave.</p>
-      <p class="authBuild" id="authBuild"></p>
 
       <div class="roleRow">
         <button id="roleAdmin" class="roleBtn" type="button">ADMIN</button>
         <button id="roleTutor" class="roleBtn" type="button">TUTOR</button>
-        <button id="roleAlumno" class="roleBtn" type="button">ALUMNO</button>
       </div>
 
       <div class="authRow">
@@ -1022,8 +862,6 @@
       <div id="view_materiales" class="grid" style="display:none;"></div>
       <div id="view_listas" class="grid" style="display:none;"></div>
       <div id="view_reportes" class="grid" style="display:none;"></div>
-      <!-- ✅ NUEVO: PORTAL ALUMNO -->
-      <div id="view_student" class="grid" style="display:none;"></div>
 
     </main>
   </div>
@@ -1037,14 +875,8 @@
   const AUTH_ADMIN_PASS = "202619";
   const AUTH_TUTOR_PASS = "MBMLaMeta";
 
-  // ✅ API (Apps Script Web App) para ALUMNOS (login + guardar respuestas)
-  const STUDENT_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxHaXXfPIsGODuJo5J1TZvESJuYBslDloH4p8AphemCIPScRROxPjlMdJNluMqxgnMh/exec";
-  const BUILD = "V12-STUDENTFIX";
-
-  const FORCE_AUTH_EVERY_LOAD = true; // ✅ PON EN false cuando ya esté estable
-
   const ROLE_KEY = "lameta_role";
-  let CURRENT_ROLE = null; // "admin" | "tutor" | "alumno"
+  let CURRENT_ROLE = null; // "admin" | "tutor"
 
   function setRole(role){
     CURRENT_ROLE = role;
@@ -1054,7 +886,7 @@
 
   function loadRole(){
     const r = localStorage.getItem(ROLE_KEY);
-    return (r === "admin" || r === "tutor" || r === "alumno") ? r : null;
+    return (r === "admin" || r === "tutor") ? r : null;
   }
 
   function clearRole(){
@@ -1062,119 +894,7 @@
     CURRENT_ROLE = null;
   }
 
-
-  const STUDENT_KEY = "lameta_student";
-
-  function saveStudentSession(obj){
-    localStorage.setItem(STUDENT_KEY, JSON.stringify(obj || {}));
-  }
-  function loadStudentSession(){
-    try{
-      const raw = localStorage.getItem(STUDENT_KEY);
-      const o = raw ? JSON.parse(raw) : null;
-      if (o && o.clave && o.nombre) return o;
-    }catch(e){}
-    return null;
-  }
-  function clearStudentSession(){
-    localStorage.removeItem(STUDENT_KEY);
-  }
-
-  
-
-function renderStudentFromSession_(){
-  // Renders student portal if a student session exists.
-  const s = loadStudentSession();
-  if (!s){
-    // No student logged in: show login.
-    setView("login");
-    showAuth(true);
-    return;
-  }
-  setView("student");
-  showAuth(false);
-  try{
-    renderStudentView_(s);
-  }catch(e){
-    console.error(e);
-    const viewEl = document.getElementById("view_student");
-    if (viewEl){
-      viewEl.innerHTML = '<div class="card" style="max-width:900px;margin:24px auto;padding:16px;">'
-        + '<h3 style="margin:0 0 8px;">No se pudo cargar el portal del alumno</h3>'
-        + '<div style="color:#b00020;font-weight:700;">' + escapeHtmlS_(e && e.message ? e.message : String(e)) + '</div>'
-        + '</div>';
-    }
-  }
-}
-
-function withParams(base, params){
-    const qs = Object.entries(params)
-      .filter(([_,v]) => v !== undefined && v !== null && v !== "")
-      .map(([k,v]) => `${encodeURIComponent(k)}=${encodeURIComponent(String(v))}`)
-      .join("&");
-    const hasQ = base.includes("?");
-    const sep = hasQ ? (base.endsWith("?") || base.endsWith("&") ? "" : "&") : "?";
-    return base + (qs ? sep + qs : "");
-  }
-
-
-
-  async function apiStudent(action, payload){
-    // JSONP (evita CORS en GitHub Pages)
-    return await new Promise((resolve, reject)=>{
-      try{
-        const params = new URLSearchParams();
-        params.set("action", String(action||""));
-        const obj = payload || {};
-        Object.keys(obj).forEach(k=>{
-          if (obj[k] !== undefined && obj[k] !== null) params.set(k, String(obj[k]));
-        });
-
-        // callback seguro (solo letras+números, Apps Script no lo modifica)
-        const cb = "cb" + Date.now() + String(Math.floor(Math.random()*1e6));
-        params.set("callback", cb);
-
-        const url = STUDENT_WEBAPP_URL + (STUDENT_WEBAPP_URL.includes("?") ? "&" : "?") + params.toString();
-
-            window.__lastStudentUrl = url;
-let done = false;
-        const cleanup = ()=>{
-          if (done) return;
-          done = true;
-          try{ delete window[cb]; }catch(e){}
-          try{ script && script.remove(); }catch(e){}
-          if (timer) clearTimeout(timer);
-        };
-
-        const timer = setTimeout(()=>{
-          cleanup();
-          reject(new Error("timeout"));
-        }, 12000);
-
-        window[cb] = (data)=>{
-          cleanup();
-          resolve(data);
-        };
-
-        const script = document.createElement("script");
-        script.async = true;
-        script.src = url;
-        script.onerror = ()=>{
-          cleanup();
-          reject(new Error("load_error"));
-        };
-        document.head.appendChild(script);
-      }catch(err){
-        reject(err);
-      }
-    });
-  }
-
-
-
   function canAccessView(v){
-    // Alumno: solo PORTAL
-    if (CURRENT_ROLE === "alumno") return (v === "student");
     // Tutor NO puede ver RESUMEN GENERAL ni CONTROL DE SEDES
     if (CURRENT_ROLE === "tutor" && (v === "overview" || v === "local")) return false;
     return true;
@@ -1185,29 +905,16 @@ let done = false;
     if (roleLabel) roleLabel.textContent = CURRENT_ROLE ? ("ROL: " + CURRENT_ROLE.toUpperCase()) : "ROL: -";
 
     const isTutor = (CURRENT_ROLE === "tutor");
-    const isAlumno = (CURRENT_ROLE === "alumno");
-    const app = document.getElementById("appShell");
-    if (app) app.classList.toggle("studentMode", isAlumno);
-
     const btnOverview = document.getElementById("nav_overview");
     const btnLocal = document.getElementById("nav_local");
 
     // Ocultar
-    // Alumno: ocultar todo el menú (modo portal)
-    const nav = document.querySelector(".sidebar .nav");
-    if (nav) nav.style.display = isAlumno ? "none" : "";
-    const userBox = document.querySelector(".sidebar .userBox");
-    if (userBox) userBox.style.display = isAlumno ? "none" : "";
-
     if (btnOverview) btnOverview.style.display = isTutor ? "none" : "";
     if (btnLocal) btnLocal.style.display = isTutor ? "none" : "";
 
     // Bloquear: si la vista actual no está permitida, enviar a ALUMNOS
     if (state && state.view && !canAccessView(state.view)){
-      setView(isAlumno ? "student" : "table");
-    }
-    if (isAlumno){
-      setView("student");
+      setView("table");
     }
   }
 
@@ -1219,27 +926,8 @@ let done = false;
   }
 
   function initAuth(){
-    if (FORCE_AUTH_EVERY_LOAD){
-      clearRole();
-      clearStudentSession();
-    }
     const saved = loadRole();
-
-    // ✅ Si es alumno, exige sesión guardada
-    if (saved === "alumno"){
-      const ss = loadStudentSession();
-      if (ss){
-        CURRENT_ROLE = "alumno";
-        showAuth(false);
-        applyRoleUI();
-        return true;
-      }
-      // si no hay sesión válida, limpia y pide login
-      clearRole();
-      clearStudentSession();
-    }
-
-    if (saved === "admin" || saved === "tutor"){
+    if (saved){
       CURRENT_ROLE = saved;
       showAuth(false);
       applyRoleUI();
@@ -1251,7 +939,6 @@ let done = false;
     let selected = null;
     const bA = document.getElementById("roleAdmin");
     const bT = document.getElementById("roleTutor");
-    const bS = document.getElementById("roleAlumno");
     const pass = document.getElementById("authPass");
     const err = document.getElementById("authErr");
 
@@ -1259,67 +946,29 @@ let done = false;
       selected = r;
       if (bA) bA.classList.toggle("active", r === "admin");
       if (bT) bT.classList.toggle("active", r === "tutor");
-      if (bS) bS.classList.toggle("active", r === "alumno");
-      if (err){ err.style.display = "none"; err.textContent = "Clave incorrecta o rol no seleccionado."; }
-      if (pass){
-        pass.value = "";
-        pass.placeholder = (r === "alumno") ? "Clave de alumno" : "Clave";
-        pass.focus();
-      }
+      if (err) err.style.display = "none";
+      if (pass) pass.focus();
     }
 
     if (bA) bA.addEventListener("click", ()=>pick("admin"));
     if (bT) bT.addEventListener("click", ()=>pick("tutor"));
-    if (bS) bS.addEventListener("click", ()=>pick("alumno"));
 
-    async function doLogin(){
-      const p = String(pass?.value || "").trim();
-      if (!selected){
+    function doLogin(){
+      const p = String(pass?.value || "");
+      const ok = (selected === "admin" && p === AUTH_ADMIN_PASS) || (selected === "tutor" && p === AUTH_TUTOR_PASS);
+      if (!ok){
         if (err) err.style.display = "block";
         return;
       }
-
-      // ADMIN / TUTOR (local)
-      if (selected === "admin" || selected === "tutor"){
-        const ok = (selected === "admin" && p === AUTH_ADMIN_PASS) || (selected === "tutor" && p === AUTH_TUTOR_PASS);
-        if (!ok){
-          if (err) err.style.display = "block";
-          return;
-        }
-        setRole(selected);
-        showAuth(false);
-        if (pass) pass.value = "";
-        if (!canAccessView(loadSavedView() || state.view)) setView("table");
-        return;
-      }
-
-      // ALUMNO (Apps Script)
-      try{
-        const res = await apiStudent("login", { clave: p });
-        if (!res || !res.ok){
-          if (err){
-            err.textContent = (res && res.error) ? res.error : "Clave incorrecta.";
-            err.style.display = "block";
-          }
-          return;
-        }
-        // guardar sesión del alumno
-        saveStudentSession({ nombre: res.alumno.nombre, clave: p });
-        setRole("alumno");
-        showAuth(false);
-        if (pass) pass.value = "";
-        setView("student");
-      }catch(e){
-        console.error(e);
-        if (err){
-          err.textContent = (selected==="alumno") ? `No se pudo conectar con el servidor de ALUMNOS. URL: ${window.__lastStudentUrl||"(sin url)"} | ${String(e&&e.message?e.message:e)}` : "No se pudo conectar. Revise su internet e intente de nuevo.";
-          err.style.display = "block";
-        }
-      }
+      setRole(selected);
+      showAuth(false);
+      if (pass) pass.value = "";
+      // Al entrar, fuerza vista permitida
+      if (!canAccessView(loadSavedView() || state.view)) setView("table");
     }
 
     const btn = document.getElementById("btnLogin");
-    if (btn) btn.addEventListener("click", ()=>doLogin());
+    if (btn) btn.addEventListener("click", doLogin);
 
     if (pass) pass.addEventListener("keydown", (e)=>{
       if (e.key === "Enter") doLogin();
@@ -1599,7 +1248,7 @@ let done = false;
   };
 // ===================== PERSISTENCIA DE VISTA (FIX) =====================
 const VIEW_STORAGE_KEY = "LA_META_CURRENT_VIEW";
-const ALLOWED_VIEWS = ["overview","local","table","horarios","impresiones","silabos","materiales","listas","reportes","student"];
+const ALLOWED_VIEWS = ["overview","local","table","horarios","impresiones","silabos","materiales","listas","reportes"];
 
 function saveView(v){
   try { localStorage.setItem(VIEW_STORAGE_KEY, v); } catch(e){}
@@ -1837,7 +1486,6 @@ function loadSavedView(){
     document.getElementById("nav_materiales").classList.toggle("active", v==="materiales");
     document.getElementById("nav_listas").classList.toggle("active", v==="listas");
     document.getElementById("nav_reportes").classList.toggle("active", v==="reportes");
-    // (Alumno) no hay botón en menú
 
 
     document.getElementById("view_overview").style.display = (v==="overview") ? "" : "none";
@@ -1849,11 +1497,10 @@ function loadSavedView(){
     document.getElementById("view_materiales").style.display = (v==="materiales") ? "" : "none";
     document.getElementById("view_listas").style.display     = (v==="listas") ? "" : "none";
     document.getElementById("view_reportes").style.display   = (v==="reportes") ? "" : "none";
-    document.getElementById("view_student").style.display   = (v==="student") ? "" : "none";
 
 
     document.getElementById("controlsMatricula").style.display =
-      (v==="horarios" || v==="impresiones" || v==="silabos" || v==="materiales" || v==="listas" || v==="reportes" || v==="student") ? "none" : "";
+      (v==="horarios" || v==="impresiones" || v==="silabos" || v==="materiales" || v==="listas" || v==="reportes") ? "none" : "";
 
 
     // ✅ estado solo visible en ALUMNOS (tabla)
@@ -1868,8 +1515,7 @@ function loadSavedView(){
       silabos: ["SÍLABOS", "Acceso directo a sílabos por universidad. Haga clic en el curso para abrir el Excel."],
       materiales: ["MATERIALES", "Acceso directo a carpetas por universidad."],
       listas: ["LISTAS", "Acceso directo a listas por sede y grupo."],
-      reportes: ["ENVÍO DE REPORTES", "Acceso directo a enlaces por sede y aula (tutor)."],
-      student: ["PORTAL DE ALUMNOS", "Acceso a material y evaluación (pruebas actuales: Álgebra)."]
+      reportes: ["ENVÍO DE REPORTES", "Acceso directo a enlaces por sede y aula (tutor)."]
 
     };
     document.getElementById("viewTitle").textContent = titles[v][0];
@@ -4136,28 +3782,17 @@ function renderReportes(){
   });
 
   // ===================== RENDER =====================
-  function render() {
-  // Vista ALUMNO: el portal se monta/actualiza desde la sesión guardada
-  if (state.view === "student") {
-    startStudentPortal_().catch((err) => {
-      console.error("Student portal error:", err);
-      // Si hay un mensaje visible, muéstralo sin romper el resto del panel
-      const box = document.getElementById("auth_error");
-      if (box) {
-        box.textContent = "No se pudo cargar el portal del alumno. Recargue con Ctrl+F5. Detalle: " + (err?.message || err);
-        box.style.display = "block";
-      }
-    });
-    return;
+  function render(){
+    if (state.view==="overview") renderOverview();
+    if (state.view==="local") renderLocal();
+    if (state.view==="table") renderTable();
+    if (state.view==="horarios") renderHorarios();
+    if (state.view==="impresiones") renderImpresiones();
+    if (state.view==="silabos") renderSilabos();
+    if (state.view==="materiales") renderMateriales();
+    if (state.view==="listas") renderListas();
+    if (state.view==="reportes") renderReportes();
   }
-
-  if (state.view === "overview") return renderOverview();
-  if (state.view === "tutor") return renderTutor();
-  if (state.view === "admin") return renderAdmin();
-
-  // Fallback
-  renderOverview();
-}
 
   // ===================== LOAD DATA MATRÍCULA =====================
   async function loadOneSalon(salon){
@@ -4383,622 +4018,9 @@ async function loadAll(){
 
 
 
-
-// ===================== PORTAL ALUMNO =====================
-const ALG_SCHEDULE_GID = 502858541; // hoja: FECHA / BLOQUES / ALGEBRA / HIPERVÍNCULOS
-
-function parseFechaES_(s){
-  const t = norm(s).toLowerCase();
-  // formatos esperados: "5-ene", "12-ene", "2-feb", etc.
-  const m = t.match(/^(\d{1,2})\s*[-/]\s*([a-záéíóúñ]{3,})/i);
-  if (!m) return null;
-  const day = parseInt(m[1], 10);
-  const monStr = m[2].slice(0,3);
-  const map = { ene:0, feb:1, mar:2, abr:3, may:4, jun:5, jul:6, ago:7, sep:8, oct:9, nov:10, dic:11 };
-  const mon = map[monStr] ?? null;
-  if (mon === null || !day) return null;
-  // Año fijo para este ciclo de prueba
-  return new Date(2026, mon, day);
-}
-
-function fmtISO_(d){
-  const y = d.getFullYear();
-  const m = String(d.getMonth()+1).padStart(2,'0');
-  const da = String(d.getDate()).padStart(2,'0');
-  return `${y}-${m}-${da}`;
-}
-
-async function loadAlgebraSchedule_(){
-  const url = csvUrl(ALG_SCHEDULE_GID);
-  const r = await fetch(url, { cache:"no-store" });
-  if (!r.ok) throw new Error("No se pudo leer el cronograma (revise permisos del Sheet).");
-  const csv = await r.text();
-  const lines = csv.split(/\r?\n/).filter(x => x.trim().length>0);
-  if (lines.length < 2) return [];
-
-  const header = parseCSVLine(lines[0]).map(h => norm(h).toUpperCase());
-  const idxFecha = header.findIndex(h => h.includes("FECHA"));
-  const idxBloque = header.findIndex(h => h.includes("BLOQUE"));
-  const idxTema = header.findIndex(h => h.includes("ALGEBRA"));
-  const idxLink = header.findIndex(h => h.includes("HIPER"));
-
-  let lastFecha = "";
-  const out = [];
-  for (let i=1;i<lines.length;i++){
-    const row = parseCSVLine(lines[i]);
-    const fecha = norm(row[idxFecha] ?? "") || lastFecha;
-    if (fecha) lastFecha = fecha;
-    const bloque = norm(row[idxBloque] ?? "");
-    const tema = norm(row[idxTema] ?? "");
-    const link = norm(row[idxLink] ?? "");
-    if (!fecha && !bloque && !tema && !link) continue;
-    // solo filas con bloque A/B/C
-    if (!/^[ABC]$/i.test(bloque)) continue;
-    out.push({ fecha, bloque: bloque.toUpperCase(), tema, link });
-  }
-  return out;
-}
-
-
-function buildStudentUI_(student, blocks){
-  // --- Config de cursos (12 cursos UNALM) ---
-  const COURSE_LIST = [
-    { key:"ALGEBRA",        name:"ÁLGEBRA" },
-    { key:"ARITMETICA",     name:"ARITMÉTICA" },
-    { key:"GEOMETRIA",      name:"GEOMETRÍA" },
-    { key:"TRIGONOMETRIA",  name:"TRIGONOMETRÍA" },
-    { key:"RAZ_MAT",        name:"RAZONAMIENTO MATEMÁTICO" },
-    { key:"RAZ_VERB",       name:"RAZONAMIENTO VERBAL" },
-    { key:"FISICA",         name:"FÍSICA" },
-    { key:"QUIMICA",        name:"QUÍMICA" },
-    { key:"BIOLOGIA",       name:"BIOLOGÍA" },
-    { key:"LENGUAJE",       name:"LENGUAJE" },
-    { key:"HISTORIA",       name:"HISTORIA" },
-    { key:"GEOGRAFIA",      name:"GEOGRAFÍA" },
-  ];
-
-  // Curso por defecto (solo Álgebra habilitado por ahora)
-  let selectedCourse = (localStorage.getItem("student_course") || "ALGEBRA").toUpperCase();
-  if (!COURSE_LIST.some(c=>c.key===selectedCourse)) selectedCourse = "ALGEBRA";
-
-  const root = document.getElementById("view_student");
-  root.innerHTML = `
-    <div class="page">
-      <div class="pageHead">
-        <div>
-          <div class="badge">PORTAL ALUMNO</div>
-          <h1 class="h1">LA META | PANEL DE CONTROL</h1>
-          <p class="sub">Acceso a material y evaluación (pruebas actuales: Álgebra).</p>
-        </div>
-        <div class="headActions">
-          <button class="btn" id="btnStudentLogout">SALIR</button>
-        </div>
-      </div>
-
-      <div class="card hero">
-        <div>
-          <h2 class="h2">Bienvenido, ${escapeHTML_(student?.nombre || "")}</h2>
-          <p class="muted">Puede enviar aunque deje preguntas en blanco. <b>ENVIAR</b> registra en la hoja R.</p>
-        </div>
-      </div>
-
-      <div class="studentGrid">
-        <!-- Sección 1: Datos del alumno -->
-        <details class="section" open>
-          <summary>Datos del alumno</summary>
-          <div class="sectionBody">
-            <div class="kv">
-              ${renderStudentKV_(student)}
-            </div>
-          </div>
-        </details>
-
-        <!-- Sección 2: Cursos -->
-        <details class="section" open>
-          <summary>Cursos</summary>
-          <div class="sectionBody">
-            <div class="row">
-              <label class="lbl">Seleccione curso</label>
-              <select id="studentCourseSel" class="sel">
-                ${COURSE_LIST.map(c=>`<option value="${c.key}" ${c.key===selectedCourse?'selected':''}>${c.name}</option>`).join("")}
-              </select>
-            </div>
-
-            <div class="tabs">
-              <button class="tab active" data-tab="eval">Evaluaciones</button>
-              <button class="tab" data-tab="mat" disabled>Materiales</button>
-              <button class="tab" data-tab="zoom" disabled>Zoom</button>
-            </div>
-
-            <div id="studentTab_eval" class="tabPane"></div>
-            <div id="studentTab_mat" class="tabPane" style="display:none;"></div>
-            <div id="studentTab_zoom" class="tabPane" style="display:none;"></div>
-          </div>
-        </details>
-      </div>
-    </div>
-  `;
-
-  document.getElementById("btnStudentLogout").addEventListener("click", ()=>{
-    localStorage.removeItem("student_session");
-    localStorage.removeItem("student_scroll");
-    showView_("auth");
-  });
-
-  // Tabs
-  root.querySelectorAll(".tab").forEach(btn=>{
-    btn.addEventListener("click", ()=>{
-      if (btn.disabled) return;
-      root.querySelectorAll(".tab").forEach(b=>b.classList.remove("active"));
-      btn.classList.add("active");
-      const tab = btn.getAttribute("data-tab");
-      root.querySelectorAll(".tabPane").forEach(p=>p.style.display="none");
-      const pane = document.getElementById("studentTab_"+tab);
-      if (pane) pane.style.display="block";
-    });
-  });
-
-  // Curso selector
-  const sel = document.getElementById("studentCourseSel");
-  sel.addEventListener("change", async ()=>{
-    selectedCourse = sel.value;
-    localStorage.setItem("student_course", selectedCourse);
-    await renderCourseEvaluations_(student, selectedCourse);
-  });
-
-  // Render inicial
-  renderCourseEvaluations_(student, selectedCourse);
-
-  // Preservar scroll del alumno
-  restoreStudentScroll_();
-  window.addEventListener("scroll", saveStudentScroll_, {passive:true});
-}
-
-
-function renderStudentKV_(student){
-  const fields = [
-    ["Nombre", student?.nombre],
-    ["Correo", student?.correo],
-    ["Celular", student?.cel],
-    ["DNI", student?.dni],
-    ["Usuario", student?.usuario],
-    ["Salón", student?.salon],
-    ["Sede", student?.sede],
-    ["Universidad", student?.universidad],
-  ].filter(x=>x[1]!==undefined && x[1]!==null && String(x[1]).trim()!=="");
-
-  if (fields.length===0) return `<div class="muted">Sin datos adicionales.</div>`;
-
-  return fields.map(([k,v])=>`
-    <div class="kvRow">
-      <div class="kvK">${escapeHTML_(k)}</div>
-      <div class="kvV">${escapeHTML_(String(v))}</div>
-    </div>
-  `).join("");
-}
-
-function saveStudentScroll_(){
-  // Solo alumno
-  if (currentView !== "student") return;
-  try{ localStorage.setItem("student_scroll", String(window.scrollY||0)); }catch(e){}
-}
-
-function restoreStudentScroll_(){
-  try{
-    const y = Number(localStorage.getItem("student_scroll")||"0");
-    if (Number.isFinite(y) && y>0) window.scrollTo(0, y);
-  }catch(e){}
-}
-
-function parseDateFlexible_(s){
-  // Devuelve {iso, label} o null
-  if (!s) return null;
-  let t = String(s).trim();
-  t = t.replace(/^"+|"+$/g, ""); // quita comillas sueltas
-  if (!t) return null;
-
-  // Formato dd/mm/yyyy o d/m/yyyy
-  let m = t.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
-  if (m){
-    const dd = Number(m[1]), mm = Number(m[2]), yy = Number(m[3]);
-    if (dd>=1 && dd<=31 && mm>=1 && mm<=12){
-      const d = new Date(Date.UTC(yy, mm-1, dd));
-      const iso = `${yy}-${String(mm).padStart(2,"0")}-${String(dd).padStart(2,"0")}`;
-      const label = `${dd}/${mm}/${yy}`;
-      return {iso, label, date:d};
-    }
-  }
-
-  // Formato 5-ene (legacy)
-  m = t.match(/^(\d{1,2})-([a-zñ]{3})$/i);
-  if (m){
-    const dd = Number(m[1]);
-    const mon = m[2].toLowerCase();
-    const map = {ene:1,feb:2,mar:3,abr:4,may:5,jun:6,jul:7,ago:8,sep:9,oct:10,nov:11,dic:12};
-    const mm = map[mon];
-    const yy = 2026; // pruebas actuales
-    if (mm){
-      const iso = `${yy}-${String(mm).padStart(2,"0")}-${String(dd).padStart(2,"0")}`;
-      const label = `${dd}-${mon}`;
-      return {iso, label, date:new Date(Date.UTC(yy, mm-1, dd))};
-    }
-  }
-
-  // Si ya viene ISO yyyy-mm-dd
-  m = t.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-  if (m){
-    const yy=Number(m[1]), mm=Number(m[2]), dd=Number(m[3]);
-    return {iso:t, label:`${dd}/${mm}/${yy}`, date:new Date(Date.UTC(yy, mm-1, dd))};
-  }
-
-  return null;
-}
-
-async function renderCourseEvaluations_(student, courseKey){
-  const pane = document.getElementById("studentTab_eval");
-  if (!pane) return;
-
-  // Solo Álgebra habilitado por ahora
-  if (courseKey !== "ALGEBRA"){
-    pane.innerHTML = `<div class="muted">Curso <b>${escapeHTML_(courseKey)}</b>: Próximamente.</div>`;
-    return;
-  }
-
-  const blocks = await loadAlgebraSchedule_(); // usa hoja RA / gid ya configurado
-  const normalized = normalizeBlocksForUI_(blocks);
-
-  // Fechas únicas ordenadas
-  const dates = Object.keys(normalized.byDate).sort((a,b)=> (normalized.byDate[a].dateObj?.getTime()||0) - (normalized.byDate[b].dateObj?.getTime()||0));
-
-  if (dates.length===0){
-    pane.innerHTML = `<div class="muted">No hay evaluaciones configuradas en Google Sheets.</div>`;
-    return;
-  }
-
-  pane.innerHTML = `
-    <div class="muted" style="margin-bottom:10px;">Seleccione una fecha y responda. Las preguntas son opcionales.</div>
-    ${dates.map(iso=>{
-      const info = normalized.byDate[iso];
-      const label = info.label || iso;
-      return `
-        <details class="evalWeek">
-          <summary>${escapeHTML_(label)}</summary>
-          <div class="evalWeekBody">
-            ${info.blocks.map(b=>renderEvalBlock_(student, b)).join("")}
-          </div>
-        </details>
-      `;
-    }).join("")}
-  `;
-
-  // bind submit buttons
-  pane.querySelectorAll("[data-action='send']").forEach(btn=>{
-    btn.addEventListener("click", async ()=>{
-      const card = btn.closest("[data-block-card='1']");
-      if (!card) return;
-      const payload = JSON.parse(card.getAttribute("data-payload")||"{}");
-
-      // recoger respuestas (5 preguntas; pueden ser vacías)
-      const answers = [];
-      for (let i=1;i<=5;i++){
-        const name = `ans_${payload.iso}_${payload.bloque}_${i}`;
-        answers.push(getAnswer_(name) || "");
-      }
-
-      btn.disabled = true;
-      btn.textContent = "Enviando...";
-      try{
-        await apiStudentSave_(payload, answers);
-        btn.textContent = "Enviado ✓";
-        setTimeout(()=>{ btn.textContent="ENVIAR"; btn.disabled=false; }, 1200);
-      }catch(e){
-        console.error(e);
-        btn.textContent = "Error";
-        btn.disabled=false;
-        alert("No se pudo enviar. Intente de nuevo.");
-      }
-    });
-  });
-
-  // bind abrir PDF
-  pane.querySelectorAll("[data-action='openpdf']").forEach(btn=>{
-    btn.addEventListener("click", ()=>{
-      const url = btn.getAttribute("data-url")||"";
-      if (!url) { alert("Sin link."); return; }
-      window.open(url, "_blank", "noopener");
-    });
-  });
-
-  // mantener scroll
-  restoreStudentScroll_();
-}
-
-function normalizeBlocksForUI_(blocks){
-  // Agrupa por fecha ISO, corrige fechas vacías y asegura mínimo 2 bloques (A,B)
-  const byIso = {};
-  for (const raw of (blocks||[])){
-    const f = parseDateFlexible_(raw?.fecha);
-    if (!f) continue;
-    const iso = f.iso;
-    if (!byIso[iso]) byIso[iso] = { label:f.label, dateObj:f.date, blocks:[] };
-    const bloque = (raw?.bloque||"").toUpperCase().trim();
-    if (!bloque) continue;
-    byIso[iso].blocks.push({
-      iso,
-      fechaLabel: f.label,
-      bloque,
-      tema: (raw?.tema||"").trim(),
-      link: (raw?.link||"").trim(),
-    });
-  }
-
-  // asegurar A y B por fecha
-  for (const iso of Object.keys(byIso)){
-    const map = {};
-    byIso[iso].blocks.forEach(b=>{ map[b.bloque]=b; });
-    ["A","B"].forEach(letter=>{
-      if (!map[letter]){
-        byIso[iso].blocks.push({ iso, fechaLabel: byIso[iso].label, bloque: letter, tema:"", link:"" });
-      }
-    });
-    // ordenar A,B,C...
-    byIso[iso].blocks.sort((x,y)=> x.bloque.localeCompare(y.bloque));
-  }
-
-  return { byDate: byIso };
-}
-
-function renderEvalBlock_(student, b){
-  const tema = b.tema ? b.tema : "(sin tema)";
-  const linkLabel = b.link ? "Abrir PDF" : "Sin link";
-  const openDisabled = b.link ? "" : "disabled";
-  const iso = b.iso;
-  const payload = {
-    action: "save",
-    clave: student?.clave || "",
-    alumno: student?.nombre || "",
-    curso: "ALGEBRA",
-    iso,
-    fecha: b.fechaLabel || "",
-    bloque: b.bloque,
-    tema: b.tema || "",
-    link: b.link || ""
-  };
-
-  return `
-    <div class="blockCard" data-block-card="1" data-payload='${escapeAttr_(JSON.stringify(payload))}'>
-      <div class="blockTop">
-        <div>
-          <div class="blockTitle">Bloque ${escapeHTML_(b.bloque)} · ${escapeHTML_(tema)}</div>
-          <div class="muted">Fecha: ${escapeHTML_(b.fechaLabel||"")}</div>
-        </div>
-        <div class="blockBtns">
-          <button class="btn" data-action="openpdf" data-url="${escapeAttr_(b.link||"")}" ${openDisabled}>${linkLabel}</button>
-          <button class="btn btnPrimary" data-action="send">ENVIAR</button>
-        </div>
-      </div>
-
-      <div class="qa">
-        ${[1,2,3,4,5].map(i=>renderQuestion_(iso, b.bloque, i)).join("")}
-      </div>
-    </div>
-  `;
-}
-
-function renderQuestion_(iso, bloque, i){
-  const name = `ans_${iso}_${bloque}_${i}`;
-  return `
-    <div class="q">
-      <div class="qTitle">Pregunta ${i} <span class="muted">(opcional)</span></div>
-      <div class="optRow">
-        ${["A","B","C","D","E"].map(opt=>`
-          <label class="opt">
-            <input type="radio" name="${escapeAttr_(name)}" value="${opt}">
-            <span>${opt}</span>
-          </label>
-        `).join("")}
-      </div>
-    </div>
-  `;
-}
-
-
-async function apiStudentSave_(payload, answers){
-  // 1) intenta POST (CORS)
-  try{
-    const body = Object.assign({}, payload, { answers });
-    const res = await fetch(STUDENT_WEBAPP_URL, {
-      method: "POST",
-      headers: { "Content-Type": "text/plain;charset=utf-8" },
-      body: JSON.stringify(body),
-      cache: "no-store",
-      credentials: "omit",
-      mode: "cors",
-    });
-    const txt = await res.text();
-    // Apps Script puede responder JSON o JSONP. Intentamos JSON primero.
-    try{
-      const j = JSON.parse(txt);
-      if (!j.ok) throw new Error(j.error || "save_failed");
-      return j;
-    }catch(_){
-      // si viene JSONP: callback({...});
-      const j = parseJSONP_(txt);
-      if (!j || !j.ok) throw new Error((j && j.error) || "save_failed_jsonp");
-      return j;
-    }
-  }catch(e){
-    // 2) fallback JSONP via GET
-    const qs = new URLSearchParams();
-    qs.set("action","save");
-    qs.set("clave", payload.clave||"");
-    qs.set("curso", payload.curso||"");
-    qs.set("iso", payload.iso||"");
-    qs.set("fecha", payload.fecha||"");
-    qs.set("bloque", payload.bloque||"");
-    qs.set("tema", payload.tema||"");
-    qs.set("a1", answers[0]||"");
-    qs.set("a2", answers[1]||"");
-    qs.set("a3", answers[2]||"");
-    qs.set("a4", answers[3]||"");
-    qs.set("a5", answers[4]||"");
-    const cb = "cb_"+Math.random().toString(36).slice(2);
-    qs.set("callback", cb);
-    qs.set("_t", String(Date.now()));
-    const url = STUDENT_WEBAPP_URL + "?" + qs.toString();
-
-    return await new Promise((resolve,reject)=>{
-      const script = document.createElement("script");
-      const timeout = setTimeout(()=>{ cleanup(); reject(new Error("jsonp_timeout")); }, 12000);
-      function cleanup(){
-        clearTimeout(timeout);
-        if (window[cb]) { try{ delete window[cb]; }catch(_){ window[cb]=undefined; } }
-        if (script.parentNode) script.parentNode.removeChild(script);
-      }
-      window[cb] = (data)=>{
-        cleanup();
-        if (!data || !data.ok) reject(new Error((data && data.error) || "jsonp_save_failed"));
-        else resolve(data);
-      };
-      script.onerror = ()=>{ cleanup(); reject(new Error("jsonp_error")); };
-      script.src = url;
-      document.head.appendChild(script);
-    });
-  }
-}
-
-function parseJSONP_(txt){
-  if (!txt) return null;
-  const m = String(txt).match(/^[a-zA-Z0-9_.$]+\(([\s\S]*)\);\s*$/);
-  if (!m) return null;
-  try{ return JSON.parse(m[1]); }catch(e){ return null; }
-}
-
-function toggleEval_(cardId){
-  const card = document.getElementById(cardId);
-  if (!card) return;
-  const box = card.querySelector('[data-eval="1"]');
-  if (!box) return;
-  box.style.display = (box.style.display === "none" || box.style.display === "") ? "block" : "none";
-}
-
-function getAnswer_(name){
-  const el = document.querySelector(`input[name="${CSS.escape(name)}"]:checked`);
-  return el ? el.value : "";
-}
-
-async function sendEval_(cardId, idx){
-  const student = loadStudentSession();
-  const blocks = window.__ALG_BLOCKS__ || [];
-  const b = blocks[idx];
-  const msg = document.getElementById(cardId + "_msg");
-  if (!student || !b){
-    if (msg) msg.textContent = "Sesión inválida. Vuelva a ingresar.";
-    return;
-  }
-
-  const q1 = getAnswer_(cardId + "_q1") || "";
-  const q2 = getAnswer_(cardId + "_q2") || "";
-  const q3 = getAnswer_(cardId + "_q3") || "";
-  const q4 = getAnswer_(cardId + "_q4") || "";
-  const q5 = getAnswer_(cardId + "_q5") || "";
-
-  // Las respuestas son opcionales: si el alumno no marca nada, igual se envía (se guarda vacío).
-if (msg) msg.textContent = "Enviando...";
-
-  try{
-    const res = await apiStudent("save", {
-      clave: student.clave,
-      curso: "ALG",
-      fecha: b.fecha,
-      bloque: b.bloque,
-      tema: b.tema,
-      q1, q2, q3, q4, q5
-    });
-
-    if (res && res.ok){
-      if (msg) msg.textContent = "✅ Guardado.";
-    }else{
-      if (msg) msg.textContent = (res && res.error) ? res.error : "No se pudo guardar.";
-    }
-  }catch(e){
-    console.error(e);
-    if (msg) msg.textContent = "Error de conexión.";
-  }
-}
-
-function escapeHtmlS_(s){
-  return String(s ?? "")
-    .replaceAll("&","&amp;")
-    .replaceAll("<","&lt;")
-    .replaceAll(">","&gt;")
-    .replaceAll('"',"&quot;")
-    .replaceAll("'","&#39;");
-}
-function escapeAttrS_(s){ return escapeHtmlS_(s); }
-
-async function startStudentPortal_(){
-  // Ajustes de cabecera
-  const title = document.getElementById("viewTitle");
-  const desc = document.getElementById("viewDesc");
-  if (title) title.textContent = "PORTAL DE ALUMNOS";
-  if (desc) desc.textContent = "Acceso a material y evaluación (Álgebra).";
-
-  const student = loadStudentSession();
-  if (!student){
-    // si no hay sesión, vuelve al overlay
-    clearRole(); clearStudentSession();
-    showAuth(true);
-    return;
-  }
-
-  try{
-    const blocks = await loadAlgebraSchedule_();
-    window.__ALG_BLOCKS__ = blocks;
-
-    buildStudentUI_(student, blocks);
-
-    const btn = document.getElementById("btnLogoutAlumno");
-    if (btn){
-      btn.addEventListener("click", ()=>{
-        clearRole();
-        clearStudentSession();
-        location.reload();
-      });
-    }
-  }catch(e){
-    console.error(e);
-    buildStudentUI_(student, []);
-    const wrap = document.getElementById("studentBlocks");
-    if (wrap){
-      wrap.innerHTML = `<div class="blockCard"><div class="blockTitle">No se pudo cargar el cronograma.</div><div class="blockSub">${escapeHtmlS_(e.message || "Revise permisos del Sheet.")}</div></div>`;
-    }
-    const btn = document.getElementById("btnLogoutAlumno");
-    if (btn){
-      btn.addEventListener("click", ()=>{
-        clearRole();
-        clearStudentSession();
-        location.reload();
-      });
-    }
-  }
-}
-
-
 function startApp(){
   ensureBoot();
-  if (!CURRENT_ROLE){
-    showAuth(true);
-    return;
-  }
   applyRoleUI();
-
-  // Alumno: no cargar panel admin; solo portal
-  if (CURRENT_ROLE === "alumno"){
-    setView("student");
-    startStudentPortal_();
-    return;
-  }
 
   // si había una vista guardada, aplícala
   const sv = loadSavedView();
@@ -5015,7 +4037,6 @@ window.addEventListener("DOMContentLoaded", () => {
   // 1) Auth primero
   const hasSession = initAuth();
 
-  const b=document.getElementById("authBuild"); if(b) b.textContent = "BUILD: " + BUILD;
   // 2) Si no hay sesión, esperar a que el usuario inicie (overlay)
   //    (La app se inicia cuando el overlay se oculta tras login)
   if (!hasSession){
