@@ -734,7 +734,8 @@
       font-weight:950;
       cursor:pointer;
     }
-    .roleBtn.active{ border-color: var(--accent); box-shadow: 0 0 0 3px rgba(209,11,11,0.15); }
+    .roleHint{ font-size:12px; color:var(--muted); margin: 2px 0 10px 2px; }
+    .roleBtn.active{ border-color: var(--accent); background: rgba(209,11,11,0.08); color: var(--accent); box-shadow: 0 0 0 3px rgba(209,11,11,0.15); }
     .authRow{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
     .authRow input{
       flex:1;
@@ -792,6 +793,7 @@
         <button id="roleTutor" class="roleBtn" type="button">TUTOR</button>
         <button id="roleAlumno" class="roleBtn" type="button">ALUMNO</button>
       </div>
+      <div id="roleHint" class="roleHint">Rol seleccionado: <b>-</b></div>
 
       <div class="authRow">
         <input id="authPass" type="password" placeholder="Clave" autocomplete="current-password" />
@@ -950,6 +952,8 @@
     }
 
     showAuth(true);
+    const hint = document.getElementById("roleHint");
+    if (hint) hint.innerHTML = `Rol seleccionado: <b>-</b>`;
 
     let selected = null;
     const bA = document.getElementById("roleAdmin");
@@ -960,6 +964,8 @@
 
     function pick(r){
       selected = r;
+      const hint = document.getElementById("roleHint");
+      if (hint) hint.innerHTML = `Rol seleccionado: <b>${r ? r.toUpperCase() : "-"}</b>`;
       if (bA) bA.classList.toggle("active", r === "admin");
       if (bT) bT.classList.toggle("active", r === "tutor");
       if (bS) bS.classList.toggle("active", r === "alumno");
@@ -967,9 +973,9 @@
       if (pass) pass.focus();
     }
 
-    if (bA) bA.addEventListener("click", ()=>pick("admin"));
-    if (bT) bT.addEventListener("click", ()=>pick("tutor"));
-    if (bS) bS.addEventListener("click", ()=>pick("alumno"));
+    if (bA) bA.addEventListener("click", (e)=>{ e.preventDefault(); e.stopPropagation(); pick("admin"); });
+    if (bT) bT.addEventListener("click", (e)=>{ e.preventDefault(); e.stopPropagation(); pick("tutor"); });
+    if (bS) bS.addEventListener("click", (e)=>{ e.preventDefault(); e.stopPropagation(); pick("alumno"); });
 
     function doLogin(){
       const p = String(pass?.value || "");
