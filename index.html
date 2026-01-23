@@ -1116,7 +1116,7 @@
   }
 
   // ===================== API PORTAL ALUMNO (Apps Script) =====================
-  async async function apiStudent(action, payload){
+  async function apiStudent(action, payload){
     const res = await fetch(STUDENT_API_URL, {
       method: "POST",
       headers: { "Content-Type":"application/json" },
