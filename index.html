@@ -6,11 +6,149 @@
   <title>LA META | PANEL DE CONTROL</title>
 
   <!-- Charts -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js">
+  // ===== FIX v27: selección de rol (estable, sin deselección) =====
+  window.__pickRole = function(role){
+    const r = String(role||"").toLowerCase();
+    window.__ROLE__ = r;
+    try{ localStorage.setItem("lameta_role", r); }catch(e){}
+    const a = document.getElementById("roleAdmin");
+    const t = document.getElementById("roleTutor");
+    const s = document.getElementById("roleAlumno");
+    const roleLabel = document.getElementById("roleLabel");
+    const setActive = (btn, on)=>{
+      if(!btn) return;
+      btn.classList.toggle("active", !!on);
+      btn.setAttribute("aria-pressed", on ? "true" : "false");
+    };
+    setActive(a, r==="admin");
+    setActive(t, r==="tutor");
+    setActive(s, r==="alumno");
+    if(roleLabel) roleLabel.textContent = r ? r.toUpperCase() : "-";
+    const err = document.getElementById("authErr");
+    if(err) err.style.display="none";
+  };
+
+  (function bindRolesOnce(){
+    const ids = [["roleAdmin","admin"],["roleTutor","tutor"],["roleAlumno","alumno"]];
+    ids.forEach(([id,role])=>{
+      const el = document.getElementById(id);
+      if(!el) return;
+      ["pointerdown","mousedown","touchstart"].forEach(ev=>{
+        el.addEventListener(ev, (e)=>{
+          e.preventDefault(); e.stopPropagation();
+          window.__pickRole(role);
+        }, {passive:false});
+      });
+      el.addEventListener("click", (e)=>{
+        e.preventDefault(); e.stopPropagation();
+        window.__pickRole(role);
+      }, true);
+    });
+
+    // restore saved role
+    let saved=null;
+    try{ saved = localStorage.getItem("lameta_role"); }catch(e){}
+    if(saved && (saved==="admin"||saved==="tutor"||saved==="alumno")) window.__pickRole(saved);
+  })();
+
+</script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js">
+  // ===== FIX v27: selección de rol (estable, sin deselección) =====
+  window.__pickRole = function(role){
+    const r = String(role||"").toLowerCase();
+    window.__ROLE__ = r;
+    try{ localStorage.setItem("lameta_role", r); }catch(e){}
+    const a = document.getElementById("roleAdmin");
+    const t = document.getElementById("roleTutor");
+    const s = document.getElementById("roleAlumno");
+    const roleLabel = document.getElementById("roleLabel");
+    const setActive = (btn, on)=>{
+      if(!btn) return;
+      btn.classList.toggle("active", !!on);
+      btn.setAttribute("aria-pressed", on ? "true" : "false");
+    };
+    setActive(a, r==="admin");
+    setActive(t, r==="tutor");
+    setActive(s, r==="alumno");
+    if(roleLabel) roleLabel.textContent = r ? r.toUpperCase() : "-";
+    const err = document.getElementById("authErr");
+    if(err) err.style.display="none";
+  };
+
+  (function bindRolesOnce(){
+    const ids = [["roleAdmin","admin"],["roleTutor","tutor"],["roleAlumno","alumno"]];
+    ids.forEach(([id,role])=>{
+      const el = document.getElementById(id);
+      if(!el) return;
+      ["pointerdown","mousedown","touchstart"].forEach(ev=>{
+        el.addEventListener(ev, (e)=>{
+          e.preventDefault(); e.stopPropagation();
+          window.__pickRole(role);
+        }, {passive:false});
+      });
+      el.addEventListener("click", (e)=>{
+        e.preventDefault(); e.stopPropagation();
+        window.__pickRole(role);
+      }, true);
+    });
+
+    // restore saved role
+    let saved=null;
+    try{ saved = localStorage.getItem("lameta_role"); }catch(e){}
+    if(saved && (saved==="admin"||saved==="tutor"||saved==="alumno")) window.__pickRole(saved);
+  })();
+
+</script>
 
   <!-- PNG export (captura COMPLETA del elemento, no solo lo visible) -->
-  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js">
+  // ===== FIX v27: selección de rol (estable, sin deselección) =====
+  window.__pickRole = function(role){
+    const r = String(role||"").toLowerCase();
+    window.__ROLE__ = r;
+    try{ localStorage.setItem("lameta_role", r); }catch(e){}
+    const a = document.getElementById("roleAdmin");
+    const t = document.getElementById("roleTutor");
+    const s = document.getElementById("roleAlumno");
+    const roleLabel = document.getElementById("roleLabel");
+    const setActive = (btn, on)=>{
+      if(!btn) return;
+      btn.classList.toggle("active", !!on);
+      btn.setAttribute("aria-pressed", on ? "true" : "false");
+    };
+    setActive(a, r==="admin");
+    setActive(t, r==="tutor");
+    setActive(s, r==="alumno");
+    if(roleLabel) roleLabel.textContent = r ? r.toUpperCase() : "-";
+    const err = document.getElementById("authErr");
+    if(err) err.style.display="none";
+  };
+
+  (function bindRolesOnce(){
+    const ids = [["roleAdmin","admin"],["roleTutor","tutor"],["roleAlumno","alumno"]];
+    ids.forEach(([id,role])=>{
+      const el = document.getElementById(id);
+      if(!el) return;
+      ["pointerdown","mousedown","touchstart"].forEach(ev=>{
+        el.addEventListener(ev, (e)=>{
+          e.preventDefault(); e.stopPropagation();
+          window.__pickRole(role);
+        }, {passive:false});
+      });
+      el.addEventListener("click", (e)=>{
+        e.preventDefault(); e.stopPropagation();
+        window.__pickRole(role);
+      }, true);
+    });
+
+    // restore saved role
+    let saved=null;
+    try{ saved = localStorage.getItem("lameta_role"); }catch(e){}
+    if(saved && (saved==="admin"||saved==="tutor"||saved==="alumno")) window.__pickRole(saved);
+  })();
+
+</script>
 
   <style>
     /* ======================================================================
@@ -935,12 +1073,12 @@
   <div id="authOverlay" class="authOverlay">
     <div class="authCard">
       <p class="authTitle">ACCESO AL PANEL</p>
-      <p class="authSub">Seleccione su tipo de acceso e ingrese la clave.<div class="buildTag">Build: v26</div></p>
+      <p class="authSub">Seleccione su tipo de acceso e ingrese la clave.<div class="buildTag">Build: v27</div></p>
 
       <div class="roleRow">
-        <button id="roleAdmin" class="roleBtn" type="button">ADMIN</button>
-        <button id="roleTutor" class="roleBtn" type="button">TUTOR</button>
-        <button id="roleAlumno" class="roleBtn roleBtnWide" type="button">ALUMNO</button>
+        <button id="roleAdmin" class="roleBtn" type="button" onclick="window.__pickRole && window.__pickRole('admin'); return false;" aria-pressed="false">ADMIN</button>
+        <button id="roleTutor" class="roleBtn" type="button" onclick="window.__pickRole && window.__pickRole('tutor'); return false;" aria-pressed="false">TUTOR</button>
+        <button id="roleAlumno" class="roleBtn roleBtnWide" type="button" onclick="window.__pickRole && window.__pickRole('alumno'); return false;" aria-pressed="false">ALUMNO</button>
       </div>
 
       <div class="authRow">
@@ -1452,7 +1590,12 @@
     if (bS) bS.addEventListener("click", ()=>pick("alumno"));
 
     async function doLogin(){
-      const p = String(pass?.value || "").trim();
+      
+    // FIX v27: si el rol no está en variable local, usar el global
+    if (typeof selectedRole === "undefined" || !selectedRole){
+      selectedRole = window.__ROLE__ || "";
+    }
+const p = String(pass?.value || "").trim();
       if (!selected || !p){
         if (err){
           err.textContent = "Seleccione un rol e ingrese la clave.";
@@ -4815,6 +4958,52 @@ window.addEventListener("DOMContentLoaded", () => {
     const id = ev.target && ev.target.id;
     if (id === "evalModalClose" || id === "evalX") closeEvalModal();
   });
+
+
+  // ===== FIX v27: selección de rol (estable, sin deselección) =====
+  window.__pickRole = function(role){
+    const r = String(role||"").toLowerCase();
+    window.__ROLE__ = r;
+    try{ localStorage.setItem("lameta_role", r); }catch(e){}
+    const a = document.getElementById("roleAdmin");
+    const t = document.getElementById("roleTutor");
+    const s = document.getElementById("roleAlumno");
+    const roleLabel = document.getElementById("roleLabel");
+    const setActive = (btn, on)=>{
+      if(!btn) return;
+      btn.classList.toggle("active", !!on);
+      btn.setAttribute("aria-pressed", on ? "true" : "false");
+    };
+    setActive(a, r==="admin");
+    setActive(t, r==="tutor");
+    setActive(s, r==="alumno");
+    if(roleLabel) roleLabel.textContent = r ? r.toUpperCase() : "-";
+    const err = document.getElementById("authErr");
+    if(err) err.style.display="none";
+  };
+
+  (function bindRolesOnce(){
+    const ids = [["roleAdmin","admin"],["roleTutor","tutor"],["roleAlumno","alumno"]];
+    ids.forEach(([id,role])=>{
+      const el = document.getElementById(id);
+      if(!el) return;
+      ["pointerdown","mousedown","touchstart"].forEach(ev=>{
+        el.addEventListener(ev, (e)=>{
+          e.preventDefault(); e.stopPropagation();
+          window.__pickRole(role);
+        }, {passive:false});
+      });
+      el.addEventListener("click", (e)=>{
+        e.preventDefault(); e.stopPropagation();
+        window.__pickRole(role);
+      }, true);
+    });
+
+    // restore saved role
+    let saved=null;
+    try{ saved = localStorage.getItem("lameta_role"); }catch(e){}
+    if(saved && (saved==="admin"||saved==="tutor"||saved==="alumno")) window.__pickRole(saved);
+  })();
 
 </script>
 </body>
