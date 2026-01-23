@@ -4109,17 +4109,28 @@ function renderReportes(){
   });
 
   // ===================== RENDER =====================
-  function render(){
-    if (state.view==="overview") renderOverview();
-    if (state.view==="local") renderLocal();
-    if (state.view==="table") renderTable();
-    if (state.view==="horarios") renderHorarios();
-    if (state.view==="impresiones") renderImpresiones();
-    if (state.view==="silabos") renderSilabos();
-    if (state.view==="materiales") renderMateriales();
-    if (state.view==="listas") renderListas();
-    if (state.view==="reportes") renderReportes();
+  function render() {
+  // Vista ALUMNO: el portal se monta/actualiza desde la sesión guardada
+  if (state.view === "student") {
+    startStudentPortal_().catch((err) => {
+      console.error("Student portal error:", err);
+      // Si hay un mensaje visible, muéstralo sin romper el resto del panel
+      const box = document.getElementById("auth_error");
+      if (box) {
+        box.textContent = "No se pudo cargar el portal del alumno. Recargue con Ctrl+F5. Detalle: " + (err?.message || err);
+        box.style.display = "block";
+      }
+    });
+    return;
   }
+
+  if (state.view === "overview") return renderOverview();
+  if (state.view === "tutor") return renderTutor();
+  if (state.view === "admin") return renderAdmin();
+
+  // Fallback
+  renderOverview();
+}
 
   // ===================== LOAD DATA MATRÍCULA =====================
   async function loadOneSalon(salon){
