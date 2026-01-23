@@ -723,7 +723,8 @@
     }
     .authTitle{ font-weight:950; font-size:16px; margin:0 0 8px 0; text-transform:uppercase; }
     .authSub{ color:var(--muted); font-weight:800; margin:0 0 14px 0; font-size:12px; }
-    .roleRow{ display:flex; gap:10px; flex-wrap:wrap; margin-bottom:12px; }
+        .authBuild{margin:6px 0 0;color:#6b7280;font-size:12px;}
+.roleRow{ display:flex; gap:10px; flex-wrap:wrap; margin-bottom:12px; }
     .roleBtn{
       flex:1;
       min-width: 160px;
@@ -943,6 +944,7 @@
     <div class="authCard">
       <p class="authTitle">ACCESO AL PANEL</p>
       <p class="authSub">Seleccione su tipo de acceso e ingrese la clave.</p>
+      <p class="authBuild" id="authBuild"></p>
 
       <div class="roleRow">
         <button id="roleAdmin" class="roleBtn" type="button">ADMIN</button>
@@ -1037,6 +1039,7 @@
 
   // ✅ API (Apps Script Web App) para ALUMNOS (login + guardar respuestas)
   const STUDENT_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxHaXXfPIsGODuJo5J1TZvESJuYBslDloH4p8AphemCIPScRROxPjlMdJNluMqxgnMh/exec";
+  const BUILD = "V10-STUDENTDEBUG";
 
   const FORCE_AUTH_EVERY_LOAD = true; // ✅ PON EN false cuando ya esté estable
 
@@ -1077,6 +1080,18 @@
     localStorage.removeItem(STUDENT_KEY);
   }
 
+  function withParams(base, params){
+    const qs = Object.entries(params)
+      .filter(([_,v]) => v !== undefined && v !== null && v !== "")
+      .map(([k,v]) => `${encodeURIComponent(k)}=${encodeURIComponent(String(v))}`)
+      .join("&");
+    const hasQ = base.includes("?");
+    const sep = hasQ ? (base.endsWith("?") || base.endsWith("&") ? "" : "&") : "?";
+    return base + (qs ? sep + qs : "");
+  }
+
+
+
   async function apiStudent(action, payload){
     // JSONP (evita CORS en GitHub Pages)
     return await new Promise((resolve, reject)=>{
@@ -1094,7 +1109,8 @@
 
         const url = STUDENT_WEBAPP_URL + (STUDENT_WEBAPP_URL.includes("?") ? "&" : "?") + params.toString();
 
-        let done = false;
+            window.__lastStudentUrl = url;
+let done = false;
         const cleanup = ()=>{
           if (done) return;
           done = true;
@@ -1269,7 +1285,7 @@
       }catch(e){
         console.error(e);
         if (err){
-          err.textContent = "No se pudo conectar. Revise su internet e intente de nuevo.";
+          err.textContent = role==="student" ? `No se pudo conectar. URL: ${window.__lastStudentUrl||"(sin url)"} ` : "No se pudo conectar. Revise su internet e intente de nuevo.";
           err.style.display = "block";
         }
       }
@@ -4964,6 +4980,7 @@ window.addEventListener("DOMContentLoaded", () => {
   // 1) Auth primero
   const hasSession = initAuth();
 
+  const b=document.getElementById("authBuild"); if(b) b.textContent = "BUILD: " + BUILD;
   // 2) Si no hay sesión, esperar a que el usuario inicie (overlay)
   //    (La app se inicia cuando el overlay se oculta tras login)
   if (!hasSession){
