@@ -1,6 +1,30 @@
 <!doctype html>
 <html lang="es">
 <head>
+
+<script>
+  // === BOOTSTRAP SELECCIÓN DE ROL (a prueba de fallos) ===
+  window.__LAMETA_SELECTED_ROLE = null;
+  window.__pickRole = function(role){
+    window.__LAMETA_SELECTED_ROLE = role;
+    try{
+      const bA = document.getElementById("roleAdmin");
+      const bT = document.getElementById("roleTutor");
+      const bS = document.getElementById("roleAlumno");
+      if (bA) bA.classList.toggle("active", role==="admin");
+      if (bT) bT.classList.toggle("active", role==="tutor");
+      if (bS) bS.classList.toggle("active", role==="alumno");
+      const lbl = document.getElementById("roleSelectedText");
+      if (lbl) lbl.innerHTML = 'Rol seleccionado: <b>' + (role ? role.toUpperCase() : '-') + '</b>';
+      const err = document.getElementById("authErr");
+      if (err) err.style.display = "none";
+      const pass = document.getElementById("authPass");
+      if (pass) pass.focus();
+    }catch(e){}
+    return false;
+  };
+</script>
+
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <title>LA META | PANEL DE CONTROL</title>
@@ -725,6 +749,7 @@
     .authSub{ color:var(--muted); font-weight:800; margin:0 0 14px 0; font-size:12px; }
     .roleRow{ display:flex; gap:10px; flex-wrap:wrap; margin-bottom:12px; }
     .roleBtn{
+      pointer-events:auto;
       flex:1;
       min-width: 160px;
       padding:10px 12px;
@@ -788,13 +813,14 @@
       <p class="authSub">Seleccione su tipo de acceso e ingrese la clave.</p>
 
       <div class="roleRow">
-        <button id="roleAdmin" class="roleBtn" type="button">ADMIN</button>
-        <button id="roleTutor" class="roleBtn" type="button">TUTOR</button>
+        <button id="roleAdmin" class="roleBtn" type="button" onclick="return window.__pickRole(\'admin\');">ADMIN</button>
+        <button id="roleTutor" class="roleBtn" type="button" onclick="return window.__pickRole(\'tutor\');">TUTOR</button>
       </div>
       <div class="roleRow" style="margin-top:10px;">
-        <button id="roleAlumno" class="roleBtn wide" type="button">ALUMNO</button>
+        <button id="roleAlumno" class="roleBtn wide" type="button" onclick="return window.__pickRole(\'alumno\');">ALUMNO</button>
       </div>
-      <div class="authHint" id="authHint" style="margin-top:10px;color:#64748b;font-weight:800;font-size:13px;">Build: <b>v11</b></div>
+      <div class="authHint" id="authHint" style="margin-top:10px;color:#64748b;font-weight:800;font-size:13px;">Build: <b>v12</b></div>
+      <div class="authHint" id="roleSelectedText" style="margin-top:6px;color:#64748b;font-weight:800;font-size:13px;">Rol seleccionado: <b>-</b></div>
 
       <div class="authRow">
         <input id="authPass" type="password" placeholder="Clave" autocomplete="current-password" />
