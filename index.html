@@ -6,689 +6,11 @@
   <title>LA META | PANEL DE CONTROL</title>
 
   <!-- Charts -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js">
-  // ===================== PORTAL ALUMNO =====================
-  async function showAlumnoPortal(){
-    // Oculta botones del menú excepto MI ESPACIO y SALIR
-    document.querySelectorAll(".navBtn").forEach(b=>{
-      const v = b.getAttribute("data-view") || "";
-      b.style.display = (v === "view_alumno") ? "block" : "none";
-    });
-
-    // Actualiza badge rol
-    const badge = document.getElementById("roleBadge");
-    if(badge) badge.textContent = "ROL: ALUMNO";
-
-    // Renderiza vista alumno
-    await renderAlumnoView_();
-    showView("view_alumno");
-  }
-
-  async function renderAlumnoView_(){
-    const box = document.getElementById("view_alumno");
-    if(!box) return;
-    const sess = getStudentSession();
-    if(!sess || !sess.password){
-      box.innerHTML = `<div class="card"><div class="h2">Sesión no válida</div><p>Vuelva a iniciar sesión.</p></div>`;
-      return;
-    }
-
-    const nombre = (sess.alumno && sess.alumno.nombre) ? sess.alumno.nombre : "ALUMNO";
-    const usuario = (sess.alumno && sess.alumno.usuario) ? sess.alumno.usuario : "";
-
-    // Cursos (12). Por ahora solo ALGEBRA activo.
-    const cursos = [
-      { key:"ALGEBRA", label:"ALGEBRA", enabled:true },
-      { key:"ARITMETICA", label:"ARITMÉTICA", enabled:false },
-      { key:"GEOMETRIA", label:"GEOMETRÍA", enabled:false },
-      { key:"TRIGONOMETRIA", label:"TRIGONOMETRÍA", enabled:false },
-      { key:"FISICA", label:"FÍSICA", enabled:false },
-      { key:"QUIMICA", label:"QUÍMICA", enabled:false },
-      { key:"RAZONAMIENTO_MAT", label:"RAZ. MATEMÁTICO", enabled:false },
-      { key:"RAZONAMIENTO_VERB", label:"RAZ. VERBAL", enabled:false },
-      { key:"LENGUAJE", label:"LENGUAJE", enabled:false },
-      { key:"HISTORIA", label:"HISTORIA", enabled:false },
-      { key:"GEOGRAFIA", label:"GEOGRAFÍA", enabled:false },
-      { key:"ECONOMIA", label:"ECONOMÍA", enabled:false },
-    ];
-
-    box.innerHTML = `
-      <div class="grid" style="gap:16px;">
-        <div class="card">
-          <div class="h2">DATOS DEL ALUMNO</div>
-          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-top:10px;">
-            <div><div class="k">NOMBRE</div><div class="v">${escapeHtml_(nombre)}</div></div>
-            <div><div class="k">USUARIO</div><div class="v">${escapeHtml_(usuario)}</div></div>
-          </div>
-        </div>
-
-        <div class="card">
-          <div class="h2">EVALUACIONES</div>
-          <div style="margin-top:10px; display:flex; gap:10px; flex-wrap:wrap;">
-            <label class="pill">Curso
-              <select id="al_curso" class="select">
-                ${cursos.map(c=>`<option value="${c.key}" ${c.enabled?'':'disabled'}>${c.label}${c.enabled?'':' (próx.)'}</option>`).join("")}
-              </select>
-            </label>
-            <label class="pill">Fecha / Bloque
-              <select id="al_eval" class="select"></select>
-            </label>
-            <a id="al_pdf" class="btn" href="#" target="_blank" rel="noopener">Abrir PDF</a>
-          </div>
-
-          <div id="al_form" style="margin-top:14px;"></div>
-          <div id="al_msg" class="authErr" style="display:none; margin-top:10px;"></div>
-        </div>
-      </div>
-    `;
-
-    document.getElementById("al_curso").addEventListener("change", ()=>loadSchedule_());
-    await loadSchedule_();
-  }
-
-  async function loadSchedule_(){
-    const sess = getStudentSession();
-    const course = document.getElementById("al_curso").value;
-    const sel = document.getElementById("al_eval");
-    const msg = document.getElementById("al_msg");
-    msg.style.display = "none";
-    sel.innerHTML = `<option>Cargando...</option>`;
-
-    try{
-      const url = STUDENT_API_URL + "?action=getSchedule&course=" + encodeURIComponent(course);
-      const res = await jsonp(url, 15000);
-      if(!res || !res.ok){
-        sel.innerHTML = `<option>Error</option>`;
-        msg.textContent = (res && res.error) ? res.error : "Error al cargar evaluaciones.";
-        msg.style.display = "block";
-        return;
-      }
-
-      const schedule = res.schedule || [];
-      if(!schedule.length){
-        sel.innerHTML = `<option value="">No hay evaluaciones disponibles</option>`;
-        document.getElementById("al_pdf").href = "#";
-        document.getElementById("al_form").innerHTML = "";
-        return;
-      }
-
-      // Construye opciones: por cada fecha, A y B (si existe link)
-      const opts = [];
-      schedule.forEach(it=>{
-        const d = it.date;
-        if(it.blocks && it.blocks.A && it.blocks.A.pdfUrl) opts.push({ key:`${d}|A`, label:`${d} | Bloque A`, url: it.blocks.A.pdfUrl });
-        if(it.blocks && it.blocks.B && it.blocks.B.pdfUrl) opts.push({ key:`${d}|B`, label:`${d} | Bloque B`, url: it.blocks.B.pdfUrl });
-      });
-
-      sel.innerHTML = opts.map(o=>`<option value="${o.key}" data-url="${o.url}">${o.label}</option>`).join("");
-      sel.onchange = ()=>renderEvalForm_(course);
-      renderEvalForm_(course);
-
-    }catch(err){
-      sel.innerHTML = `<option>Error</option>`;
-      msg.textContent = String(err && err.message ? err.message : err);
-      msg.style.display = "block";
-    }
-  }
-
-  function renderEvalForm_(course){
-    const sel = document.getElementById("al_eval");
-    const form = document.getElementById("al_form");
-    const pdf = document.getElementById("al_pdf");
-    const msg = document.getElementById("al_msg");
-
-    msg.style.display = "none";
-    const v = sel.value || "";
-    if(!v){
-      form.innerHTML = "";
-      pdf.href = "#";
-      return;
-    }
-    const [date, block] = v.split("|");
-    const url = sel.options[sel.selectedIndex].getAttribute("data-url");
-    pdf.href = url || "#";
-
-    form.innerHTML = `
-      <div style="display:grid; gap:10px; max-width:520px;">
-        ${[1,2,3,4,5].map(i=>`
-          <div class="q">
-            <div class="k">Pregunta ${i}</div>
-            <div class="choices">
-              ${["A","B","C","D","E"].map(L=>`
-                <label class="choice">
-                  <input type="radio" name="q${i}" value="${L}"> ${L}
-                </label>
-              `).join("")}
-            </div>
-          </div>
-        `).join("")}
-
-        <button class="btn" id="al_send" type="button">ENVIAR</button>
-      </div>
-    `;
-
-    document.getElementById("al_send").onclick = ()=>sendAnswers_(course, date, block);
-  }
-
-  async function sendAnswers_(course, date, block){
-    const sess = getStudentSession();
-    const msg = document.getElementById("al_msg");
-    msg.style.display = "none";
-
-    const answers = [];
-    for(let i=1;i<=5;i++){
-      const r = document.querySelector(`input[name="q${i}"]:checked`);
-      answers.push(r ? r.value : "");
-    }
-    if(answers.some(a=>!a)){
-      msg.textContent = "Responda las 5 preguntas (A–E).";
-      msg.style.display = "block";
-      return;
-    }
-
-    const btn = document.getElementById("al_send");
-    btn.disabled = true;
-    btn.textContent = "ENVIANDO...";
-
-    try{
-      const url = STUDENT_API_URL
-        + "?action=submitAnswers"
-        + "&password=" + encodeURIComponent(sess.password)
-        + "&course=" + encodeURIComponent(course)
-        + "&date=" + encodeURIComponent(date)
-        + "&block=" + encodeURIComponent(block)
-        + "&answers=" + encodeURIComponent(answers.join(","));
-
-      const res = await jsonp(url, 20000);
-      if(!res || !res.ok){
-        msg.textContent = (res && res.error) ? res.error : "No se pudo enviar.";
-        msg.style.display = "block";
-        return;
-      }
-
-      // mensaje final
-      if(res.score !== null && res.score !== undefined){
-        msg.textContent = `${res.message} | Puntaje: ${res.score}/5`;
-      }else{
-        msg.textContent = res.message || "Enviado.";
-      }
-      msg.style.display = "block";
-      msg.style.color = "#166534";
-      btn.textContent = "ENVIADO";
-      btn.disabled = true; // 1 oportunidad
-    }catch(err){
-      msg.textContent = String(err && err.message ? err.message : err);
-      msg.style.display = "block";
-    }finally{
-      // no reactivar por 1 oportunidad si fue exitoso
-      if(btn.textContent !== "ENVIADO"){
-        btn.disabled = false;
-        btn.textContent = "ENVIAR";
-      }
-    }
-  }
-
-  function escapeHtml_(s){
-    return String(s||"").replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
-  }
-
-</script>
-  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js">
-  // ===================== PORTAL ALUMNO =====================
-  async function showAlumnoPortal(){
-    // Oculta botones del menú excepto MI ESPACIO y SALIR
-    document.querySelectorAll(".navBtn").forEach(b=>{
-      const v = b.getAttribute("data-view") || "";
-      b.style.display = (v === "view_alumno") ? "block" : "none";
-    });
-
-    // Actualiza badge rol
-    const badge = document.getElementById("roleBadge");
-    if(badge) badge.textContent = "ROL: ALUMNO";
-
-    // Renderiza vista alumno
-    await renderAlumnoView_();
-    showView("view_alumno");
-  }
-
-  async function renderAlumnoView_(){
-    const box = document.getElementById("view_alumno");
-    if(!box) return;
-    const sess = getStudentSession();
-    if(!sess || !sess.password){
-      box.innerHTML = `<div class="card"><div class="h2">Sesión no válida</div><p>Vuelva a iniciar sesión.</p></div>`;
-      return;
-    }
-
-    const nombre = (sess.alumno && sess.alumno.nombre) ? sess.alumno.nombre : "ALUMNO";
-    const usuario = (sess.alumno && sess.alumno.usuario) ? sess.alumno.usuario : "";
-
-    // Cursos (12). Por ahora solo ALGEBRA activo.
-    const cursos = [
-      { key:"ALGEBRA", label:"ALGEBRA", enabled:true },
-      { key:"ARITMETICA", label:"ARITMÉTICA", enabled:false },
-      { key:"GEOMETRIA", label:"GEOMETRÍA", enabled:false },
-      { key:"TRIGONOMETRIA", label:"TRIGONOMETRÍA", enabled:false },
-      { key:"FISICA", label:"FÍSICA", enabled:false },
-      { key:"QUIMICA", label:"QUÍMICA", enabled:false },
-      { key:"RAZONAMIENTO_MAT", label:"RAZ. MATEMÁTICO", enabled:false },
-      { key:"RAZONAMIENTO_VERB", label:"RAZ. VERBAL", enabled:false },
-      { key:"LENGUAJE", label:"LENGUAJE", enabled:false },
-      { key:"HISTORIA", label:"HISTORIA", enabled:false },
-      { key:"GEOGRAFIA", label:"GEOGRAFÍA", enabled:false },
-      { key:"ECONOMIA", label:"ECONOMÍA", enabled:false },
-    ];
-
-    box.innerHTML = `
-      <div class="grid" style="gap:16px;">
-        <div class="card">
-          <div class="h2">DATOS DEL ALUMNO</div>
-          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-top:10px;">
-            <div><div class="k">NOMBRE</div><div class="v">${escapeHtml_(nombre)}</div></div>
-            <div><div class="k">USUARIO</div><div class="v">${escapeHtml_(usuario)}</div></div>
-          </div>
-        </div>
-
-        <div class="card">
-          <div class="h2">EVALUACIONES</div>
-          <div style="margin-top:10px; display:flex; gap:10px; flex-wrap:wrap;">
-            <label class="pill">Curso
-              <select id="al_curso" class="select">
-                ${cursos.map(c=>`<option value="${c.key}" ${c.enabled?'':'disabled'}>${c.label}${c.enabled?'':' (próx.)'}</option>`).join("")}
-              </select>
-            </label>
-            <label class="pill">Fecha / Bloque
-              <select id="al_eval" class="select"></select>
-            </label>
-            <a id="al_pdf" class="btn" href="#" target="_blank" rel="noopener">Abrir PDF</a>
-          </div>
-
-          <div id="al_form" style="margin-top:14px;"></div>
-          <div id="al_msg" class="authErr" style="display:none; margin-top:10px;"></div>
-        </div>
-      </div>
-    `;
-
-    document.getElementById("al_curso").addEventListener("change", ()=>loadSchedule_());
-    await loadSchedule_();
-  }
-
-  async function loadSchedule_(){
-    const sess = getStudentSession();
-    const course = document.getElementById("al_curso").value;
-    const sel = document.getElementById("al_eval");
-    const msg = document.getElementById("al_msg");
-    msg.style.display = "none";
-    sel.innerHTML = `<option>Cargando...</option>`;
-
-    try{
-      const url = STUDENT_API_URL + "?action=getSchedule&course=" + encodeURIComponent(course);
-      const res = await jsonp(url, 15000);
-      if(!res || !res.ok){
-        sel.innerHTML = `<option>Error</option>`;
-        msg.textContent = (res && res.error) ? res.error : "Error al cargar evaluaciones.";
-        msg.style.display = "block";
-        return;
-      }
-
-      const schedule = res.schedule || [];
-      if(!schedule.length){
-        sel.innerHTML = `<option value="">No hay evaluaciones disponibles</option>`;
-        document.getElementById("al_pdf").href = "#";
-        document.getElementById("al_form").innerHTML = "";
-        return;
-      }
-
-      // Construye opciones: por cada fecha, A y B (si existe link)
-      const opts = [];
-      schedule.forEach(it=>{
-        const d = it.date;
-        if(it.blocks && it.blocks.A && it.blocks.A.pdfUrl) opts.push({ key:`${d}|A`, label:`${d} | Bloque A`, url: it.blocks.A.pdfUrl });
-        if(it.blocks && it.blocks.B && it.blocks.B.pdfUrl) opts.push({ key:`${d}|B`, label:`${d} | Bloque B`, url: it.blocks.B.pdfUrl });
-      });
-
-      sel.innerHTML = opts.map(o=>`<option value="${o.key}" data-url="${o.url}">${o.label}</option>`).join("");
-      sel.onchange = ()=>renderEvalForm_(course);
-      renderEvalForm_(course);
-
-    }catch(err){
-      sel.innerHTML = `<option>Error</option>`;
-      msg.textContent = String(err && err.message ? err.message : err);
-      msg.style.display = "block";
-    }
-  }
-
-  function renderEvalForm_(course){
-    const sel = document.getElementById("al_eval");
-    const form = document.getElementById("al_form");
-    const pdf = document.getElementById("al_pdf");
-    const msg = document.getElementById("al_msg");
-
-    msg.style.display = "none";
-    const v = sel.value || "";
-    if(!v){
-      form.innerHTML = "";
-      pdf.href = "#";
-      return;
-    }
-    const [date, block] = v.split("|");
-    const url = sel.options[sel.selectedIndex].getAttribute("data-url");
-    pdf.href = url || "#";
-
-    form.innerHTML = `
-      <div style="display:grid; gap:10px; max-width:520px;">
-        ${[1,2,3,4,5].map(i=>`
-          <div class="q">
-            <div class="k">Pregunta ${i}</div>
-            <div class="choices">
-              ${["A","B","C","D","E"].map(L=>`
-                <label class="choice">
-                  <input type="radio" name="q${i}" value="${L}"> ${L}
-                </label>
-              `).join("")}
-            </div>
-          </div>
-        `).join("")}
-
-        <button class="btn" id="al_send" type="button">ENVIAR</button>
-      </div>
-    `;
-
-    document.getElementById("al_send").onclick = ()=>sendAnswers_(course, date, block);
-  }
-
-  async function sendAnswers_(course, date, block){
-    const sess = getStudentSession();
-    const msg = document.getElementById("al_msg");
-    msg.style.display = "none";
-
-    const answers = [];
-    for(let i=1;i<=5;i++){
-      const r = document.querySelector(`input[name="q${i}"]:checked`);
-      answers.push(r ? r.value : "");
-    }
-    if(answers.some(a=>!a)){
-      msg.textContent = "Responda las 5 preguntas (A–E).";
-      msg.style.display = "block";
-      return;
-    }
-
-    const btn = document.getElementById("al_send");
-    btn.disabled = true;
-    btn.textContent = "ENVIANDO...";
-
-    try{
-      const url = STUDENT_API_URL
-        + "?action=submitAnswers"
-        + "&password=" + encodeURIComponent(sess.password)
-        + "&course=" + encodeURIComponent(course)
-        + "&date=" + encodeURIComponent(date)
-        + "&block=" + encodeURIComponent(block)
-        + "&answers=" + encodeURIComponent(answers.join(","));
-
-      const res = await jsonp(url, 20000);
-      if(!res || !res.ok){
-        msg.textContent = (res && res.error) ? res.error : "No se pudo enviar.";
-        msg.style.display = "block";
-        return;
-      }
-
-      // mensaje final
-      if(res.score !== null && res.score !== undefined){
-        msg.textContent = `${res.message} | Puntaje: ${res.score}/5`;
-      }else{
-        msg.textContent = res.message || "Enviado.";
-      }
-      msg.style.display = "block";
-      msg.style.color = "#166534";
-      btn.textContent = "ENVIADO";
-      btn.disabled = true; // 1 oportunidad
-    }catch(err){
-      msg.textContent = String(err && err.message ? err.message : err);
-      msg.style.display = "block";
-    }finally{
-      // no reactivar por 1 oportunidad si fue exitoso
-      if(btn.textContent !== "ENVIADO"){
-        btn.disabled = false;
-        btn.textContent = "ENVIAR";
-      }
-    }
-  }
-
-  function escapeHtml_(s){
-    return String(s||"").replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
-  }
-
-</script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
 
   <!-- PNG export (captura COMPLETA del elemento, no solo lo visible) -->
-  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js">
-  // ===================== PORTAL ALUMNO =====================
-  async function showAlumnoPortal(){
-    // Oculta botones del menú excepto MI ESPACIO y SALIR
-    document.querySelectorAll(".navBtn").forEach(b=>{
-      const v = b.getAttribute("data-view") || "";
-      b.style.display = (v === "view_alumno") ? "block" : "none";
-    });
-
-    // Actualiza badge rol
-    const badge = document.getElementById("roleBadge");
-    if(badge) badge.textContent = "ROL: ALUMNO";
-
-    // Renderiza vista alumno
-    await renderAlumnoView_();
-    showView("view_alumno");
-  }
-
-  async function renderAlumnoView_(){
-    const box = document.getElementById("view_alumno");
-    if(!box) return;
-    const sess = getStudentSession();
-    if(!sess || !sess.password){
-      box.innerHTML = `<div class="card"><div class="h2">Sesión no válida</div><p>Vuelva a iniciar sesión.</p></div>`;
-      return;
-    }
-
-    const nombre = (sess.alumno && sess.alumno.nombre) ? sess.alumno.nombre : "ALUMNO";
-    const usuario = (sess.alumno && sess.alumno.usuario) ? sess.alumno.usuario : "";
-
-    // Cursos (12). Por ahora solo ALGEBRA activo.
-    const cursos = [
-      { key:"ALGEBRA", label:"ALGEBRA", enabled:true },
-      { key:"ARITMETICA", label:"ARITMÉTICA", enabled:false },
-      { key:"GEOMETRIA", label:"GEOMETRÍA", enabled:false },
-      { key:"TRIGONOMETRIA", label:"TRIGONOMETRÍA", enabled:false },
-      { key:"FISICA", label:"FÍSICA", enabled:false },
-      { key:"QUIMICA", label:"QUÍMICA", enabled:false },
-      { key:"RAZONAMIENTO_MAT", label:"RAZ. MATEMÁTICO", enabled:false },
-      { key:"RAZONAMIENTO_VERB", label:"RAZ. VERBAL", enabled:false },
-      { key:"LENGUAJE", label:"LENGUAJE", enabled:false },
-      { key:"HISTORIA", label:"HISTORIA", enabled:false },
-      { key:"GEOGRAFIA", label:"GEOGRAFÍA", enabled:false },
-      { key:"ECONOMIA", label:"ECONOMÍA", enabled:false },
-    ];
-
-    box.innerHTML = `
-      <div class="grid" style="gap:16px;">
-        <div class="card">
-          <div class="h2">DATOS DEL ALUMNO</div>
-          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-top:10px;">
-            <div><div class="k">NOMBRE</div><div class="v">${escapeHtml_(nombre)}</div></div>
-            <div><div class="k">USUARIO</div><div class="v">${escapeHtml_(usuario)}</div></div>
-          </div>
-        </div>
-
-        <div class="card">
-          <div class="h2">EVALUACIONES</div>
-          <div style="margin-top:10px; display:flex; gap:10px; flex-wrap:wrap;">
-            <label class="pill">Curso
-              <select id="al_curso" class="select">
-                ${cursos.map(c=>`<option value="${c.key}" ${c.enabled?'':'disabled'}>${c.label}${c.enabled?'':' (próx.)'}</option>`).join("")}
-              </select>
-            </label>
-            <label class="pill">Fecha / Bloque
-              <select id="al_eval" class="select"></select>
-            </label>
-            <a id="al_pdf" class="btn" href="#" target="_blank" rel="noopener">Abrir PDF</a>
-          </div>
-
-          <div id="al_form" style="margin-top:14px;"></div>
-          <div id="al_msg" class="authErr" style="display:none; margin-top:10px;"></div>
-        </div>
-      </div>
-    `;
-
-    document.getElementById("al_curso").addEventListener("change", ()=>loadSchedule_());
-    await loadSchedule_();
-  }
-
-  async function loadSchedule_(){
-    const sess = getStudentSession();
-    const course = document.getElementById("al_curso").value;
-    const sel = document.getElementById("al_eval");
-    const msg = document.getElementById("al_msg");
-    msg.style.display = "none";
-    sel.innerHTML = `<option>Cargando...</option>`;
-
-    try{
-      const url = STUDENT_API_URL + "?action=getSchedule&course=" + encodeURIComponent(course);
-      const res = await jsonp(url, 15000);
-      if(!res || !res.ok){
-        sel.innerHTML = `<option>Error</option>`;
-        msg.textContent = (res && res.error) ? res.error : "Error al cargar evaluaciones.";
-        msg.style.display = "block";
-        return;
-      }
-
-      const schedule = res.schedule || [];
-      if(!schedule.length){
-        sel.innerHTML = `<option value="">No hay evaluaciones disponibles</option>`;
-        document.getElementById("al_pdf").href = "#";
-        document.getElementById("al_form").innerHTML = "";
-        return;
-      }
-
-      // Construye opciones: por cada fecha, A y B (si existe link)
-      const opts = [];
-      schedule.forEach(it=>{
-        const d = it.date;
-        if(it.blocks && it.blocks.A && it.blocks.A.pdfUrl) opts.push({ key:`${d}|A`, label:`${d} | Bloque A`, url: it.blocks.A.pdfUrl });
-        if(it.blocks && it.blocks.B && it.blocks.B.pdfUrl) opts.push({ key:`${d}|B`, label:`${d} | Bloque B`, url: it.blocks.B.pdfUrl });
-      });
-
-      sel.innerHTML = opts.map(o=>`<option value="${o.key}" data-url="${o.url}">${o.label}</option>`).join("");
-      sel.onchange = ()=>renderEvalForm_(course);
-      renderEvalForm_(course);
-
-    }catch(err){
-      sel.innerHTML = `<option>Error</option>`;
-      msg.textContent = String(err && err.message ? err.message : err);
-      msg.style.display = "block";
-    }
-  }
-
-  function renderEvalForm_(course){
-    const sel = document.getElementById("al_eval");
-    const form = document.getElementById("al_form");
-    const pdf = document.getElementById("al_pdf");
-    const msg = document.getElementById("al_msg");
-
-    msg.style.display = "none";
-    const v = sel.value || "";
-    if(!v){
-      form.innerHTML = "";
-      pdf.href = "#";
-      return;
-    }
-    const [date, block] = v.split("|");
-    const url = sel.options[sel.selectedIndex].getAttribute("data-url");
-    pdf.href = url || "#";
-
-    form.innerHTML = `
-      <div style="display:grid; gap:10px; max-width:520px;">
-        ${[1,2,3,4,5].map(i=>`
-          <div class="q">
-            <div class="k">Pregunta ${i}</div>
-            <div class="choices">
-              ${["A","B","C","D","E"].map(L=>`
-                <label class="choice">
-                  <input type="radio" name="q${i}" value="${L}"> ${L}
-                </label>
-              `).join("")}
-            </div>
-          </div>
-        `).join("")}
-
-        <button class="btn" id="al_send" type="button">ENVIAR</button>
-      </div>
-    `;
-
-    document.getElementById("al_send").onclick = ()=>sendAnswers_(course, date, block);
-  }
-
-  async function sendAnswers_(course, date, block){
-    const sess = getStudentSession();
-    const msg = document.getElementById("al_msg");
-    msg.style.display = "none";
-
-    const answers = [];
-    for(let i=1;i<=5;i++){
-      const r = document.querySelector(`input[name="q${i}"]:checked`);
-      answers.push(r ? r.value : "");
-    }
-    if(answers.some(a=>!a)){
-      msg.textContent = "Responda las 5 preguntas (A–E).";
-      msg.style.display = "block";
-      return;
-    }
-
-    const btn = document.getElementById("al_send");
-    btn.disabled = true;
-    btn.textContent = "ENVIANDO...";
-
-    try{
-      const url = STUDENT_API_URL
-        + "?action=submitAnswers"
-        + "&password=" + encodeURIComponent(sess.password)
-        + "&course=" + encodeURIComponent(course)
-        + "&date=" + encodeURIComponent(date)
-        + "&block=" + encodeURIComponent(block)
-        + "&answers=" + encodeURIComponent(answers.join(","));
-
-      const res = await jsonp(url, 20000);
-      if(!res || !res.ok){
-        msg.textContent = (res && res.error) ? res.error : "No se pudo enviar.";
-        msg.style.display = "block";
-        return;
-      }
-
-      // mensaje final
-      if(res.score !== null && res.score !== undefined){
-        msg.textContent = `${res.message} | Puntaje: ${res.score}/5`;
-      }else{
-        msg.textContent = res.message || "Enviado.";
-      }
-      msg.style.display = "block";
-      msg.style.color = "#166534";
-      btn.textContent = "ENVIADO";
-      btn.disabled = true; // 1 oportunidad
-    }catch(err){
-      msg.textContent = String(err && err.message ? err.message : err);
-      msg.style.display = "block";
-    }finally{
-      // no reactivar por 1 oportunidad si fue exitoso
-      if(btn.textContent !== "ENVIADO"){
-        btn.disabled = false;
-        btn.textContent = "ENVIAR";
-      }
-    }
-  }
-
-  function escapeHtml_(s){
-    return String(s||"").replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
-  }
-
-</script>
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 
   <style>
     /* ======================================================================
@@ -1453,9 +775,50 @@
       cursor:pointer;
     }
 
-      .roleBtnWide{ grid-column: 1 / -1; }
-    .roleBtn{ pointer-events:auto; }
+    .roleBtnWide{ grid-column: 1 / -1; }
+  .roleRow{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
 </style>
+
+<script>
+/* ===== ROLE PICKER FAILSAFE (v16) ===== */
+(function(){
+  function set(role){
+    window.__ROLE__ = role;
+    try{
+      const a = document.getElementById('roleAdmin');
+      const t = document.getElementById('roleTutor');
+      const s = document.getElementById('roleAlumno');
+      [a,t,s].forEach(x=>x && x.classList.remove('active'));
+      if(role==='admin' && a) a.classList.add('active');
+      if(role==='tutor' && t) t.classList.add('active');
+      if(role==='alumno' && s) s.classList.add('active');
+      const lbl = document.getElementById('roleLabel');
+      if(lbl) lbl.textContent = role ? role.toUpperCase() : '-';
+    }catch(e){}
+  }
+  window.__pickRole = function(role){ set(role); };
+
+  // Capture by coordinates even if an overlay steals the click
+  function within(r,x,y){ return x>=r.left && x<=r.right && y>=r.top && y<=r.bottom; }
+  document.addEventListener('pointerdown', function(ev){
+    const a = document.getElementById('roleAdmin');
+    const t = document.getElementById('roleTutor');
+    const s = document.getElementById('roleAlumno');
+    const x = ev.clientX, y = ev.clientY;
+    const pairs = [['admin',a],['tutor',t],['alumno',s]];
+    for(const [role, el] of pairs){
+      if(!el) continue;
+      const r = el.getBoundingClientRect();
+      if(within(r,x,y)){
+        ev.preventDefault(); ev.stopPropagation();
+        set(role);
+        return;
+      }
+    }
+  }, true);
+})();
+</script>
+
 </head>
 
 <body>
@@ -1466,14 +829,13 @@
     <div class="authCard">
       <p class="authTitle">ACCESO AL PANEL</p>
       <p class="authSub">Seleccione su tipo de acceso e ingrese la clave.</p>
-      <p style="margin:6px 0 12px; color:#94a3b8; font-weight:800;">Build: v15</p>
 
       <div class="roleRow">
-        <button id="roleAdmin" class="roleBtn" type="button">ADMIN</button>
-        <button id="roleTutor" class="roleBtn" type="button">TUTOR</button>
-        <button id="roleAlumno" class="roleBtn roleBtnWide" type="button">ALUMNO</button>
-        <button id="roleAlumno" class="roleBtn roleBtnWide" type="button">ALUMNO</button>
+        <button id="roleAdmin" class="roleBtn" type="button" onclick="__pickRole('admin')">ADMIN</button>
+        <button id="roleTutor" class="roleBtn" type="button" onclick="__pickRole('tutor')">TUTOR</button>
+        <button id="roleAlumno" class="roleBtn roleBtnWide" type="button" onclick="__pickRole('alumno')">ALUMNO</button>
       </div>
+      <div style="margin-top:8px;color:#64748b;font-weight:800;">Rol seleccionado: <span id="roleLabel">-</span></div>
 
       <div class="authRow">
         <input id="authPass" type="password" placeholder="Clave" autocomplete="current-password" />
@@ -1495,7 +857,6 @@
       </div>
 
       <div class="nav">
-        <button class="navBtn" data-view="view_alumno" style="display:none;">MI ESPACIO</button>
         <button id="nav_overview" class="active">RESUMEN GENERAL</button>
         <button id="nav_local">CONTROL DE SEDES</button>
         <button id="nav_table">ALUMNOS</button>
@@ -1546,7 +907,6 @@
       <div id="view_materiales" class="grid" style="display:none;"></div>
       <div id="view_listas" class="grid" style="display:none;"></div>
       <div id="view_reportes" class="grid" style="display:none;"></div>
-      <div id="view_alumno" class="grid" style="display:none;"></div>
 
     </main>
   </div>
@@ -1560,66 +920,13 @@
   const AUTH_ADMIN_PASS = "202619";
   const AUTH_TUTOR_PASS = "MBMLaMeta";
 
-  // ===================== ALUMNO (WebApp Apps Script) =====================
-  const STUDENT_API_URL = "https://script.google.com/macros/s/AKfycbzWE1G1EwtGfF4xk6ON2ArMe_Kwfwnj6M2YUXWxkFJGU4iwscmmPelMErwHMtNR4cvg/exec";
-  const STUDENT_KEY = "lameta_student";
-
   const ROLE_KEY = "lameta_role";
   let CURRENT_ROLE = null; // "admin" | "tutor" | "alumno"
 
-  // ---------- JSONP helper (GitHub Pages friendly) ----------
-  function jsonp(url, timeoutMs=15000){
-    return new Promise((resolve, reject)=>{
-      const cbName = "cb_" + Date.now() + "_" + Math.floor(Math.random()*1e6);
-      const script = document.createElement("script");
-      let done = false;
-
-      function cleanup(){
-        if(script.parentNode) script.parentNode.removeChild(script);
-        try{ delete window[cbName]; }catch(e){ window[cbName] = undefined; }
-      }
-
-      const timer = setTimeout(()=>{
-        if(done) return;
-        done = true;
-        cleanup();
-        reject(new Error("Tiempo de espera agotado"));
-      }, timeoutMs);
-
-      window[cbName] = (data)=>{
-        if(done) return;
-        done = true;
-        clearTimeout(timer);
-        cleanup();
-        resolve(data);
-      };
-
-      script.onerror = ()=>{
-        if(done) return;
-        done = true;
-        clearTimeout(timer);
-        cleanup();
-        reject(new Error("No se pudo conectar con el servidor"));
-      };
-
-      const joiner = url.includes("?") ? "&" : "?";
-      script.src = url + joiner + "callback=" + encodeURIComponent(cbName);
-      document.body.appendChild(script);
-    });
-  }
-
-  function setStudentSession(obj){
-    localStorage.setItem(STUDENT_KEY, JSON.stringify(obj || {}));
-  }
-  function getStudentSession(){
-    try{ return JSON.parse(localStorage.getItem(STUDENT_KEY) || "null"); }catch(e){ return null; }
-  }
-  function clearStudentSession(){
-    localStorage.removeItem(STUDENT_KEY);
-  }
-
-
   function setRole(role){
+    // sync with failsafe
+    if(window.__ROLE__) role = window.__ROLE__;
+
     CURRENT_ROLE = role;
     localStorage.setItem(ROLE_KEY, role);
     applyRoleUI();
@@ -1636,9 +943,6 @@
   }
 
   function canAccessView(v){
-    if (CURRENT_ROLE === "alumno"){
-      return (v === "view_alumno");
-    }
     // Tutor NO puede ver RESUMEN GENERAL ni CONTROL DE SEDES
     if (CURRENT_ROLE === "tutor" && (v === "overview" || v === "local")) return false;
     return true;
@@ -4799,232 +4103,6 @@ window.addEventListener("DOMContentLoaded", () => {
   // 3) Sesión existente: iniciar app
   startApp();
 });
-
-  // ===================== PORTAL ALUMNO =====================
-  async function showAlumnoPortal(){
-    // Oculta botones del menú excepto MI ESPACIO y SALIR
-    document.querySelectorAll(".navBtn").forEach(b=>{
-      const v = b.getAttribute("data-view") || "";
-      b.style.display = (v === "view_alumno") ? "block" : "none";
-    });
-
-    // Actualiza badge rol
-    const badge = document.getElementById("roleBadge");
-    if(badge) badge.textContent = "ROL: ALUMNO";
-
-    // Renderiza vista alumno
-    await renderAlumnoView_();
-    showView("view_alumno");
-  }
-
-  async function renderAlumnoView_(){
-    const box = document.getElementById("view_alumno");
-    if(!box) return;
-    const sess = getStudentSession();
-    if(!sess || !sess.password){
-      box.innerHTML = `<div class="card"><div class="h2">Sesión no válida</div><p>Vuelva a iniciar sesión.</p></div>`;
-      return;
-    }
-
-    const nombre = (sess.alumno && sess.alumno.nombre) ? sess.alumno.nombre : "ALUMNO";
-    const usuario = (sess.alumno && sess.alumno.usuario) ? sess.alumno.usuario : "";
-
-    // Cursos (12). Por ahora solo ALGEBRA activo.
-    const cursos = [
-      { key:"ALGEBRA", label:"ALGEBRA", enabled:true },
-      { key:"ARITMETICA", label:"ARITMÉTICA", enabled:false },
-      { key:"GEOMETRIA", label:"GEOMETRÍA", enabled:false },
-      { key:"TRIGONOMETRIA", label:"TRIGONOMETRÍA", enabled:false },
-      { key:"FISICA", label:"FÍSICA", enabled:false },
-      { key:"QUIMICA", label:"QUÍMICA", enabled:false },
-      { key:"RAZONAMIENTO_MAT", label:"RAZ. MATEMÁTICO", enabled:false },
-      { key:"RAZONAMIENTO_VERB", label:"RAZ. VERBAL", enabled:false },
-      { key:"LENGUAJE", label:"LENGUAJE", enabled:false },
-      { key:"HISTORIA", label:"HISTORIA", enabled:false },
-      { key:"GEOGRAFIA", label:"GEOGRAFÍA", enabled:false },
-      { key:"ECONOMIA", label:"ECONOMÍA", enabled:false },
-    ];
-
-    box.innerHTML = `
-      <div class="grid" style="gap:16px;">
-        <div class="card">
-          <div class="h2">DATOS DEL ALUMNO</div>
-          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-top:10px;">
-            <div><div class="k">NOMBRE</div><div class="v">${escapeHtml_(nombre)}</div></div>
-            <div><div class="k">USUARIO</div><div class="v">${escapeHtml_(usuario)}</div></div>
-          </div>
-        </div>
-
-        <div class="card">
-          <div class="h2">EVALUACIONES</div>
-          <div style="margin-top:10px; display:flex; gap:10px; flex-wrap:wrap;">
-            <label class="pill">Curso
-              <select id="al_curso" class="select">
-                ${cursos.map(c=>`<option value="${c.key}" ${c.enabled?'':'disabled'}>${c.label}${c.enabled?'':' (próx.)'}</option>`).join("")}
-              </select>
-            </label>
-            <label class="pill">Fecha / Bloque
-              <select id="al_eval" class="select"></select>
-            </label>
-            <a id="al_pdf" class="btn" href="#" target="_blank" rel="noopener">Abrir PDF</a>
-          </div>
-
-          <div id="al_form" style="margin-top:14px;"></div>
-          <div id="al_msg" class="authErr" style="display:none; margin-top:10px;"></div>
-        </div>
-      </div>
-    `;
-
-    document.getElementById("al_curso").addEventListener("change", ()=>loadSchedule_());
-    await loadSchedule_();
-  }
-
-  async function loadSchedule_(){
-    const sess = getStudentSession();
-    const course = document.getElementById("al_curso").value;
-    const sel = document.getElementById("al_eval");
-    const msg = document.getElementById("al_msg");
-    msg.style.display = "none";
-    sel.innerHTML = `<option>Cargando...</option>`;
-
-    try{
-      const url = STUDENT_API_URL + "?action=getSchedule&course=" + encodeURIComponent(course);
-      const res = await jsonp(url, 15000);
-      if(!res || !res.ok){
-        sel.innerHTML = `<option>Error</option>`;
-        msg.textContent = (res && res.error) ? res.error : "Error al cargar evaluaciones.";
-        msg.style.display = "block";
-        return;
-      }
-
-      const schedule = res.schedule || [];
-      if(!schedule.length){
-        sel.innerHTML = `<option value="">No hay evaluaciones disponibles</option>`;
-        document.getElementById("al_pdf").href = "#";
-        document.getElementById("al_form").innerHTML = "";
-        return;
-      }
-
-      // Construye opciones: por cada fecha, A y B (si existe link)
-      const opts = [];
-      schedule.forEach(it=>{
-        const d = it.date;
-        if(it.blocks && it.blocks.A && it.blocks.A.pdfUrl) opts.push({ key:`${d}|A`, label:`${d} | Bloque A`, url: it.blocks.A.pdfUrl });
-        if(it.blocks && it.blocks.B && it.blocks.B.pdfUrl) opts.push({ key:`${d}|B`, label:`${d} | Bloque B`, url: it.blocks.B.pdfUrl });
-      });
-
-      sel.innerHTML = opts.map(o=>`<option value="${o.key}" data-url="${o.url}">${o.label}</option>`).join("");
-      sel.onchange = ()=>renderEvalForm_(course);
-      renderEvalForm_(course);
-
-    }catch(err){
-      sel.innerHTML = `<option>Error</option>`;
-      msg.textContent = String(err && err.message ? err.message : err);
-      msg.style.display = "block";
-    }
-  }
-
-  function renderEvalForm_(course){
-    const sel = document.getElementById("al_eval");
-    const form = document.getElementById("al_form");
-    const pdf = document.getElementById("al_pdf");
-    const msg = document.getElementById("al_msg");
-
-    msg.style.display = "none";
-    const v = sel.value || "";
-    if(!v){
-      form.innerHTML = "";
-      pdf.href = "#";
-      return;
-    }
-    const [date, block] = v.split("|");
-    const url = sel.options[sel.selectedIndex].getAttribute("data-url");
-    pdf.href = url || "#";
-
-    form.innerHTML = `
-      <div style="display:grid; gap:10px; max-width:520px;">
-        ${[1,2,3,4,5].map(i=>`
-          <div class="q">
-            <div class="k">Pregunta ${i}</div>
-            <div class="choices">
-              ${["A","B","C","D","E"].map(L=>`
-                <label class="choice">
-                  <input type="radio" name="q${i}" value="${L}"> ${L}
-                </label>
-              `).join("")}
-            </div>
-          </div>
-        `).join("")}
-
-        <button class="btn" id="al_send" type="button">ENVIAR</button>
-      </div>
-    `;
-
-    document.getElementById("al_send").onclick = ()=>sendAnswers_(course, date, block);
-  }
-
-  async function sendAnswers_(course, date, block){
-    const sess = getStudentSession();
-    const msg = document.getElementById("al_msg");
-    msg.style.display = "none";
-
-    const answers = [];
-    for(let i=1;i<=5;i++){
-      const r = document.querySelector(`input[name="q${i}"]:checked`);
-      answers.push(r ? r.value : "");
-    }
-    if(answers.some(a=>!a)){
-      msg.textContent = "Responda las 5 preguntas (A–E).";
-      msg.style.display = "block";
-      return;
-    }
-
-    const btn = document.getElementById("al_send");
-    btn.disabled = true;
-    btn.textContent = "ENVIANDO...";
-
-    try{
-      const url = STUDENT_API_URL
-        + "?action=submitAnswers"
-        + "&password=" + encodeURIComponent(sess.password)
-        + "&course=" + encodeURIComponent(course)
-        + "&date=" + encodeURIComponent(date)
-        + "&block=" + encodeURIComponent(block)
-        + "&answers=" + encodeURIComponent(answers.join(","));
-
-      const res = await jsonp(url, 20000);
-      if(!res || !res.ok){
-        msg.textContent = (res && res.error) ? res.error : "No se pudo enviar.";
-        msg.style.display = "block";
-        return;
-      }
-
-      // mensaje final
-      if(res.score !== null && res.score !== undefined){
-        msg.textContent = `${res.message} | Puntaje: ${res.score}/5`;
-      }else{
-        msg.textContent = res.message || "Enviado.";
-      }
-      msg.style.display = "block";
-      msg.style.color = "#166534";
-      btn.textContent = "ENVIADO";
-      btn.disabled = true; // 1 oportunidad
-    }catch(err){
-      msg.textContent = String(err && err.message ? err.message : err);
-      msg.style.display = "block";
-    }finally{
-      // no reactivar por 1 oportunidad si fue exitoso
-      if(btn.textContent !== "ENVIADO"){
-        btn.disabled = false;
-        btn.textContent = "ENVIAR";
-      }
-    }
-  }
-
-  function escapeHtml_(s){
-    return String(s||"").replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
-  }
-
 </script>
 </body>
 </html>
