@@ -1088,8 +1088,8 @@
           if (obj[k] !== undefined && obj[k] !== null) params.set(k, String(obj[k]));
         });
 
-        // callback seguro (identificador JS válido)
-        const cb = "__jsonp_cb_" + Date.now() + "_" + Math.random().toString(16).slice(2);
+        // callback seguro (solo letras+números, Apps Script no lo modifica)
+        const cb = "cb" + Date.now() + String(Math.floor(Math.random()*1e6));
         params.set("callback", cb);
 
         const url = STUDENT_WEBAPP_URL + (STUDENT_WEBAPP_URL.includes("?") ? "&" : "?") + params.toString();
