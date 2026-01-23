@@ -1,30 +1,6 @@
 <!doctype html>
 <html lang="es">
 <head>
-
-<script>
-  // === BOOTSTRAP SELECCIÓN DE ROL (a prueba de fallos) ===
-  window.__LAMETA_SELECTED_ROLE = null;
-  window.__pickRole = function(role){
-    window.__LAMETA_SELECTED_ROLE = role;
-    try{
-      const bA = document.getElementById("roleAdmin");
-      const bT = document.getElementById("roleTutor");
-      const bS = document.getElementById("roleAlumno");
-      if (bA) bA.classList.toggle("active", role==="admin");
-      if (bT) bT.classList.toggle("active", role==="tutor");
-      if (bS) bS.classList.toggle("active", role==="alumno");
-      const lbl = document.getElementById("roleSelectedText");
-      if (lbl) lbl.innerHTML = 'Rol seleccionado: <b>' + (role ? role.toUpperCase() : '-') + '</b>';
-      const err = document.getElementById("authErr");
-      if (err) err.style.display = "none";
-      const pass = document.getElementById("authPass");
-      if (pass) pass.focus();
-    }catch(e){}
-    return false;
-  };
-</script>
-
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <title>LA META | PANEL DE CONTROL</title>
@@ -749,7 +725,6 @@
     .authSub{ color:var(--muted); font-weight:800; margin:0 0 14px 0; font-size:12px; }
     .roleRow{ display:flex; gap:10px; flex-wrap:wrap; margin-bottom:12px; }
     .roleBtn{
-      pointer-events:auto;
       flex:1;
       min-width: 160px;
       padding:10px 12px;
@@ -813,14 +788,13 @@
       <p class="authSub">Seleccione su tipo de acceso e ingrese la clave.</p>
 
       <div class="roleRow">
-        <button id="roleAdmin" class="roleBtn" type="button" onclick="return window.__pickRole(\'admin\');">ADMIN</button>
-        <button id="roleTutor" class="roleBtn" type="button" onclick="return window.__pickRole(\'tutor\');">TUTOR</button>
+        <button id="roleAdmin" class="roleBtn" type="button">ADMIN</button>
+        <button id="roleTutor" class="roleBtn" type="button">TUTOR</button>
       </div>
       <div class="roleRow" style="margin-top:10px;">
-        <button id="roleAlumno" class="roleBtn wide" type="button" onclick="return window.__pickRole(\'alumno\');">ALUMNO</button>
+        <button id="roleAlumno" class="roleBtn wide" type="button">ALUMNO</button>
       </div>
-      <div class="authHint" id="authHint" style="margin-top:10px;color:#64748b;font-weight:800;font-size:13px;">Build: <b>v12</b></div>
-      <div class="authHint" id="roleSelectedText" style="margin-top:6px;color:#64748b;font-weight:800;font-size:13px;">Rol seleccionado: <b>-</b></div>
+      <div class="authHint" id="authHint" style="margin-top:10px;color:#64748b;font-weight:800;font-size:13px;">Build: <b>v11</b></div>
 
       <div class="authRow">
         <input id="authPass" type="password" placeholder="Clave" autocomplete="current-password" />
@@ -4554,5 +4528,69 @@ window.addEventListener("DOMContentLoaded", () => {
   startApp();
 });
 </script>
+
+<script>
+/* ==== ROLE PICK FAILSAFE (v13) ====
+   Captura clicks aunque haya overlays o listeners que cancelen.
+*/
+(function(){
+  function within(r,x,y){ return x>=r.left && x<=r.right && y>=r.top && y<=r.bottom; }
+
+  function setRole(role){
+    window.__ROLE_SELECTED__ = role;
+    try{
+      const label = document.getElementById('roleLabel') || document.querySelector('[data-role-label]');
+      if(label) label.textContent = role || '-';
+    }catch(e){}
+    try{
+      const a = document.getElementById('roleAdmin') || document.querySelector('[data-role="ADMIN"]');
+      const t = document.getElementById('roleTutor') || document.querySelector('[data-role="TUTOR"]');
+      const s = document.getElementById('roleAlumno') || document.querySelector('[data-role="ALUMNO"]');
+      [a,t,s].forEach(el=> el && el.classList.remove('active'));
+      if(role==='ADMIN' && a) a.classList.add('active');
+      if(role==='TUTOR' && t) t.classList.add('active');
+      if(role==='ALUMNO' && s) s.classList.add('active');
+    }catch(e){}
+  }
+
+  window.__pickRole = function(role){ setRole(role); };
+
+  function bind(){
+    const admin = document.getElementById('roleAdmin') || document.querySelector('[data-role="ADMIN"]');
+    const tutor = document.getElementById('roleTutor') || document.querySelector('[data-role="TUTOR"]');
+    const alumno = document.getElementById('roleAlumno') || document.querySelector('[data-role="ALUMNO"]');
+
+    [admin,tutor,alumno].forEach(el=>{
+      if(!el) return;
+      el.style.pointerEvents = 'auto';
+      el.style.position = el.style.position || 'relative';
+      el.style.zIndex = '5';
+      el.addEventListener('click', (ev)=>{ ev.preventDefault(); ev.stopPropagation(); setRole(el.textContent.trim()); }, true);
+      el.addEventListener('pointerdown', (ev)=>{ ev.preventDefault(); ev.stopPropagation(); }, true);
+    });
+
+    document.addEventListener('pointerdown', (ev)=>{
+      const x = ev.clientX, y = ev.clientY;
+      const pairs = [['ADMIN',admin], ['TUTOR',tutor], ['ALUMNO',alumno]];
+      for(const [role, el] of pairs){
+        if(!el) continue;
+        const r = el.getBoundingClientRect();
+        if(within(r,x,y)){
+          ev.preventDefault();
+          ev.stopPropagation();
+          setRole(role);
+          return;
+        }
+      }
+    }, true);
+
+    if(!window.__ROLE_SELECTED__) setRole(null);
+  }
+
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', bind);
+  else bind();
+})();
+</script>
+
 </body>
 </html>
