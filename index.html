@@ -6,11 +6,155 @@
   <title>LA META | PANEL DE CONTROL</title>
 
   <!-- Charts -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js">
+  // ===== FIX v22: selección de rol "sticky" (no se deselecciona) =====
+  (function(){
+    function qs(id){ return document.getElementById(id); }
+    const bA = qs("roleAdmin");
+    const bT = qs("roleTutor");
+    const bS = qs("roleAlumno");
+    const roleLabel = qs("roleLabel");
+    const authErr = qs("authErr");
+
+    function setActive(btn, on){
+      if(!btn) return;
+      btn.classList.toggle("active", !!on);
+      btn.setAttribute("aria-pressed", on ? "true" : "false");
+    }
+
+    function pick(role){
+      const r = String(role||"").toLowerCase();
+      window.__ROLE__ = r;        // failsafe global
+      try{ localStorage.setItem("lameta_role", r); }catch(e){}
+      setActive(bA, r==="admin");
+      setActive(bT, r==="tutor");
+      setActive(bS, r==="alumno");
+      if(roleLabel) roleLabel.textContent = r ? r.toUpperCase() : "-";
+      if(authErr){ authErr.style.display="none"; }
+    }
+
+    function bind(btn, role){
+      if(!btn) return;
+      ["pointerdown","mousedown","click","touchstart"].forEach(ev=>{
+        btn.addEventListener(ev, (e)=>{
+          e.preventDefault();
+          e.stopPropagation();
+          pick(role);
+        }, {passive:false});
+      });
+    }
+
+    bind(bA, "admin");
+    bind(bT, "tutor");
+    bind(bS, "alumno");
+
+    // Restaurar rol si existía
+    let saved = null;
+    try{ saved = localStorage.getItem("lameta_role"); }catch(e){}
+    if(saved && (saved==="admin"||saved==="tutor"||saved==="alumno")) pick(saved);
+  })();
+
+</script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js">
+  // ===== FIX v22: selección de rol "sticky" (no se deselecciona) =====
+  (function(){
+    function qs(id){ return document.getElementById(id); }
+    const bA = qs("roleAdmin");
+    const bT = qs("roleTutor");
+    const bS = qs("roleAlumno");
+    const roleLabel = qs("roleLabel");
+    const authErr = qs("authErr");
+
+    function setActive(btn, on){
+      if(!btn) return;
+      btn.classList.toggle("active", !!on);
+      btn.setAttribute("aria-pressed", on ? "true" : "false");
+    }
+
+    function pick(role){
+      const r = String(role||"").toLowerCase();
+      window.__ROLE__ = r;        // failsafe global
+      try{ localStorage.setItem("lameta_role", r); }catch(e){}
+      setActive(bA, r==="admin");
+      setActive(bT, r==="tutor");
+      setActive(bS, r==="alumno");
+      if(roleLabel) roleLabel.textContent = r ? r.toUpperCase() : "-";
+      if(authErr){ authErr.style.display="none"; }
+    }
+
+    function bind(btn, role){
+      if(!btn) return;
+      ["pointerdown","mousedown","click","touchstart"].forEach(ev=>{
+        btn.addEventListener(ev, (e)=>{
+          e.preventDefault();
+          e.stopPropagation();
+          pick(role);
+        }, {passive:false});
+      });
+    }
+
+    bind(bA, "admin");
+    bind(bT, "tutor");
+    bind(bS, "alumno");
+
+    // Restaurar rol si existía
+    let saved = null;
+    try{ saved = localStorage.getItem("lameta_role"); }catch(e){}
+    if(saved && (saved==="admin"||saved==="tutor"||saved==="alumno")) pick(saved);
+  })();
+
+</script>
 
   <!-- PNG export (captura COMPLETA del elemento, no solo lo visible) -->
-  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js">
+  // ===== FIX v22: selección de rol "sticky" (no se deselecciona) =====
+  (function(){
+    function qs(id){ return document.getElementById(id); }
+    const bA = qs("roleAdmin");
+    const bT = qs("roleTutor");
+    const bS = qs("roleAlumno");
+    const roleLabel = qs("roleLabel");
+    const authErr = qs("authErr");
+
+    function setActive(btn, on){
+      if(!btn) return;
+      btn.classList.toggle("active", !!on);
+      btn.setAttribute("aria-pressed", on ? "true" : "false");
+    }
+
+    function pick(role){
+      const r = String(role||"").toLowerCase();
+      window.__ROLE__ = r;        // failsafe global
+      try{ localStorage.setItem("lameta_role", r); }catch(e){}
+      setActive(bA, r==="admin");
+      setActive(bT, r==="tutor");
+      setActive(bS, r==="alumno");
+      if(roleLabel) roleLabel.textContent = r ? r.toUpperCase() : "-";
+      if(authErr){ authErr.style.display="none"; }
+    }
+
+    function bind(btn, role){
+      if(!btn) return;
+      ["pointerdown","mousedown","click","touchstart"].forEach(ev=>{
+        btn.addEventListener(ev, (e)=>{
+          e.preventDefault();
+          e.stopPropagation();
+          pick(role);
+        }, {passive:false});
+      });
+    }
+
+    bind(bA, "admin");
+    bind(bT, "tutor");
+    bind(bS, "alumno");
+
+    // Restaurar rol si existía
+    let saved = null;
+    try{ saved = localStorage.getItem("lameta_role"); }catch(e){}
+    if(saved && (saved==="admin"||saved==="tutor"||saved==="alumno")) pick(saved);
+  })();
+
+</script>
 
   <style>
     /* ======================================================================
@@ -4494,6 +4638,54 @@ window.addEventListener("DOMContentLoaded", () => {
   // 3) Sesión existente: iniciar app
   startApp();
 });
+
+  // ===== FIX v22: selección de rol "sticky" (no se deselecciona) =====
+  (function(){
+    function qs(id){ return document.getElementById(id); }
+    const bA = qs("roleAdmin");
+    const bT = qs("roleTutor");
+    const bS = qs("roleAlumno");
+    const roleLabel = qs("roleLabel");
+    const authErr = qs("authErr");
+
+    function setActive(btn, on){
+      if(!btn) return;
+      btn.classList.toggle("active", !!on);
+      btn.setAttribute("aria-pressed", on ? "true" : "false");
+    }
+
+    function pick(role){
+      const r = String(role||"").toLowerCase();
+      window.__ROLE__ = r;        // failsafe global
+      try{ localStorage.setItem("lameta_role", r); }catch(e){}
+      setActive(bA, r==="admin");
+      setActive(bT, r==="tutor");
+      setActive(bS, r==="alumno");
+      if(roleLabel) roleLabel.textContent = r ? r.toUpperCase() : "-";
+      if(authErr){ authErr.style.display="none"; }
+    }
+
+    function bind(btn, role){
+      if(!btn) return;
+      ["pointerdown","mousedown","click","touchstart"].forEach(ev=>{
+        btn.addEventListener(ev, (e)=>{
+          e.preventDefault();
+          e.stopPropagation();
+          pick(role);
+        }, {passive:false});
+      });
+    }
+
+    bind(bA, "admin");
+    bind(bT, "tutor");
+    bind(bS, "alumno");
+
+    // Restaurar rol si existía
+    let saved = null;
+    try{ saved = localStorage.getItem("lameta_role"); }catch(e){}
+    if(saved && (saved==="admin"||saved==="tutor"||saved==="alumno")) pick(saved);
+  })();
+
 </script>
   <!-- ===================== MODAL EVALUACIÓN (ALUMNO) ===================== -->
   <div id="evalBack" class="modalBack" role="dialog" aria-modal="true">
