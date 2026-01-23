@@ -54,6 +54,29 @@
     if(saved && (saved==="admin"||saved==="tutor"||saved==="alumno")) pick(saved);
   })();
 
+
+  // ===== FIX v23: función global de rol (inline onclick) =====
+  window.__pickRole = function(role){
+    const r = String(role||"").toLowerCase();
+    window.__ROLE__ = r;
+    try{ localStorage.setItem("lameta_role", r); }catch(e){}
+    const bA = document.getElementById("roleAdmin");
+    const bT = document.getElementById("roleTutor");
+    const bS = document.getElementById("roleAlumno");
+    const roleLabel = document.getElementById("roleLabel");
+    const authErr = document.getElementById("authErr");
+    const setActive = (btn, on)=>{
+      if(!btn) return;
+      btn.classList.toggle("active", !!on);
+      btn.setAttribute("aria-pressed", on ? "true" : "false");
+    };
+    setActive(bA, r==="admin");
+    setActive(bT, r==="tutor");
+    setActive(bS, r==="alumno");
+    if(roleLabel) roleLabel.textContent = r ? r.toUpperCase() : "-";
+    if(authErr) authErr.style.display = "none";
+  };
+
 </script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js">
   // ===== FIX v22: selección de rol "sticky" (no se deselecciona) =====
@@ -102,6 +125,29 @@
     try{ saved = localStorage.getItem("lameta_role"); }catch(e){}
     if(saved && (saved==="admin"||saved==="tutor"||saved==="alumno")) pick(saved);
   })();
+
+
+  // ===== FIX v23: función global de rol (inline onclick) =====
+  window.__pickRole = function(role){
+    const r = String(role||"").toLowerCase();
+    window.__ROLE__ = r;
+    try{ localStorage.setItem("lameta_role", r); }catch(e){}
+    const bA = document.getElementById("roleAdmin");
+    const bT = document.getElementById("roleTutor");
+    const bS = document.getElementById("roleAlumno");
+    const roleLabel = document.getElementById("roleLabel");
+    const authErr = document.getElementById("authErr");
+    const setActive = (btn, on)=>{
+      if(!btn) return;
+      btn.classList.toggle("active", !!on);
+      btn.setAttribute("aria-pressed", on ? "true" : "false");
+    };
+    setActive(bA, r==="admin");
+    setActive(bT, r==="tutor");
+    setActive(bS, r==="alumno");
+    if(roleLabel) roleLabel.textContent = r ? r.toUpperCase() : "-";
+    if(authErr) authErr.style.display = "none";
+  };
 
 </script>
 
@@ -153,6 +199,29 @@
     try{ saved = localStorage.getItem("lameta_role"); }catch(e){}
     if(saved && (saved==="admin"||saved==="tutor"||saved==="alumno")) pick(saved);
   })();
+
+
+  // ===== FIX v23: función global de rol (inline onclick) =====
+  window.__pickRole = function(role){
+    const r = String(role||"").toLowerCase();
+    window.__ROLE__ = r;
+    try{ localStorage.setItem("lameta_role", r); }catch(e){}
+    const bA = document.getElementById("roleAdmin");
+    const bT = document.getElementById("roleTutor");
+    const bS = document.getElementById("roleAlumno");
+    const roleLabel = document.getElementById("roleLabel");
+    const authErr = document.getElementById("authErr");
+    const setActive = (btn, on)=>{
+      if(!btn) return;
+      btn.classList.toggle("active", !!on);
+      btn.setAttribute("aria-pressed", on ? "true" : "false");
+    };
+    setActive(bA, r==="admin");
+    setActive(bT, r==="tutor");
+    setActive(bS, r==="alumno");
+    if(roleLabel) roleLabel.textContent = r ? r.toUpperCase() : "-";
+    if(authErr) authErr.style.display = "none";
+  };
 
 </script>
 
@@ -965,7 +1034,14 @@
     .btnSend[disabled]{ opacity:.55; cursor:not-allowed; }
     .sentOk{ color:#0a7; font-weight:1000; display:none; }
 
-  </style>
+  
+  /* ===== FIX v23: clicks garantizados en roles ===== */
+  #authOverlay, .authOverlay { pointer-events:auto !important; }
+  #authOverlay * { pointer-events:auto !important; }
+  .authCard, .authBox, .authPanel, .authModal { position:relative; z-index:999999; pointer-events:auto !important; }
+  .roleRow, .roleBtn { position:relative; z-index:999999; pointer-events:auto !important; }
+
+</style>
 </head>
 
 <body>
@@ -978,11 +1054,11 @@
       <p class="authSub">Seleccione su tipo de acceso e ingrese la clave.</p>
 
       <div class="roleRow">
-        <button id="roleAdmin" class="roleBtn" type="button">ADMIN</button>
-        <button id="roleTutor" class="roleBtn" type="button">TUTOR</button>
+        <button id="roleAdmin" class="roleBtn" type="button" onclick="window.__pickRole && window.__pickRole('admin'); return false;">ADMIN</button>
+        <button id="roleTutor" class="roleBtn" type="button" onclick="window.__pickRole && window.__pickRole('tutor'); return false;">TUTOR</button>
       </div>
       <div class="roleRow" style="margin-top:10px;">
-        <button id="roleAlumno" class="roleBtn" type="button" style="width:100%;">ALUMNO</button>
+        <button id="roleAlumno" class="roleBtn" type="button" style="width:100%;" onclick="window.__pickRole && window.__pickRole('alumno'); return false;">ALUMNO</button>
       </div>
 
       <div class="authRow">
@@ -4685,6 +4761,29 @@ window.addEventListener("DOMContentLoaded", () => {
     try{ saved = localStorage.getItem("lameta_role"); }catch(e){}
     if(saved && (saved==="admin"||saved==="tutor"||saved==="alumno")) pick(saved);
   })();
+
+
+  // ===== FIX v23: función global de rol (inline onclick) =====
+  window.__pickRole = function(role){
+    const r = String(role||"").toLowerCase();
+    window.__ROLE__ = r;
+    try{ localStorage.setItem("lameta_role", r); }catch(e){}
+    const bA = document.getElementById("roleAdmin");
+    const bT = document.getElementById("roleTutor");
+    const bS = document.getElementById("roleAlumno");
+    const roleLabel = document.getElementById("roleLabel");
+    const authErr = document.getElementById("authErr");
+    const setActive = (btn, on)=>{
+      if(!btn) return;
+      btn.classList.toggle("active", !!on);
+      btn.setAttribute("aria-pressed", on ? "true" : "false");
+    };
+    setActive(bA, r==="admin");
+    setActive(bT, r==="tutor");
+    setActive(bS, r==="alumno");
+    if(roleLabel) roleLabel.textContent = r ? r.toUpperCase() : "-";
+    if(authErr) authErr.style.display = "none";
+  };
 
 </script>
   <!-- ===================== MODAL EVALUACIÓN (ALUMNO) ===================== -->
