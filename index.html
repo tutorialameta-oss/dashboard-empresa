@@ -6,236 +6,11 @@
   <title>LA META | PANEL DE CONTROL</title>
 
   <!-- Charts -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js">
-  // ===== FIX v27: selección de rol (estable, sin deselección) =====
-  window.__pickRole = function(role){
-    const r = String(role||"").toLowerCase();
-    window.__ROLE__ = r;
-    try{ localStorage.setItem("lameta_role", r); }catch(e){}
-    const a = document.getElementById("roleAdmin");
-    const t = document.getElementById("roleTutor");
-    const s = document.getElementById("roleAlumno");
-    const roleLabel = document.getElementById("roleLabel");
-    const setActive = (btn, on)=>{
-      if(!btn) return;
-      btn.classList.toggle("active", !!on);
-      btn.setAttribute("aria-pressed", on ? "true" : "false");
-    };
-    setActive(a, r==="admin");
-    setActive(t, r==="tutor");
-    setActive(s, r==="alumno");
-    if(roleLabel) roleLabel.textContent = r ? r.toUpperCase() : "-";
-    const err = document.getElementById("authErr");
-    if(err) err.style.display="none";
-  };
-
-  (function bindRolesOnce(){
-    const ids = [["roleAdmin","admin"],["roleTutor","tutor"],["roleAlumno","alumno"]];
-    ids.forEach(([id,role])=>{
-      const el = document.getElementById(id);
-      if(!el) return;
-      ["pointerdown","mousedown","touchstart"].forEach(ev=>{
-        el.addEventListener(ev, (e)=>{
-          e.preventDefault(); e.stopPropagation();
-          window.__pickRole(role);
-        }, {passive:false});
-      });
-      el.addEventListener("click", (e)=>{
-        e.preventDefault(); e.stopPropagation();
-        window.__pickRole(role);
-      }, true);
-    });
-
-    // restore saved role
-    let saved=null;
-    try{ saved = localStorage.getItem("lameta_role"); }catch(e){}
-    if(saved && (saved==="admin"||saved==="tutor"||saved==="alumno")) window.__pickRole(saved);
-  })();
-
-
-  // ===== FIX v28: DEBUG clicks (si no sube, no está llegando el click) =====
-  (function(){
-    let n = 0;
-    const el = ()=>document.getElementById("dbgClick");
-    const er = ()=>document.getElementById("dbgRole");
-    function upd(t){
-      const d = el();
-      if(!d) return;
-      d.textContent = "Clicks: " + n + (t ? (" | " + t) : "");
-    }
-    document.addEventListener("pointerdown", (e)=>{
-      n++;
-      const t = e && e.target ? (e.target.id || e.target.className || e.target.tagName) : "";
-      upd(String(t||""));
-    }, true);
-    upd("JS_OK");
-    // Hook de rol
-    const orig = window.__pickRole;
-    window.__pickRole = function(role){
-      try{
-        const r = String(role||"").toUpperCase();
-        const rr = er(); 
-        if(rr) rr.textContent = "Rol: " + r;
-      }catch(e){}
-      return orig ? orig(role) : undefined;
-    };
-  })();
-
-</script>
-  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js">
-  // ===== FIX v27: selección de rol (estable, sin deselección) =====
-  window.__pickRole = function(role){
-    const r = String(role||"").toLowerCase();
-    window.__ROLE__ = r;
-    try{ localStorage.setItem("lameta_role", r); }catch(e){}
-    const a = document.getElementById("roleAdmin");
-    const t = document.getElementById("roleTutor");
-    const s = document.getElementById("roleAlumno");
-    const roleLabel = document.getElementById("roleLabel");
-    const setActive = (btn, on)=>{
-      if(!btn) return;
-      btn.classList.toggle("active", !!on);
-      btn.setAttribute("aria-pressed", on ? "true" : "false");
-    };
-    setActive(a, r==="admin");
-    setActive(t, r==="tutor");
-    setActive(s, r==="alumno");
-    if(roleLabel) roleLabel.textContent = r ? r.toUpperCase() : "-";
-    const err = document.getElementById("authErr");
-    if(err) err.style.display="none";
-  };
-
-  (function bindRolesOnce(){
-    const ids = [["roleAdmin","admin"],["roleTutor","tutor"],["roleAlumno","alumno"]];
-    ids.forEach(([id,role])=>{
-      const el = document.getElementById(id);
-      if(!el) return;
-      ["pointerdown","mousedown","touchstart"].forEach(ev=>{
-        el.addEventListener(ev, (e)=>{
-          e.preventDefault(); e.stopPropagation();
-          window.__pickRole(role);
-        }, {passive:false});
-      });
-      el.addEventListener("click", (e)=>{
-        e.preventDefault(); e.stopPropagation();
-        window.__pickRole(role);
-      }, true);
-    });
-
-    // restore saved role
-    let saved=null;
-    try{ saved = localStorage.getItem("lameta_role"); }catch(e){}
-    if(saved && (saved==="admin"||saved==="tutor"||saved==="alumno")) window.__pickRole(saved);
-  })();
-
-
-  // ===== FIX v28: DEBUG clicks (si no sube, no está llegando el click) =====
-  (function(){
-    let n = 0;
-    const el = ()=>document.getElementById("dbgClick");
-    const er = ()=>document.getElementById("dbgRole");
-    function upd(t){
-      const d = el();
-      if(!d) return;
-      d.textContent = "Clicks: " + n + (t ? (" | " + t) : "");
-    }
-    document.addEventListener("pointerdown", (e)=>{
-      n++;
-      const t = e && e.target ? (e.target.id || e.target.className || e.target.tagName) : "";
-      upd(String(t||""));
-    }, true);
-    upd("JS_OK");
-    // Hook de rol
-    const orig = window.__pickRole;
-    window.__pickRole = function(role){
-      try{
-        const r = String(role||"").toUpperCase();
-        const rr = er(); 
-        if(rr) rr.textContent = "Rol: " + r;
-      }catch(e){}
-      return orig ? orig(role) : undefined;
-    };
-  })();
-
-</script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
 
   <!-- PNG export (captura COMPLETA del elemento, no solo lo visible) -->
-  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js">
-  // ===== FIX v27: selección de rol (estable, sin deselección) =====
-  window.__pickRole = function(role){
-    const r = String(role||"").toLowerCase();
-    window.__ROLE__ = r;
-    try{ localStorage.setItem("lameta_role", r); }catch(e){}
-    const a = document.getElementById("roleAdmin");
-    const t = document.getElementById("roleTutor");
-    const s = document.getElementById("roleAlumno");
-    const roleLabel = document.getElementById("roleLabel");
-    const setActive = (btn, on)=>{
-      if(!btn) return;
-      btn.classList.toggle("active", !!on);
-      btn.setAttribute("aria-pressed", on ? "true" : "false");
-    };
-    setActive(a, r==="admin");
-    setActive(t, r==="tutor");
-    setActive(s, r==="alumno");
-    if(roleLabel) roleLabel.textContent = r ? r.toUpperCase() : "-";
-    const err = document.getElementById("authErr");
-    if(err) err.style.display="none";
-  };
-
-  (function bindRolesOnce(){
-    const ids = [["roleAdmin","admin"],["roleTutor","tutor"],["roleAlumno","alumno"]];
-    ids.forEach(([id,role])=>{
-      const el = document.getElementById(id);
-      if(!el) return;
-      ["pointerdown","mousedown","touchstart"].forEach(ev=>{
-        el.addEventListener(ev, (e)=>{
-          e.preventDefault(); e.stopPropagation();
-          window.__pickRole(role);
-        }, {passive:false});
-      });
-      el.addEventListener("click", (e)=>{
-        e.preventDefault(); e.stopPropagation();
-        window.__pickRole(role);
-      }, true);
-    });
-
-    // restore saved role
-    let saved=null;
-    try{ saved = localStorage.getItem("lameta_role"); }catch(e){}
-    if(saved && (saved==="admin"||saved==="tutor"||saved==="alumno")) window.__pickRole(saved);
-  })();
-
-
-  // ===== FIX v28: DEBUG clicks (si no sube, no está llegando el click) =====
-  (function(){
-    let n = 0;
-    const el = ()=>document.getElementById("dbgClick");
-    const er = ()=>document.getElementById("dbgRole");
-    function upd(t){
-      const d = el();
-      if(!d) return;
-      d.textContent = "Clicks: " + n + (t ? (" | " + t) : "");
-    }
-    document.addEventListener("pointerdown", (e)=>{
-      n++;
-      const t = e && e.target ? (e.target.id || e.target.className || e.target.tagName) : "";
-      upd(String(t||""));
-    }, true);
-    upd("JS_OK");
-    // Hook de rol
-    const orig = window.__pickRole;
-    window.__pickRole = function(role){
-      try{
-        const r = String(role||"").toUpperCase();
-        const rr = er(); 
-        if(rr) rr.textContent = "Rol: " + r;
-      }catch(e){}
-      return orig ? orig(role) : undefined;
-    };
-  })();
-
-</script>
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 
   <style>
     /* ======================================================================
@@ -951,7 +726,7 @@
     .roleRow{ display:flex; gap:10px; flex-wrap:wrap; margin-bottom:12px; }
     .roleBtn{
       flex:1;
-      min-width: 160px;
+      min-width: 140px;
       padding:10px 12px;
       border-radius: 14px;
       border:1px solid var(--border);
@@ -1000,177 +775,41 @@
       cursor:pointer;
     }
 
-    .buildTag{margin-top:8px;color:#94a3b8;font-weight:800;}
-  .roleBtnWide{grid-column:1 / -1;}
+  /* ===== ALUMNO: cursos / evaluación ===== */
+.grid2{ display:grid; grid-template-columns: 1fr 1fr; gap:12px; }
+.kv{ border:1px solid var(--border); border-radius:16px; padding:12px; }
+.kv .k{ font-size:12px; color:var(--muted); font-weight:900; text-transform:uppercase; }
+.kv .v{ margin-top:4px; font-weight:950; }
 
-  /* ===== Alumno Dashboard (v25) ===== */
-  .alumnoHero{
-    background: linear-gradient(135deg, rgba(220,38,38,.08), rgba(15,23,42,.04));
-    border: 1px solid rgba(148,163,184,.35);
-    border-radius: 18px;
-    padding: 18px;
-    margin-bottom: 14px;
-  }
-  .alumnoTitleRow{ display:flex; align-items:center; gap:10px; }
-  .alumnoTitle{ font-size: 18px; font-weight: 900; color:#0f172a; }
-  .alumnoBadge{
-    font-weight:900; font-size:12px; padding:4px 10px; border-radius:999px;
-    background: rgba(220,38,38,.12); color:#b91c1c; border:1px solid rgba(220,38,38,.25);
-  }
-  .alumnoSub{ margin-top:6px; font-size: 20px; font-weight: 900; color:#0f172a; }
-  .alumnoChips{ margin-top:10px; display:flex; flex-wrap:wrap; gap:8px; }
-  .chip{
-    font-weight:800; font-size:12px; padding:6px 10px; border-radius:999px;
-    background:#ffffff; border:1px solid rgba(148,163,184,.45); color:#334155;
-  }
-  .alumnoGrid{ display:grid; grid-template-columns: 1fr 1.4fr; gap:14px; }
-  @media (max-width: 980px){ .alumnoGrid{ grid-template-columns:1fr; } }
-  .alumnoCard{ border-radius: 18px; }
-  .alumnoKV{ margin-top:10px; display:grid; grid-template-columns: 1fr 1fr; gap:10px; }
-  .kvItem{ padding:10px; border-radius: 14px; border:1px solid rgba(148,163,184,.35); background:#fff; }
-  .kvItem .k{ font-size:12px; font-weight:900; color:#64748b; letter-spacing:.02em; }
-  .kvItem .v{ margin-top:4px; font-size:14px; font-weight:900; color:#0f172a; word-break:break-word; }
+.courseCard{ border:1px solid var(--border); border-radius:16px; padding:12px; background:#fff; }
+.courseTitle{ font-weight:950; }
+.courseSub{ color:var(--muted); font-weight:800; font-size:12px; margin-top:2px; }
+.courseBtns{ display:flex; gap:10px; margin-top:10px; }
+.btnSmall{ padding:8px 10px; border-radius:12px; border:1px solid var(--border); background:#fff; font-weight:900; cursor:pointer; }
+.btnSmall.primary{ background: rgba(220,38,38,.08); border-color: rgba(220,38,38,.35); }
 
-  .courseList{ margin-top:12px; display:flex; flex-direction:column; gap:10px; }
-  .courseCard{
-    border:1px solid rgba(148,163,184,.35);
-    border-radius:16px;
-    background:#fff;
-    overflow:hidden;
-  }
-  .courseHead{
-    display:flex; align-items:center; justify-content:space-between;
-    padding:12px 12px;
-    cursor:pointer;
-    user-select:none;
-  }
-  .courseName{ font-weight: 950; color:#0f172a; }
-  .courseMeta{ font-size:12px; font-weight:900; color:#64748b; }
-  .chev{ font-weight:900; color:#b91c1c; }
-  .topicBody{ display:none; padding: 0 12px 12px; }
-  .topicGrid{ display:grid; grid-template-columns: 1fr; gap:8px; margin-top:8px; }
-  .topicBtn{
-    display:flex; align-items:center; justify-content:space-between;
-    width:100%;
-    padding:10px 12px;
-    border-radius:14px;
-    border:1px solid rgba(148,163,184,.35);
-    background:#fff;
-    cursor:pointer;
-    font-weight:900;
-    color:#0f172a;
-  }
-  .topicBtn:hover{ border-color: rgba(220,38,38,.45); background: rgba(220,38,38,.04); }
-  .topicTag{ font-size:12px; font-weight:900; color:#64748b; }
+.modal{ position:fixed; inset:0; background: rgba(15,23,42,.55); backdrop-filter: blur(6px); z-index: 99999; display:flex; align-items:center; justify-content:center; padding:18px; }
+.modalCard{ width:min(860px, 96vw); background:#fff; border:1px solid var(--border); border-radius:22px; box-shadow: var(--shadow); overflow:hidden; }
+.modalHead{ display:flex; justify-content:space-between; align-items:center; padding:14px 16px; border-bottom:1px solid var(--border); }
+.modalTitle{ font-weight:950; }
+.modalSub{ color:var(--muted); font-weight:800; font-size:12px; margin-top:2px; }
+.btnGhost{ padding:8px 10px; border-radius:12px; border:1px solid var(--border); background:#fff; font-weight:900; cursor:pointer; }
+.modalBody{ padding:16px; }
+.pdfRow{ display:flex; gap:12px; align-items:center; flex-wrap:wrap; }
+.hint{ color:var(--muted); font-weight:800; font-size:12px; }
+.qList{ display:flex; flex-direction:column; gap:10px; margin-top:14px; }
+.qItem{ border:1px solid var(--border); border-radius:16px; padding:12px; }
+.qTitle{ font-weight:950; margin-bottom:8px; }
+.optRow{ display:flex; gap:10px; flex-wrap:wrap; }
+.opt{ display:flex; gap:6px; align-items:center; border:1px solid var(--border); border-radius:999px; padding:6px 10px; font-weight:900; cursor:pointer; user-select:none; }
+.opt input{ accent-color: var(--accent); }
+.modalFoot{ display:flex; align-items:center; gap:12px; margin-top:14px; }
+.evalMsg{ font-weight:900; color: var(--muted); }
 
-  .modal{ position:fixed; inset:0; display:none; z-index: 9999; }
-  .modal[aria-hidden="false"]{ display:block; }
-  .modalBackdrop{ position:absolute; inset:0; background: rgba(15,23,42,.55); }
-  .modalPanel{
-    position:relative;
-    margin: 5vh auto;
-    width: min(880px, calc(100vw - 24px));
-    background:#fff;
-    border-radius: 18px;
-    border:1px solid rgba(148,163,184,.35);
-    box-shadow: 0 30px 80px rgba(0,0,0,.25);
-    overflow:hidden;
-  }
-  .modalHead{
-    display:flex; align-items:center; justify-content:space-between;
-    padding: 14px 14px;
-    border-bottom: 1px solid rgba(148,163,184,.35);
-    background: linear-gradient(135deg, rgba(220,38,38,.08), rgba(15,23,42,.03));
-  }
-  .modalTitle{ font-size: 16px; font-weight: 950; color:#0f172a; }
-  .modalMeta{ margin-top:2px; font-size: 12px; font-weight: 900; color:#64748b; }
-  .iconBtn{
-    border:1px solid rgba(148,163,184,.5);
-    background:#fff;
-    border-radius: 12px;
-    width:40px; height:40px;
-    font-weight:950; cursor:pointer;
-  }
-  .modalBody{ padding: 14px; }
-  .pdfRow{
-    display:flex; align-items:center; justify-content:space-between; gap:12px;
-    padding: 12px; border-radius: 16px;
-    border:1px solid rgba(148,163,184,.35);
-    background:#fff;
-  }
-  .btnOutline{
-    display:inline-flex; align-items:center; justify-content:center;
-    padding:10px 12px; border-radius: 14px;
-    border:1px solid rgba(220,38,38,.35);
-    color:#b91c1c; font-weight:950; text-decoration:none;
-    background:#fff;
-  }
-  .btnOutline:hover{ background: rgba(220,38,38,.06); }
+@media (max-width: 920px){
+  .grid2{ grid-template-columns: 1fr; }
+}
 
-  .qWrap{ margin-top: 12px; display:flex; flex-direction:column; gap:10px; }
-  .qCard{
-    border:1px solid rgba(148,163,184,.35);
-    border-radius: 16px;
-    padding: 12px;
-    background:#fff;
-  }
-  .qTitle{ font-weight: 950; color:#0f172a; }
-  .optRow{ margin-top:10px; display:grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap:8px; }
-  .opt{
-    display:flex; align-items:center; justify-content:center; gap:8px;
-    border:1px solid rgba(148,163,184,.35);
-    border-radius: 14px;
-    padding: 10px 8px;
-    font-weight: 950;
-    cursor:pointer;
-    user-select:none;
-    background:#fff;
-  }
-  .opt input{ width:16px; height:16px; }
-  .sendRow{ margin-top: 12px; display:flex; align-items:center; justify-content:space-between; gap:12px; }
-  .mutedSmall{ color:#64748b; font-weight:800; font-size:12px; }
-  .btnPrimary{
-    display:inline-flex; align-items:center; justify-content:center; gap:10px;
-    padding: 12px 14px;
-    border-radius: 16px;
-    border:0;
-    background:#b91c1c;
-    color:#fff;
-    font-weight: 950;
-    cursor:pointer;
-  }
-  .btnPrimary:disabled{ opacity:.55; cursor:not-allowed; }
-  .okBox{
-    margin-top:12px;
-    padding: 12px;
-    border-radius: 16px;
-    border:1px solid rgba(34,197,94,.35);
-    background: rgba(34,197,94,.08);
-    color:#166534;
-    font-weight: 950;
-  }
-
-
-  /* ===== FIX v28: debug + clicks garantizados ===== */
-  .dbgClick{
-    margin-top:8px;
-    font-weight:900;
-    font-size:12px;
-    color:#0f172a;
-    background: rgba(15,23,42,.06);
-    border:1px solid rgba(148,163,184,.45);
-    padding:6px 10px;
-    border-radius:999px;
-    display:inline-block;
-    margin-right:8px;
-  }
-  /* Fuerza que nada tape el login */
-  #authOverlay, .authOverlay, .authCard, .authBox, .authPanel{
-    pointer-events:auto !important;
-  }
-  #authOverlay{ position:fixed !important; inset:0 !important; z-index:999999 !important; }
-  .authCard{ position:relative !important; z-index:1000000 !important; }
-  .roleBtn{ position:relative !important; z-index:1000001 !important; pointer-events:auto !important; cursor:pointer !important; }
 
 </style>
 </head>
@@ -1182,17 +821,13 @@
   <div id="authOverlay" class="authOverlay">
     <div class="authCard">
       <p class="authTitle">ACCESO AL PANEL</p>
-      <p class="authSub">Seleccione su tipo de acceso e ingrese la clave.<div class="buildTag">Build: v28</div>
-<div id="dbgClick" class="dbgClick">Clicks: 0</div>
-<div id="dbgRole" class="dbgClick">Rol: -</div>
-<div id="dbgClick" class="dbgClick">Clicks: 0</div>
-<div id="dbgRole" class="dbgClick">Rol: -</div>
-<div class="buildTag"></div></p>
+      <p class="authSub">Seleccione su tipo de acceso e ingrese la clave.</p>
+      <div class="buildTag" style="font-weight:900;color:#64748b;font-size:12px;margin:6px 0 10px 0;">Build: v29</div>
 
       <div class="roleRow">
-        <button id="roleAdmin" class="roleBtn" type="button" onclick="window.__pickRole && window.__pickRole('admin'); return false;" aria-pressed="false">ADMIN</button>
-        <button id="roleTutor" class="roleBtn" type="button" onclick="window.__pickRole && window.__pickRole('tutor'); return false;" aria-pressed="false">TUTOR</button>
-        <button id="roleAlumno" class="roleBtn roleBtnWide" type="button" onclick="window.__pickRole && window.__pickRole('alumno'); return false;" aria-pressed="false">ALUMNO</button>
+        <button id="roleAdmin" class="roleBtn" type="button">ADMIN</button>
+        <button id="roleTutor" class="roleBtn" type="button">TUTOR</button>
+        <button id="roleAlumno" class="roleBtn" type="button">ALUMNO</button>
       </div>
 
       <div class="authRow">
@@ -1215,28 +850,20 @@
       </div>
 
       <div class="nav">
-        <!-- Bloque ADMIN/TUTOR -->
-        <div id="navAdminBlock">
-          <button id="nav_overview" class="active" type="button">RESUMEN GENERAL</button>
-          <button id="nav_local" type="button">CONTROL DE SEDES</button>
-          <button id="nav_table" type="button">ALUMNOS</button>
-          <button id="nav_horarios" type="button">HORARIOS</button>
-          <button id="nav_impresiones" type="button">IMPRESIONES</button>
-          <button id="nav_silabos" type="button">SÍLABOS</button>
-          <button id="nav_materiales" type="button">MATERIALES</button>
-          <button id="nav_listas" type="button">LISTAS</button>
-          <button id="nav_reportes" type="button">ENVÍO DE REPORTES</button>
-        </div>
+        <button id="nav_overview" class="active">RESUMEN GENERAL</button>
+        <button id="nav_local">CONTROL DE SEDES</button>
+        <button id="nav_table">ALUMNOS</button>
+        <button id="nav_horarios">HORARIOS</button>
+        <button id="nav_impresiones">IMPRESIONES</button>
+        <!-- ✅ NUEVO -->
+        <button id="nav_silabos">SÍLABOS</button>
+        <button id="nav_materiales">MATERIALES</button>
+        <button id="nav_listas">LISTAS</button>
+        <button id="nav_reportes">ENVÍO DE REPORTES</button>
+        <!-- ALUMNO -->
+        <button id="nav_mipanel">🎓 MI PANEL</button>
+        <button id="nav_cursos">📚 CURSOS</button>
 
-        <!-- Bloque ALUMNO: SOLO 2 SECCIONES -->
-        <div id="navAlumnoBlock" style="display:none;">
-          <button class="active" id="nav_alumno_profile" type="button">
-            <span class="navIcon">👤</span><span class="navText">MI PERFIL</span>
-          </button>
-          <button id="nav_alumno_courses" type="button">
-            <span class="navIcon">📚</span><span class="navText">CURSOS</span>
-          </button>
-        </div>
       </div>
 
       <div class="userBox">
@@ -1269,63 +896,6 @@
       <div id="view_overview" class="grid"></div>
       <div id="view_local" class="grid" style="display:none;"></div>
       <div id="view_table" class="grid" style="display:none;"></div>
-
-  <section id="view_alumno" class="view" style="display:none;">
-    <div class="alumnoHero">
-      <div class="alumnoTitleRow">
-        <div class="alumnoTitle">Panel del Estudiante</div>
-        <div class="alumnoBadge">LA META</div>
-      </div>
-      <div class="alumnoSub" id="alumnoNombreBig">Estudiante</div>
-      <div class="alumnoChips" id="alumnoChips"></div>
-    </div>
-
-    <div class="alumnoGrid">
-      <div class="card alumnoCard" id="alumnoSectionProfile">
-        <div class="cardTitle">Datos del estudiante</div>
-        <div class="alumnoKV" id="alumnoKV"></div>
-      </div>
-
-      <div class="card alumnoCard" id="alumnoSectionCourses">
-        <div class="cardTitle">Cursos y evaluaciones</div>
-        <div class="muted" style="margin-top:6px;">Selecciona un curso, luego un tema, y resuelve tu evaluación (5 preguntas).</div>
-        <div class="courseList" id="courseList"></div>
-      </div>
-    </div>
-
-    <div class="modal" id="evalModal" aria-hidden="true">
-      <div class="modalBackdrop" id="evalModalClose"></div>
-      <div class="modalPanel">
-        <div class="modalHead">
-          <div>
-            <div class="modalTitle" id="evalTitle">Evaluación</div>
-            <div class="modalMeta" id="evalMeta">Tema</div>
-          </div>
-          <button class="iconBtn" id="evalX" title="Cerrar" type="button">✕</button>
-        </div>
-
-        <div class="modalBody">
-          <div class="pdfRow">
-            <div class="pdfInfo">
-              <div class="k">Material</div>
-              <div class="v" id="evalPdfLabel">PDF de práctica</div>
-            </div>
-            <a class="btnOutline" id="evalPdfLink" href="#" target="_blank" rel="noopener">Abrir PDF</a>
-          </div>
-
-          <div class="qWrap" id="qWrap"></div>
-
-          <div class="sendRow">
-            <div class="mutedSmall" id="sendHint">Puedes dejar respuestas en blanco o marcar más de una alternativa.</div>
-            <button class="btnPrimary" id="btnEnviarEval" type="button"><span class="sendIcon">📨</span> ENVIAR</button>
-          </div>
-
-          <div class="okBox" id="sendOk" style="display:none;">Evaluación enviada y registrada.</div>
-        </div>
-      </div>
-    </div>
-  </section>
-
       <div id="view_horarios" class="grid" style="display:none;"></div>
       <div id="view_impresiones" class="grid" style="display:none;"></div>
       <!-- ✅ NUEVO -->
@@ -1334,7 +904,70 @@
       <div id="view_listas" class="grid" style="display:none;"></div>
       <div id="view_reportes" class="grid" style="display:none;"></div>
 
-    </main>
+    <!-- ===================== ALUMNO: MI PANEL ===================== -->
+<section id="view_alumno_panel" class="view" style="display:none;">
+  <h1 class="h1">Mi Panel</h1>
+  <p class="sub">Información institucional del estudiante y acceso rápido.</p>
+
+  <div class="card" style="margin-top:12px;">
+    <div class="cardHead">
+      <div>
+        <div class="cardTitle">Perfil del estudiante</div>
+        <div class="cardSub">Datos principales asociados a tu clave.</div>
+      </div>
+    </div>
+    <div class="cardBody">
+      <div id="alumnoPerfilGrid" class="grid2"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== ALUMNO: CURSOS ===================== -->
+<section id="view_alumno_cursos" class="view" style="display:none;">
+  <h1 class="h1">Cursos</h1>
+  <p class="sub">Selecciona un curso, luego un bloque, y resuelve tu evaluación (5 preguntas).</p>
+
+  <div class="card" style="margin-top:12px;">
+    <div class="cardHead">
+      <div>
+        <div class="cardTitle">Cursos del examen (12)</div>
+        <div class="cardSub">Cada curso contiene 2 bloques (A y B). Las evaluaciones se cargan desde Drive (PDF).</div>
+      </div>
+    </div>
+    <div class="cardBody">
+      <div id="cursosGrid" class="grid2"></div>
+    </div>
+  </div>
+
+  <!-- Modal evaluación -->
+  <div id="evalModal" class="modal" style="display:none;">
+    <div class="modalCard">
+      <div class="modalHead">
+        <div>
+          <div id="evalTitle" class="modalTitle">Evaluación</div>
+          <div id="evalMeta" class="modalSub"></div>
+        </div>
+        <button id="evalClose" class="btnGhost" type="button">Cerrar</button>
+      </div>
+      <div class="modalBody">
+        <div class="pdfRow">
+          <a id="pdfLink" class="btn" href="#" target="_blank" rel="noopener">Abrir PDF</a>
+          <div class="hint">Marca tus alternativas. Puedes dejar en blanco o marcar varias.</div>
+        </div>
+
+        <div id="qList" class="qList"></div>
+
+        <div class="modalFoot">
+          <button id="btnEnviarEval" class="btn" type="button">ENVIAR</button>
+          <div id="evalMsg" class="evalMsg"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+</main>
   </div>
 
 <script>
@@ -1345,53 +978,61 @@
   // ⚠️ CAMBIA ESTAS CLAVES AQUÍ
   const AUTH_ADMIN_PASS = "202619";
   const AUTH_TUTOR_PASS = "MBMLaMeta";
-  const STUDENT_API_URL = "https://script.google.com/macros/s/AKfycbzWE1G1EwtGfF4xk6ON2ArMe_Kwfwnj6M2YUXWxkFJGU4iwscmmPelMErwHMtNR4cvg/exec";
-  const STUDENT_KEY = "lameta_student";
-
-  function setStudentSession(obj){ localStorage.setItem(STUDENT_KEY, JSON.stringify(obj||{})); }
-  function getStudentSession(){ try{ return JSON.parse(localStorage.getItem(STUDENT_KEY)||"null"); }catch(e){ return null; } }
-  function clearStudentSession(){ localStorage.removeItem(STUDENT_KEY); }
-
-  function jsonp(url, timeoutMs=15000){
-    return new Promise((resolve, reject)=>{
-      const cbName = "cb_" + Date.now() + "_" + Math.floor(Math.random()*1e6);
-      const script = document.createElement("script");
-      let done = false;
-      function cleanup(){
-        if(script.parentNode) script.parentNode.removeChild(script);
-        try{ delete window[cbName]; }catch(e){ window[cbName]=undefined; }
-      }
-      const timer = setTimeout(()=>{
-        if(done) return;
-        done = true;
-        cleanup();
-        reject(new Error("Tiempo de espera agotado"));
-      }, timeoutMs);
-      window[cbName] = (data)=>{
-        if(done) return;
-        done = true;
-        clearTimeout(timer);
-        cleanup();
-        resolve(data);
-      };
-      script.onerror = ()=>{
-        if(done) return;
-        done = true;
-        clearTimeout(timer);
-        cleanup();
-        reject(new Error("No se pudo conectar con el servidor"));
-      };
-      const joiner = url.includes("?") ? "&" : "?";
-      script.src = url + joiner + "callback=" + encodeURIComponent(cbName);
-      document.body.appendChild(script);
-    });
-  }
-
 
   const ROLE_KEY = "lameta_role";
-  let CURRENT_ROLE = null; // "admin" | "tutor"
+  let CURRENT_ROLE = null; // "admin" | "tutor" | "alumno"
 
-  function setRole(role){
+  // ===================== PORTAL ALUMNO (Apps Script) =====================
+  // Endpoint del Apps Script publicado como Web App (exec)
+  const STUDENT_API_URL = "https://script.google.com/macros/s/AKfycbzWE1G1EwtGfF4xk6ON2ArMe_Kwfwnj6M2YUXWxkFJGU4iwscmmPelMErwHMtNR4cvg/exec";
+  let CURRENT_STUDENT = null; // objeto alumno (datos principales)
+
+
+  function jsonpRequest(url, params, timeoutMs){
+  timeoutMs = timeoutMs || 12000;
+  return new Promise((resolve, reject) => {
+    const cb = "cb_" + Date.now() + "_" + Math.floor(Math.random()*1e6);
+    params = params || {};
+    params.callback = cb;
+    const qs = Object.keys(params).map(k => encodeURIComponent(k) + "=" + encodeURIComponent(String(params[k]))).join("&");
+    const src = url + (url.indexOf("?")>=0 ? "&" : "?") + qs;
+
+    let done = false;
+    const s = document.createElement("script");
+    s.async = true;
+
+    const timer = setTimeout(() => {
+      if (done) return;
+      done = true;
+      try{ window[cb] && (window[cb] = null); }catch(e){}
+      try{ s.remove(); }catch(e){}
+      reject(new Error("Tiempo de espera agotado"));
+    }, timeoutMs);
+
+    window[cb] = function(payload){
+      if (done) return;
+      done = true;
+      clearTimeout(timer);
+      try{ s.remove(); }catch(e){}
+      try{ window[cb] = null; }catch(e){}
+      resolve(payload);
+    };
+
+    s.onerror = function(){
+      if (done) return;
+      done = true;
+      clearTimeout(timer);
+      try{ s.remove(); }catch(e){}
+      try{ window[cb] = null; }catch(e){}
+      reject(new Error("Error de red / JSONP"));
+    };
+
+    s.src = src;
+    document.head.appendChild(s);
+  });
+}
+
+function setRole(role){
     CURRENT_ROLE = role;
     localStorage.setItem(ROLE_KEY, role);
     applyRoleUI();
@@ -1410,260 +1051,100 @@
   function canAccessView(v){
     // Tutor NO puede ver RESUMEN GENERAL ni CONTROL DE SEDES
     if (CURRENT_ROLE === "tutor" && (v === "overview" || v === "local")) return false;
-    if (CURRENT_ROLE === "alumno" && v !== "alumno") return false;
     return true;
   }
 
-  
-  // ===================== ALUMNO (PANEL INSTITUCIONAL) =====================
-  const COURSES_ALUMNO = [
-    { id:"ALG", name:"Álgebra", topics:[
-      { id:"ALG_A", label:"Bloque A — Ecuaciones de 1er grado", pdf:"#"},
-      { id:"ALG_B", label:"Bloque B — Sistemas de ecuaciones", pdf:"#"},
-    ]},
-    { id:"ARI", name:"Aritmética", topics:[ {id:"ARI_A",label:"Bloque A",pdf:"#"}, {id:"ARI_B",label:"Bloque B",pdf:"#"} ]},
-    { id:"GEO", name:"Geometría", topics:[ {id:"GEO_A",label:"Bloque A",pdf:"#"}, {id:"GEO_B",label:"Bloque B",pdf:"#"} ]},
-    { id:"TRI", name:"Trigonometría", topics:[ {id:"TRI_A",label:"Bloque A",pdf:"#"}, {id:"TRI_B",label:"Bloque B",pdf:"#"} ]},
-    { id:"FIS", name:"Física", topics:[ {id:"FIS_A",label:"Bloque A",pdf:"#"}, {id:"FIS_B",label:"Bloque B",pdf:"#"} ]},
-    { id:"QUI", name:"Química", topics:[ {id:"QUI_A",label:"Bloque A",pdf:"#"}, {id:"QUI_B",label:"Bloque B",pdf:"#"} ]},
-    { id:"BIO", name:"Biología", topics:[ {id:"BIO_A",label:"Bloque A",pdf:"#"}, {id:"BIO_B",label:"Bloque B",pdf:"#"} ]},
-    { id:"LEN", name:"Lenguaje", topics:[ {id:"LEN_A",label:"Bloque A",pdf:"#"}, {id:"LEN_B",label:"Bloque B",pdf:"#"} ]},
-    { id:"LIT", name:"Literatura", topics:[ {id:"LIT_A",label:"Bloque A",pdf:"#"}, {id:"LIT_B",label:"Bloque B",pdf:"#"} ]},
-    { id:"HIS", name:"Historia", topics:[ {id:"HIS_A",label:"Bloque A",pdf:"#"}, {id:"HIS_B",label:"Bloque B",pdf:"#"} ]},
-    { id:"GEOG", name:"Geografía", topics:[ {id:"GEOG_A",label:"Bloque A",pdf:"#"}, {id:"GEOG_B",label:"Bloque B",pdf:"#"} ]},
-    { id:"ECO", name:"Economía", topics:[ {id:"ECO_A",label:"Bloque A",pdf:"#"}, {id:"ECO_B",label:"Bloque B",pdf:"#"} ]},
-  ];
-
-  function pick_(obj, keys){
-    if(!obj) return "";
-    for(const k of keys){
-      if(obj[k]!==undefined && obj[k]!==null && String(obj[k]).trim()!=="") return String(obj[k]).trim();
-    }
-    // fallback: buscar por nombre parcial
-    const kk = Object.keys(obj||{});
-    for(const k of keys){
-      const hit = kk.find(x => String(x).toLowerCase().includes(String(k).toLowerCase()));
-      if(hit && obj[hit]!==undefined && obj[hit]!==null && String(obj[hit]).trim()!=="") return String(obj[hit]).trim();
-    }
-    return "";
-  }
-
-  function enterAlumnoMode(){
-    // NAV: SOLO 2 SECCIONES
-    const nbA = document.getElementById("navAdminBlock");
-    const nbS = document.getElementById("navAlumnoBlock");
-    if (nbA) nbA.style.display = "none";
-    if (nbS) nbS.style.display = "block";
-
-    // ocultar filtros superiores (son de admin)
-    const topFilters = document.querySelector(".filters");
-    if (topFilters) topFilters.style.display = "none";
-
-    setView("alumno");
-    renderAlumnoPanel();
-
-    const b1 = document.getElementById("nav_alumno_profile");
-    const b2 = document.getElementById("nav_alumno_courses");
-    if (b1) b1.onclick = ()=>{ setAlumnoTab("profile"); };
-    if (b2) b2.onclick = ()=>{ setAlumnoTab("courses"); };
-
-    setAlumnoTab("profile");
-  }
-
-  function setAlumnoTab(which){
-    const b1 = document.getElementById("nav_alumno_profile");
-    const b2 = document.getElementById("nav_alumno_courses");
-    if (b1) b1.classList.toggle("active", which==="profile");
-    if (b2) b2.classList.toggle("active", which==="courses");
-
-    const s1 = document.getElementById("alumnoSectionProfile");
-    const s2 = document.getElementById("alumnoSectionCourses");
-    if (s1) s1.style.display = (which==="profile") ? "block" : "none";
-    if (s2) s2.style.display = (which==="courses") ? "block" : "none";
-  }
-
-  function renderAlumnoPanel(){
-    const sess = getStudentSession();
-    const a = (sess && sess.alumno) ? sess.alumno : {};
-    // Nombre
-    const nombre = pick_(a, ["NOMBRES COMPLETOS","nombre_completo","NOMBRE COMPLETO","Nombres completos","NOMBRE","nombres"]);
-    const big = document.getElementById("alumnoNombreBig");
-    if (big) big.textContent = nombre || "Estudiante";
-
-    // Chips (si existen)
-    const chips = document.getElementById("alumnoChips");
-    if (chips){
-      const universidad = pick_(a, ["UNIVERSIDAD","universidad"]);
-      const salon = pick_(a, ["SALÓN","SALON","salon"]);
-      const modalidad = pick_(a, ["MODALIDAD","modalidad"]);
-      const estado = pick_(a, ["ESTADO","estado"]);
-      const items = [
-        ["Universidad", universidad],
-        ["Salón", salon],
-        ["Modalidad", modalidad],
-        ["Estado", estado],
-      ].filter(x => x[1]);
-      chips.innerHTML = items.map(it => `<div class="chip">${escapeHtml(it[0]+": "+it[1])}</div>`).join("");
-    }
-
-    // Datos principales (COMPLETOS)
-    const kv = document.getElementById("alumnoKV");
-    if (kv){
-      const data = [
-        ["Nombre completo", nombre],
-        ["Correo", pick_(a, ["CORREO","correo","Correo"])],
-        ["Usuario", pick_(a, ["USUARIO","usuario"])],
-        ["DNI", pick_(a, ["DNI","dni"])],
-        ["Celular", pick_(a, ["CEL","CELULAR","celular","CEL APODERADO","cel_apoderado"])],
-        ["Local", pick_(a, ["LOCAL","local"])],
-        ["Universidad", pick_(a, ["UNIVERSIDAD","universidad"])],
-        ["Salón", pick_(a, ["SALÓN","SALON","salon"])],
-        ["Modalidad", pick_(a, ["MODALIDAD","modalidad"])],
-        ["Estado", pick_(a, ["ESTADO","estado"])],
-        ["Código / Fila", (sess && sess.row) ? String(sess.row) : ""],
-      ].filter(it => it[1] && String(it[1]).trim()!=="");
-
-      kv.innerHTML = data.map(it =>
-        `<div class="kvItem"><div class="k">${escapeHtml(it[0].toUpperCase())}</div><div class="v">${escapeHtml(it[1])}</div></div>`
-      ).join("");
-    }
-
-    renderCoursesAlumno();
-  }
-
-  function renderCoursesAlumno(){
-    const box = document.getElementById("courseList");
-    if (!box) return;
-
-    box.innerHTML = COURSES_ALUMNO.map(c => {
-      const topics = c.topics.map(t =>
-        `<button class="topicBtn" type="button" data-course="${c.id}" data-topic="${t.id}">
-           <span>${escapeHtml(t.label)}</span>
-           <span class="topicTag">Evaluación (5)</span>
-         </button>`
-      ).join("");
-
-      return `
-        <div class="courseCard" data-course="${c.id}">
-          <div class="courseHead" role="button" tabindex="0">
-            <div>
-              <div class="courseName">${escapeHtml(c.name)}</div>
-              <div class="courseMeta">2 bloques semanales</div>
-            </div>
-            <div class="chev">▾</div>
-          </div>
-          <div class="topicBody" style="display:none;">
-            <div class="topicGrid">${topics}</div>
-          </div>
-        </div>
-      `;
-    }).join("");
-
-    box.querySelectorAll(".courseHead").forEach(h => {
-      h.addEventListener("click", () => {
-        const card = h.closest(".courseCard");
-        const body = card.querySelector(".topicBody");
-        const open = (body.style.display === "block");
-        body.style.display = open ? "none" : "block";
-        card.querySelector(".chev").textContent = open ? "▾" : "▴";
-      });
-    });
-
-    box.querySelectorAll(".topicBtn").forEach(b => {
-      b.addEventListener("click", () => openEvalModal(b.dataset.course, b.dataset.topic));
-    });
-  }
-
-  function openEvalModal(courseId, topicId){
-    const course = COURSES_ALUMNO.find(c => c.id === courseId);
-    const topic = course ? course.topics.find(t => t.id === topicId) : null;
-    const modal = document.getElementById("evalModal");
-    if (!modal || !course || !topic) return;
-
-    document.getElementById("evalTitle").textContent = "Evaluación — " + course.name;
-    document.getElementById("evalMeta").textContent = topic.label;
-
-    const link = document.getElementById("evalPdfLink");
-    link.href = topic.pdf || "#";
-    document.getElementById("evalPdfLabel").textContent = (topic.pdf && topic.pdf !== "#") ? "Abrir PDF" : "PDF (se vinculará en el siguiente paso)";
-
-    const qWrap = document.getElementById("qWrap");
-    let html = "";
-    for (let i=1; i<=5; i++){
-      html += `<div class="qCard">
-                <div class="qTitle">Pregunta ${i}</div>
-                <div class="optRow">`;
-      ["A","B","C","D","E"].forEach(op => {
-        html += `<label class="opt"><input type="checkbox" data-q="${i}" data-op="${op}"> ${op}</label>`;
-      });
-      html += `   </div>
-              </div>`;
-    }
-    qWrap.innerHTML = html;
-
-    const ok = document.getElementById("sendOk");
-    ok.style.display = "none";
-    const btn = document.getElementById("btnEnviarEval");
-    btn.disabled = false;
-
-    btn.onclick = () => {
-      const checked = Array.from(qWrap.querySelectorAll('input[type="checkbox"]:checked'));
-      const answers = {};
-      checked.forEach(x => {
-        const q = x.dataset.q;
-        const op = x.dataset.op;
-        if (!answers[q]) answers[q] = [];
-        answers[q].push(op);
-      });
-
-      // DEMO (1 envío): por ahora se guarda local; luego lo conectamos a tu hoja R
-      const key = "eval_" + courseId + "_" + topicId;
-      localStorage.setItem(key, JSON.stringify({ answers, sentAt: new Date().toISOString() }));
-      ok.style.display = "block";
-      btn.disabled = true;
-    };
-
-    modal.setAttribute("aria-hidden","false");
-  }
-
-  function closeEvalModal(){
-    const modal = document.getElementById("evalModal");
-    if (!modal) return;
-    modal.setAttribute("aria-hidden","true");
-  }
-
   function applyRoleUI(){
-    const roleLabel = document.getElementById("userRole");
-    if (roleLabel) roleLabel.textContent = CURRENT_ROLE ? ("ROL: " + CURRENT_ROLE.toUpperCase()) : "ROL: -";
+  const role = CURRENT_ROLE;
 
-    const navAdmin = document.getElementById("navAdminBlock");
-    const navAlumno = document.getElementById("navAlumnoBlock");
-    const topFilters = document.querySelector(".filters");
+  // Sidebar buttons
+  const btns = {
+    resumen: document.getElementById("nav_resumen"),
+    local: document.getElementById("nav_local"),
+    alumnos: document.getElementById("nav_table"),
+    horarios: document.getElementById("nav_horarios"),
+    impresiones: document.getElementById("nav_impresiones"),
+    silabos: document.getElementById("nav_silabos"),
+    materiales: document.getElementById("nav_materiales"),
+    listas: document.getElementById("nav_listas"),
+    reportes: document.getElementById("nav_reportes"),
+    miPanel: document.getElementById("nav_mipanel"),
+    cursos: document.getElementById("nav_cursos"),
+  };
 
-    if (CURRENT_ROLE === "alumno"){
-      if (navAdmin) navAdmin.style.display = "none";
-      if (navAlumno) navAlumno.style.display = "block";
-      if (topFilters) topFilters.style.display = "none";
-      return;
-    }
+  // Containers / Views (ya existentes)
+  const views = {
+    resumen: document.getElementById("view_resumen"),
+    local: document.getElementById("view_local"),
+    table: document.getElementById("view_table"),
+    horarios: document.getElementById("view_horarios"),
+    impresiones: document.getElementById("view_impresiones"),
+    silabos: document.getElementById("view_silabos"),
+    materiales: document.getElementById("view_materiales"),
+    listas: document.getElementById("view_listas"),
+    reportes: document.getElementById("view_reportes"),
+    alumnoPanel: document.getElementById("view_alumno_panel"),
+    alumnoCursos: document.getElementById("view_alumno_cursos"),
+  };
 
-    // ADMIN / TUTOR
-    if (navAdmin) navAdmin.style.display = "block";
-    if (navAlumno) navAlumno.style.display = "none";
-    if (topFilters) topFilters.style.display = "";
-
-    const isTutor = (CURRENT_ROLE === "tutor");
-    const btnOverview = document.getElementById("nav_overview");
-    const btnLocal = document.getElementById("nav_local");
-    if (btnOverview) btnOverview.style.display = isTutor ? "none" : "";
-    if (btnLocal) btnLocal.style.display = isTutor ? "none" : "";
+  // Helper: show/hide button safely
+  function showBtn(el, on){
+    if(!el) return;
+    el.style.display = on ? "" : "none";
   }
 
-    // Bloquear: si la vista actual no está permitida, enviar a ALUMNOS
-    if (state && state.view && !canAccessView(state.view)){
-      setView("table");
-    }
+  // ROLE: ADMIN
+  if (role === "admin"){
+    showBtn(btns.resumen, true);
+    showBtn(btns.local, true);
+    showBtn(btns.alumnos, true);
+    showBtn(btns.horarios, true);
+    showBtn(btns.impresiones, true);
+    showBtn(btns.silabos, true);
+    showBtn(btns.materiales, true);
+    showBtn(btns.listas, true);
+    showBtn(btns.reportes, true);
+    showBtn(btns.miPanel, false);
+    showBtn(btns.cursos, false);
+    return;
   }
+
+  // ROLE: TUTOR
+  if (role === "tutor"){
+    showBtn(btns.resumen, true);
+    showBtn(btns.local, false);
+    showBtn(btns.alumnos, true);
+    showBtn(btns.horarios, true);
+    showBtn(btns.impresiones, true);
+    showBtn(btns.silabos, true);
+    showBtn(btns.materiales, true);
+    showBtn(btns.listas, true);
+    showBtn(btns.reportes, false);
+    showBtn(btns.miPanel, false);
+    showBtn(btns.cursos, false);
+    return;
+  }
+
+  // ROLE: ALUMNO (SOLO 2 SECCIONES)
+  if (role === "alumno"){
+    showBtn(btns.resumen, false);
+    showBtn(btns.local, false);
+    showBtn(btns.alumnos, false);
+    showBtn(btns.horarios, false);
+    showBtn(btns.impresiones, false);
+    showBtn(btns.silabos, false);
+    showBtn(btns.materiales, false);
+    showBtn(btns.listas, false);
+    showBtn(btns.reportes, false);
+    showBtn(btns.miPanel, true);
+    showBtn(btns.cursos, true);
+    return;
+  }
+
+  // Sin rol
+  Object.keys(btns).forEach(k => showBtn(btns[k], false));
+}
+
 
   function showAuth(show){
     const o = document.getElementById("authOverlay");
@@ -1686,7 +1167,7 @@
     let selected = null;
     const bA = document.getElementById("roleAdmin");
     const bT = document.getElementById("roleTutor");
-    const bS = document.getElementById("roleAlumno");
+  const bS = document.getElementById("roleAlumno");
     const pass = document.getElementById("authPass");
     const err = document.getElementById("authErr");
 
@@ -1694,92 +1175,26 @@
       selected = r;
       if (bA) bA.classList.toggle("active", r === "admin");
       if (bT) bT.classList.toggle("active", r === "tutor");
-      if (bS) bS.classList.toggle("active", r === "alumno");
       if (err) err.style.display = "none";
       if (pass) pass.focus();
     }
 
     if (bA) bA.addEventListener("click", ()=>pick("admin"));
     if (bT) bT.addEventListener("click", ()=>pick("tutor"));
-    if (bS) bS.addEventListener("click", ()=>pick("alumno"));
+  if (bS) bS.addEventListener("click", ()=>pick("alumno"));
 
-    async function doLogin(){
-      
-    // FIX v27: si el rol no está en variable local, usar el global
-    if (typeof selectedRole === "undefined" || !selectedRole){
-      selectedRole = window.__ROLE__ || "";
-    }
-const p = String(pass?.value || "").trim();
-      if (!selected || !p){
-        if (err){
-          err.textContent = "Seleccione un rol e ingrese la clave.";
-          err.style.display = "block";
-        }
+    function doLogin(){
+      const p = String(pass?.value || "");
+      const ok = (selected === "admin" && p === AUTH_ADMIN_PASS) || (selected === "tutor" && p === AUTH_TUTOR_PASS);
+      if (!ok){
+        if (err) err.style.display = "block";
         return;
       }
-
-      // ADMIN
-      if (selected === "admin"){
-        if (p !== AUTH_ADMIN_PASS){
-          if (err){ err.textContent = "Clave incorrecta."; err.style.display = "block"; }
-          return;
-        }
-        setRole("admin");
-        showAuth(false);
-        if (pass) pass.value = "";
-        if (!canAccessView(loadSavedView() || state.view)) setView("table");
-        return;
-      }
-
-      // TUTOR
-      if (selected === "tutor"){
-        if (p !== AUTH_TUTOR_PASS){
-          if (err){ err.textContent = "Clave incorrecta."; err.style.display = "block"; }
-          return;
-        }
-        setRole("tutor");
-        showAuth(false);
-        if (pass) pass.value = "";
-        if (!canAccessView(loadSavedView() || state.view)) setView("table");
-        return;
-      }
-
-      // ALUMNO (contraseña de la última columna que ve ADMIN/ALUMNOS)
-      if (selected === "alumno"){
-        try{
-          const btn = document.getElementById("btnLogin");
-          if (btn){ btn.disabled = true; btn.textContent = "VALIDANDO..."; }
-
-          const url = STUDENT_API_URL + "?action=authStudent&password=" + encodeURIComponent(p);
-          const res = await jsonp(url, 15000);
-
-          if (!res || !res.ok){
-            if (err){
-              err.textContent = (res && res.error) ? res.error : "Contraseña inválida.";
-              err.style.display = "block";
-            }
-            return;
-          }
-
-          setStudentSession({ password: p, row: res.row, alumno: res.alumno });
-          setRole("alumno");
-          showAuth(false);
-          if (pass) pass.value = "";
-          // Forzar vista alumno
-          setView("alumno");
-          enterAlumnoMode();
-          return;
-
-        }catch(e){
-          if (err){ err.textContent = String(e && e.message ? e.message : e); err.style.display = "block"; }
-          return;
-        }finally{
-          const btn = document.getElementById("btnLogin");
-          if (btn){ btn.disabled = false; btn.textContent = "ENTRAR"; }
-        }
-      }
-
-      if (err){ err.textContent = "Rol no válido."; err.style.display = "block"; }
+      setRole(selected);
+      showAuth(false);
+      if (pass) pass.value = "";
+      // Al entrar, fuerza vista permitida
+      if (!canAccessView(loadSavedView() || state.view)) setView("table");
     }
 
     const btn = document.getElementById("btnLogin");
@@ -2287,8 +1702,8 @@ function loadSavedView(){
   // ============================ NAV ============================
   function setView(v){
     if (!canAccessView(v)){
-      // Bloqueo por rol: redirige a vista por rol
-      v = (CURRENT_ROLE === "alumno") ? "alumno" : "table";
+      // Bloqueo por rol: redirige a ALUMNOS
+      v = "table";
     }
     state.view = v;
     saveView(v);
@@ -2301,6 +1716,8 @@ function loadSavedView(){
     document.getElementById("nav_materiales").classList.toggle("active", v==="materiales");
     document.getElementById("nav_listas").classList.toggle("active", v==="listas");
     document.getElementById("nav_reportes").classList.toggle("active", v==="reportes");
+
+
     document.getElementById("view_overview").style.display = (v==="overview") ? "" : "none";
     document.getElementById("view_local").style.display = (v==="local") ? "" : "none";
     document.getElementById("view_table").style.display = (v==="table") ? "" : "none";
@@ -2310,12 +1727,10 @@ function loadSavedView(){
     document.getElementById("view_materiales").style.display = (v==="materiales") ? "" : "none";
     document.getElementById("view_listas").style.display     = (v==="listas") ? "" : "none";
     document.getElementById("view_reportes").style.display   = (v==="reportes") ? "" : "none";
-    const viewAlumno = document.getElementById("view_alumno");
-    if (viewAlumno) viewAlumno.style.display = (v==="alumno") ? "" : "none";
 
 
     document.getElementById("controlsMatricula").style.display =
-      (v==="horarios" || v==="impresiones" || v==="silabos" || v==="materiales" || v==="listas" || v==="reportes" || v==="alumno") ? "none" : "";
+      (v==="horarios" || v==="impresiones" || v==="silabos" || v==="materiales" || v==="listas" || v==="reportes") ? "none" : "";
 
 
     // ✅ estado solo visible en ALUMNOS (tabla)
@@ -4870,283 +4285,156 @@ window.addEventListener("DOMContentLoaded", () => {
   // 3) Sesión existente: iniciar app
   startApp();
 });
+// ===================== ALUMNO: RENDER =====================
+function renderAlumnoPerfil(){
+  const box = document.getElementById("alumnoPerfilGrid");
+  if (!box) return;
+  const s = CURRENT_STUDENT || {};
 
-  // ===== Alumno Panel (v25) =====
-  const COURSES_ALUMNO = [
-    { id:"ALG", name:"Álgebra", tags:["Ecuaciones","Polinomios","Productos notables"], topics:[
-      { id:"ALG_A", label:"Bloque A — Ecuaciones de 1er grado", meta:"Semana 1", pdf:"#"},
-      { id:"ALG_B", label:"Bloque B — Sistemas de ecuaciones", meta:"Semana 2", pdf:"#"},
-    ]},
-    { id:"ARI", name:"Aritmética", tags:["Razones","Porcentajes","Problemas"], topics:[
-      { id:"ARI_A", label:"Bloque A — Números y operaciones", meta:"Semana 1", pdf:"#"},
-      { id:"ARI_B", label:"Bloque B — Proporciones y porcentajes", meta:"Semana 2", pdf:"#"},
-    ]},
-    { id:"GEO", name:"Geometría", tags:["Ángulos","Triángulos","Circunferencia"], topics:[
-      { id:"GEO_A", label:"Bloque A — Geometría plana", meta:"Semana 1", pdf:"#"},
-      { id:"GEO_B", label:"Bloque B — Áreas y perímetros", meta:"Semana 2", pdf:"#"},
-    ]},
-    { id:"TRI", name:"Trigonometría", tags:["Identidades","Razones trig."], topics:[
-      { id:"TRI_A", label:"Bloque A — Razones trigonométricas", meta:"Semana 1", pdf:"#"},
-      { id:"TRI_B", label:"Bloque B — Identidades básicas", meta:"Semana 2", pdf:"#"},
-    ]},
-    { id:"FIS", name:"Física", tags:["Cinemática","Dinámica"], topics:[
-      { id:"FIS_A", label:"Bloque A — Cinemática", meta:"Semana 1", pdf:"#"},
-      { id:"FIS_B", label:"Bloque B — Leyes de Newton", meta:"Semana 2", pdf:"#"},
-    ]},
-    { id:"QUI", name:"Química", tags:["Estructura","Estequiometría"], topics:[
-      { id:"QUI_A", label:"Bloque A — Materia y estructura", meta:"Semana 1", pdf:"#"},
-      { id:"QUI_B", label:"Bloque B — Reacciones y balance", meta:"Semana 2", pdf:"#"},
-    ]},
-    { id:"BIO", name:"Biología", tags:["Célula","Genética"], topics:[
-      { id:"BIO_A", label:"Bloque A — Biología celular", meta:"Semana 1", pdf:"#"},
-      { id:"BIO_B", label:"Bloque B — Genética básica", meta:"Semana 2", pdf:"#"},
-    ]},
-    { id:"LEN", name:"Lenguaje", tags:["Comprensión","Redacción"], topics:[
-      { id:"LEN_A", label:"Bloque A — Comprensión lectora", meta:"Semana 1", pdf:"#"},
-      { id:"LEN_B", label:"Bloque B — Gramática y redacción", meta:"Semana 2", pdf:"#"},
-    ]},
-    { id:"LIT", name:"Literatura", tags:["Movimientos","Autores"], topics:[
-      { id:"LIT_A", label:"Bloque A — Literatura peruana", meta:"Semana 1", pdf:"#"},
-      { id:"LIT_B", label:"Bloque B — Literatura universal", meta:"Semana 2", pdf:"#"},
-    ]},
-    { id:"HIS", name:"Historia", tags:["Perú","Mundo"], topics:[
-      { id:"HIS_A", label:"Bloque A — Historia del Perú", meta:"Semana 1", pdf:"#"},
-      { id:"HIS_B", label:"Bloque B — Historia universal", meta:"Semana 2", pdf:"#"},
-    ]},
-    { id:"GEO2", name:"Geografía", tags:["Perú","Regiones"], topics:[
-      { id:"GEO2_A", label:"Bloque A — Geografía del Perú", meta:"Semana 1", pdf:"#"},
-      { id:"GEO2_B", label:"Bloque B — Cartografía básica", meta:"Semana 2", pdf:"#"},
-    ]},
-    { id:"ECO", name:"Economía", tags:["Oferta/Demanda","Macroeconomía"], topics:[
-      { id:"ECO_A", label:"Bloque A — Microeconomía básica", meta:"Semana 1", pdf:"#"},
-      { id:"ECO_B", label:"Bloque B — Indicadores macro", meta:"Semana 2", pdf:"#"},
-    ]},
+  // Campos esperados (si existen en el objeto)
+  const items = [
+    ["Nombre completo", s.nombre || s.nombres_completos || s.nombres || ""],
+    ["Correo", s.correo || s.email || ""],
+    ["Usuario", s.usuario || ""],
+    ["DNI", s.dni || ""],
+    ["Local", s.local || ""],
+    ["Universidad", s.universidad || ""],
+    ["Salón", s.salon || ""],
+    ["Modalidad", s.modalidad || ""],
+    ["Estado", s.estado || ""],
   ];
 
-  function safeVal(v){ return (v===null || v===undefined || String(v).trim()==="") ? "-" : String(v); }
+  box.innerHTML = items.map(function(it){
+    return '<div class="kv"><div class="k">'+escapeHtml(it[0])+'</div><div class="v">'+escapeHtml(it[1]||'-')+'</div></div>';
+  }).join("");
+}
 
-  function renderAlumnoPanel(){
-    const sess = getStudentSession();
-    const a = (sess && sess.alumno) ? sess.alumno : {};
-    // Nombre grande
-    const nm = safeVal(a.nombre || a.nombres || a.nombre_completo || a["NOMBRES COMPLETOS"]);
-    const big = document.getElementById("alumnoNombreBig");
-    if (big) big.textContent = nm;
+const CURSOS_EXAMEN = ["ÁLGEBRA", "ARITMÉTICA", "GEOMETRÍA", "TRIGONOMETRÍA", "RAZONAMIENTO MATEMÁTICO", "RAZONAMIENTO VERBAL", "LENGUAJE", "LITERATURA", "HISTORIA", "GEOGRAFÍA", "ECONOMÍA", "CIENCIA Y AMBIENTE"];
 
-    // Chips
-    const chips = document.getElementById("alumnoChips");
-    if (chips){
-      const items = [
-        ["Universidad", safeVal(a.universidad)],
-        ["Salón", safeVal(a.salon)],
-        ["Modalidad", safeVal(a.modalidad)],
-        ["Estado", safeVal(a.estado)],
-      ];
-      chips.innerHTML = items.map(it => '<div class="chip">'+escapeHtml(it[0]+': '+it[1])+'</div>').join("");
-    }
+function renderCursosBase(){
+  const grid = document.getElementById("cursosGrid");
+  if (!grid) return;
 
-    // Datos principales
-    const kv = document.getElementById("alumnoKV");
-    if (kv){
-      const items = [
-        ["Nombre completo", nm],
-        ["Correo", safeVal(a.correo)],
-        ["Usuario", safeVal(a.usuario)],
-        ["DNI", safeVal(a.dni)],
-        ["Local", safeVal(a.local)],
-        ["Fila", safeVal(sess ? sess.row : "")],
-      ];
-      kv.innerHTML = items.map(it =>
-        '<div class="kvItem"><div class="k">'+escapeHtml(it[0].toUpperCase())+'</div><div class="v">'+escapeHtml(it[1])+'</div></div>'
-      ).join("");
-    }
+  grid.innerHTML = CURSOS_EXAMEN.map(function(c){
+    return (
+      '<div class="courseCard">' +
+        '<div class="courseTitle">'+escapeHtml(c)+'</div>' +
+        '<div class="courseSub">Bloques semanales: A y B</div>' +
+        '<div class="courseBtns">' +
+          '<button class="btnSmall primary" type="button" data-course="'+escapeHtml(c)+'" data-block="A">Bloque A</button>' +
+          '<button class="btnSmall" type="button" data-course="'+escapeHtml(c)+'" data-block="B">Bloque B</button>' +
+        '</div>' +
+      '</div>'
+    );
+  }).join("");
 
-    renderCoursesAlumno();
-  }
-
-  function renderCoursesAlumno(){
-    const box = document.getElementById("courseList");
-    if (!box) return;
-
-    box.innerHTML = COURSES_ALUMNO.map(c => {
-      const topics = c.topics.map(t =>
-        '<button class="topicBtn" type="button" data-course="'+c.id+'" data-topic="'+t.id+'">' +
-          '<span>'+escapeHtml(t.label)+'</span>' +
-          '<span class="topicTag">'+escapeHtml(t.meta)+'</span>' +
-        '</button>'
-      ).join("");
-
-      return (
-        '<div class="courseCard" data-course="'+c.id+'">' +
-          '<div class="courseHead" role="button" tabindex="0">' +
-            '<div>' +
-              '<div class="courseName">'+escapeHtml(c.name)+'</div>' +
-              '<div class="courseMeta">'+escapeHtml(c.tags.join(" • "))+'</div>' +
-            '</div>' +
-            '<div class="chev">▾</div>' +
-          '</div>' +
-          '<div class="topicBody"><div class="topicGrid">'+topics+'</div></div>' +
-        '</div>'
-      );
-    }).join("");
-
-    // toggle
-    box.querySelectorAll(".courseHead").forEach(h => {
-      h.addEventListener("click", () => {
-        const card = h.closest(".courseCard");
-        const body = card.querySelector(".topicBody");
-        const open = (body.style.display === "block");
-        body.style.display = open ? "none" : "block";
-        card.querySelector(".chev").textContent = open ? "▾" : "▴";
-      });
+  // Delegación de eventos
+  grid.querySelectorAll("button[data-course]").forEach(function(b){
+    b.addEventListener("click", function(){
+      const course = this.getAttribute("data-course");
+      const block = this.getAttribute("data-block");
+      openEval(course, block);
     });
-
-    // topics
-    box.querySelectorAll(".topicBtn").forEach(b => {
-      b.addEventListener("click", () => {
-        openEvalModal(b.getAttribute("data-course"), b.getAttribute("data-topic"));
-      });
-    });
-  }
-
-  function openEvalModal(courseId, topicId){
-    const course = COURSES_ALUMNO.find(c => c.id === courseId);
-    const topic = course ? course.topics.find(t => t.id === topicId) : null;
-    const modal = document.getElementById("evalModal");
-    if (!modal || !course || !topic) return;
-
-    document.getElementById("evalTitle").textContent = "Evaluación — " + course.name;
-    document.getElementById("evalMeta").textContent = topic.label;
-
-    const link = document.getElementById("evalPdfLink");
-    link.href = topic.pdf || "#";
-    document.getElementById("evalPdfLabel").textContent = (topic.pdf && topic.pdf !== "#") ? "PDF asignado" : "PDF (se vinculará en el siguiente paso)";
-
-    const qWrap = document.getElementById("qWrap");
-    let html = "";
-    for (let i=1; i<=5; i++){
-      html += '<div class="qCard">' +
-                '<div class="qTitle">Pregunta '+i+'</div>' +
-                '<div class="optRow">';
-      ["A","B","C","D","E"].forEach(op => {
-        html += '<label class="opt">' +
-                  '<input type="checkbox" data-q="'+i+'" data-op="'+op+'"> ' + op +
-                '</label>';
-      });
-      html +=     '</div>' +
-              '</div>';
-    }
-    qWrap.innerHTML = html;
-
-    const ok = document.getElementById("sendOk");
-    ok.style.display = "none";
-    const btn = document.getElementById("btnEnviarEval");
-    btn.disabled = false;
-
-    btn.onclick = () => {
-      const checked = Array.from(qWrap.querySelectorAll('input[type="checkbox"]:checked'));
-      const answers = {};
-      checked.forEach(x => {
-        const q = x.getAttribute("data-q");
-        const op = x.getAttribute("data-op");
-        if (!answers[q]) answers[q] = [];
-        answers[q].push(op);
-      });
-      // Demo: 1 envío por topic
-      const key = "eval_" + courseId + "_" + topicId;
-      localStorage.setItem(key, JSON.stringify({ answers: answers, sentAt: new Date().toISOString() }));
-      ok.style.display = "block";
-      btn.disabled = true;
-    };
-
-    modal.setAttribute("aria-hidden","false");
-  }
-
-  function closeEvalModal(){
-    const modal = document.getElementById("evalModal");
-    if (!modal) return;
-    modal.setAttribute("aria-hidden","true");
-  }
-
-  document.addEventListener("click", (ev) => {
-    const id = ev.target && ev.target.id;
-    if (id === "evalModalClose" || id === "evalX") closeEvalModal();
   });
+}
 
+// Abre evaluación: por ahora construye 5 preguntas (sin PDF real). Luego se conecta a getSchedule.
+let CURRENT_EVAL = null; // {course, block, date, pdf}
+function openEval(course, block){
+  const modal = document.getElementById("evalModal");
+  const title = document.getElementById("evalTitle");
+  const meta = document.getElementById("evalMeta");
+  const qList = document.getElementById("qList");
+  const pdfLink = document.getElementById("pdfLink");
+  const msg = document.getElementById("evalMsg");
+  if (!modal || !title || !meta || !qList || !pdfLink) return;
 
-  // ===== FIX v27: selección de rol (estable, sin deselección) =====
-  window.__pickRole = function(role){
-    const r = String(role||"").toLowerCase();
-    window.__ROLE__ = r;
-    try{ localStorage.setItem("lameta_role", r); }catch(e){}
-    const a = document.getElementById("roleAdmin");
-    const t = document.getElementById("roleTutor");
-    const s = document.getElementById("roleAlumno");
-    const roleLabel = document.getElementById("roleLabel");
-    const setActive = (btn, on)=>{
-      if(!btn) return;
-      btn.classList.toggle("active", !!on);
-      btn.setAttribute("aria-pressed", on ? "true" : "false");
-    };
-    setActive(a, r==="admin");
-    setActive(t, r==="tutor");
-    setActive(s, r==="alumno");
-    if(roleLabel) roleLabel.textContent = r ? r.toUpperCase() : "-";
-    const err = document.getElementById("authErr");
-    if(err) err.style.display="none";
-  };
+  // Fecha de prueba (luego: se define con la matriz real por curso/fecha)
+  const today = new Date();
+  const yyyy = today.getFullYear();
+  const mm = String(today.getMonth()+1).padStart(2,"0");
+  const dd = String(today.getDate()).padStart(2,"0");
+  const date = yyyy+"-"+mm+"-"+dd;
 
-  (function bindRolesOnce(){
-    const ids = [["roleAdmin","admin"],["roleTutor","tutor"],["roleAlumno","alumno"]];
-    ids.forEach(([id,role])=>{
-      const el = document.getElementById(id);
-      if(!el) return;
-      ["pointerdown","mousedown","touchstart"].forEach(ev=>{
-        el.addEventListener(ev, (e)=>{
-          e.preventDefault(); e.stopPropagation();
-          window.__pickRole(role);
-        }, {passive:false});
-      });
-      el.addEventListener("click", (e)=>{
-        e.preventDefault(); e.stopPropagation();
-        window.__pickRole(role);
-      }, true);
-    });
+  CURRENT_EVAL = { course: course, block: block, date: date, pdf: "#" };
 
-    // restore saved role
-    let saved=null;
-    try{ saved = localStorage.getItem("lameta_role"); }catch(e){}
-    if(saved && (saved==="admin"||saved==="tutor"||saved==="alumno")) window.__pickRole(saved);
-  })();
+  title.textContent = "Evaluación • " + course;
+  meta.textContent = "Bloque " + block + " • " + date;
+  pdfLink.href = "#";
+  msg.textContent = "";
 
+  // 5 preguntas, opciones A-E (checkbox)
+  let html = "";
+  for (var i=1;i<=5;i++) {
+    html += '<div class="qItem">' +
+              '<div class="qTitle">Pregunta ' + i + '</div>' +
+              '<div class="optRow">' +
+                optChip(i,"A") + optChip(i,"B") + optChip(i,"C") + optChip(i,"D") + optChip(i,"E") +
+              '</div>' +
+            '</div>';
+  }
+  qList.innerHTML = html;
 
-  // ===== FIX v28: DEBUG clicks (si no sube, no está llegando el click) =====
-  (function(){
-    let n = 0;
-    const el = ()=>document.getElementById("dbgClick");
-    const er = ()=>document.getElementById("dbgRole");
-    function upd(t){
-      const d = el();
-      if(!d) return;
-      d.textContent = "Clicks: " + n + (t ? (" | " + t) : "");
+  modal.style.display = "flex";
+}
+
+function optChip(q, letter){
+  const id = "q"+q+"_"+letter;
+  return (
+    '<label class="opt" for="'+id+'">' +
+      '<input id="'+id+'" type="checkbox" data-q="'+q+'" data-opt="'+letter+'"/>' +
+      letter +
+    '</label>'
+  );
+}
+
+// Modal handlers
+document.getElementById("evalClose")?.addEventListener("click", function(){
+  const modal = document.getElementById("evalModal");
+  if (modal) modal.style.display = "none";
+});
+document.getElementById("evalModal")?.addEventListener("click", function(e){
+  if (e.target && e.target.id === "evalModal") e.target.style.display = "none";
+});
+
+// Enviar: por ahora llama submitAnswers (cuando ya tengamos pdf/date real, se usa). 
+document.getElementById("btnEnviarEval")?.addEventListener("click", async function(){
+  const msg = document.getElementById("evalMsg");
+  if (!CURRENT_EVAL) return;
+
+  // recolecta respuestas como string por pregunta: ej. "A|CD||B|E" (vacíos permitidos)
+  const answers = [];
+  for (var q=1;q<=5;q++){
+    const checks = Array.from(document.querySelectorAll('input[data-q="'+q+'"]:checked')).map(function(x){ return x.getAttribute("data-opt"); }).join("");
+    answers.push(checks); // puede ser ""
+  }
+  const packed = answers.join("|");
+
+  if (msg) msg.textContent = "Enviando…";
+
+  try{
+    // Sólo una oportunidad de enviar: (luego lo volvemos estricto cuando se guarde en hoja R)
+    const passBox = document.getElementById("authPass");
+    const password = (passBox && passBox.value) ? String(passBox.value).trim() : "";
+    const payload = await jsonpRequest(STUDENT_API_URL, {
+      action: "submitAnswers",
+      password: password,
+      course: CURRENT_EVAL.course,
+      date: CURRENT_EVAL.date,
+      block: CURRENT_EVAL.block,
+      answers: packed
+    }, 20000);
+
+    if (!payload || payload.ok !== true){
+      if (msg) msg.textContent = (payload && payload.error) ? String(payload.error) : "No se pudo enviar.";
+      return;
     }
-    document.addEventListener("pointerdown", (e)=>{
-      n++;
-      const t = e && e.target ? (e.target.id || e.target.className || e.target.tagName) : "";
-      upd(String(t||""));
-    }, true);
-    upd("JS_OK");
-    // Hook de rol
-    const orig = window.__pickRole;
-    window.__pickRole = function(role){
-      try{
-        const r = String(role||"").toUpperCase();
-        const rr = er(); 
-        if(rr) rr.textContent = "Rol: " + r;
-      }catch(e){}
-      return orig ? orig(role) : undefined;
-    };
-  })();
+    if (msg) msg.textContent = "Enviado ✅";
+  }catch(ex){
+    if (msg) msg.textContent = ex && ex.message ? ex.message : "Error de conexión.";
+  }
+});
+
 
 </script>
 </body>
