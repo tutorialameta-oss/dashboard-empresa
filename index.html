@@ -7,926 +7,6 @@
 
   <!-- Charts -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js">
-/* ===== FIX v32: contador universal de eventos + rol sticky ===== */
-(function(){
-  let n = 0;
-  function setClicks(txt){
-    const el = document.getElementById("dbgClicks");
-    if(el) el.textContent = "Clicks: " + n + (txt ? (" | " + txt) : "");
-  }
-  function setRole(r){
-    const el = document.getElementById("dbgRole");
-    if(el) el.textContent = "Rol: " + (r ? String(r).toUpperCase() : "-");
-  }
-
-  // Escucha TODOS los eventos relevantes (por compatibilidad móvil)
-  ["click","mousedown","mouseup","touchstart","touchend","pointerdown","pointerup"].forEach(ev=>{
-    document.addEventListener(ev, (e)=>{
-      n++;
-      const t = e && e.target ? (e.target.id || e.target.className || e.target.tagName) : "";
-      setClicks(String(t||""));
-    }, true);
-  });
-
-  // Rol global
-  window.__pickRole = function(role){
-    const r = String(role||"").toLowerCase();
-    window.__ROLE__ = r;
-    try{ localStorage.setItem("lameta_role", r); }catch(e){}
-    const bA = document.getElementById("roleAdmin");
-    const bT = document.getElementById("roleTutor");
-    const bS = document.getElementById("roleAlumno");
-    const setActive = (btn,on)=>{
-      if(!btn) return;
-      btn.classList.toggle("active", !!on);
-      btn.setAttribute("aria-pressed", on ? "true" : "false");
-    };
-    setActive(bA, r==="admin");
-    setActive(bT, r==="tutor");
-    setActive(bS, r==="alumno");
-    setRole(r);
-    const err = document.getElementById("authErr");
-    if(err) err.style.display="none";
-  };
-
-  // Bind explícito (por si algún CSS/JS interfiere)
-  [["roleAdmin","admin"],["roleTutor","tutor"],["roleAlumno","alumno"]].forEach(([id,role])=>{
-    const el = document.getElementById(id);
-    if(!el) return;
-    ["pointerdown","mousedown","touchstart","click"].forEach(ev=>{
-      el.addEventListener(ev, (e)=>{
-        e.preventDefault(); e.stopPropagation();
-        window.__pickRole(role);
-      }, {passive:false, capture:true});
-    });
-  });
-
-  // Restore role
-  let saved=null;
-  try{ saved = localStorage.getItem("lameta_role"); }catch(e){}
-  if(saved) window.__pickRole(saved);
-
-  // Marca que JS está vivo
-  setClicks("JS_OK");
-})();
-
-</script>
-  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js">
-/* ===== FIX v32: contador universal de eventos + rol sticky ===== */
-(function(){
-  let n = 0;
-  function setClicks(txt){
-    const el = document.getElementById("dbgClicks");
-    if(el) el.textContent = "Clicks: " + n + (txt ? (" | " + txt) : "");
-  }
-  function setRole(r){
-    const el = document.getElementById("dbgRole");
-    if(el) el.textContent = "Rol: " + (r ? String(r).toUpperCase() : "-");
-  }
-
-  // Escucha TODOS los eventos relevantes (por compatibilidad móvil)
-  ["click","mousedown","mouseup","touchstart","touchend","pointerdown","pointerup"].forEach(ev=>{
-    document.addEventListener(ev, (e)=>{
-      n++;
-      const t = e && e.target ? (e.target.id || e.target.className || e.target.tagName) : "";
-      setClicks(String(t||""));
-    }, true);
-  });
-
-  // Rol global
-  window.__pickRole = function(role){
-    const r = String(role||"").toLowerCase();
-    window.__ROLE__ = r;
-    try{ localStorage.setItem("lameta_role", r); }catch(e){}
-    const bA = document.getElementById("roleAdmin");
-    const bT = document.getElementById("roleTutor");
-    const bS = document.getElementById("roleAlumno");
-    const setActive = (btn,on)=>{
-      if(!btn) return;
-      btn.classList.toggle("active", !!on);
-      btn.setAttribute("aria-pressed", on ? "true" : "false");
-    };
-    setActive(bA, r==="admin");
-    setActive(bT, r==="tutor");
-    setActive(bS, r==="alumno");
-    setRole(r);
-    const err = document.getElementById("authErr");
-    if(err) err.style.display="none";
-  };
-
-  // Bind explícito (por si algún CSS/JS interfiere)
-  [["roleAdmin","admin"],["roleTutor","tutor"],["roleAlumno","alumno"]].forEach(([id,role])=>{
-    const el = document.getElementById(id);
-    if(!el) return;
-    ["pointerdown","mousedown","touchstart","click"].forEach(ev=>{
-      el.addEventListener(ev, (e)=>{
-        e.preventDefault(); e.stopPropagation();
-        window.__pickRole(role);
-      }, {passive:false, capture:true});
-    });
-  });
-
-  // Restore role
-  let saved=null;
-  try{ saved = localStorage.getItem("lameta_role"); }catch(e){}
-  if(saved) window.__pickRole(saved);
-
-  // Marca que JS está vivo
-  setClicks("JS_OK");
-})();
-
-</script>
-
-  <!-- PNG export (captura COMPLETA del elemento, no solo lo visible) -->
-  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js">
-/* ===== FIX v32: contador universal de eventos + rol sticky ===== */
-(function(){
-  let n = 0;
-  function setClicks(txt){
-    const el = document.getElementById("dbgClicks");
-    if(el) el.textContent = "Clicks: " + n + (txt ? (" | " + txt) : "");
-  }
-  function setRole(r){
-    const el = document.getElementById("dbgRole");
-    if(el) el.textContent = "Rol: " + (r ? String(r).toUpperCase() : "-");
-  }
-
-  // Escucha TODOS los eventos relevantes (por compatibilidad móvil)
-  ["click","mousedown","mouseup","touchstart","touchend","pointerdown","pointerup"].forEach(ev=>{
-    document.addEventListener(ev, (e)=>{
-      n++;
-      const t = e && e.target ? (e.target.id || e.target.className || e.target.tagName) : "";
-      setClicks(String(t||""));
-    }, true);
-  });
-
-  // Rol global
-  window.__pickRole = function(role){
-    const r = String(role||"").toLowerCase();
-    window.__ROLE__ = r;
-    try{ localStorage.setItem("lameta_role", r); }catch(e){}
-    const bA = document.getElementById("roleAdmin");
-    const bT = document.getElementById("roleTutor");
-    const bS = document.getElementById("roleAlumno");
-    const setActive = (btn,on)=>{
-      if(!btn) return;
-      btn.classList.toggle("active", !!on);
-      btn.setAttribute("aria-pressed", on ? "true" : "false");
-    };
-    setActive(bA, r==="admin");
-    setActive(bT, r==="tutor");
-    setActive(bS, r==="alumno");
-    setRole(r);
-    const err = document.getElementById("authErr");
-    if(err) err.style.display="none";
-  };
-
-  // Bind explícito (por si algún CSS/JS interfiere)
-  [["roleAdmin","admin"],["roleTutor","tutor"],["roleAlumno","alumno"]].forEach(([id,role])=>{
-    const el = document.getElementById(id);
-    if(!el) return;
-    ["pointerdown","mousedown","touchstart","click"].forEach(ev=>{
-      el.addEventListener(ev, (e)=>{
-        e.preventDefault(); e.stopPropagation();
-        window.__pickRole(role);
-      }, {passive:false, capture:true});
-    });
-  });
-
-  // Restore role
-  let saved=null;
-  try{ saved = localStorage.getItem("lameta_role"); }catch(e){}
-  if(saved) window.__pickRole(saved);
-
-  // Marca que JS está vivo
-  setClicks("JS_OK");
-})();
-
-</script>
-
-  <style>
-    /* ======================================================================
-      ✅ EDITA COLORES AQUÍ (HORARIOS)
-      - AGRARIA: NO TOCAR
-      - PUCP: azul
-      - U.LIMA: naranja
-    ====================================================================== */
-    :root{
-      --bg:#ffffff;
-      --card:#ffffff;
-      --text:#0f172a;
-      --muted:#64748b;
-      --border:rgba(15,23,42,0.10);
-      --accent:#d10b0b;
-      --accent2:#a40000;
-      --soft:#fff5f5;
-      --shadow: 0 14px 34px rgba(15,23,42,0.10);
-      --radius:18px;
-
-      /* Universidades (marcadores) */
-      --pucp:#6ea8da;     /* Azul */
-      --ulima:#ff9900;    /* Naranja */
-      --agraria:#4caf50;  /* Verde */
-
-      /* Modalidad */
-      --pres:#2bb673;
-      --virt:#f2c94c;
-
-      /* Estados */
-      --ok:#16a34a;
-      --bad:#dc2626;
-      --warn:#f59e0b;
-
-      /* ===== AGRARIA (NO TOCAR) ===== */
-      --schHead_AGR:#1f5a1a;
-      --schCell_AGR:#cfe8c8;
-
-      /* ===== PUCP (AZUL) ===== */
-      --schHead_PUCP:#1f4e79;
-      --schCell_PUCP:#d6e9f7;
-
-      /* ===== U.LIMA (NARANJA) ===== */
-      --schHead_UL:#b85f00;
-      --schCell_UL:#ffe6c7;
-
-      /* Líneas de tabla / col horas */
-      --schGrid:rgba(15,23,42,0.28);
-      --schTimeBg:#ffffff;
-    }
-
-    *{ box-sizing:border-box; }
-    body{
-      margin:0;
-      font-family: system-ui,-apple-system,Segoe UI,Roboto,Arial;
-      background: var(--bg);
-      color: var(--text);
-      font-size: 14px;
-    }
-    .topbar{ height:10px; background:linear-gradient(90deg,var(--accent2),var(--accent)); }
-
-    .app{
-      display:grid;
-      grid-template-columns: 320px 1fr;
-      min-height: calc(100vh - 10px);
-    }
-
-    .sidebar{
-      border-right:1px solid var(--border);
-      padding:18px 14px;
-      position: sticky;
-      top: 0;
-      align-self: start;
-      height: calc(100vh - 10px);
-      overflow:auto;
-      background:#fff;
-    }
-
-    .brand{
-      display:flex; gap:12px; align-items:center;
-      padding:12px;
-      border:1px solid var(--border);
-      border-radius: var(--radius);
-      box-shadow: var(--shadow);
-      background: #fff;
-    }
-    .brand img{
-      width:64px; height:64px; object-fit:contain;
-      border-radius:14px; border:1px solid var(--border);
-      padding:8px; background:#fff;
-    }
-    .brand h1{
-      margin:0;
-      font-size:15px;
-      font-weight:950;
-      letter-spacing:.2px;
-      line-height:1.15;
-      text-transform: uppercase;
-    }
-    .brand .sub{
-      margin-top:6px;
-      color:var(--muted);
-      font-size:12px;
-      font-weight:800;
-    }
-
-    .nav{ margin-top:16px; display:flex; flex-direction:column; gap:10px; }
-    .nav button{
-      width:100%;
-      text-align:left;
-      padding:12px 12px;
-      border-radius: 14px;
-      border:1px solid var(--border);
-      background:#fff;
-      cursor:pointer;
-      font-weight:950;
-      color: var(--text);
-    }
-    .nav button.active{
-      border-color: rgba(209,11,11,0.40);
-      box-shadow: 0 0 0 3px rgba(209,11,11,0.10);
-      background: var(--soft);
-      color: var(--accent2);
-    }
-
-    .main{ padding:22px 22px 32px; }
-
-    .headerline{
-      display:flex; gap:12px; align-items:flex-start; justify-content:space-between;
-      flex-wrap:wrap;
-    }
-
-    .title{ display:flex; flex-direction:column; gap:8px; }
-    .title h2{
-      margin:0;
-      font-size:20px;
-      font-weight:950;
-      letter-spacing:.2px;
-      text-transform: uppercase;
-    }
-    .title p{
-      margin:0;
-      color: var(--muted);
-      font-size:13px;
-      font-weight:750;
-      line-height:1.4;
-      max-width: 980px;
-    }
-
-    .controls{
-      display:flex; gap:10px; align-items:center; flex-wrap:wrap;
-      justify-content:flex-end;
-    }
-
-    select, input, button{
-      background:#fff;
-      border:1px solid var(--border);
-      border-radius: 14px;
-      padding:11px 12px;
-      font-size:12px;
-      outline:none;
-      color: var(--text);
-    }
-    input{ min-width:320px; }
-    input::placeholder{ color:#94a3b8; }
-    select:focus, input:focus{
-      border-color: rgba(209,11,11,0.40);
-      box-shadow: 0 0 0 3px rgba(209,11,11,0.10);
-    }
-    button{
-      cursor:pointer;
-      font-weight:950;
-      border-color: rgba(209,11,11,0.25);
-      background: var(--soft);
-      color: var(--accent2);
-    }
-    button:hover{
-      border-color: rgba(209,11,11,0.45);
-      background: rgba(209,11,11,0.10);
-    }
-
-    .grid{
-      display:grid;
-      grid-template-columns: repeat(12, 1fr);
-      gap: 16px;
-      margin-top: 16px;
-    }
-
-    .card{
-      background: var(--card);
-      border:1px solid var(--border);
-      border-radius: var(--radius);
-      padding:18px;
-      box-shadow: var(--shadow);
-      min-width: 0;
-    }
-
-    .kpi{ grid-column: span 3; min-height: 118px; }
-    .kpi .label{ color: var(--muted); font-size:12px; font-weight:950; text-transform: uppercase; }
-    .kpi .value{ margin-top:8px; font-size:36px; font-weight:950; color: var(--accent2); }
-    .kpi .hint{ margin-top:8px; color: var(--muted); font-size:12px; font-weight:900; text-transform: uppercase; }
-
-    .panel12{ grid-column: span 12; }
-    .panel8{ grid-column: span 8; }
-    .panel4{ grid-column: span 4; }
-    .panel6{ grid-column: span 6; }
-
-    .cardtitle{
-      color: var(--muted);
-      font-size:12px;
-      font-weight:950;
-      letter-spacing:.2px;
-      text-transform: uppercase;
-      margin-bottom:10px;
-      display:flex; align-items:center; justify-content:space-between; gap:10px;
-      flex-wrap:wrap;
-    }
-
-    .panelHint{
-      display:flex; gap:10px; align-items:center; flex-wrap:wrap;
-      color: var(--muted); font-weight:900; font-size:12px; text-transform: uppercase;
-    }
-    .dot{ width:10px; height:10px; border-radius:999px; display:inline-block; }
-    .dot.pucp{ background: var(--pucp); }
-    .dot.ulima{ background: var(--ulima); }
-    .dot.agraria{ background: var(--agraria); }
-    .dot.pres{ background: var(--pres); }
-    .dot.virt{ background: var(--virt); }
-
-    .chartBox{ height: 420px; }
-    .chartBoxTall{ height: 520px; }
-    canvas{ width:100% !important; height:100% !important; }
-
-    .uniCards{
-      display:grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 12px;
-      margin-top: 10px;
-    }
-    .uniCard{
-      border:1px solid var(--border);
-      border-radius: 16px;
-      padding: 12px;
-      display:flex; gap:10px; align-items:center;
-      background:#fff;
-    }
-    .uniCard img{
-      width:44px; height:44px; object-fit:contain;
-      border-radius:12px; border:1px solid var(--border);
-      padding:6px; background:#fff;
-    }
-    .uniCard .t{ display:flex; flex-direction:column; gap:2px; min-width:0; }
-    .uniCard .name{
-      font-weight:950; font-size:12px; text-transform:uppercase;
-      color: var(--text);
-    }
-    .uniCard .nums{
-      color: var(--muted);
-      font-size:12px;
-      font-weight:900;
-      display:flex; gap:10px; flex-wrap:wrap;
-    }
-    .pill{
-      display:inline-flex; align-items:center; gap:6px;
-      padding:6px 10px;
-      border-radius:999px;
-      border:1px solid var(--border);
-      background:#fafafa;
-      font-weight:950;
-      font-size:12px;
-    }
-
-    table{ width:100%; border-collapse: collapse; font-size:12px; }
-    th, td{
-      padding:10px;
-      border-bottom:1px solid var(--border);
-      text-align:left;
-      white-space:nowrap;
-    }
-    th{
-      position:sticky;
-      top:0;
-      background:#fff;
-      z-index:1;
-      color: var(--muted);
-      font-weight:950;
-      text-transform: uppercase;
-    }
-
-    /* ===================== HORARIOS ===================== */
-    .schGridWrap{
-      display:grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 16px;
-    }
-    .schCard{
-      border:1px solid var(--border);
-      border-radius: 18px;
-      overflow:hidden;
-      background:#fff;
-      box-shadow: var(--shadow);
-    }
-    .schHead{
-      padding:14px 14px 10px;
-      display:flex;
-      align-items:flex-start;
-      justify-content:space-between;
-      gap:12px;
-    }
-    .schHead .hLeft{
-      display:flex;
-      flex-direction:column;
-      gap:4px;
-      min-width:0;
-    }
-    .schHead .loc{
-      font-size:18px;
-      font-weight:950;
-      letter-spacing:.2px;
-      text-transform:uppercase;
-      margin:0;
-      line-height:1.1;
-    }
-    .schHead .sal{
-      font-size:13px;
-      font-weight:900;
-      color: var(--muted);
-      text-transform:uppercase;
-      margin:0;
-      line-height:1.1;
-    }
-    .schUniPill{
-      display:inline-flex;
-      align-items:center;
-      gap:8px;
-      border-radius:999px;
-      padding:10px 14px;
-      font-weight:950;
-      text-transform:uppercase;
-      border:1px solid rgba(15,23,42,0.12);
-      background:#f8fafc;
-      white-space:nowrap;
-      flex:0 0 auto;
-    }
-    .schUniPill .b{
-      width:10px;height:10px;border-radius:999px;display:inline-block;
-    }
-
-    /* Botón descargar PNG */
-    .schDl{
-      border: 1px solid rgba(15,23,42,0.12);
-      background: #fff;
-      padding: 8px 10px;
-      border-radius: 12px;
-      font-weight: 950;
-      font-size: 12px;
-      cursor: pointer;
-      white-space: nowrap;
-    }
-    .schDl:hover{
-      border-color: rgba(15,23,42,0.28);
-      background:#fafafa;
-    }
-
-    /* Contenedor tabla */
-    .schTableWrap{
-      padding:0 10px 12px;
-      overflow-x: hidden; /* desktop */
-    }
-
-    /* Tabla */
-    .schTable{
-      width:100%;
-      border-collapse:collapse;
-      table-layout:fixed;
-      border:2px solid rgba(15,23,42,0.18);
-      border-radius: 14px;
-      overflow:hidden;
-      min-width: 0;
-    }
-
-    .schTable th, .schTable td{
-      border:1px solid var(--schGrid);
-      padding: 2px 6px;
-      text-align:center;
-      vertical-align:middle;
-      white-space:normal;
-      word-break: normal;
-      overflow-wrap: normal;
-    }
-
-    /* Encabezado días (usa variables por UNI) */
-    .schTable thead th{
-      background: var(--schHead);
-      color:#fff;
-      font-weight:950;
-      text-transform:uppercase;
-      font-size:11px;
-      position:static;
-    }
-    .schTable .timeHead{
-      background: var(--schHead);
-      color:#fff;
-      font-weight:950;
-      font-size:12px;
-    }
-
-    .schTable .timeCell{
-      background: var(--schTimeBg);
-      font-weight:950;
-      font-size:12px;
-      text-align:left;
-      padding-left:10px;
-      white-space:nowrap;
-    }
-
-    .schCell{
-      background: var(--schCell);
-      font-weight:950;
-      padding: 6px 6px;
-    }
-    .schEmpty{ background:#fff; }
-
-    .schTable col.timeCol{ width: 92px; }
-
-    /* ===================== CELDA 4 LÍNEAS: ORDENADA + PROFESOR SIN NEGRITA ===================== */
-    .cell4{
-      width:100%;
-      height:100%;
-      display:grid;
-      grid-template-rows: repeat(4, auto);
-      place-content:center;
-      row-gap: 2px;
-      align-items:center;
-      justify-items:center;
-    }
-    .cell4 .slot{
-      width:100%;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      text-align:center;
-      padding:0 2px;
-      line-height:1.05;
-    }
-    /* Cursos (arriba) */
-    .cell4 .cLine{
-      font-size:18px;
-      font-weight:950;
-      letter-spacing:.2px;
-      text-transform:uppercase;
-      white-space:nowrap; /* evita “ÁLG 1” partido */
-      line-height:1.05;
-    }
-    /* Profesor (abajo): SIN negrita y ligeramente menor */
-    .cell4 .tLine{
-      font-size:11px;
-      font-weight:500;
-      text-transform:uppercase;
-      color:#111827;
-      white-space:nowrap;
-      line-height:1.05;
-    }
-
-    /* ===================== COLORES POR UNIVERSIDAD (HORARIOS) ===================== */
-    .schCard[data-uni="AGRARIA"]{
-      --schHead: var(--schHead_AGR);
-      --schCell: var(--schCell_AGR);
-    }
-    .schCard[data-uni="PUCP"]{
-      --schHead: var(--schHead_PUCP);
-      --schCell: var(--schCell_PUCP);
-    }
-    .schCard[data-uni="U.LIMA"]{
-      --schHead: var(--schHead_UL);
-      --schCell: var(--schCell_UL);
-    }
-
-    /* ===================== MODO EXPORT PNG (FORMATO HORIZONTAL) ===================== */
-    body.exportMode .schCard{
-      width: 700px !important;
-      max-width: none !important;
-    }
-    body.exportMode .schTableWrap{
-      overflow: visible !important;
-      padding: 0 12px 12px !important;
-    }
-    body.exportMode .schTable{
-      width: 100% !important;
-      min-width: 0 !important;
-    }
-    body.exportMode .cell4 .cLine{ font-size:18px !important; }
-    body.exportMode .cell4 .tLine{ font-size:11px !important; font-weight:500 !important; }
-    body.exportMode .schTable thead th{ font-size:11px !important; }
-    body.exportMode .schTable .timeCell{ font-size:12px !important; }
-
-    /* ===================== IMPRESIONES ===================== */
-    .iGrid{
-      display:grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 12px;
-      margin-top: 12px;
-    }
-    .iItem{
-      border:1px solid var(--border);
-      border-radius: 16px;
-      padding: 12px;
-      background:#fff;
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:10px;
-    }
-    .iLeft{ min-width:0; }
-    .iSalon{
-      font-weight:950;
-      text-transform:uppercase;
-      font-size:12px;
-      line-height:1.1;
-    }
-    .iMeta{
-      margin-top:6px;
-      display:flex;
-      align-items:center;
-      gap:8px;
-      color: var(--muted);
-      font-weight:900;
-      font-size:12px;
-      text-transform:uppercase;
-    }
-    .iNum{
-      font-weight:950;
-      font-size:28px;
-      line-height:1;
-      flex:0 0 auto;
-    }
-    .iLocalHead{
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:10px;
-      flex-wrap:wrap;
-    }
-    .iKpis{
-      display:flex;
-      gap:10px;
-      flex-wrap:wrap;
-    }
-    .iKpiPill{
-      display:inline-flex;
-      align-items:center;
-      gap:8px;
-      padding:8px 12px;
-      border-radius:999px;
-      border:1px solid var(--border);
-      background:#fafafa;
-      font-weight:950;
-      font-size:12px;
-      text-transform:uppercase;
-    }
-
-    /* ===================== SÍLABOS (NUEVO) ===================== */
-    .syWrap{
-      display:grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 12px;
-      margin-top: 12px;
-    }
-    .syItem{
-      border:1px solid var(--border);
-      border-radius: 16px;
-      padding: 12px;
-      background:#fff;
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:10px;
-      text-decoration:none;
-      color: var(--text);
-      transition: transform .06s ease, box-shadow .06s ease, border-color .06s ease;
-    }
-    .syItem:hover{
-      transform: translateY(-1px);
-      border-color: rgba(15,23,42,0.18);
-      box-shadow: 0 16px 40px rgba(15,23,42,0.12);
-    }
-    .syLeft{ min-width:0; display:flex; flex-direction:column; gap:6px; }
-    .syCourse{
-      font-weight:950;
-      text-transform:uppercase;
-      font-size:12px;
-      line-height:1.15;
-      letter-spacing:.2px;
-    }
-    .syMeta{
-      display:flex;
-      align-items:center;
-      gap:8px;
-      color: var(--muted);
-      font-weight:900;
-      font-size:12px;
-      text-transform:uppercase;
-      flex-wrap:wrap;
-    }
-    .syOpen{
-      display:inline-flex;
-      align-items:center;
-      gap:8px;
-      padding:8px 12px;
-      border-radius: 999px;
-      border:1px solid rgba(15,23,42,0.12);
-      background:#f8fafc;
-      font-weight:950;
-      font-size:12px;
-      white-space:nowrap;
-      color: var(--accent2);
-    }
-    .syOpen:hover{
-      border-color: rgba(209,11,11,0.35);
-      background: rgba(209,11,11,0.08);
-    }
-    .syLocalHead{
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:10px;
-      flex-wrap:wrap;
-    }
-    .syKpis{
-      display:flex;
-      gap:10px;
-      flex-wrap:wrap;
-    }
-    .syKpiPill{
-      display:inline-flex;
-      align-items:center;
-      gap:8px;
-      padding:8px 12px;
-      border-radius:999px;
-      border:1px solid var(--border);
-      background:#fafafa;
-      font-weight:950;
-      font-size:12px;
-      text-transform:uppercase;
-    }
-
-    /* ===================== RESPONSIVE ===================== */
-    @media (max-width: 1100px){
-      .app{ grid-template-columns: 1fr; }
-      .sidebar{ position:relative; height:auto; }
-      .kpi{ grid-column: span 6; }
-      .panel8, .panel6, .panel4{ grid-column: span 12; }
-      .chartBox{ height: 360px; }
-      .chartBoxTall{ height: 440px; }
-      input{ min-width: 220px; }
-      .controls{ justify-content:flex-start; }
-      .uniCards{ grid-template-columns: 1fr; }
-      .schGridWrap{ grid-template-columns: 1fr; }
-
-      /* MÓVIL: más compacto + scroll horizontal */
-      .schTableWrap{
-        overflow-x: auto;
-        -webkit-overflow-scrolling: touch;
-        padding: 0 8px 10px;
-      }
-      .schHead{ padding: 10px 10px 8px; }
-      .schHead .loc{ font-size:16px; }
-      .schHead .sal{ font-size:12px; }
-      .schUniPill{ padding:8px 10px; font-size:12px; }
-      .schDl{ padding:7px 9px; font-size:11px; }
-
-      .schTable{ min-width: 820px; }
-      .schTable th, .schTable td{ padding: 4px 4px; }
-      .schTable thead th{ font-size:10px; }
-      .schTable .timeCell{ font-size:11px; padding-left:8px; }
-      .schTable col.timeCol{ width: 84px; }
-
-      .cell4{ row-gap: 2px; }
-      .cell4 .cLine{ font-size:16px; }
-      .cell4 .tLine{ font-size:10px; font-weight:500; }
-
-      /* IMPRESIONES */
-      .iGrid{ grid-template-columns: 1fr; }
-      .iNum{ font-size:26px; }
-
-      /* SÍLABOS */
-      .syWrap{ grid-template-columns: 1fr; }
-    }
-  
-
-    /* ===================== AUTH (ADMIN / TUTOR) ===================== */
-    .authOverlay{
-      position:fixed;
-      inset:0;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      padding:22px;
-      background: rgba(15,23,42,0.55);
-      backdrop-filter: blur(6px);
-      z-index: 9999;
-    }
-    .authCard{
-      width:min(520px, 96vw);
-      background:#fff;
-      border:1px solid var(--border);
-      border-radius: var(--radius);
-      box-shadow: var(--shadow);
-      padding:18px;
-    }
-    .authTitle{ font-weight:950; font-size:16px; margin:0 0 8px 0; text-transform:uppercase; }
-    .authSub{ color:var(--muted); font-weight:800; margin:0 0 14px 0; font-size:12px; }
-    .roleRow{ display:flex; gap:10px; flex-wrap:wrap; margin-bottom:12px; }
-    .roleBtn{
-      flex:1;
-      min-width: 140px;
-      padding:10px 12px;
-      border-radius: 14px;
-      border:1px solid var(--border);
-      background:#fff;
-      font-weight:950;
-      cursor:pointer;
-    }
-    .roleBtn.active{ border-color: var(--accent); box-shadow: 0 0 0 3px rgba(209,11,11,0.15); }
     .authRow{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
     .authRow input{
       flex:1;
@@ -1037,8 +117,8 @@ html, body { pointer-events:auto !important; }
     <div class="authCard">
       <p class="authTitle">ACCESO AL PANEL</p>
       <p class="authSub">Seleccione su tipo de acceso e ingrese la clave.</p>
-      <div class="buildTag" style="font-weight:900;color:#64748b;font-size:12px;margin:6px 0 10px 0;">Build: v32</div>
-<div class="dbgRow"><span id="dbgClicks" class="dbgChip">Clicks: 0</span><span id="dbgRole" class="dbgChip">Rol: -</span></div>
+      <div class="buildTag" style="font-weight:900;color:#64748b;font-size:12px;margin:6px 0 10px 0;">Build: v33</div>
+
 
       <div class="roleRow">
         <button id="roleAdmin" class="roleBtn" type="button" onclick="window.__pickRole && window.__pickRole('admin'); return false;" aria-pressed="false">ADMIN</button>
@@ -1256,7 +336,7 @@ function setRole(role){
 
   function loadRole(){
     const r = localStorage.getItem(ROLE_KEY);
-    return (r === "admin" || r === "tutor") ? r : null;
+    return (r === "admin" || r === "tutor" || r === "alumno") ? r : null;
   }
 
   function clearRole(){
@@ -1391,21 +471,80 @@ function setRole(role){
       selected = r;
       if (bA) bA.classList.toggle("active", r === "admin");
       if (bT) bT.classList.toggle("active", r === "tutor");
-      if (err) err.style.display = "none";
+            if (bS) bS.classList.toggle("active", r === "alumno");
+if (err) err.style.display = "none";
       if (pass) pass.focus();
     }
 
     if (bA) bA.addEventListener("click", ()=>pick("admin"));
     if (bT) bT.addEventListener("click", ()=>pick("tutor"));
   if (bS) bS.addEventListener("click", ()=>pick("alumno"));
+    // FIX v33: listeners robustos (móvil/desktop)
+    [["admin", bA], ["tutor", bT], ["alumno", bS]].forEach(([r, el])=>{
+      if(!el) return;
+      ["pointerdown","touchstart","mousedown"].forEach(ev=>{
+        el.addEventListener(ev, (e)=>{ e.preventDefault(); e.stopPropagation(); pick(r); }, {passive:false, capture:true});
+      });
+    });
 
-    function doLogin(){
-      const p = String(pass?.value || "");
-      const ok = (selected === "admin" && p === AUTH_ADMIN_PASS) || (selected === "tutor" && p === AUTH_TUTOR_PASS);
-      if (!ok){
-        if (err) err.style.display = "block";
+
+    async function doLogin(){
+      const p = String((pass && pass.value) ? pass.value : "").trim();
+      if (!selected){
+        if (err){ err.textContent = "Seleccione un rol."; err.style.display = "block"; }
         return;
       }
+      if (!p){
+        if (err){ err.textContent = "Ingrese su clave."; err.style.display = "block"; }
+        return;
+      }
+
+      // ADMIN / TUTOR (local)
+      if (selected === "admin" || selected === "tutor"){
+        const ok = (selected === "admin" && p === AUTH_ADMIN_PASS) || (selected === "tutor" && p === AUTH_TUTOR_PASS);
+        if (!ok){
+          if (err){ err.textContent = "Clave incorrecta."; err.style.display = "block"; }
+          return;
+        }
+        setRole(selected);
+        showAuth(false);
+        if (pass) pass.value = "";
+        if (!canAccessView(loadSavedView() || state.view)) setView("table");
+        return;
+      }
+
+      // ALUMNO (Apps Script)
+      if (selected === "alumno"){
+        if (err) err.style.display = "none";
+        // Indicador simple
+        const btnLogin = document.getElementById("btnLogin");
+        if (btnLogin){ btnLogin.disabled = true; btnLogin.textContent = "VALIDANDO..."; }
+        try{
+          const resp = await jsonpRequest(STUDENT_API_URL, { action:"authStudent", password: p }, 15000);
+          if (!resp || !resp.ok){
+            if (err){ err.textContent = (resp && resp.error) ? resp.error : "Contraseña inválida."; err.style.display = "block"; }
+            return;
+          }
+          CURRENT_STUDENT = resp.student || resp.alumno || resp.data || null;
+          setRole("alumno");
+          showAuth(false);
+          if (pass) pass.value = "";
+          // Vista alumno: solo MI PANEL y CURSOS
+          setView("alumno_panel");
+          // Render inmediato
+          try{ renderAlumnoPerfil(); }catch(e){}
+        }catch(e){
+          if (err){ err.textContent = "No se pudo validar la clave (conexión)."; err.style.display = "block"; }
+        }finally{
+          if (btnLogin){ btnLogin.disabled = false; btnLogin.textContent = "ENTRAR"; }
+        }
+        return;
+      }
+
+      if (err){ err.textContent = "Rol no soportado."; err.style.display = "block"; }
+    }
+
+    const btn = document.getElementById("btnLogin");
       setRole(selected);
       showAuth(false);
       if (pass) pass.value = "";
@@ -4653,68 +3792,6 @@ document.getElementById("btnEnviarEval")?.addEventListener("click", async functi
 
 
 
-/* ===== FIX v32: contador universal de eventos + rol sticky ===== */
-(function(){
-  let n = 0;
-  function setClicks(txt){
-    const el = document.getElementById("dbgClicks");
-    if(el) el.textContent = "Clicks: " + n + (txt ? (" | " + txt) : "");
-  }
-  function setRole(r){
-    const el = document.getElementById("dbgRole");
-    if(el) el.textContent = "Rol: " + (r ? String(r).toUpperCase() : "-");
-  }
-
-  // Escucha TODOS los eventos relevantes (por compatibilidad móvil)
-  ["click","mousedown","mouseup","touchstart","touchend","pointerdown","pointerup"].forEach(ev=>{
-    document.addEventListener(ev, (e)=>{
-      n++;
-      const t = e && e.target ? (e.target.id || e.target.className || e.target.tagName) : "";
-      setClicks(String(t||""));
-    }, true);
-  });
-
-  // Rol global
-  window.__pickRole = function(role){
-    const r = String(role||"").toLowerCase();
-    window.__ROLE__ = r;
-    try{ localStorage.setItem("lameta_role", r); }catch(e){}
-    const bA = document.getElementById("roleAdmin");
-    const bT = document.getElementById("roleTutor");
-    const bS = document.getElementById("roleAlumno");
-    const setActive = (btn,on)=>{
-      if(!btn) return;
-      btn.classList.toggle("active", !!on);
-      btn.setAttribute("aria-pressed", on ? "true" : "false");
-    };
-    setActive(bA, r==="admin");
-    setActive(bT, r==="tutor");
-    setActive(bS, r==="alumno");
-    setRole(r);
-    const err = document.getElementById("authErr");
-    if(err) err.style.display="none";
-  };
-
-  // Bind explícito (por si algún CSS/JS interfiere)
-  [["roleAdmin","admin"],["roleTutor","tutor"],["roleAlumno","alumno"]].forEach(([id,role])=>{
-    const el = document.getElementById(id);
-    if(!el) return;
-    ["pointerdown","mousedown","touchstart","click"].forEach(ev=>{
-      el.addEventListener(ev, (e)=>{
-        e.preventDefault(); e.stopPropagation();
-        window.__pickRole(role);
-      }, {passive:false, capture:true});
-    });
-  });
-
-  // Restore role
-  let saved=null;
-  try{ saved = localStorage.getItem("lameta_role"); }catch(e){}
-  if(saved) window.__pickRole(saved);
-
-  // Marca que JS está vivo
-  setClicks("JS_OK");
-})();
 
 </script>
 </body>
