@@ -77,6 +77,24 @@
     if(authErr) authErr.style.display = "none";
   };
 
+
+  // ===== DEBUG v24: contador de clicks + último target =====
+  (function(){
+    let n = 0;
+    function upd(t){
+      const el = document.getElementById("dbgClick");
+      if(!el) return;
+      el.textContent = "Clicks: " + n + (t ? (" | " + t) : "");
+    }
+    document.addEventListener("pointerdown", (e)=>{
+      n++;
+      const t = (e.target && (e.target.id || e.target.className || e.target.tagName)) ? String(e.target.id || e.target.className || e.target.tagName) : "";
+      upd(t);
+    }, true);
+    // Si JS cargó, marca una vez
+    upd("JS_OK");
+  })();
+
 </script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js">
   // ===== FIX v22: selección de rol "sticky" (no se deselecciona) =====
@@ -148,6 +166,24 @@
     if(roleLabel) roleLabel.textContent = r ? r.toUpperCase() : "-";
     if(authErr) authErr.style.display = "none";
   };
+
+
+  // ===== DEBUG v24: contador de clicks + último target =====
+  (function(){
+    let n = 0;
+    function upd(t){
+      const el = document.getElementById("dbgClick");
+      if(!el) return;
+      el.textContent = "Clicks: " + n + (t ? (" | " + t) : "");
+    }
+    document.addEventListener("pointerdown", (e)=>{
+      n++;
+      const t = (e.target && (e.target.id || e.target.className || e.target.tagName)) ? String(e.target.id || e.target.className || e.target.tagName) : "";
+      upd(t);
+    }, true);
+    // Si JS cargó, marca una vez
+    upd("JS_OK");
+  })();
 
 </script>
 
@@ -222,6 +258,24 @@
     if(roleLabel) roleLabel.textContent = r ? r.toUpperCase() : "-";
     if(authErr) authErr.style.display = "none";
   };
+
+
+  // ===== DEBUG v24: contador de clicks + último target =====
+  (function(){
+    let n = 0;
+    function upd(t){
+      const el = document.getElementById("dbgClick");
+      if(!el) return;
+      el.textContent = "Clicks: " + n + (t ? (" | " + t) : "");
+    }
+    document.addEventListener("pointerdown", (e)=>{
+      n++;
+      const t = (e.target && (e.target.id || e.target.className || e.target.tagName)) ? String(e.target.id || e.target.className || e.target.tagName) : "";
+      upd(t);
+    }, true);
+    // Si JS cargó, marca una vez
+    upd("JS_OK");
+  })();
 
 </script>
 
@@ -1041,6 +1095,19 @@
   .authCard, .authBox, .authPanel, .authModal { position:relative; z-index:999999; pointer-events:auto !important; }
   .roleRow, .roleBtn { position:relative; z-index:999999; pointer-events:auto !important; }
 
+
+  .dbgClick{
+    margin-top:8px;
+    font-weight:900;
+    font-size:12px;
+    color:#0f172a;
+    background: rgba(15,23,42,.06);
+    border:1px solid rgba(148,163,184,.45);
+    padding:6px 10px;
+    border-radius:999px;
+    display:inline-block;
+  }
+
 </style>
 </head>
 
@@ -1051,7 +1118,8 @@
   <div id="authOverlay" class="authOverlay">
     <div class="authCard">
       <p class="authTitle">ACCESO AL PANEL</p>
-      <p class="authSub">Seleccione su tipo de acceso e ingrese la clave.</p>
+      <p class="authSub">Seleccione su tipo de acceso e ingrese la clave.<div class="buildTag">Build: v24</div>
+<div id="dbgClick" class="dbgClick">Clicks: 0</div></p>
 
       <div class="roleRow">
         <button id="roleAdmin" class="roleBtn" type="button" onclick="window.__pickRole && window.__pickRole('admin'); return false;">ADMIN</button>
@@ -4784,6 +4852,24 @@ window.addEventListener("DOMContentLoaded", () => {
     if(roleLabel) roleLabel.textContent = r ? r.toUpperCase() : "-";
     if(authErr) authErr.style.display = "none";
   };
+
+
+  // ===== DEBUG v24: contador de clicks + último target =====
+  (function(){
+    let n = 0;
+    function upd(t){
+      const el = document.getElementById("dbgClick");
+      if(!el) return;
+      el.textContent = "Clicks: " + n + (t ? (" | " + t) : "");
+    }
+    document.addEventListener("pointerdown", (e)=>{
+      n++;
+      const t = (e.target && (e.target.id || e.target.className || e.target.tagName)) ? String(e.target.id || e.target.className || e.target.tagName) : "";
+      upd(t);
+    }, true);
+    // Si JS cargó, marca una vez
+    upd("JS_OK");
+  })();
 
 </script>
   <!-- ===================== MODAL EVALUACIÓN (ALUMNO) ===================== -->
