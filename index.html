@@ -6,11 +6,671 @@
   <title>LA META | PANEL DE CONTROL</title>
 
   <!-- Charts -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js">
+  // ===== Alumno UI (v20) - Propuesta =====
+  const COURSES_ = [
+    { id:"ALG", name:"Álgebra", tags:["Ecuaciones","Polinomios","Productos notables"], topics:[
+      { id:"ALG_A", label:"Bloque A — Ecuaciones de 1er grado", meta:"Semana 1", pdf:"#"},
+      { id:"ALG_B", label:"Bloque B — Sistemas de ecuaciones", meta:"Semana 2", pdf:"#"},
+    ]},
+    { id:"ARI", name:"Aritmética", tags:["Razones","Porcentajes","Problemas"], topics:[
+      { id:"ARI_A", label:"Bloque A — Números y operaciones", meta:"Semana 1", pdf:"#"},
+      { id:"ARI_B", label:"Bloque B — Proporciones y porcentajes", meta:"Semana 2", pdf:"#"},
+    ]},
+    { id:"GEO", name:"Geometría", tags:["Ángulos","Triángulos","Circunferencia"], topics:[
+      { id:"GEO_A", label:"Bloque A — Geometría plana", meta:"Semana 1", pdf:"#"},
+      { id:"GEO_B", label:"Bloque B — Áreas y perímetros", meta:"Semana 2", pdf:"#"},
+    ]},
+    { id:"TRI", name:"Trigonometría", tags:["Identidades","Razones trig."], topics:[
+      { id:"TRI_A", label:"Bloque A — Razones trigonométricas", meta:"Semana 1", pdf:"#"},
+      { id:"TRI_B", label:"Bloque B — Identidades básicas", meta:"Semana 2", pdf:"#"},
+    ]},
+    { id:"FIS", name:"Física", tags:["Cinemática","Dinámica"], topics:[
+      { id:"FIS_A", label:"Bloque A — Cinemática", meta:"Semana 1", pdf:"#"},
+      { id:"FIS_B", label:"Bloque B — Leyes de Newton", meta:"Semana 2", pdf:"#"},
+    ]},
+    { id:"QUI", name:"Química", tags:["Estructura","Estequiometría"], topics:[
+      { id:"QUI_A", label:"Bloque A — Materia y estructura", meta:"Semana 1", pdf:"#"},
+      { id:"QUI_B", label:"Bloque B — Reacciones y balance", meta:"Semana 2", pdf:"#"},
+    ]},
+    { id:"BIO", name:"Biología", tags:["Célula","Genética"], topics:[
+      { id:"BIO_A", label:"Bloque A — Biología celular", meta:"Semana 1", pdf:"#"},
+      { id:"BIO_B", label:"Bloque B — Genética básica", meta:"Semana 2", pdf:"#"},
+    ]},
+    { id:"LEN", name:"Lenguaje", tags:["Comprensión","Redacción"], topics:[
+      { id:"LEN_A", label:"Bloque A — Comprensión lectora", meta:"Semana 1", pdf:"#"},
+      { id:"LEN_B", label:"Bloque B — Gramática y redacción", meta:"Semana 2", pdf:"#"},
+    ]},
+    { id:"LIT", name:"Literatura", tags:["Movimientos","Autores"], topics:[
+      { id:"LIT_A", label:"Bloque A — Literatura peruana", meta:"Semana 1", pdf:"#"},
+      { id:"LIT_B", label:"Bloque B — Literatura universal", meta:"Semana 2", pdf:"#"},
+    ]},
+    { id:"HIS", name:"Historia", tags:["Perú","Mundo"], topics:[
+      { id:"HIS_A", label:"Bloque A — Historia del Perú", meta:"Semana 1", pdf:"#"},
+      { id:"HIS_B", label:"Bloque B — Historia universal", meta:"Semana 2", pdf:"#"},
+    ]},
+    { id:"GEO2", name:"Geografía", tags:["Perú","Regiones"], topics:[
+      { id:"GEO2_A", label:"Bloque A — Geografía del Perú", meta:"Semana 1", pdf:"#"},
+      { id:"GEO2_B", label:"Bloque B — Cartografía básica", meta:"Semana 2", pdf:"#"},
+    ]},
+    { id:"ECO", name:"Economía", tags:["Oferta/Demanda","Macroeconomía"], topics:[
+      { id:"ECO_A", label:"Bloque A — Microeconomía básica", meta:"Semana 1", pdf:"#"},
+      { id:"ECO_B", label:"Bloque B — Indicadores macro", meta:"Semana 2", pdf:"#"},
+    ]},
+  ];
+
+  function safe_(v){ return (v===null||v===undefined||String(v).trim()==="") ? "-" : String(v); }
+
+  function renderAlumnoDashboard_(al){
+    const nombre = safe_(al?.nombre || al?.nombres || al?.nombre_completo);
+    const big = document.getElementById("alumnoNombreBig");
+    if(big) big.textContent = nombre;
+
+    const chips = document.getElementById("alumnoChips");
+    if(chips){
+      const items = [
+        ["Universidad", safe_(al?.universidad)],
+        ["Salón", safe_(al?.salon)],
+        ["Modalidad", safe_(al?.modalidad)],
+        ["Estado", safe_(al?.estado)],
+      ];
+      chips.innerHTML = items.map(([k,v])=>`<div class="chip">${k}: ${escapeHtml(String(v))}</div>`).join("");
+    }
+
+    const kv = document.getElementById("alumnoKV");
+    if(kv){
+      const items = [
+        ["Nombre completo", nombre],
+        ["Correo", safe_(al?.correo)],
+        ["Usuario", safe_(al?.usuario)],
+        ["DNI", safe_(al?.dni)],
+        ["Local", safe_(al?.local)],
+        ["Código/Fila", safe_(al?.fila || al?.row)],
+      ];
+      kv.innerHTML = items.map(([k,v])=>`
+        <div class="kvItem">
+          <div class="k">${escapeHtml(String(k).toUpperCase())}</div>
+          <div class="v">${escapeHtml(String(v))}</div>
+        </div>
+      `).join("");
+    }
+
+    renderCourses_();
+  }
+
+  function renderCourses_(){
+    const box = document.getElementById("courseList");
+    if(!box) return;
+
+    box.innerHTML = COURSES_.map(c=>`
+      <div class="courseCard" data-course="${c.id}">
+        <div class="courseHead" role="button" tabindex="0">
+          <div>
+            <div class="courseName">${escapeHtml(c.name)}</div>
+            <div class="courseMeta">${escapeHtml(c.tags.join(" • "))}</div>
+          </div>
+          <div class="chev">▾</div>
+        </div>
+        <div class="topicBody">
+          <div class="topicGrid">
+            ${c.topics.map(t=>`
+              <button class="topicBtn" type="button" data-topic="${t.id}" data-course="${c.id}">
+                <span>${escapeHtml(t.label)}</span>
+                <span class="topicTag">${escapeHtml(t.meta)}</span>
+              </button>
+            `).join("")}
+          </div>
+        </div>
+      </div>
+    `).join("");
+
+    // toggle
+    box.querySelectorAll(".courseHead").forEach(h=>{
+      h.addEventListener("click", ()=>{
+        const card = h.closest(".courseCard");
+        const body = card.querySelector(".topicBody");
+        const open = body.style.display === "block";
+        body.style.display = open ? "none" : "block";
+        card.querySelector(".chev").textContent = open ? "▾" : "▴";
+      });
+    });
+
+    // topic click
+    box.querySelectorAll(".topicBtn").forEach(b=>{
+      b.addEventListener("click", ()=>{
+        const topicId = b.getAttribute("data-topic");
+        const courseId = b.getAttribute("data-course");
+        openEvalModal_(courseId, topicId);
+      });
+    });
+  }
+
+  function openEvalModal_(courseId, topicId){
+    const course = COURSES_.find(c=>c.id===courseId);
+    const topic = course?.topics?.find(t=>t.id===topicId);
+    const modal = document.getElementById("evalModal");
+    if(!modal || !course || !topic) return;
+
+    document.getElementById("evalTitle").textContent = `Evaluación — ${course.name}`;
+    document.getElementById("evalMeta").textContent = topic.label;
+
+    const link = document.getElementById("evalPdfLink");
+    link.href = topic.pdf || "#";
+    document.getElementById("evalPdfLabel").textContent = topic.pdf && topic.pdf !== "#" ? "PDF asignado" : "PDF (se vinculará en el siguiente paso)";
+
+    // build 5 questions with A-E checkboxes (multi-select allowed)
+    const qWrap = document.getElementById("qWrap");
+    qWrap.innerHTML = Array.from({length:5}, (_,i)=>{
+      const n = i+1;
+      return `
+        <div class="qCard">
+          <div class="qTitle">Pregunta ${n}</div>
+          <div class="optRow">
+            ${["A","B","C","D","E"].map(op=>`
+              <label class="opt">
+                <input type="checkbox" data-q="${n}" data-op="${op}">
+                ${op}
+              </label>
+            `).join("")}
+          </div>
+        </div>
+      `;
+    }).join("");
+
+    // reset state
+    document.getElementById("sendOk").style.display = "none";
+    const btn = document.getElementById("btnEnviarEval");
+    btn.disabled = false;
+
+    // send (demo local only)
+    btn.onclick = ()=>{
+      btn.disabled = True = true;
+    };
+    btn.onclick = ()=>{
+      const checked = Array.from(qWrap.querySelectorAll('input[type="checkbox"]:checked'));
+      const answers = {};
+      checked.forEach(x=>{
+        const q = x.getAttribute("data-q");
+        const op = x.getAttribute("data-op");
+        answers[q] = answers[q] || [];
+        answers[q].push(op);
+      });
+      // Demo: guarda en localStorage por topic
+      const key = "eval_" + courseId + "_" + topicId;
+      localStorage.setItem(key, JSON.stringify({ answers, sentAt: new Date().toISOString() }));
+      document.getElementById("sendOk").style.display = "block";
+      btn.disabled = true; // 1 solo envío (demo)
+    };
+
+    // open
+    modal.setAttribute("aria-hidden","false");
+  }
+
+  function closeEvalModal_(){
+    const modal = document.getElementById("evalModal");
+    if(!modal) return;
+    modal.setAttribute("aria-hidden","true");
+  }
+
+  // Modal close hooks
+  document.addEventListener("click", (ev)=>{
+    const id = ev.target && ev.target.id;
+    if(id==="evalModalClose" || id==="evalX") closeEvalModal_();
+  });
+
+  // Hook: cuando alumno entra, usamos su sesión
+  function alumnoOnEnter_(){
+    const sess = (typeof getStudentSession === "function") ? getStudentSession() : null;
+    const a = sess?.alumno || {};
+    a.fila = sess?.row || a.fila;
+    renderAlumnoDashboard_(a);
+  }
+
+</script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js">
+  // ===== Alumno UI (v20) - Propuesta =====
+  const COURSES_ = [
+    { id:"ALG", name:"Álgebra", tags:["Ecuaciones","Polinomios","Productos notables"], topics:[
+      { id:"ALG_A", label:"Bloque A — Ecuaciones de 1er grado", meta:"Semana 1", pdf:"#"},
+      { id:"ALG_B", label:"Bloque B — Sistemas de ecuaciones", meta:"Semana 2", pdf:"#"},
+    ]},
+    { id:"ARI", name:"Aritmética", tags:["Razones","Porcentajes","Problemas"], topics:[
+      { id:"ARI_A", label:"Bloque A — Números y operaciones", meta:"Semana 1", pdf:"#"},
+      { id:"ARI_B", label:"Bloque B — Proporciones y porcentajes", meta:"Semana 2", pdf:"#"},
+    ]},
+    { id:"GEO", name:"Geometría", tags:["Ángulos","Triángulos","Circunferencia"], topics:[
+      { id:"GEO_A", label:"Bloque A — Geometría plana", meta:"Semana 1", pdf:"#"},
+      { id:"GEO_B", label:"Bloque B — Áreas y perímetros", meta:"Semana 2", pdf:"#"},
+    ]},
+    { id:"TRI", name:"Trigonometría", tags:["Identidades","Razones trig."], topics:[
+      { id:"TRI_A", label:"Bloque A — Razones trigonométricas", meta:"Semana 1", pdf:"#"},
+      { id:"TRI_B", label:"Bloque B — Identidades básicas", meta:"Semana 2", pdf:"#"},
+    ]},
+    { id:"FIS", name:"Física", tags:["Cinemática","Dinámica"], topics:[
+      { id:"FIS_A", label:"Bloque A — Cinemática", meta:"Semana 1", pdf:"#"},
+      { id:"FIS_B", label:"Bloque B — Leyes de Newton", meta:"Semana 2", pdf:"#"},
+    ]},
+    { id:"QUI", name:"Química", tags:["Estructura","Estequiometría"], topics:[
+      { id:"QUI_A", label:"Bloque A — Materia y estructura", meta:"Semana 1", pdf:"#"},
+      { id:"QUI_B", label:"Bloque B — Reacciones y balance", meta:"Semana 2", pdf:"#"},
+    ]},
+    { id:"BIO", name:"Biología", tags:["Célula","Genética"], topics:[
+      { id:"BIO_A", label:"Bloque A — Biología celular", meta:"Semana 1", pdf:"#"},
+      { id:"BIO_B", label:"Bloque B — Genética básica", meta:"Semana 2", pdf:"#"},
+    ]},
+    { id:"LEN", name:"Lenguaje", tags:["Comprensión","Redacción"], topics:[
+      { id:"LEN_A", label:"Bloque A — Comprensión lectora", meta:"Semana 1", pdf:"#"},
+      { id:"LEN_B", label:"Bloque B — Gramática y redacción", meta:"Semana 2", pdf:"#"},
+    ]},
+    { id:"LIT", name:"Literatura", tags:["Movimientos","Autores"], topics:[
+      { id:"LIT_A", label:"Bloque A — Literatura peruana", meta:"Semana 1", pdf:"#"},
+      { id:"LIT_B", label:"Bloque B — Literatura universal", meta:"Semana 2", pdf:"#"},
+    ]},
+    { id:"HIS", name:"Historia", tags:["Perú","Mundo"], topics:[
+      { id:"HIS_A", label:"Bloque A — Historia del Perú", meta:"Semana 1", pdf:"#"},
+      { id:"HIS_B", label:"Bloque B — Historia universal", meta:"Semana 2", pdf:"#"},
+    ]},
+    { id:"GEO2", name:"Geografía", tags:["Perú","Regiones"], topics:[
+      { id:"GEO2_A", label:"Bloque A — Geografía del Perú", meta:"Semana 1", pdf:"#"},
+      { id:"GEO2_B", label:"Bloque B — Cartografía básica", meta:"Semana 2", pdf:"#"},
+    ]},
+    { id:"ECO", name:"Economía", tags:["Oferta/Demanda","Macroeconomía"], topics:[
+      { id:"ECO_A", label:"Bloque A — Microeconomía básica", meta:"Semana 1", pdf:"#"},
+      { id:"ECO_B", label:"Bloque B — Indicadores macro", meta:"Semana 2", pdf:"#"},
+    ]},
+  ];
+
+  function safe_(v){ return (v===null||v===undefined||String(v).trim()==="") ? "-" : String(v); }
+
+  function renderAlumnoDashboard_(al){
+    const nombre = safe_(al?.nombre || al?.nombres || al?.nombre_completo);
+    const big = document.getElementById("alumnoNombreBig");
+    if(big) big.textContent = nombre;
+
+    const chips = document.getElementById("alumnoChips");
+    if(chips){
+      const items = [
+        ["Universidad", safe_(al?.universidad)],
+        ["Salón", safe_(al?.salon)],
+        ["Modalidad", safe_(al?.modalidad)],
+        ["Estado", safe_(al?.estado)],
+      ];
+      chips.innerHTML = items.map(([k,v])=>`<div class="chip">${k}: ${escapeHtml(String(v))}</div>`).join("");
+    }
+
+    const kv = document.getElementById("alumnoKV");
+    if(kv){
+      const items = [
+        ["Nombre completo", nombre],
+        ["Correo", safe_(al?.correo)],
+        ["Usuario", safe_(al?.usuario)],
+        ["DNI", safe_(al?.dni)],
+        ["Local", safe_(al?.local)],
+        ["Código/Fila", safe_(al?.fila || al?.row)],
+      ];
+      kv.innerHTML = items.map(([k,v])=>`
+        <div class="kvItem">
+          <div class="k">${escapeHtml(String(k).toUpperCase())}</div>
+          <div class="v">${escapeHtml(String(v))}</div>
+        </div>
+      `).join("");
+    }
+
+    renderCourses_();
+  }
+
+  function renderCourses_(){
+    const box = document.getElementById("courseList");
+    if(!box) return;
+
+    box.innerHTML = COURSES_.map(c=>`
+      <div class="courseCard" data-course="${c.id}">
+        <div class="courseHead" role="button" tabindex="0">
+          <div>
+            <div class="courseName">${escapeHtml(c.name)}</div>
+            <div class="courseMeta">${escapeHtml(c.tags.join(" • "))}</div>
+          </div>
+          <div class="chev">▾</div>
+        </div>
+        <div class="topicBody">
+          <div class="topicGrid">
+            ${c.topics.map(t=>`
+              <button class="topicBtn" type="button" data-topic="${t.id}" data-course="${c.id}">
+                <span>${escapeHtml(t.label)}</span>
+                <span class="topicTag">${escapeHtml(t.meta)}</span>
+              </button>
+            `).join("")}
+          </div>
+        </div>
+      </div>
+    `).join("");
+
+    // toggle
+    box.querySelectorAll(".courseHead").forEach(h=>{
+      h.addEventListener("click", ()=>{
+        const card = h.closest(".courseCard");
+        const body = card.querySelector(".topicBody");
+        const open = body.style.display === "block";
+        body.style.display = open ? "none" : "block";
+        card.querySelector(".chev").textContent = open ? "▾" : "▴";
+      });
+    });
+
+    // topic click
+    box.querySelectorAll(".topicBtn").forEach(b=>{
+      b.addEventListener("click", ()=>{
+        const topicId = b.getAttribute("data-topic");
+        const courseId = b.getAttribute("data-course");
+        openEvalModal_(courseId, topicId);
+      });
+    });
+  }
+
+  function openEvalModal_(courseId, topicId){
+    const course = COURSES_.find(c=>c.id===courseId);
+    const topic = course?.topics?.find(t=>t.id===topicId);
+    const modal = document.getElementById("evalModal");
+    if(!modal || !course || !topic) return;
+
+    document.getElementById("evalTitle").textContent = `Evaluación — ${course.name}`;
+    document.getElementById("evalMeta").textContent = topic.label;
+
+    const link = document.getElementById("evalPdfLink");
+    link.href = topic.pdf || "#";
+    document.getElementById("evalPdfLabel").textContent = topic.pdf && topic.pdf !== "#" ? "PDF asignado" : "PDF (se vinculará en el siguiente paso)";
+
+    // build 5 questions with A-E checkboxes (multi-select allowed)
+    const qWrap = document.getElementById("qWrap");
+    qWrap.innerHTML = Array.from({length:5}, (_,i)=>{
+      const n = i+1;
+      return `
+        <div class="qCard">
+          <div class="qTitle">Pregunta ${n}</div>
+          <div class="optRow">
+            ${["A","B","C","D","E"].map(op=>`
+              <label class="opt">
+                <input type="checkbox" data-q="${n}" data-op="${op}">
+                ${op}
+              </label>
+            `).join("")}
+          </div>
+        </div>
+      `;
+    }).join("");
+
+    // reset state
+    document.getElementById("sendOk").style.display = "none";
+    const btn = document.getElementById("btnEnviarEval");
+    btn.disabled = false;
+
+    // send (demo local only)
+    btn.onclick = ()=>{
+      btn.disabled = True = true;
+    };
+    btn.onclick = ()=>{
+      const checked = Array.from(qWrap.querySelectorAll('input[type="checkbox"]:checked'));
+      const answers = {};
+      checked.forEach(x=>{
+        const q = x.getAttribute("data-q");
+        const op = x.getAttribute("data-op");
+        answers[q] = answers[q] || [];
+        answers[q].push(op);
+      });
+      // Demo: guarda en localStorage por topic
+      const key = "eval_" + courseId + "_" + topicId;
+      localStorage.setItem(key, JSON.stringify({ answers, sentAt: new Date().toISOString() }));
+      document.getElementById("sendOk").style.display = "block";
+      btn.disabled = true; // 1 solo envío (demo)
+    };
+
+    // open
+    modal.setAttribute("aria-hidden","false");
+  }
+
+  function closeEvalModal_(){
+    const modal = document.getElementById("evalModal");
+    if(!modal) return;
+    modal.setAttribute("aria-hidden","true");
+  }
+
+  // Modal close hooks
+  document.addEventListener("click", (ev)=>{
+    const id = ev.target && ev.target.id;
+    if(id==="evalModalClose" || id==="evalX") closeEvalModal_();
+  });
+
+  // Hook: cuando alumno entra, usamos su sesión
+  function alumnoOnEnter_(){
+    const sess = (typeof getStudentSession === "function") ? getStudentSession() : null;
+    const a = sess?.alumno || {};
+    a.fila = sess?.row || a.fila;
+    renderAlumnoDashboard_(a);
+  }
+
+</script>
 
   <!-- PNG export (captura COMPLETA del elemento, no solo lo visible) -->
-  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js">
+  // ===== Alumno UI (v20) - Propuesta =====
+  const COURSES_ = [
+    { id:"ALG", name:"Álgebra", tags:["Ecuaciones","Polinomios","Productos notables"], topics:[
+      { id:"ALG_A", label:"Bloque A — Ecuaciones de 1er grado", meta:"Semana 1", pdf:"#"},
+      { id:"ALG_B", label:"Bloque B — Sistemas de ecuaciones", meta:"Semana 2", pdf:"#"},
+    ]},
+    { id:"ARI", name:"Aritmética", tags:["Razones","Porcentajes","Problemas"], topics:[
+      { id:"ARI_A", label:"Bloque A — Números y operaciones", meta:"Semana 1", pdf:"#"},
+      { id:"ARI_B", label:"Bloque B — Proporciones y porcentajes", meta:"Semana 2", pdf:"#"},
+    ]},
+    { id:"GEO", name:"Geometría", tags:["Ángulos","Triángulos","Circunferencia"], topics:[
+      { id:"GEO_A", label:"Bloque A — Geometría plana", meta:"Semana 1", pdf:"#"},
+      { id:"GEO_B", label:"Bloque B — Áreas y perímetros", meta:"Semana 2", pdf:"#"},
+    ]},
+    { id:"TRI", name:"Trigonometría", tags:["Identidades","Razones trig."], topics:[
+      { id:"TRI_A", label:"Bloque A — Razones trigonométricas", meta:"Semana 1", pdf:"#"},
+      { id:"TRI_B", label:"Bloque B — Identidades básicas", meta:"Semana 2", pdf:"#"},
+    ]},
+    { id:"FIS", name:"Física", tags:["Cinemática","Dinámica"], topics:[
+      { id:"FIS_A", label:"Bloque A — Cinemática", meta:"Semana 1", pdf:"#"},
+      { id:"FIS_B", label:"Bloque B — Leyes de Newton", meta:"Semana 2", pdf:"#"},
+    ]},
+    { id:"QUI", name:"Química", tags:["Estructura","Estequiometría"], topics:[
+      { id:"QUI_A", label:"Bloque A — Materia y estructura", meta:"Semana 1", pdf:"#"},
+      { id:"QUI_B", label:"Bloque B — Reacciones y balance", meta:"Semana 2", pdf:"#"},
+    ]},
+    { id:"BIO", name:"Biología", tags:["Célula","Genética"], topics:[
+      { id:"BIO_A", label:"Bloque A — Biología celular", meta:"Semana 1", pdf:"#"},
+      { id:"BIO_B", label:"Bloque B — Genética básica", meta:"Semana 2", pdf:"#"},
+    ]},
+    { id:"LEN", name:"Lenguaje", tags:["Comprensión","Redacción"], topics:[
+      { id:"LEN_A", label:"Bloque A — Comprensión lectora", meta:"Semana 1", pdf:"#"},
+      { id:"LEN_B", label:"Bloque B — Gramática y redacción", meta:"Semana 2", pdf:"#"},
+    ]},
+    { id:"LIT", name:"Literatura", tags:["Movimientos","Autores"], topics:[
+      { id:"LIT_A", label:"Bloque A — Literatura peruana", meta:"Semana 1", pdf:"#"},
+      { id:"LIT_B", label:"Bloque B — Literatura universal", meta:"Semana 2", pdf:"#"},
+    ]},
+    { id:"HIS", name:"Historia", tags:["Perú","Mundo"], topics:[
+      { id:"HIS_A", label:"Bloque A — Historia del Perú", meta:"Semana 1", pdf:"#"},
+      { id:"HIS_B", label:"Bloque B — Historia universal", meta:"Semana 2", pdf:"#"},
+    ]},
+    { id:"GEO2", name:"Geografía", tags:["Perú","Regiones"], topics:[
+      { id:"GEO2_A", label:"Bloque A — Geografía del Perú", meta:"Semana 1", pdf:"#"},
+      { id:"GEO2_B", label:"Bloque B — Cartografía básica", meta:"Semana 2", pdf:"#"},
+    ]},
+    { id:"ECO", name:"Economía", tags:["Oferta/Demanda","Macroeconomía"], topics:[
+      { id:"ECO_A", label:"Bloque A — Microeconomía básica", meta:"Semana 1", pdf:"#"},
+      { id:"ECO_B", label:"Bloque B — Indicadores macro", meta:"Semana 2", pdf:"#"},
+    ]},
+  ];
+
+  function safe_(v){ return (v===null||v===undefined||String(v).trim()==="") ? "-" : String(v); }
+
+  function renderAlumnoDashboard_(al){
+    const nombre = safe_(al?.nombre || al?.nombres || al?.nombre_completo);
+    const big = document.getElementById("alumnoNombreBig");
+    if(big) big.textContent = nombre;
+
+    const chips = document.getElementById("alumnoChips");
+    if(chips){
+      const items = [
+        ["Universidad", safe_(al?.universidad)],
+        ["Salón", safe_(al?.salon)],
+        ["Modalidad", safe_(al?.modalidad)],
+        ["Estado", safe_(al?.estado)],
+      ];
+      chips.innerHTML = items.map(([k,v])=>`<div class="chip">${k}: ${escapeHtml(String(v))}</div>`).join("");
+    }
+
+    const kv = document.getElementById("alumnoKV");
+    if(kv){
+      const items = [
+        ["Nombre completo", nombre],
+        ["Correo", safe_(al?.correo)],
+        ["Usuario", safe_(al?.usuario)],
+        ["DNI", safe_(al?.dni)],
+        ["Local", safe_(al?.local)],
+        ["Código/Fila", safe_(al?.fila || al?.row)],
+      ];
+      kv.innerHTML = items.map(([k,v])=>`
+        <div class="kvItem">
+          <div class="k">${escapeHtml(String(k).toUpperCase())}</div>
+          <div class="v">${escapeHtml(String(v))}</div>
+        </div>
+      `).join("");
+    }
+
+    renderCourses_();
+  }
+
+  function renderCourses_(){
+    const box = document.getElementById("courseList");
+    if(!box) return;
+
+    box.innerHTML = COURSES_.map(c=>`
+      <div class="courseCard" data-course="${c.id}">
+        <div class="courseHead" role="button" tabindex="0">
+          <div>
+            <div class="courseName">${escapeHtml(c.name)}</div>
+            <div class="courseMeta">${escapeHtml(c.tags.join(" • "))}</div>
+          </div>
+          <div class="chev">▾</div>
+        </div>
+        <div class="topicBody">
+          <div class="topicGrid">
+            ${c.topics.map(t=>`
+              <button class="topicBtn" type="button" data-topic="${t.id}" data-course="${c.id}">
+                <span>${escapeHtml(t.label)}</span>
+                <span class="topicTag">${escapeHtml(t.meta)}</span>
+              </button>
+            `).join("")}
+          </div>
+        </div>
+      </div>
+    `).join("");
+
+    // toggle
+    box.querySelectorAll(".courseHead").forEach(h=>{
+      h.addEventListener("click", ()=>{
+        const card = h.closest(".courseCard");
+        const body = card.querySelector(".topicBody");
+        const open = body.style.display === "block";
+        body.style.display = open ? "none" : "block";
+        card.querySelector(".chev").textContent = open ? "▾" : "▴";
+      });
+    });
+
+    // topic click
+    box.querySelectorAll(".topicBtn").forEach(b=>{
+      b.addEventListener("click", ()=>{
+        const topicId = b.getAttribute("data-topic");
+        const courseId = b.getAttribute("data-course");
+        openEvalModal_(courseId, topicId);
+      });
+    });
+  }
+
+  function openEvalModal_(courseId, topicId){
+    const course = COURSES_.find(c=>c.id===courseId);
+    const topic = course?.topics?.find(t=>t.id===topicId);
+    const modal = document.getElementById("evalModal");
+    if(!modal || !course || !topic) return;
+
+    document.getElementById("evalTitle").textContent = `Evaluación — ${course.name}`;
+    document.getElementById("evalMeta").textContent = topic.label;
+
+    const link = document.getElementById("evalPdfLink");
+    link.href = topic.pdf || "#";
+    document.getElementById("evalPdfLabel").textContent = topic.pdf && topic.pdf !== "#" ? "PDF asignado" : "PDF (se vinculará en el siguiente paso)";
+
+    // build 5 questions with A-E checkboxes (multi-select allowed)
+    const qWrap = document.getElementById("qWrap");
+    qWrap.innerHTML = Array.from({length:5}, (_,i)=>{
+      const n = i+1;
+      return `
+        <div class="qCard">
+          <div class="qTitle">Pregunta ${n}</div>
+          <div class="optRow">
+            ${["A","B","C","D","E"].map(op=>`
+              <label class="opt">
+                <input type="checkbox" data-q="${n}" data-op="${op}">
+                ${op}
+              </label>
+            `).join("")}
+          </div>
+        </div>
+      `;
+    }).join("");
+
+    // reset state
+    document.getElementById("sendOk").style.display = "none";
+    const btn = document.getElementById("btnEnviarEval");
+    btn.disabled = false;
+
+    // send (demo local only)
+    btn.onclick = ()=>{
+      btn.disabled = True = true;
+    };
+    btn.onclick = ()=>{
+      const checked = Array.from(qWrap.querySelectorAll('input[type="checkbox"]:checked'));
+      const answers = {};
+      checked.forEach(x=>{
+        const q = x.getAttribute("data-q");
+        const op = x.getAttribute("data-op");
+        answers[q] = answers[q] || [];
+        answers[q].push(op);
+      });
+      // Demo: guarda en localStorage por topic
+      const key = "eval_" + courseId + "_" + topicId;
+      localStorage.setItem(key, JSON.stringify({ answers, sentAt: new Date().toISOString() }));
+      document.getElementById("sendOk").style.display = "block";
+      btn.disabled = true; // 1 solo envío (demo)
+    };
+
+    // open
+    modal.setAttribute("aria-hidden","false");
+  }
+
+  function closeEvalModal_(){
+    const modal = document.getElementById("evalModal");
+    if(!modal) return;
+    modal.setAttribute("aria-hidden","true");
+  }
+
+  // Modal close hooks
+  document.addEventListener("click", (ev)=>{
+    const id = ev.target && ev.target.id;
+    if(id==="evalModalClose" || id==="evalX") closeEvalModal_();
+  });
+
+  // Hook: cuando alumno entra, usamos su sesión
+  function alumnoOnEnter_(){
+    const sess = (typeof getStudentSession === "function") ? getStudentSession() : null;
+    const a = sess?.alumno || {};
+    a.fila = sess?.row || a.fila;
+    renderAlumnoDashboard_(a);
+  }
+
+</script>
 
   <style>
     /* ======================================================================
@@ -777,6 +1437,156 @@
 
     .buildTag{margin-top:8px;color:#94a3b8;font-weight:800;}
   .roleBtnWide{grid-column:1 / -1;}
+
+  /* ===== Alumno Dashboard (v20) ===== */
+  .alumnoHero{
+    background: linear-gradient(135deg, rgba(220,38,38,.08), rgba(15,23,42,.04));
+    border: 1px solid rgba(148,163,184,.35);
+    border-radius: 18px;
+    padding: 18px;
+    margin-bottom: 14px;
+  }
+  .alumnoTitleRow{ display:flex; align-items:center; gap:10px; }
+  .alumnoTitle{ font-size: 18px; font-weight: 900; color:#0f172a; }
+  .alumnoBadge{
+    font-weight:900; font-size:12px; padding:4px 10px; border-radius:999px;
+    background: rgba(220,38,38,.12); color:#b91c1c; border:1px solid rgba(220,38,38,.25);
+  }
+  .alumnoSub{ margin-top:6px; font-size: 20px; font-weight: 900; color:#0f172a; }
+  .alumnoChips{ margin-top:10px; display:flex; flex-wrap:wrap; gap:8px; }
+  .chip{
+    font-weight:800; font-size:12px; padding:6px 10px; border-radius:999px;
+    background:#ffffff; border:1px solid rgba(148,163,184,.45); color:#334155;
+  }
+  .alumnoGrid{ display:grid; grid-template-columns: 1fr 1.4fr; gap:14px; }
+  @media (max-width: 980px){ .alumnoGrid{ grid-template-columns:1fr; } }
+  .alumnoCard{ border-radius: 18px; }
+  .alumnoKV{ margin-top:10px; display:grid; grid-template-columns: 1fr 1fr; gap:10px; }
+  .kvItem{ padding:10px; border-radius: 14px; border:1px solid rgba(148,163,184,.35); background:#fff; }
+  .kvItem .k{ font-size:12px; font-weight:900; color:#64748b; letter-spacing:.02em; }
+  .kvItem .v{ margin-top:4px; font-size:14px; font-weight:900; color:#0f172a; word-break:break-word; }
+
+  /* Cursos */
+  .courseList{ margin-top:12px; display:flex; flex-direction:column; gap:10px; }
+  .courseCard{
+    border:1px solid rgba(148,163,184,.35);
+    border-radius:16px;
+    background:#fff;
+    overflow:hidden;
+  }
+  .courseHead{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:12px 12px;
+    cursor:pointer;
+    user-select:none;
+  }
+  .courseName{ font-weight: 950; color:#0f172a; }
+  .courseMeta{ font-size:12px; font-weight:900; color:#64748b; }
+  .chev{ font-weight:900; color:#b91c1c; }
+  .topicBody{ display:none; padding: 0 12px 12px; }
+  .topicGrid{ display:grid; grid-template-columns: 1fr; gap:8px; margin-top:8px; }
+  .topicBtn{
+    display:flex; align-items:center; justify-content:space-between;
+    width:100%;
+    padding:10px 12px;
+    border-radius:14px;
+    border:1px solid rgba(148,163,184,.35);
+    background:#fff;
+    cursor:pointer;
+    font-weight:900;
+    color:#0f172a;
+  }
+  .topicBtn:hover{ border-color: rgba(220,38,38,.45); background: rgba(220,38,38,.04); }
+  .topicTag{ font-size:12px; font-weight:900; color:#64748b; }
+
+  /* Modal */
+  .modal{ position:fixed; inset:0; display:none; z-index: 9999; }
+  .modal[aria-hidden="false"]{ display:block; }
+  .modalBackdrop{ position:absolute; inset:0; background: rgba(15,23,42,.55); }
+  .modalPanel{
+    position:relative;
+    margin: 5vh auto;
+    width: min(880px, calc(100vw - 24px));
+    background:#fff;
+    border-radius: 18px;
+    border:1px solid rgba(148,163,184,.35);
+    box-shadow: 0 30px 80px rgba(0,0,0,.25);
+    overflow:hidden;
+  }
+  .modalHead{
+    display:flex; align-items:center; justify-content:space-between;
+    padding: 14px 14px;
+    border-bottom: 1px solid rgba(148,163,184,.35);
+    background: linear-gradient(135deg, rgba(220,38,38,.08), rgba(15,23,42,.03));
+  }
+  .modalTitle{ font-size: 16px; font-weight: 950; color:#0f172a; }
+  .modalMeta{ margin-top:2px; font-size: 12px; font-weight: 900; color:#64748b; }
+  .iconBtn{
+    border:1px solid rgba(148,163,184,.5);
+    background:#fff;
+    border-radius: 12px;
+    width:40px; height:40px;
+    font-weight:950; cursor:pointer;
+  }
+  .modalBody{ padding: 14px; }
+  .pdfRow{
+    display:flex; align-items:center; justify-content:space-between; gap:12px;
+    padding: 12px; border-radius: 16px;
+    border:1px solid rgba(148,163,184,.35);
+    background:#fff;
+  }
+  .btnOutline{
+    display:inline-flex; align-items:center; justify-content:center;
+    padding:10px 12px; border-radius: 14px;
+    border:1px solid rgba(220,38,38,.35);
+    color:#b91c1c; font-weight:950; text-decoration:none;
+    background:#fff;
+  }
+  .btnOutline:hover{ background: rgba(220,38,38,.06); }
+
+  .qWrap{ margin-top: 12px; display:flex; flex-direction:column; gap:10px; }
+  .qCard{
+    border:1px solid rgba(148,163,184,.35);
+    border-radius: 16px;
+    padding: 12px;
+    background:#fff;
+  }
+  .qTitle{ font-weight: 950; color:#0f172a; }
+  .optRow{ margin-top:10px; display:grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap:8px; }
+  .opt{
+    display:flex; align-items:center; justify-content:center; gap:8px;
+    border:1px solid rgba(148,163,184,.35);
+    border-radius: 14px;
+    padding: 10px 8px;
+    font-weight: 950;
+    cursor:pointer;
+    user-select:none;
+    background:#fff;
+  }
+  .opt input{ width:16px; height:16px; }
+  .sendRow{ margin-top: 12px; display:flex; align-items:center; justify-content:space-between; gap:12px; }
+  .mutedSmall{ color:#64748b; font-weight:800; font-size:12px; }
+  .btnPrimary{
+    display:inline-flex; align-items:center; justify-content:center; gap:10px;
+    padding: 12px 14px;
+    border-radius: 16px;
+    border:0;
+    background:#b91c1c;
+    color:#fff;
+    font-weight: 950;
+    cursor:pointer;
+  }
+  .btnPrimary:disabled{ opacity:.55; cursor:not-allowed; }
+  .okBox{
+    margin-top:12px;
+    padding: 12px;
+    border-radius: 16px;
+    border:1px solid rgba(34,197,94,.35);
+    background: rgba(34,197,94,.08);
+    color:#166534;
+    font-weight: 950;
+  }
+
 </style>
 </head>
 
@@ -787,7 +1597,7 @@
   <div id="authOverlay" class="authOverlay">
     <div class="authCard">
       <p class="authTitle">ACCESO AL PANEL</p>
-      <p class="authSub">Seleccione su tipo de acceso e ingrese la clave.<div class="buildTag">Build: v19</div></p>
+      <p class="authSub">Seleccione su tipo de acceso e ingrese la clave.<div class="buildTag">Build: v20</div></p>
 
       <div class="roleRow">
         <button id="roleAdmin" class="roleBtn" type="button">ADMIN</button>
@@ -1087,6 +1897,7 @@
           // Forzar vista alumno
           setView("alumno");
           renderAlumnoResumen();
+          alumnoOnEnter_();
           return;
 
         }catch(e){
@@ -4189,6 +5000,226 @@ window.addEventListener("DOMContentLoaded", () => {
   // 3) Sesión existente: iniciar app
   startApp();
 });
+
+  // ===== Alumno UI (v20) - Propuesta =====
+  const COURSES_ = [
+    { id:"ALG", name:"Álgebra", tags:["Ecuaciones","Polinomios","Productos notables"], topics:[
+      { id:"ALG_A", label:"Bloque A — Ecuaciones de 1er grado", meta:"Semana 1", pdf:"#"},
+      { id:"ALG_B", label:"Bloque B — Sistemas de ecuaciones", meta:"Semana 2", pdf:"#"},
+    ]},
+    { id:"ARI", name:"Aritmética", tags:["Razones","Porcentajes","Problemas"], topics:[
+      { id:"ARI_A", label:"Bloque A — Números y operaciones", meta:"Semana 1", pdf:"#"},
+      { id:"ARI_B", label:"Bloque B — Proporciones y porcentajes", meta:"Semana 2", pdf:"#"},
+    ]},
+    { id:"GEO", name:"Geometría", tags:["Ángulos","Triángulos","Circunferencia"], topics:[
+      { id:"GEO_A", label:"Bloque A — Geometría plana", meta:"Semana 1", pdf:"#"},
+      { id:"GEO_B", label:"Bloque B — Áreas y perímetros", meta:"Semana 2", pdf:"#"},
+    ]},
+    { id:"TRI", name:"Trigonometría", tags:["Identidades","Razones trig."], topics:[
+      { id:"TRI_A", label:"Bloque A — Razones trigonométricas", meta:"Semana 1", pdf:"#"},
+      { id:"TRI_B", label:"Bloque B — Identidades básicas", meta:"Semana 2", pdf:"#"},
+    ]},
+    { id:"FIS", name:"Física", tags:["Cinemática","Dinámica"], topics:[
+      { id:"FIS_A", label:"Bloque A — Cinemática", meta:"Semana 1", pdf:"#"},
+      { id:"FIS_B", label:"Bloque B — Leyes de Newton", meta:"Semana 2", pdf:"#"},
+    ]},
+    { id:"QUI", name:"Química", tags:["Estructura","Estequiometría"], topics:[
+      { id:"QUI_A", label:"Bloque A — Materia y estructura", meta:"Semana 1", pdf:"#"},
+      { id:"QUI_B", label:"Bloque B — Reacciones y balance", meta:"Semana 2", pdf:"#"},
+    ]},
+    { id:"BIO", name:"Biología", tags:["Célula","Genética"], topics:[
+      { id:"BIO_A", label:"Bloque A — Biología celular", meta:"Semana 1", pdf:"#"},
+      { id:"BIO_B", label:"Bloque B — Genética básica", meta:"Semana 2", pdf:"#"},
+    ]},
+    { id:"LEN", name:"Lenguaje", tags:["Comprensión","Redacción"], topics:[
+      { id:"LEN_A", label:"Bloque A — Comprensión lectora", meta:"Semana 1", pdf:"#"},
+      { id:"LEN_B", label:"Bloque B — Gramática y redacción", meta:"Semana 2", pdf:"#"},
+    ]},
+    { id:"LIT", name:"Literatura", tags:["Movimientos","Autores"], topics:[
+      { id:"LIT_A", label:"Bloque A — Literatura peruana", meta:"Semana 1", pdf:"#"},
+      { id:"LIT_B", label:"Bloque B — Literatura universal", meta:"Semana 2", pdf:"#"},
+    ]},
+    { id:"HIS", name:"Historia", tags:["Perú","Mundo"], topics:[
+      { id:"HIS_A", label:"Bloque A — Historia del Perú", meta:"Semana 1", pdf:"#"},
+      { id:"HIS_B", label:"Bloque B — Historia universal", meta:"Semana 2", pdf:"#"},
+    ]},
+    { id:"GEO2", name:"Geografía", tags:["Perú","Regiones"], topics:[
+      { id:"GEO2_A", label:"Bloque A — Geografía del Perú", meta:"Semana 1", pdf:"#"},
+      { id:"GEO2_B", label:"Bloque B — Cartografía básica", meta:"Semana 2", pdf:"#"},
+    ]},
+    { id:"ECO", name:"Economía", tags:["Oferta/Demanda","Macroeconomía"], topics:[
+      { id:"ECO_A", label:"Bloque A — Microeconomía básica", meta:"Semana 1", pdf:"#"},
+      { id:"ECO_B", label:"Bloque B — Indicadores macro", meta:"Semana 2", pdf:"#"},
+    ]},
+  ];
+
+  function safe_(v){ return (v===null||v===undefined||String(v).trim()==="") ? "-" : String(v); }
+
+  function renderAlumnoDashboard_(al){
+    const nombre = safe_(al?.nombre || al?.nombres || al?.nombre_completo);
+    const big = document.getElementById("alumnoNombreBig");
+    if(big) big.textContent = nombre;
+
+    const chips = document.getElementById("alumnoChips");
+    if(chips){
+      const items = [
+        ["Universidad", safe_(al?.universidad)],
+        ["Salón", safe_(al?.salon)],
+        ["Modalidad", safe_(al?.modalidad)],
+        ["Estado", safe_(al?.estado)],
+      ];
+      chips.innerHTML = items.map(([k,v])=>`<div class="chip">${k}: ${escapeHtml(String(v))}</div>`).join("");
+    }
+
+    const kv = document.getElementById("alumnoKV");
+    if(kv){
+      const items = [
+        ["Nombre completo", nombre],
+        ["Correo", safe_(al?.correo)],
+        ["Usuario", safe_(al?.usuario)],
+        ["DNI", safe_(al?.dni)],
+        ["Local", safe_(al?.local)],
+        ["Código/Fila", safe_(al?.fila || al?.row)],
+      ];
+      kv.innerHTML = items.map(([k,v])=>`
+        <div class="kvItem">
+          <div class="k">${escapeHtml(String(k).toUpperCase())}</div>
+          <div class="v">${escapeHtml(String(v))}</div>
+        </div>
+      `).join("");
+    }
+
+    renderCourses_();
+  }
+
+  function renderCourses_(){
+    const box = document.getElementById("courseList");
+    if(!box) return;
+
+    box.innerHTML = COURSES_.map(c=>`
+      <div class="courseCard" data-course="${c.id}">
+        <div class="courseHead" role="button" tabindex="0">
+          <div>
+            <div class="courseName">${escapeHtml(c.name)}</div>
+            <div class="courseMeta">${escapeHtml(c.tags.join(" • "))}</div>
+          </div>
+          <div class="chev">▾</div>
+        </div>
+        <div class="topicBody">
+          <div class="topicGrid">
+            ${c.topics.map(t=>`
+              <button class="topicBtn" type="button" data-topic="${t.id}" data-course="${c.id}">
+                <span>${escapeHtml(t.label)}</span>
+                <span class="topicTag">${escapeHtml(t.meta)}</span>
+              </button>
+            `).join("")}
+          </div>
+        </div>
+      </div>
+    `).join("");
+
+    // toggle
+    box.querySelectorAll(".courseHead").forEach(h=>{
+      h.addEventListener("click", ()=>{
+        const card = h.closest(".courseCard");
+        const body = card.querySelector(".topicBody");
+        const open = body.style.display === "block";
+        body.style.display = open ? "none" : "block";
+        card.querySelector(".chev").textContent = open ? "▾" : "▴";
+      });
+    });
+
+    // topic click
+    box.querySelectorAll(".topicBtn").forEach(b=>{
+      b.addEventListener("click", ()=>{
+        const topicId = b.getAttribute("data-topic");
+        const courseId = b.getAttribute("data-course");
+        openEvalModal_(courseId, topicId);
+      });
+    });
+  }
+
+  function openEvalModal_(courseId, topicId){
+    const course = COURSES_.find(c=>c.id===courseId);
+    const topic = course?.topics?.find(t=>t.id===topicId);
+    const modal = document.getElementById("evalModal");
+    if(!modal || !course || !topic) return;
+
+    document.getElementById("evalTitle").textContent = `Evaluación — ${course.name}`;
+    document.getElementById("evalMeta").textContent = topic.label;
+
+    const link = document.getElementById("evalPdfLink");
+    link.href = topic.pdf || "#";
+    document.getElementById("evalPdfLabel").textContent = topic.pdf && topic.pdf !== "#" ? "PDF asignado" : "PDF (se vinculará en el siguiente paso)";
+
+    // build 5 questions with A-E checkboxes (multi-select allowed)
+    const qWrap = document.getElementById("qWrap");
+    qWrap.innerHTML = Array.from({length:5}, (_,i)=>{
+      const n = i+1;
+      return `
+        <div class="qCard">
+          <div class="qTitle">Pregunta ${n}</div>
+          <div class="optRow">
+            ${["A","B","C","D","E"].map(op=>`
+              <label class="opt">
+                <input type="checkbox" data-q="${n}" data-op="${op}">
+                ${op}
+              </label>
+            `).join("")}
+          </div>
+        </div>
+      `;
+    }).join("");
+
+    // reset state
+    document.getElementById("sendOk").style.display = "none";
+    const btn = document.getElementById("btnEnviarEval");
+    btn.disabled = false;
+
+    // send (demo local only)
+    btn.onclick = ()=>{
+      btn.disabled = True = true;
+    };
+    btn.onclick = ()=>{
+      const checked = Array.from(qWrap.querySelectorAll('input[type="checkbox"]:checked'));
+      const answers = {};
+      checked.forEach(x=>{
+        const q = x.getAttribute("data-q");
+        const op = x.getAttribute("data-op");
+        answers[q] = answers[q] || [];
+        answers[q].push(op);
+      });
+      // Demo: guarda en localStorage por topic
+      const key = "eval_" + courseId + "_" + topicId;
+      localStorage.setItem(key, JSON.stringify({ answers, sentAt: new Date().toISOString() }));
+      document.getElementById("sendOk").style.display = "block";
+      btn.disabled = true; // 1 solo envío (demo)
+    };
+
+    // open
+    modal.setAttribute("aria-hidden","false");
+  }
+
+  function closeEvalModal_(){
+    const modal = document.getElementById("evalModal");
+    if(!modal) return;
+    modal.setAttribute("aria-hidden","true");
+  }
+
+  // Modal close hooks
+  document.addEventListener("click", (ev)=>{
+    const id = ev.target && ev.target.id;
+    if(id==="evalModalClose" || id==="evalX") closeEvalModal_();
+  });
+
+  // Hook: cuando alumno entra, usamos su sesión
+  function alumnoOnEnter_(){
+    const sess = (typeof getStudentSession === "function") ? getStudentSession() : null;
+    const a = sess?.alumno || {};
+    a.fila = sess?.row || a.fila;
+    renderAlumnoDashboard_(a);
+  }
+
 </script>
 </body>
 </html>
