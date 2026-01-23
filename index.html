@@ -52,6 +52,35 @@
     if(saved && (saved==="admin"||saved==="tutor"||saved==="alumno")) window.__pickRole(saved);
   })();
 
+
+  // ===== FIX v28: DEBUG clicks (si no sube, no está llegando el click) =====
+  (function(){
+    let n = 0;
+    const el = ()=>document.getElementById("dbgClick");
+    const er = ()=>document.getElementById("dbgRole");
+    function upd(t){
+      const d = el();
+      if(!d) return;
+      d.textContent = "Clicks: " + n + (t ? (" | " + t) : "");
+    }
+    document.addEventListener("pointerdown", (e)=>{
+      n++;
+      const t = e && e.target ? (e.target.id || e.target.className || e.target.tagName) : "";
+      upd(String(t||""));
+    }, true);
+    upd("JS_OK");
+    // Hook de rol
+    const orig = window.__pickRole;
+    window.__pickRole = function(role){
+      try{
+        const r = String(role||"").toUpperCase();
+        const rr = er(); 
+        if(rr) rr.textContent = "Rol: " + r;
+      }catch(e){}
+      return orig ? orig(role) : undefined;
+    };
+  })();
+
 </script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js">
   // ===== FIX v27: selección de rol (estable, sin deselección) =====
@@ -97,6 +126,35 @@
     let saved=null;
     try{ saved = localStorage.getItem("lameta_role"); }catch(e){}
     if(saved && (saved==="admin"||saved==="tutor"||saved==="alumno")) window.__pickRole(saved);
+  })();
+
+
+  // ===== FIX v28: DEBUG clicks (si no sube, no está llegando el click) =====
+  (function(){
+    let n = 0;
+    const el = ()=>document.getElementById("dbgClick");
+    const er = ()=>document.getElementById("dbgRole");
+    function upd(t){
+      const d = el();
+      if(!d) return;
+      d.textContent = "Clicks: " + n + (t ? (" | " + t) : "");
+    }
+    document.addEventListener("pointerdown", (e)=>{
+      n++;
+      const t = e && e.target ? (e.target.id || e.target.className || e.target.tagName) : "";
+      upd(String(t||""));
+    }, true);
+    upd("JS_OK");
+    // Hook de rol
+    const orig = window.__pickRole;
+    window.__pickRole = function(role){
+      try{
+        const r = String(role||"").toUpperCase();
+        const rr = er(); 
+        if(rr) rr.textContent = "Rol: " + r;
+      }catch(e){}
+      return orig ? orig(role) : undefined;
+    };
   })();
 
 </script>
@@ -146,6 +204,35 @@
     let saved=null;
     try{ saved = localStorage.getItem("lameta_role"); }catch(e){}
     if(saved && (saved==="admin"||saved==="tutor"||saved==="alumno")) window.__pickRole(saved);
+  })();
+
+
+  // ===== FIX v28: DEBUG clicks (si no sube, no está llegando el click) =====
+  (function(){
+    let n = 0;
+    const el = ()=>document.getElementById("dbgClick");
+    const er = ()=>document.getElementById("dbgRole");
+    function upd(t){
+      const d = el();
+      if(!d) return;
+      d.textContent = "Clicks: " + n + (t ? (" | " + t) : "");
+    }
+    document.addEventListener("pointerdown", (e)=>{
+      n++;
+      const t = e && e.target ? (e.target.id || e.target.className || e.target.tagName) : "";
+      upd(String(t||""));
+    }, true);
+    upd("JS_OK");
+    // Hook de rol
+    const orig = window.__pickRole;
+    window.__pickRole = function(role){
+      try{
+        const r = String(role||"").toUpperCase();
+        const rr = er(); 
+        if(rr) rr.textContent = "Rol: " + r;
+      }catch(e){}
+      return orig ? orig(role) : undefined;
+    };
   })();
 
 </script>
@@ -1063,6 +1150,28 @@
     font-weight: 950;
   }
 
+
+  /* ===== FIX v28: debug + clicks garantizados ===== */
+  .dbgClick{
+    margin-top:8px;
+    font-weight:900;
+    font-size:12px;
+    color:#0f172a;
+    background: rgba(15,23,42,.06);
+    border:1px solid rgba(148,163,184,.45);
+    padding:6px 10px;
+    border-radius:999px;
+    display:inline-block;
+    margin-right:8px;
+  }
+  /* Fuerza que nada tape el login */
+  #authOverlay, .authOverlay, .authCard, .authBox, .authPanel{
+    pointer-events:auto !important;
+  }
+  #authOverlay{ position:fixed !important; inset:0 !important; z-index:999999 !important; }
+  .authCard{ position:relative !important; z-index:1000000 !important; }
+  .roleBtn{ position:relative !important; z-index:1000001 !important; pointer-events:auto !important; cursor:pointer !important; }
+
 </style>
 </head>
 
@@ -1073,7 +1182,12 @@
   <div id="authOverlay" class="authOverlay">
     <div class="authCard">
       <p class="authTitle">ACCESO AL PANEL</p>
-      <p class="authSub">Seleccione su tipo de acceso e ingrese la clave.<div class="buildTag">Build: v27</div></p>
+      <p class="authSub">Seleccione su tipo de acceso e ingrese la clave.<div class="buildTag">Build: v28</div>
+<div id="dbgClick" class="dbgClick">Clicks: 0</div>
+<div id="dbgRole" class="dbgClick">Rol: -</div>
+<div id="dbgClick" class="dbgClick">Clicks: 0</div>
+<div id="dbgRole" class="dbgClick">Rol: -</div>
+<div class="buildTag"></div></p>
 
       <div class="roleRow">
         <button id="roleAdmin" class="roleBtn" type="button" onclick="window.__pickRole && window.__pickRole('admin'); return false;" aria-pressed="false">ADMIN</button>
@@ -5003,6 +5117,35 @@ window.addEventListener("DOMContentLoaded", () => {
     let saved=null;
     try{ saved = localStorage.getItem("lameta_role"); }catch(e){}
     if(saved && (saved==="admin"||saved==="tutor"||saved==="alumno")) window.__pickRole(saved);
+  })();
+
+
+  // ===== FIX v28: DEBUG clicks (si no sube, no está llegando el click) =====
+  (function(){
+    let n = 0;
+    const el = ()=>document.getElementById("dbgClick");
+    const er = ()=>document.getElementById("dbgRole");
+    function upd(t){
+      const d = el();
+      if(!d) return;
+      d.textContent = "Clicks: " + n + (t ? (" | " + t) : "");
+    }
+    document.addEventListener("pointerdown", (e)=>{
+      n++;
+      const t = e && e.target ? (e.target.id || e.target.className || e.target.tagName) : "";
+      upd(String(t||""));
+    }, true);
+    upd("JS_OK");
+    // Hook de rol
+    const orig = window.__pickRole;
+    window.__pickRole = function(role){
+      try{
+        const r = String(role||"").toUpperCase();
+        const rr = er(); 
+        if(rr) rr.textContent = "Rol: " + r;
+      }catch(e){}
+      return orig ? orig(role) : undefined;
+    };
   })();
 
 </script>
