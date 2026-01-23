@@ -822,7 +822,7 @@
     <div class="authCard">
       <p class="authTitle">ACCESO AL PANEL</p>
       <p class="authSub">Seleccione su tipo de acceso e ingrese la clave.</p>
-      <div class="buildTag" style="font-weight:900;color:#64748b;font-size:12px;margin:6px 0 10px 0;">Build: v29</div>
+      <div class="buildTag" style="font-weight:900;color:#64748b;font-size:12px;margin:6px 0 10px 0;">Build: v31</div>
 
       <div class="roleRow">
         <button id="roleAdmin" class="roleBtn" type="button">ADMIN</button>
@@ -985,7 +985,8 @@
   // ===================== PORTAL ALUMNO (Apps Script) =====================
   // Endpoint del Apps Script publicado como Web App (exec)
   const STUDENT_API_URL = "https://script.google.com/macros/s/AKfycbzWE1G1EwtGfF4xk6ON2ArMe_Kwfwnj6M2YUXWxkFJGU4iwscmmPelMErwHMtNR4cvg/exec";
-  let CURRENT_STUDENT = null; // objeto alumno (datos principales)
+  let CURRENT_STUDENT = null;
+let CURRENT_STUDENT_PASS = null; // objeto alumno (datos principales)
 
 
   function jsonpRequest(url, params, timeoutMs){
@@ -1040,7 +1041,7 @@ function setRole(role){
 
   function loadRole(){
     const r = localStorage.getItem(ROLE_KEY);
-    return (r === "admin" || r === "tutor") ? r : null;
+    return (r === "admin" || r === "tutor" || r === "alumno") ? r : null;
   }
 
   function clearRole(){
@@ -1051,6 +1052,7 @@ function setRole(role){
   function canAccessView(v){
     // Tutor NO puede ver RESUMEN GENERAL ni CONTROL DE SEDES
     if (CURRENT_ROLE === "tutor" && (v === "overview" || v === "local")) return false;
+      if (CURRENT_ROLE === "alumno" && (v !== "mipanel" && v !== "cursos")) return false;
     return true;
   }
 
@@ -1175,26 +1177,82 @@ function setRole(role){
       selected = r;
       if (bA) bA.classList.toggle("active", r === "admin");
       if (bT) bT.classList.toggle("active", r === "tutor");
-      if (err) err.style.display = "none";
+            if (bS) bS.classList.toggle("active", r === "alumno");
+if (err) err.style.display = "none";
       if (pass) pass.focus();
     }
 
     if (bA) bA.addEventListener("click", ()=>pick("admin"));
     if (bT) bT.addEventListener("click", ()=>pick("tutor"));
-  if (bS) bS.addEventListener("click", ()=>pick("alumno"));
-
-    function doLogin(){
-      const p = String(pass?.value || "");
-      const ok = (selected === "admin" && p === AUTH_ADMIN_PASS) || (selected === "tutor" && p === AUTH_TUTOR_PASS);
-      if (!ok){
-        if (err) err.style.display = "block";
+  if (bS) bS.addEventListener("casync function doLogin(){
+      const p = String(pass?.value || "").trim();
+      if (!selected){
+        if (err){ err.textContent = "Seleccione un rol."; err.style.display="block"; }
         return;
       }
-      setRole(selected);
-      showAuth(false);
-      if (pass) pass.value = "";
-      // Al entrar, fuerza vista permitida
-      if (!canAccessView(loadSavedView() || state.view)) setView("table");
+      if (!p){
+        if (err){ err.textContent = "Ingrese su clave."; err.style.display="block"; }
+        return;
+      }
+      if (err) err.style.display = "none";
+
+      // ADMIN / TUTOR (claves internas)
+      if (selected === "admin"){
+        if (p !== AUTH_ADMIN){
+          if (err){ err.textContent = "Contraseña inválida."; err.style.display="block"; }
+          return;
+        }
+        setRole("admin");
+        showAuth(false);
+        applyRoleUI();
+        setView("overview");
+        return;
+      }
+
+      if (selected === "tutor"){
+        if (p !== AUTH_TUTOR){
+          if (err){ err.textContent = "Contraseña inválida."; err.style.display="block"; }
+          return;
+        }
+        setRole("tutor");
+        showAuth(false);
+        applyRoleUI();
+        setView("table");
+        return;
+      }
+
+      // ALUMNO (claves desde Google Sheets vía Apps Script)
+      if (selected === "alumno"){
+        const btnLogin = document.getElementById("btnLogin");
+        if (btnLogin) btnLogin.disabled = true;
+
+        try{
+          const payload = await jsonpRequest(STUDENT_API_URL, { action:"authStudent", password:p }, 20000);
+          if (!payload || payload.ok !== true){
+            if (err){ err.textContent = (payload && payload.error) ? String(payload.error) : "Contraseña inválida."; err.style.display="block"; }
+            return;
+          }
+
+          // guarda sesión alumno
+          CURRENT_STUDENT = payload.alumno || null;
+          CURRENT_STUDENT_PASS = p; // se usa para enviar respuestas
+          setRole("alumno");
+          showAuth(false);
+          applyRoleUI();
+          setView("mipanel"); // vista por defecto alumno
+          return;
+
+        }catch(ex){
+          if (err){ err.textContent = "Tiempo de espera agotado"; err.style.display="block"; }
+          return;
+        }finally{
+          if (btnLogin) btnLogin.disabled = false;
+        }
+      }
+
+      if (err){ err.textContent = "Rol no soportado."; err.style.display="block"; }
+    }
+w)) setView("table");
     }
 
     const btn = document.getElementById("btnLogin");
@@ -1716,6 +1774,8 @@ function loadSavedView(){
     document.getElementById("nav_materiales").classList.toggle("active", v==="materiales");
     document.getElementById("nav_listas").classList.toggle("active", v==="listas");
     document.getElementById("nav_reportes").classList.toggle("active", v==="reportes");
+    document.getElementById("nav_mipanel")?.classList.toggle("active", v==="mipanel");
+    document.getElementById("nav_cursos")?.classList.toggle("active", v==="cursos");
 
 
     document.getElementById("view_overview").style.display = (v==="overview") ? "" : "none";
@@ -1727,10 +1787,12 @@ function loadSavedView(){
     document.getElementById("view_materiales").style.display = (v==="materiales") ? "" : "none";
     document.getElementById("view_listas").style.display     = (v==="listas") ? "" : "none";
     document.getElementById("view_reportes").style.display   = (v==="reportes") ? "" : "none";
+    document.getElementById("view_alumno_panel").style.display = (v==="mipanel") ? "" : "none";
+    document.getElementById("view_alumno_cursos").style.display = (v==="cursos") ? "" : "none";
 
 
     document.getElementById("controlsMatricula").style.display =
-      (v==="horarios" || v==="impresiones" || v==="silabos" || v==="materiales" || v==="listas" || v==="reportes") ? "none" : "";
+      (v==="horarios" || v==="impresiones" || v==="silabos" || v==="materiales" || v==="listas" || v==="reportes" || v==="mipanel" || v==="cursos") ? "none" : "";
 
 
     // ✅ estado solo visible en ALUMNOS (tabla)
@@ -4167,6 +4229,8 @@ function ensureBoot(){
   document.getElementById("nav_materiales").addEventListener("click", ()=>setView("materiales"));
   document.getElementById("nav_listas").addEventListener("click", ()=>setView("listas"));
   document.getElementById("nav_reportes").addEventListener("click", ()=>setView("reportes"));
+  document.getElementById("nav_mipanel")?.addEventListener("click", ()=>setView("mipanel"));
+  document.getElementById("nav_cursos")?.addEventListener("click", ()=>setView("cursos"));
 
 
 
@@ -4287,6 +4351,11 @@ window.addEventListener("DOMContentLoaded", () => {
 });
 // ===================== ALUMNO: RENDER =====================
 function renderAlumnoPerfil(){
+  if (!CURRENT_STUDENT){
+    const box0 = document.getElementById("alumnoPerfilGrid");
+    if (box0) box0.innerHTML = "<div class=\"muted\">No hay datos del alumno en sesión.</div>";
+    return;
+  }
   const box = document.getElementById("alumnoPerfilGrid");
   if (!box) return;
   const s = CURRENT_STUDENT || {};
@@ -4414,8 +4483,7 @@ document.getElementById("btnEnviarEval")?.addEventListener("click", async functi
 
   try{
     // Sólo una oportunidad de enviar: (luego lo volvemos estricto cuando se guarde en hoja R)
-    const passBox = document.getElementById("authPass");
-    const password = (passBox && passBox.value) ? String(passBox.value).trim() : "";
+    const password = CURRENT_STUDENT_PASS ? String(CURRENT_STUDENT_PASS).trim() : "";
     const payload = await jsonpRequest(STUDENT_API_URL, {
       action: "submitAnswers",
       password: password,
