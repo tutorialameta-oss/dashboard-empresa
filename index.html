@@ -1,163 +1,4524 @@
 <!doctype html>
 <html lang="es">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>LA META | PANEL</title>
-<style>
-  body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial; margin:0; background:#f3f4f6;}
-  .overlay{position:fixed; inset:0; display:flex; align-items:center; justify-content:center; background:rgba(0,0,0,.35); z-index:9999;}
-  .card{width:min(760px,92vw); background:#fff; border-radius:18px; padding:28px; box-shadow:0 18px 60px rgba(0,0,0,.2);}
-  .h1{font-size:28px; font-weight:800; margin:0 0 6px;}
-  .sub{color:#64748b; font-weight:600; margin:0 0 10px;}
-  .build{color:#94a3b8; font-size:13px; margin:0 0 16px;}
-  .roles{display:grid; grid-template-columns:1fr 1fr; gap:14px; margin:14px 0 10px;}
-  .role{border:1px solid #e5e7eb; border-radius:14px; padding:14px; text-align:center; cursor:pointer; user-select:none;
-        font-weight:800; color:#b91c1c; background:#fff;}
-  .role.big{grid-column:1 / -1;}
-  .role.active{border:2px solid #dc2626; background:#fff1f2; color:#991b1b;}
-  .row{display:flex; gap:12px; align-items:center; margin-top:10px;}
-  input{flex:1; height:52px; border-radius:14px; border:2px solid #f2c9cf; padding:0 14px; font-size:18px; outline:none;}
-  .btn{height:52px; padding:0 18px; border:0; border-radius:14px; background:#b91c1c; color:#fff; font-weight:900; cursor:pointer;}
-  .btn:disabled{opacity:.55; cursor:not-allowed;}
-  .msg{margin-top:10px; font-weight:800; color:#b91c1c; min-height:22px;}
-  .ok{color:#166534;}
-</style>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>LA META | PANEL DE CONTROL</title>
+
+  <!-- Charts -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+
+  <!-- PNG export (captura COMPLETA del elemento, no solo lo visible) -->
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+
+  <style>
+    /* ======================================================================
+      ✅ EDITA COLORES AQUÍ (HORARIOS)
+      - AGRARIA: NO TOCAR
+      - PUCP: azul
+      - U.LIMA: naranja
+    ====================================================================== */
+    :root{
+      --bg:#ffffff;
+      --card:#ffffff;
+      --text:#0f172a;
+      --muted:#64748b;
+      --border:rgba(15,23,42,0.10);
+      --accent:#d10b0b;
+      --accent2:#a40000;
+      --soft:#fff5f5;
+      --shadow: 0 14px 34px rgba(15,23,42,0.10);
+      --radius:18px;
+
+      /* Universidades (marcadores) */
+      --pucp:#6ea8da;     /* Azul */
+      --ulima:#ff9900;    /* Naranja */
+      --agraria:#4caf50;  /* Verde */
+
+      /* Modalidad */
+      --pres:#2bb673;
+      --virt:#f2c94c;
+
+      /* Estados */
+      --ok:#16a34a;
+      --bad:#dc2626;
+      --warn:#f59e0b;
+
+      /* ===== AGRARIA (NO TOCAR) ===== */
+      --schHead_AGR:#1f5a1a;
+      --schCell_AGR:#cfe8c8;
+
+      /* ===== PUCP (AZUL) ===== */
+      --schHead_PUCP:#1f4e79;
+      --schCell_PUCP:#d6e9f7;
+
+      /* ===== U.LIMA (NARANJA) ===== */
+      --schHead_UL:#b85f00;
+      --schCell_UL:#ffe6c7;
+
+      /* Líneas de tabla / col horas */
+      --schGrid:rgba(15,23,42,0.28);
+      --schTimeBg:#ffffff;
+    }
+
+    *{ box-sizing:border-box; }
+    body{
+      margin:0;
+      font-family: system-ui,-apple-system,Segoe UI,Roboto,Arial;
+      background: var(--bg);
+      color: var(--text);
+      font-size: 14px;
+    }
+    .topbar{ height:10px; background:linear-gradient(90deg,var(--accent2),var(--accent)); }
+
+    .app{
+      display:grid;
+      grid-template-columns: 320px 1fr;
+      min-height: calc(100vh - 10px);
+    }
+
+    .sidebar{
+      border-right:1px solid var(--border);
+      padding:18px 14px;
+      position: sticky;
+      top: 0;
+      align-self: start;
+      height: calc(100vh - 10px);
+      overflow:auto;
+      background:#fff;
+    }
+
+    .brand{
+      display:flex; gap:12px; align-items:center;
+      padding:12px;
+      border:1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      background: #fff;
+    }
+    .brand img{
+      width:64px; height:64px; object-fit:contain;
+      border-radius:14px; border:1px solid var(--border);
+      padding:8px; background:#fff;
+    }
+    .brand h1{
+      margin:0;
+      font-size:15px;
+      font-weight:950;
+      letter-spacing:.2px;
+      line-height:1.15;
+      text-transform: uppercase;
+    }
+    .brand .sub{
+      margin-top:6px;
+      color:var(--muted);
+      font-size:12px;
+      font-weight:800;
+    }
+
+    .nav{ margin-top:16px; display:flex; flex-direction:column; gap:10px; }
+    .nav button{
+      width:100%;
+      text-align:left;
+      padding:12px 12px;
+      border-radius: 14px;
+      border:1px solid var(--border);
+      background:#fff;
+      cursor:pointer;
+      font-weight:950;
+      color: var(--text);
+    }
+    .nav button.active{
+      border-color: rgba(209,11,11,0.40);
+      box-shadow: 0 0 0 3px rgba(209,11,11,0.10);
+      background: var(--soft);
+      color: var(--accent2);
+    }
+
+    .main{ padding:22px 22px 32px; }
+
+    .headerline{
+      display:flex; gap:12px; align-items:flex-start; justify-content:space-between;
+      flex-wrap:wrap;
+    }
+
+    .title{ display:flex; flex-direction:column; gap:8px; }
+    .title h2{
+      margin:0;
+      font-size:20px;
+      font-weight:950;
+      letter-spacing:.2px;
+      text-transform: uppercase;
+    }
+    .title p{
+      margin:0;
+      color: var(--muted);
+      font-size:13px;
+      font-weight:750;
+      line-height:1.4;
+      max-width: 980px;
+    }
+
+    .controls{
+      display:flex; gap:10px; align-items:center; flex-wrap:wrap;
+      justify-content:flex-end;
+    }
+
+    select, input, button{
+      background:#fff;
+      border:1px solid var(--border);
+      border-radius: 14px;
+      padding:11px 12px;
+      font-size:12px;
+      outline:none;
+      color: var(--text);
+    }
+    input{ min-width:320px; }
+    input::placeholder{ color:#94a3b8; }
+    select:focus, input:focus{
+      border-color: rgba(209,11,11,0.40);
+      box-shadow: 0 0 0 3px rgba(209,11,11,0.10);
+    }
+    button{
+      cursor:pointer;
+      font-weight:950;
+      border-color: rgba(209,11,11,0.25);
+      background: var(--soft);
+      color: var(--accent2);
+    }
+    button:hover{
+      border-color: rgba(209,11,11,0.45);
+      background: rgba(209,11,11,0.10);
+    }
+
+    .grid{
+      display:grid;
+      grid-template-columns: repeat(12, 1fr);
+      gap: 16px;
+      margin-top: 16px;
+    }
+
+    .card{
+      background: var(--card);
+      border:1px solid var(--border);
+      border-radius: var(--radius);
+      padding:18px;
+      box-shadow: var(--shadow);
+      min-width: 0;
+    }
+
+    .kpi{ grid-column: span 3; min-height: 118px; }
+    .kpi .label{ color: var(--muted); font-size:12px; font-weight:950; text-transform: uppercase; }
+    .kpi .value{ margin-top:8px; font-size:36px; font-weight:950; color: var(--accent2); }
+    .kpi .hint{ margin-top:8px; color: var(--muted); font-size:12px; font-weight:900; text-transform: uppercase; }
+
+    .panel12{ grid-column: span 12; }
+    .panel8{ grid-column: span 8; }
+    .panel4{ grid-column: span 4; }
+    .panel6{ grid-column: span 6; }
+
+    .cardtitle{
+      color: var(--muted);
+      font-size:12px;
+      font-weight:950;
+      letter-spacing:.2px;
+      text-transform: uppercase;
+      margin-bottom:10px;
+      display:flex; align-items:center; justify-content:space-between; gap:10px;
+      flex-wrap:wrap;
+    }
+
+    .panelHint{
+      display:flex; gap:10px; align-items:center; flex-wrap:wrap;
+      color: var(--muted); font-weight:900; font-size:12px; text-transform: uppercase;
+    }
+    .dot{ width:10px; height:10px; border-radius:999px; display:inline-block; }
+    .dot.pucp{ background: var(--pucp); }
+    .dot.ulima{ background: var(--ulima); }
+    .dot.agraria{ background: var(--agraria); }
+    .dot.pres{ background: var(--pres); }
+    .dot.virt{ background: var(--virt); }
+
+    .chartBox{ height: 420px; }
+    .chartBoxTall{ height: 520px; }
+    canvas{ width:100% !important; height:100% !important; }
+
+    .uniCards{
+      display:grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-top: 10px;
+    }
+    .uniCard{
+      border:1px solid var(--border);
+      border-radius: 16px;
+      padding: 12px;
+      display:flex; gap:10px; align-items:center;
+      background:#fff;
+    }
+    .uniCard img{
+      width:44px; height:44px; object-fit:contain;
+      border-radius:12px; border:1px solid var(--border);
+      padding:6px; background:#fff;
+    }
+    .uniCard .t{ display:flex; flex-direction:column; gap:2px; min-width:0; }
+    .uniCard .name{
+      font-weight:950; font-size:12px; text-transform:uppercase;
+      color: var(--text);
+    }
+    .uniCard .nums{
+      color: var(--muted);
+      font-size:12px;
+      font-weight:900;
+      display:flex; gap:10px; flex-wrap:wrap;
+    }
+    .pill{
+      display:inline-flex; align-items:center; gap:6px;
+      padding:6px 10px;
+      border-radius:999px;
+      border:1px solid var(--border);
+      background:#fafafa;
+      font-weight:950;
+      font-size:12px;
+    }
+
+    table{ width:100%; border-collapse: collapse; font-size:12px; }
+    th, td{
+      padding:10px;
+      border-bottom:1px solid var(--border);
+      text-align:left;
+      white-space:nowrap;
+    }
+    th{
+      position:sticky;
+      top:0;
+      background:#fff;
+      z-index:1;
+      color: var(--muted);
+      font-weight:950;
+      text-transform: uppercase;
+    }
+
+    /* ===================== HORARIOS ===================== */
+    .schGridWrap{
+      display:grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+    }
+    .schCard{
+      border:1px solid var(--border);
+      border-radius: 18px;
+      overflow:hidden;
+      background:#fff;
+      box-shadow: var(--shadow);
+    }
+    .schHead{
+      padding:14px 14px 10px;
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:12px;
+    }
+    .schHead .hLeft{
+      display:flex;
+      flex-direction:column;
+      gap:4px;
+      min-width:0;
+    }
+    .schHead .loc{
+      font-size:18px;
+      font-weight:950;
+      letter-spacing:.2px;
+      text-transform:uppercase;
+      margin:0;
+      line-height:1.1;
+    }
+    .schHead .sal{
+      font-size:13px;
+      font-weight:900;
+      color: var(--muted);
+      text-transform:uppercase;
+      margin:0;
+      line-height:1.1;
+    }
+    .schUniPill{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      border-radius:999px;
+      padding:10px 14px;
+      font-weight:950;
+      text-transform:uppercase;
+      border:1px solid rgba(15,23,42,0.12);
+      background:#f8fafc;
+      white-space:nowrap;
+      flex:0 0 auto;
+    }
+    .schUniPill .b{
+      width:10px;height:10px;border-radius:999px;display:inline-block;
+    }
+
+    /* Botón descargar PNG */
+    .schDl{
+      border: 1px solid rgba(15,23,42,0.12);
+      background: #fff;
+      padding: 8px 10px;
+      border-radius: 12px;
+      font-weight: 950;
+      font-size: 12px;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .schDl:hover{
+      border-color: rgba(15,23,42,0.28);
+      background:#fafafa;
+    }
+
+    /* Contenedor tabla */
+    .schTableWrap{
+      padding:0 10px 12px;
+      overflow-x: hidden; /* desktop */
+    }
+
+    /* Tabla */
+    .schTable{
+      width:100%;
+      border-collapse:collapse;
+      table-layout:fixed;
+      border:2px solid rgba(15,23,42,0.18);
+      border-radius: 14px;
+      overflow:hidden;
+      min-width: 0;
+    }
+
+    .schTable th, .schTable td{
+      border:1px solid var(--schGrid);
+      padding: 2px 6px;
+      text-align:center;
+      vertical-align:middle;
+      white-space:normal;
+      word-break: normal;
+      overflow-wrap: normal;
+    }
+
+    /* Encabezado días (usa variables por UNI) */
+    .schTable thead th{
+      background: var(--schHead);
+      color:#fff;
+      font-weight:950;
+      text-transform:uppercase;
+      font-size:11px;
+      position:static;
+    }
+    .schTable .timeHead{
+      background: var(--schHead);
+      color:#fff;
+      font-weight:950;
+      font-size:12px;
+    }
+
+    .schTable .timeCell{
+      background: var(--schTimeBg);
+      font-weight:950;
+      font-size:12px;
+      text-align:left;
+      padding-left:10px;
+      white-space:nowrap;
+    }
+
+    .schCell{
+      background: var(--schCell);
+      font-weight:950;
+      padding: 6px 6px;
+    }
+    .schEmpty{ background:#fff; }
+
+    .schTable col.timeCol{ width: 92px; }
+
+    /* ===================== CELDA 4 LÍNEAS: ORDENADA + PROFESOR SIN NEGRITA ===================== */
+    .cell4{
+      width:100%;
+      height:100%;
+      display:grid;
+      grid-template-rows: repeat(4, auto);
+      place-content:center;
+      row-gap: 2px;
+      align-items:center;
+      justify-items:center;
+    }
+    .cell4 .slot{
+      width:100%;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      text-align:center;
+      padding:0 2px;
+      line-height:1.05;
+    }
+    /* Cursos (arriba) */
+    .cell4 .cLine{
+      font-size:18px;
+      font-weight:950;
+      letter-spacing:.2px;
+      text-transform:uppercase;
+      white-space:nowrap; /* evita “ÁLG 1” partido */
+      line-height:1.05;
+    }
+    /* Profesor (abajo): SIN negrita y ligeramente menor */
+    .cell4 .tLine{
+      font-size:11px;
+      font-weight:500;
+      text-transform:uppercase;
+      color:#111827;
+      white-space:nowrap;
+      line-height:1.05;
+    }
+
+    /* ===================== COLORES POR UNIVERSIDAD (HORARIOS) ===================== */
+    .schCard[data-uni="AGRARIA"]{
+      --schHead: var(--schHead_AGR);
+      --schCell: var(--schCell_AGR);
+    }
+    .schCard[data-uni="PUCP"]{
+      --schHead: var(--schHead_PUCP);
+      --schCell: var(--schCell_PUCP);
+    }
+    .schCard[data-uni="U.LIMA"]{
+      --schHead: var(--schHead_UL);
+      --schCell: var(--schCell_UL);
+    }
+
+    /* ===================== MODO EXPORT PNG (FORMATO HORIZONTAL) ===================== */
+    body.exportMode .schCard{
+      width: 700px !important;
+      max-width: none !important;
+    }
+    body.exportMode .schTableWrap{
+      overflow: visible !important;
+      padding: 0 12px 12px !important;
+    }
+    body.exportMode .schTable{
+      width: 100% !important;
+      min-width: 0 !important;
+    }
+    body.exportMode .cell4 .cLine{ font-size:18px !important; }
+    body.exportMode .cell4 .tLine{ font-size:11px !important; font-weight:500 !important; }
+    body.exportMode .schTable thead th{ font-size:11px !important; }
+    body.exportMode .schTable .timeCell{ font-size:12px !important; }
+
+    /* ===================== IMPRESIONES ===================== */
+    .iGrid{
+      display:grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-top: 12px;
+    }
+    .iItem{
+      border:1px solid var(--border);
+      border-radius: 16px;
+      padding: 12px;
+      background:#fff;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+    }
+    .iLeft{ min-width:0; }
+    .iSalon{
+      font-weight:950;
+      text-transform:uppercase;
+      font-size:12px;
+      line-height:1.1;
+    }
+    .iMeta{
+      margin-top:6px;
+      display:flex;
+      align-items:center;
+      gap:8px;
+      color: var(--muted);
+      font-weight:900;
+      font-size:12px;
+      text-transform:uppercase;
+    }
+    .iNum{
+      font-weight:950;
+      font-size:28px;
+      line-height:1;
+      flex:0 0 auto;
+    }
+    .iLocalHead{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      flex-wrap:wrap;
+    }
+    .iKpis{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+    }
+    .iKpiPill{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding:8px 12px;
+      border-radius:999px;
+      border:1px solid var(--border);
+      background:#fafafa;
+      font-weight:950;
+      font-size:12px;
+      text-transform:uppercase;
+    }
+
+    /* ===================== SÍLABOS (NUEVO) ===================== */
+    .syWrap{
+      display:grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-top: 12px;
+    }
+    .syItem{
+      border:1px solid var(--border);
+      border-radius: 16px;
+      padding: 12px;
+      background:#fff;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      text-decoration:none;
+      color: var(--text);
+      transition: transform .06s ease, box-shadow .06s ease, border-color .06s ease;
+    }
+    .syItem:hover{
+      transform: translateY(-1px);
+      border-color: rgba(15,23,42,0.18);
+      box-shadow: 0 16px 40px rgba(15,23,42,0.12);
+    }
+    .syLeft{ min-width:0; display:flex; flex-direction:column; gap:6px; }
+    .syCourse{
+      font-weight:950;
+      text-transform:uppercase;
+      font-size:12px;
+      line-height:1.15;
+      letter-spacing:.2px;
+    }
+    .syMeta{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      color: var(--muted);
+      font-weight:900;
+      font-size:12px;
+      text-transform:uppercase;
+      flex-wrap:wrap;
+    }
+    .syOpen{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding:8px 12px;
+      border-radius: 999px;
+      border:1px solid rgba(15,23,42,0.12);
+      background:#f8fafc;
+      font-weight:950;
+      font-size:12px;
+      white-space:nowrap;
+      color: var(--accent2);
+    }
+    .syOpen:hover{
+      border-color: rgba(209,11,11,0.35);
+      background: rgba(209,11,11,0.08);
+    }
+    .syLocalHead{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      flex-wrap:wrap;
+    }
+    .syKpis{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+    }
+    .syKpiPill{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding:8px 12px;
+      border-radius:999px;
+      border:1px solid var(--border);
+      background:#fafafa;
+      font-weight:950;
+      font-size:12px;
+      text-transform:uppercase;
+    }
+
+    /* ===================== RESPONSIVE ===================== */
+    @media (max-width: 1100px){
+      .app{ grid-template-columns: 1fr; }
+      .sidebar{ position:relative; height:auto; }
+      .kpi{ grid-column: span 6; }
+      .panel8, .panel6, .panel4{ grid-column: span 12; }
+      .chartBox{ height: 360px; }
+      .chartBoxTall{ height: 440px; }
+      input{ min-width: 220px; }
+      .controls{ justify-content:flex-start; }
+      .uniCards{ grid-template-columns: 1fr; }
+      .schGridWrap{ grid-template-columns: 1fr; }
+
+      /* MÓVIL: más compacto + scroll horizontal */
+      .schTableWrap{
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        padding: 0 8px 10px;
+      }
+      .schHead{ padding: 10px 10px 8px; }
+      .schHead .loc{ font-size:16px; }
+      .schHead .sal{ font-size:12px; }
+      .schUniPill{ padding:8px 10px; font-size:12px; }
+      .schDl{ padding:7px 9px; font-size:11px; }
+
+      .schTable{ min-width: 820px; }
+      .schTable th, .schTable td{ padding: 4px 4px; }
+      .schTable thead th{ font-size:10px; }
+      .schTable .timeCell{ font-size:11px; padding-left:8px; }
+      .schTable col.timeCol{ width: 84px; }
+
+      .cell4{ row-gap: 2px; }
+      .cell4 .cLine{ font-size:16px; }
+      .cell4 .tLine{ font-size:10px; font-weight:500; }
+
+      /* IMPRESIONES */
+      .iGrid{ grid-template-columns: 1fr; }
+      .iNum{ font-size:26px; }
+
+      /* SÍLABOS */
+      .syWrap{ grid-template-columns: 1fr; }
+    }
+  
+
+    /* ===================== AUTH (ADMIN / TUTOR) ===================== */
+    .authOverlay{
+      position:fixed;
+      inset:0;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:22px;
+      background: rgba(15,23,42,0.55);
+      backdrop-filter: blur(6px);
+      z-index: 9999;
+    }
+    .authCard{
+      width:min(520px, 96vw);
+      background:#fff;
+      border:1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding:18px;
+    }
+    .authTitle{ font-weight:950; font-size:16px; margin:0 0 8px 0; text-transform:uppercase; }
+    .authSub{ color:var(--muted); font-weight:800; margin:0 0 14px 0; font-size:12px; }
+    .roleRow{ display:flex; gap:10px; flex-wrap:wrap; margin-bottom:12px; }
+    .roleBtn{
+      flex:1;
+      min-width: 160px;
+      padding:10px 12px;
+      border-radius: 14px;
+      border:1px solid var(--border);
+      background:#fff;
+      font-weight:950;
+      cursor:pointer;
+    }
+    .roleBtn.active{ border-color: var(--accent); box-shadow: 0 0 0 3px rgba(209,11,11,0.15); }
+    .authRow{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+    .authRow input{
+      flex:1;
+      padding:10px 12px;
+      border-radius: 14px;
+      border:1px solid var(--border);
+      font-weight:850;
+      outline:none;
+    }
+    .authRow button{
+      padding:10px 12px;
+      border-radius: 14px;
+      border:1px solid var(--border);
+      background: linear-gradient(90deg,var(--accent2),var(--accent));
+      color:#fff;
+      font-weight:950;
+      cursor:pointer;
+    }
+    .authErr{ margin-top:10px; color: var(--bad); font-weight:900; font-size:12px; display:none; }
+
+    .userBox{
+      margin-top:14px;
+      padding:12px;
+      border:1px dashed var(--border);
+      border-radius: var(--radius);
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+    }
+    .userRole{ font-weight:950; font-size:12px; color: var(--muted); text-transform:uppercase; }
+    .logoutBtn{
+      width:100%;
+      padding:10px 12px;
+      border-radius: 14px;
+      border:1px solid var(--border);
+      background:#fff;
+      font-weight:950;
+      cursor:pointer;
+    }
+
+  </style>
 </head>
+
 <body>
+  <div class="topbar"></div>
 
-<div class="overlay" id="loginOverlay">
-  <div class="card">
-    <div class="h1">ACCESO AL PANEL</div>
-    <div class="sub">Seleccione su tipo de acceso e ingrese la clave.</div>
-    <div class="build">Build: <b>v9</b></div>
+  <!-- ===================== ACCESO (ADMIN / TUTOR) ===================== -->
+  <div id="authOverlay" class="authOverlay">
+    <div class="authCard">
+      <p class="authTitle">ACCESO AL PANEL</p>
+      <p class="authSub">Seleccione su tipo de acceso e ingrese la clave.</p>
 
-    <div class="roles">
-      <div class="role" id="roleAdmin">ADMIN</div>
-      <div class="role" id="roleTutor">TUTOR</div>
-      <div class="role big" id="roleAlumno">ALUMNO</div>
+      <div class="roleRow">
+        <button id="roleAdmin" class="roleBtn" type="button">ADMIN</button>
+        <button id="roleTutor" class="roleBtn" type="button">TUTOR</button>
+      </div>
+      <div class="roleRow" style="margin-top:10px;">
+        <button id="roleAlumno" class="roleBtn wide" type="button">ALUMNO</button>
+      </div>
+      <div class="authHint" id="authHint" style="margin-top:10px;color:#64748b;font-weight:800;font-size:13px;">Build: <b>v10</b></div>
+
+      <div class="authRow">
+        <input id="authPass" type="password" placeholder="Clave" autocomplete="current-password" />
+        <button id="btnLogin" type="button">ENTRAR</button>
+      </div>
+
+      <div id="authErr" class="authErr">Clave incorrecta o rol no seleccionado.</div>
     </div>
-
-    <div style="color:#64748b; font-weight:700; margin-top:6px;">Rol seleccionado: <b id="roleLabel">-</b></div>
-
-    <div class="row">
-      <input id="pass" type="password" placeholder="Clave" autocomplete="current-password"/>
-      <button class="btn" id="btnEnter">ENTRAR</button>
-    </div>
-
-    <div class="msg" id="msg"></div>
   </div>
-</div>
+
+  <div id="appShell" class="app" style="display:none;">
+    <aside class="sidebar">
+      <div class="brand">
+        <img src="logo.png" alt="LA META" onerror="this.style.display='none'"/>
+        <div>
+          <h1>LA META<br/>PANEL DE CONTROL</h1>
+          <div class="sub">Monitoreo de alumnos por local y salón</div>
+        </div>
+      </div>
+
+      <div class="nav">
+        <button id="nav_overview" class="active">RESUMEN GENERAL</button>
+        <button id="nav_local">CONTROL DE SEDES</button>
+        <button id="nav_table">ALUMNOS</button>
+        <button id="nav_alumno">MI ESPACIO</button>
+        <button id="nav_horarios">HORARIOS</button>
+        <button id="nav_impresiones">IMPRESIONES</button>
+        <!-- ✅ NUEVO -->
+        <button id="nav_silabos">SÍLABOS</button>
+        <button id="nav_materiales">MATERIALES</button>
+        <button id="nav_listas">LISTAS</button>
+        <button id="nav_reportes">ENVÍO DE REPORTES</button>
+
+      </div>
+
+      <div class="userBox">
+        <div class="userRole" id="userRole">ROL: -</div>
+        <button id="btnLogout" class="logoutBtn" type="button">SALIR</button>
+      </div>
+    </aside>
+
+    <main class="main">
+      <div class="headerline">
+        <div class="title">
+          <h2 id="viewTitle">RESUMEN GENERAL</h2>
+          <p id="viewDesc">Panel estructurado para control de matrícula, modalidad y distribución por universidad.</p>
+        </div>
+
+        <div class="controls" id="controlsMatricula">
+          <select id="fLocal"></select>
+          <select id="fUni"></select>
+          <select id="fSalon"></select>
+
+          <!-- ✅ NUEVO: filtro de estado SOLO para ALUMNOS (incluye CAMBIO) -->
+          <select id="fEstado" style="display:none;"></select>
+
+          <select id="fModalidad"></select>
+          <input id="q" type="text" placeholder="Buscar por nombre"/>
+          <button id="btnNowTop">ACTUALIZAR</button>
+        </div>
+      </div>
+
+      <div id="view_overview" class="grid"></div>
+      <div id="view_local" class="grid" style="display:none;"></div>
+      <div id="view_table" class="grid" style="display:none;"></div>
+      <div id="view_alumno" class="grid" style="display:none;"></div>
+      <div id="view_horarios" class="grid" style="display:none;"></div>
+      <div id="view_impresiones" class="grid" style="display:none;"></div>
+      <!-- ✅ NUEVO -->
+      <div id="view_silabos" class="grid" style="display:none;"></div>
+      <div id="view_materiales" class="grid" style="display:none;"></div>
+      <div id="view_listas" class="grid" style="display:none;"></div>
+      <div id="view_reportes" class="grid" style="display:none;"></div>
+
+    </main>
+  </div>
 
 <script>
-/** ========= CONFIG ========= **/
-const STUDENT_API_URL = "https://script.google.com/macros/s/AKfycbzWE1G1EwtGfF4xk6ON2ArMe_Kwfwnj6M2YUXWxkFJGU4iwscmmPelMErwHMtNR4cvg/exec";
-const BUILD = "v9";
+  // ===================== MATRÍCULA (TU CÓDIGO) =====================
+  const SPREADSHEET_ID = "1nHCBQLuJ8RZNtLisvAqD916pcxbUmtqPrMnO4V0ewvs";
 
-/** ========= UI ========= **/
-const elAdmin = document.getElementById('roleAdmin');
-const elTutor = document.getElementById('roleTutor');
-const elAlumno = document.getElementById('roleAlumno');
-const roleLabel = document.getElementById('roleLabel');
-const passEl = document.getElementById('pass');
-const msgEl = document.getElementById('msg');
-const btn = document.getElementById('btnEnter');
+  // ===================== ACCESO (ADMIN / TUTOR) =====================
+  // ⚠️ CAMBIA ESTAS CLAVES AQUÍ
+  const AUTH_ADMIN_PASS = "202619";
+  const AUTH_TUTOR_PASS = "MBMLaMeta";
 
-let selectedRole = null;
+  // ====== ALUMNO (JSONP hacia Apps Script) ======
+  const STUDENT_API_URL = "https://script.google.com/macros/s/AKfycbzWE1G1EwtGfF4xk6ON2ArMe_Kwfwnj6M2YUXWxkFJGU4iwscmmPelMErwHMtNR4cvg/exec";
+  const BUILD = "v10";
+  let STUDENT_SESSION = null; // {row, alumno, password}
 
-function setMsg(text, ok=false){
-  msgEl.textContent = text || '';
-  msgEl.className = 'msg' + (ok ? ' ok' : '');
-}
 
-function setRole(role){
-  selectedRole = role;
-  [elAdmin, elTutor, elAlumno].forEach(x=>x.classList.remove('active'));
-  if(role==='ADMIN') elAdmin.classList.add('active');
-  if(role==='TUTOR') elTutor.classList.add('active');
-  if(role==='ALUMNO') elAlumno.classList.add('active');
-  roleLabel.textContent = role || '-';
-  setMsg('');
-}
+  const ROLE_KEY = "lameta_role";
+  let CURRENT_ROLE = null; // "admin" | "tutor"
 
-elAdmin.addEventListener('click', ()=>setRole('ADMIN'));
-elTutor.addEventListener('click', ()=>setRole('TUTOR'));
-elAlumno.addEventListener('click', ()=>setRole('ALUMNO'));
+  function setRole(role){
+    CURRENT_ROLE = role;
+    localStorage.setItem(ROLE_KEY, role);
+    applyRoleUI();
+  }
 
-/** ========= JSONP ========= **/
-function jsonp(url, timeoutMs=12000){
-  return new Promise((resolve, reject)=>{
-    const cbName = 'cb_' + Date.now() + '_' + Math.floor(Math.random()*1e6);
-    const script = document.createElement('script');
-    let done = false;
+  function loadRole(){
+    const r = localStorage.getItem(ROLE_KEY);
+    return (r === "admin" || r === "tutor") ? r : null;
+  }
 
-    const cleanup = ()=>{
-      if(script.parentNode) script.parentNode.removeChild(script);
-      try{ delete window[cbName]; }catch(e){ window[cbName]=undefined; }
-    };
+  function clearRole(){
+    localStorage.removeItem(ROLE_KEY);
+    CURRENT_ROLE = null;
+  }
 
-    const timer = setTimeout(()=>{
-      if(done) return;
-      done = true;
-      cleanup();
-      reject(new Error('Tiempo de espera agotado'));
-    }, timeoutMs);
+  function canAccessView(v){
+    // Alumno solo puede ver su portal
+    if (CURRENT_ROLE === "alumno") return (v === "alumno");
+    // Tutor NO puede ver RESUMEN GENERAL ni CONTROL DE SEDES
+    if (CURRENT_ROLE === "tutor" && (v === "overview" || v === "local")) return false;
+    return true;
+  }
 
-    window[cbName] = (data)=>{
-      if(done) return;
-      done = true;
-      clearTimeout(timer);
-      cleanup();
-      resolve(data);
-    };
+  function applyRoleUI(){
+    const roleLabel = document.getElementById("userRole");
+    if (roleLabel) roleLabel.textContent = CURRENT_ROLE ? ("ROL: " + CURRENT_ROLE.toUpperCase()) : "ROL: -";
 
-    script.onerror = ()=>{
-      if(done) return;
-      done = true;
-      clearTimeout(timer);
-      cleanup();
-      reject(new Error('No se pudo conectar con el servidor'));
-    };
+    const btnOverview = document.getElementById("nav_overview");
+    const btnLocal = document.getElementById("nav_local");
+    const btnAlumno = document.getElementById("nav_alumno");
+    const allNav = document.querySelectorAll(".nav button");
 
-    const joiner = url.includes('?') ? '&' : '?';
-    script.src = url + joiner + 'callback=' + encodeURIComponent(cbName);
-    document.body.appendChild(script);
-  });
-}
+    const isTutor = (CURRENT_ROLE === "tutor");
+    const isAlumno = (CURRENT_ROLE === "alumno");
 
-/** ========= LOGIN ========= **/
-async function enter(){
-  const pw = passEl.value || '';
-  if(!selectedRole) return setMsg('Seleccione un rol.');
-  if(!pw.trim()) return setMsg('Ingrese la clave.');
-
-  btn.disabled = true;
-  setMsg('Validando...');
-
-  try{
-    if(selectedRole === 'ALUMNO'){
-      const url = STUDENT_API_URL + '?action=authStudent&password=' + encodeURIComponent(pw);
-      const res = await jsonp(url, 15000);
-      if(!res || !res.ok){
-        return setMsg((res && res.error) ? res.error : 'Contraseña inválida.');
-      }
-      // Éxito: aquí luego conectamos con tu vista de Alumno completa.
-      setMsg('Acceso ALUMNO OK: ' + (res.alumno?.nombre || ''), true);
-      // TODO: ocultar overlay y mostrar portal alumno (lo conectamos en el siguiente paso).
+    if (isAlumno){
+      // Mostrar solo MI ESPACIO
+      if (allNav) allNav.forEach(b=>b.style.display="none");
+      if (btnAlumno) btnAlumno.style.display = "";
+      // Forzar vista alumno
+      if (!state || state.view !== "alumno") setView("alumno");
       return;
     }
 
-    // ADMIN/TUTOR: aquí se conecta a tu lógica existente (no tocamos nada todavía).
-    setMsg('Rol ' + selectedRole + ' OK (conecta tu lógica actual).', true);
-  }catch(err){
-    setMsg(String(err && err.message ? err.message : err));
-  }finally{
-    btn.disabled = false;
+    // Admin / Tutor: mostrar todo por defecto
+    if (allNav) allNav.forEach(b=>b.style.display="");
+    // Pero MI ESPACIO solo para alumno
+    if (btnAlumno) btnAlumno.style.display = "none";
+
+    // Tutor NO puede ver RESUMEN GENERAL ni CONTROL DE SEDES
+    if (btnOverview) btnOverview.style.display = isTutor ? "none" : "";
+    if (btnLocal) btnLocal.style.display = isTutor ? "none" : "";
+
+    // Si la vista actual no está permitida, enviar a ALUMNOS
+    if (state && state.view && !canAccessView(state.view)){
+      setView("table");
+    }
+  }
+  }
+
+  function showAuth(show){
+    const o = document.getElementById("authOverlay");
+    const app = document.getElementById("appShell");
+    if (o) o.style.display = show ? "flex" : "none";
+    if (app) app.style.display = show ? "none" : "grid";
+  }
+
+  function initAuth(){
+    const saved = loadRole();
+    if (saved){
+      CURRENT_ROLE = saved;
+      showAuth(false);
+      applyRoleUI();
+      return true;
+    }
+
+    showAuth(true);
+
+    let selected = null;
+    const bA = document.getElementById("roleAdmin");
+    const bT = document.getElementById("roleTutor");
+    const bS = document.getElementById("roleAlumno");
+    const pass = document.getElementById("authPass");
+    const err = document.getElementById("authErr");
+
+    function pick(r){
+      selected = r;
+      if (bA) bA.classList.toggle("active", r === "admin");
+      if (bT) bT.classList.toggle("active", r === "tutor");
+      if (bS) bS.classList.toggle("active", r === "alumno");
+      if (err) err.style.display = "none";
+      if (pass) pass.focus();
+    }
+
+    if (bA) bA.addEventListener("click", ()=>pick("admin"));
+    if (bT) bT.addEventListener("click", ()=>pick("tutor"));
+
+    
+    // ===== JSONP helper (GitHub Pages friendly) =====
+    function jsonp(url, timeoutMs=15000){
+      return new Promise((resolve,reject)=>{
+        const cbName = "cb_" + Date.now() + "_" + Math.floor(Math.random()*1e6);
+        const s = document.createElement("script");
+        let done = false;
+
+        const cleanup = ()=>{
+          if (s.parentNode) s.parentNode.removeChild(s);
+          try{ delete window[cbName]; }catch(e){ window[cbName]=undefined; }
+        };
+
+        const timer = setTimeout(()=>{
+          if(done) return;
+          done = true;
+          cleanup();
+          reject(new Error("Tiempo de espera agotado"));
+        }, timeoutMs);
+
+        window[cbName] = (data)=>{
+          if(done) return;
+          done = true;
+          clearTimeout(timer);
+          cleanup();
+          resolve(data);
+        };
+
+        s.onerror = ()=>{
+          if(done) return;
+          done = true;
+          clearTimeout(timer);
+          cleanup();
+          reject(new Error("No se pudo conectar con el servidor"));
+        };
+
+        const joiner = url.includes("?") ? "&" : "?";
+        s.src = url + joiner + "callback=" + encodeURIComponent(cbName);
+        document.body.appendChild(s);
+      });
+    }
+
+    async function doLogin(){
+      const p = String(pass?.value || "");
+      if (!selected) {
+        if (err) { err.textContent = "Seleccione un rol."; err.style.display = "block"; }
+        return;
+      }
+
+      // ADMIN / TUTOR (como siempre)
+      if (selected === "admin" || selected === "tutor") {
+        const ok = (selected === "admin" && p === AUTH_ADMIN_PASS) || (selected === "tutor" && p === AUTH_TUTOR_PASS);
+        if (!ok){
+          if (err) { err.textContent = "Clave incorrecta o rol no seleccionado."; err.style.display = "block"; }
+          return;
+        }
+        setRole(selected);
+        showAuth(false);
+        if (pass) pass.value = "";
+        if (!canAccessView(loadSavedView() || state.view)) setView("table");
+        return;
+      }
+
+      // ALUMNO (password contra hoja I, col V)
+      if (!p.trim()) {
+        if (err) { err.textContent = "Ingrese su contraseña."; err.style.display = "block"; }
+        return;
+      }
+
+      try {
+        if (err) { err.textContent = "Validando..."; err.style.display = "block"; }
+        const url = STUDENT_API_URL + "?action=authStudent&password=" + encodeURIComponent(p);
+        const res = await jsonp(url, 15000);
+        if (!res || !res.ok) {
+          if (err) { err.textContent = (res && res.error) ? res.error : "Contraseña inválida."; err.style.display = "block"; }
+          return;
+        }
+        STUDENT_SESSION = { row: res.row, alumno: res.alumno || {}, password: p };
+        localStorage.setItem("lameta_student_row", String(res.row));
+        localStorage.setItem("lameta_student_name", String(res.alumno?.nombre || ""));
+        localStorage.setItem("lameta_student_user", String(res.alumno?.usuario || ""));
+        setRole("alumno");
+        showAuth(false);
+        if (pass) pass.value = "";
+        setView("alumno"); // vista exclusiva alumno
+      } catch(ex) {
+        if (err) { err.textContent = ex && ex.message ? ex.message : String(ex); err.style.display = "block"; }
+      }
+    }
+
+      setRole(selected);
+      showAuth(false);
+      if (pass) pass.value = "";
+      // Al entrar, fuerza vista permitida
+      if (!canAccessView(loadSavedView() || state.view)) setView("table");
+    }
+
+    const btn = document.getElementById("btnLogin");
+    if (btn) btn.addEventListener("click", doLogin);
+
+    if (pass) pass.addEventListener("keydown", (e)=>{
+      if (e.key === "Enter") doLogin();
+    });
+
+    // Por defecto, sugiere TUTOR (más común)
+    pick("tutor");
+    return false;
+  }
+
+
+  const SALONES = [
+    { local:"LA MOLINA", ciclo:"AGRARIA",  salon:"AGRARIA LM 1", gid:115906280 },
+    { local:"LA MOLINA", ciclo:"AGRARIA",  salon:"AGRARIA LM 2", gid:1576159193 },
+    { local:"LA MOLINA", ciclo:"PUCP",     salon:"PUCP LM",     gid:1037962332 },
+    { local:"LA MOLINA", ciclo:"U.LIMA",   salon:"U.LIMA LM",   gid:877886853 },
+    { local:"LA MOLINA", ciclo:"ADELANTO", salon:"ADELANTO LM", gid:1271606284 },
+    { local:"LA MOLINA", ciclo:"PARALELO", salon:"PARALELO LM", gid:1863430245 },
+
+    { local:"SAN BORJA", ciclo:"AGRARIA", salon:"AGRARIA SB",  gid:538377241 },
+    { local:"SAN BORJA", ciclo:"PUCP",    salon:"PUCP SB",     gid:998068235 },
+    { local:"SAN BORJA", ciclo:"U.LIMA",  salon:"U.LIMA SB 1", gid:670800187 },
+    { local:"SAN BORJA", ciclo:"U.LIMA",  salon:"U.LIMA SB 2", gid:1856014712 },
+
+    { local:"SAN MIGUEL", ciclo:"AGRARIA",  salon:"AGRARIA SM",  gid:513074883 },
+    { local:"SAN MIGUEL", ciclo:"PUCP",     salon:"PUCP SM",     gid:1531300183 },
+    { local:"SAN MIGUEL", ciclo:"U.LIMA",   salon:"U.LIMA SM 1", gid:1080962628 },
+    { local:"SAN MIGUEL", ciclo:"U.LIMA",   salon:"U.LIMA SM 2", gid:679583464 },
+    { local:"SAN MIGUEL", ciclo:"ADELANTO", salon:"ADELANTO SM", gid:2120250792 },
+    { local:"SAN MIGUEL", ciclo:"PARALELO", salon:"PARALELO SM", gid:721468852 },
+
+    { local:"VIRTUAL", ciclo:"AGRARIA",     salon:"AGRARIA VIRTUAL", gid:709062846 },
+    { local:"VIRTUAL", ciclo:"ESC. U.LIMA", salon:"U.LIMA ESCOLAR",  gid:315999969 },
+    { local:"VIRTUAL", ciclo:"U.LIMA",      salon:"U.LIMA VIRTUAL 1",  gid:1667430860 },
+    { local:"VIRTUAL", ciclo:"U.LIMA",      salon:"U.LIMA VIRTUAL 2",  gid:951960453 },
+  ];
+
+  const AUTO_REFRESH_MS = 30000;
+
+  // ===================== IMPRESIONES (NUEVO) =====================
+  const IMPRESIONES_GID = 281158959; // hoja "IMPRESIONES"
+
+  const UNI_COLORS = {
+    "PUCP": getCss("--pucp"),
+    "U.LIMA": getCss("--ulima"),
+    "AGRARIA": getCss("--agraria"),
+  };
+
+  function getCss(varName){
+    return getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
+  }
+
+  const MOD_COLORS = {
+    "PRESENCIAL": getCss("--pres"),
+    "VIRTUAL": getCss("--virt"),
+  };
+
+  const EST_COLORS = {
+    "ACTIVO": getCss("--ok"),
+    "RETIRO": getCss("--bad"),
+    "CAMBIO": getCss("--warn"),
+  };
+
+  function uniGroupFromCiclo(ciclo){
+    const c = String(ciclo||"").trim().toUpperCase();
+    if (c === "AGRARIA") return "AGRARIA";
+    if (c === "PUCP") return "PUCP";
+    return "U.LIMA";
+  }
+
+  const HEAD = {
+    NOMBRES_A: "NOMBRES COMPLETOS",
+    NOMBRES_B: "NOMBRE COMPLETO",
+    NOMBRES_C: "NOMBRES",
+    MODALIDAD: "MODALIDAD",
+    ESTADO: "ESTADO",
+  };
+
+  function csvUrl(gid){
+    return `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/export?format=csv&gid=${gid}`;
+  }
+
+  function parseCSVLine(line){
+    const out = [];
+    let cur = "", inQ = false;
+    for (let i=0;i<line.length;i++){
+      const ch = line[i];
+      if (ch === '"'){
+        if (inQ && line[i+1] === '"'){ cur += '"'; i++; }
+        else inQ = !inQ;
+      } else if (ch === "," && !inQ){
+        out.push(cur); cur = "";
+      } else cur += ch;
+    }
+    out.push(cur);
+    return out.map(x => String(x ?? "").trim());
+  }
+
+  function norm(s){ return String(s ?? "").replace(/\s+/g," ").trim(); }
+  function low(s){ return norm(s).toLowerCase(); }
+  function uniq(arr){ return [...new Set(arr)]; }
+  function escapeHtml(str){
+    return String(str ?? "")
+      .replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;")
+      .replaceAll('"',"&quot;").replaceAll("'","&#039;");
+  }
+
+  function fillSelectKeep(selId, values, labelAll){
+    const sel = document.getElementById(selId);
+    const prev = sel.value || "__ALL__";
+    sel.innerHTML = "";
+
+    const all = document.createElement("option");
+    all.value = "__ALL__";
+    all.textContent = labelAll;
+    sel.appendChild(all);
+
+    for (const v of values){
+      const opt = document.createElement("option");
+      opt.value = v;
+      opt.textContent = v;
+      sel.appendChild(opt);
+    }
+
+    const exists = Array.from(sel.options).some(o => o.value === prev);
+    sel.value = exists ? prev : "__ALL__";
+  }
+
+  function normalizeEstado(x){
+    const s = low(x);
+    if (s.includes("reti") || s.includes("retir")) return "RETIRO";
+    if (s.includes("cambi")) return "CAMBIO";
+    if (s.includes("activ")) return "ACTIVO";
+    return "CAMBIO";
+  }
+
+  function normalizeModalidad(x, localFallback){
+    const s = low(x);
+    if (s.includes("virtual") || s.includes("online") || s.includes("remot")) return "VIRTUAL";
+    if (s.includes("pres") || s.includes("aula")) return "PRESENCIAL";
+    return (localFallback === "VIRTUAL") ? "VIRTUAL" : "PRESENCIAL";
+  }
+
+  function dedupeMatriculaByName(rows){
+    const best = new Map();
+    const score = (estado) => estado==="ACTIVO" ? 2 : 1;
+    for (const r of rows){
+      const key = low(r.nombre);
+      if (!key) continue;
+      const cur = best.get(key);
+      if (!cur || score(r.estado) > score(cur.estado)) best.set(key, r);
+    }
+    return [...best.values()];
+  }
+
+  // ============================ PLUGIN DONUT OUTSIDE ============================
+  const donutOutsideLabels = {
+    id: "donutOutsideLabels",
+    afterDatasetsDraw(chart, args, pluginOptions){
+      const opt = pluginOptions || {};
+      if (chart.config.type !== "doughnut") return;
+
+      const ctx = chart.ctx;
+      const dsIndex = opt.datasetIndex ?? 0;
+      const dataset = chart.data.datasets[dsIndex];
+      if (!dataset) return;
+
+      const meta = chart.getDatasetMeta(dsIndex);
+      if (!meta || !meta.data || !meta.data.length) return;
+
+      const values = dataset.data.map(v => +v || 0);
+      const total = values.reduce((a,b)=>a+b,0) || 1;
+
+      const minPct = opt.minPercent ?? 6;
+      const lineColor = opt.lineColor ?? "rgba(15,23,42,0.55)";
+      const fontSize = opt.fontSize ?? 14;
+      const fontWeight = opt.fontWeight ?? 950;
+      const textColor = opt.textColor ?? "#111827";
+      const strokeColor = opt.textStrokeColor ?? "#ffffff";
+      const strokeW = opt.textStrokeWidth ?? 4;
+      const extra = opt.outsideOffset ?? 30;
+      const horiz = opt.horizOffset ?? 22;
+
+      const area = chart.chartArea;
+      const minX = area.left + 6;
+      const maxX = area.right - 6;
+      const minY = area.top + 6;
+      const maxY = area.bottom - 6;
+
+      const left = [];
+      const right = [];
+
+      meta.data.forEach((arc, i) => {
+        const v = values[i];
+        if (!v) return;
+
+        const pct = (v/total)*100;
+        if (pct >= minPct) return;
+
+        const {x, y, startAngle, endAngle, outerRadius} = arc.getProps(
+          ["x","y","startAngle","endAngle","outerRadius"], true
+        );
+
+        const angle = (startAngle + endAngle) / 2;
+        const cos = Math.cos(angle);
+        const sin = Math.sin(angle);
+
+        const x1 = x + cos * (outerRadius + 2);
+        const y1 = y + sin * (outerRadius + 2);
+
+        let x2 = x + cos * (outerRadius + extra);
+        let y2 = y + sin * (outerRadius + extra);
+
+        x2 = Math.max(minX, Math.min(maxX, x2));
+        y2 = Math.max(minY, Math.min(maxY, y2));
+
+        const side = (cos >= 0) ? "right" : "left";
+        const label = `${v} (${Math.round(pct)}%)`;
+
+        (side==="right" ? right : left).push({
+          x1, y1, x2, y2, side, label,
+          targetY: y2
+        });
+      });
+
+      function spread(items){
+        items.sort((a,b)=>a.targetY - b.targetY);
+        const gap = opt.minGap ?? 18;
+        for (let k=1;k<items.length;k++){
+          if (items[k].targetY - items[k-1].targetY < gap){
+            items[k].targetY = items[k-1].targetY + gap;
+          }
+        }
+        for (const it of items){
+          it.targetY = Math.max(minY, Math.min(maxY, it.targetY));
+        }
+      }
+      spread(left); spread(right);
+
+      ctx.save();
+      ctx.font = `${fontWeight} ${fontSize}px system-ui,-apple-system,Segoe UI,Roboto,Arial`;
+      ctx.fillStyle = textColor;
+      ctx.strokeStyle = lineColor;
+      ctx.lineWidth = 1.2;
+
+      function drawItem(it){
+        const align = (it.side==="right") ? "left" : "right";
+        let x3 = it.x2 + (it.side==="right" ? horiz : -horiz);
+        let y3 = it.targetY;
+
+        x3 = Math.max(minX, Math.min(maxX, x3));
+        y3 = Math.max(minY, Math.min(maxY, y3));
+
+        ctx.beginPath();
+        ctx.moveTo(it.x1, it.y1);
+        ctx.lineTo(it.x2, y3);
+        ctx.lineTo(x3, y3);
+        ctx.stroke();
+
+        ctx.textAlign = align;
+        ctx.textBaseline = "middle";
+
+        ctx.save();
+        ctx.lineWidth = strokeW;
+        ctx.strokeStyle = strokeColor;
+        ctx.strokeText(it.label, x3, y3);
+        ctx.restore();
+
+        ctx.fillStyle = textColor;
+        ctx.fillText(it.label, x3, y3);
+      }
+
+      left.forEach(drawItem);
+      right.forEach(drawItem);
+      ctx.restore();
+    }
+  };
+// ===================== PERSISTENCIA DE VISTA (FIX) =====================
+const VIEW_STORAGE_KEY = "LA_META_CURRENT_VIEW";
+const ALLOWED_VIEWS = ["overview","local","table","horarios","impresiones","silabos","materiales","listas","reportes"];
+
+function saveView(v){
+  try { localStorage.setItem(VIEW_STORAGE_KEY, v); } catch(e){}
+}
+
+function loadSavedView(){
+  try { return localStorage.getItem(VIEW_STORAGE_KEY) || ""; }
+  catch(e){ return ""; }
+}
+
+
+  const state = {
+    view: "overview",
+    rawRows: [],
+    canonical: [],
+    cambiosRows: [],
+    filtered: [],
+
+    // IMPRESIONES (nuevo)
+    imprRows: [],
+    imprUpdatedAt: null,
+
+    ch_over_estado: null,
+    ch_over_modalidad: null,
+    ch_over_uni_stack: null,
+
+    ch_loc_activos_salon: null,
+    ch_loc_retiros_salon: null,
+    booted: false
+  };
+
+  Chart.register(ChartDataLabels, donutOutsideLabels);
+
+  const GRID = "rgba(15,23,42,0.10)";
+  const TICK = "#64748b";
+
+  function mkDoughnutWithLabels(canvasId, labels, values, colors, outsideOpts){
+    const canvas = document.getElementById(canvasId);
+    if (!canvas) return null;
+
+    return new Chart(canvas, {
+      type: "doughnut",
+      data: {
+        labels,
+        datasets:[{
+          data: values,
+          backgroundColor: colors,
+          borderColor:"rgba(15,23,42,0.06)",
+          borderWidth:1,
+          hoverOffset: 6
+        }]
+      },
+      options: {
+        responsive:true,
+        maintainAspectRatio:false,
+        animation:false,
+        cutout: "62%",
+        layout:{ padding:{ top: 20, right: 56, bottom: 20, left: 56 } },
+        plugins:{
+          legend:{ position:"bottom", labels:{ color:TICK, font:{ weight:"900" } } },
+          tooltip:{ enabled:true },
+          datalabels:{
+            color:"#111827",
+            textStrokeColor:"#ffffff",
+            textStrokeWidth:4,
+            font:{ weight:"950", size: 14 },
+            formatter:(v, ctx)=>{
+              const data = ctx.chart.data.datasets[0].data || [];
+              const total = data.reduce((a,b)=>a+(+b||0),0) || 1;
+              const p = (v/total)*100;
+              if (!v) return "";
+              if (p < ((outsideOpts?.minPercent) ?? 6)) return "";
+              return `${v} (${Math.round(p)}%)`;
+            }
+          },
+          donutOutsideLabels: outsideOpts || { minPercent: 6 }
+        }
+      }
+    });
+  }
+
+  function mkBarReadable(canvasId, titleLabel){
+    const canvas = document.getElementById(canvasId);
+    if (!canvas) return null;
+
+    return new Chart(canvas, {
+      type:"bar",
+      data:{
+        labels: [],
+        datasets:[{
+          label: titleLabel,
+          data: [],
+          backgroundColor: [],
+          borderColor: [],
+          borderWidth: 1.5,
+          borderRadius: 12,
+          maxBarThickness: 70
+        }]
+      },
+      options:{
+        responsive:true,
+        maintainAspectRatio:false,
+        animation:false,
+        layout:{ padding:{ top: 26, right: 10, left: 10, bottom: 10 } },
+        plugins:{
+          legend:{ display:false },
+          tooltip:{ enabled:true },
+          datalabels:{
+            color:"#111827",
+            textStrokeColor:"#ffffff",
+            textStrokeWidth:4,
+            font:{ weight:"950", size: 15 },
+            anchor:"end",
+            align:(ctx)=>{
+              const v = ctx.dataset.data[ctx.dataIndex] || 0;
+              return v <= 2 ? "end" : "center";
+            },
+            offset:(ctx)=>{
+              const v = ctx.dataset.data[ctx.dataIndex] || 0;
+              return v <= 2 ? 2 : 0;
+            },
+            clamp:true,
+            clip:false,
+            formatter:(v)=> (v>0) ? v : ""
+          }
+        },
+        scales:{
+          x:{
+            ticks:{
+              color:TICK,
+              font:{ weight:"900" },
+              autoSkip: false,
+              maxRotation: 30,
+              minRotation: 0,
+              callback: function(val){
+                const s = String(this.getLabelForValue(val) || "");
+                return s.length > 18 ? (s.slice(0,18) + "…") : s;
+              }
+            },
+            grid:{ color:GRID }
+          },
+          y:{
+            beginAtZero:true,
+            ticks:{ color:TICK, font:{ weight:"900" } },
+            grid:{ color:GRID }
+          }
+        }
+      }
+    });
+  }
+
+  function mkStackedUni(canvasId){
+    const canvas = document.getElementById(canvasId);
+    if (!canvas) return null;
+
+    return new Chart(canvas, {
+      type:"bar",
+      data:{
+        labels: ["AGRARIA","PUCP","U.LIMA"],
+        datasets:[
+          {
+            label:"ACTIVOS",
+            data:[0,0,0],
+            backgroundColor:"rgba(76,175,80,0.18)",
+            borderColor:"rgba(76,175,80,0.25)",
+            borderWidth:1.2,
+            borderRadius:10,
+            stack:"s1"
+          },
+          {
+            label:"RETIROS",
+            data:[0,0,0],
+            backgroundColor:"rgba(220,38,38,0.25)",
+            borderColor:"rgba(220,38,38,0.35)",
+            borderWidth:1.2,
+            borderRadius:10,
+            stack:"s1"
+          },
+        ]
+      },
+      options:{
+        responsive:true,
+        maintainAspectRatio:false,
+        animation:false,
+        layout:{ padding:{ top: 30, right: 10, left: 10, bottom: 10 } },
+        plugins:{
+          legend:{ position:"bottom", labels:{ color:TICK, font:{ weight:"900" } } },
+          tooltip:{ enabled:true },
+          datalabels:{
+            color:"#111827",
+            textStrokeColor:"#ffffff",
+            textStrokeWidth:4,
+            font:{ weight:"950", size: 13 },
+            anchor:(ctx)=> ctx.datasetIndex === 0 ? "center" : "end",
+            align:(ctx)=>  ctx.datasetIndex === 0 ? "center" : "end",
+            offset:(ctx)=> ctx.datasetIndex === 0 ? 0 : 4,
+            clamp:true,
+            clip:false,
+            formatter:(v)=> (!v || v<=0) ? "" : v
+          }
+        },
+        scales:{
+          x:{ stacked:true, ticks:{ color:TICK, font:{ weight:"900" } }, grid:{ color:GRID } },
+          y:{ stacked:true, beginAtZero:true, ticks:{ color:TICK, font:{ weight:"900" } }, grid:{ color:GRID } }
+        }
+      }
+    });
+  }
+
+  function setChartData(chart, labels, values, colors){
+    if (!chart) return;
+    chart.data.labels = labels;
+    chart.data.datasets[0].data = values;
+    if (colors){
+      chart.data.datasets[0].backgroundColor = colors;
+      chart.data.datasets[0].borderColor = colors;
+    }
+    chart.update("none");
+  }
+
+  // ============================ NAV ============================
+  function setView(v){
+    if (!canAccessView(v)){
+      // Bloqueo por rol
+      v = (CURRENT_ROLE === "alumno") ? "alumno" : "table";
+    }
+    state.view = v;
+    saveView(v);
+    document.getElementById("nav_overview").classList.toggle("active", v==="overview");
+    document.getElementById("nav_local").classList.toggle("active", v==="local");
+    document.getElementById("nav_table").classList.toggle("active", v==="table");
+    document.getElementById("nav_alumno").classList.toggle("active", v==="alumno");
+    document.getElementById("nav_horarios").classList.toggle("active", v==="horarios");
+    document.getElementById("nav_impresiones").classList.toggle("active", v==="impresiones");
+    document.getElementById("nav_silabos").classList.toggle("active", v==="silabos");
+    document.getElementById("nav_materiales").classList.toggle("active", v==="materiales");
+    document.getElementById("nav_listas").classList.toggle("active", v==="listas");
+    document.getElementById("nav_reportes").classList.toggle("active", v==="reportes");
+
+
+    document.getElementById("view_overview").style.display = (v==="overview") ? "" : "none";
+    document.getElementById("view_local").style.display = (v==="local") ? "" : "none";
+    document.getElementById("view_table").style.display = (v==="table") ? "" : "none";
+    document.getElementById("view_alumno").style.display = (v==="alumno") ? "" : "none";
+    document.getElementById("view_horarios").style.display = (v==="horarios") ? "" : "none";
+    document.getElementById("view_impresiones").style.display = (v==="impresiones") ? "" : "none";
+    document.getElementById("view_silabos").style.display = (v==="silabos") ? "" : "none";
+    document.getElementById("view_materiales").style.display = (v==="materiales") ? "" : "none";
+    document.getElementById("view_listas").style.display     = (v==="listas") ? "" : "none";
+    document.getElementById("view_reportes").style.display   = (v==="reportes") ? "" : "none";
+
+
+    document.getElementById("controlsMatricula").style.display =
+      (v==="horarios" || v==="impresiones" || v==="silabos" || v==="materiales" || v==="listas" || v==="reportes") ? "none" : "";
+
+
+    // ✅ estado solo visible en ALUMNOS (tabla)
+    document.getElementById("fEstado").style.display = (v==="table") ? "" : "none";
+
+    const titles = {
+      overview: ["RESUMEN GENERAL", "Panel estructurado para control de matrícula, modalidad y distribución por universidad."],
+      local: ["POR LOCAL", "Monitoreo por salón (tutor) del local seleccionado."],
+      table: ["ALUMNOS", "Búsqueda y filtros para consulta interna."],
+      horarios: ["HORARIOS", "Plantillas de horarios por local y universidad."],
+      impresiones: ["IMPRESIONES", "Control en tiempo real de hojas a imprimir por local y salón."],
+      silabos: ["SÍLABOS", "Acceso directo a sílabos por universidad. Haga clic en el curso para abrir el Excel."],
+      materiales: ["MATERIALES", "Acceso directo a carpetas por universidad."],
+      listas: ["LISTAS", "Acceso directo a listas por sede y grupo."],
+      reportes: ["ENVÍO DE REPORTES", "Acceso directo a enlaces por sede y aula (tutor)."]
+
+    };
+    document.getElementById("viewTitle").textContent = titles[v][0];
+    document.getElementById("viewDesc").textContent = titles[v][1];
+
+    const uniSel = document.getElementById("fUni");
+    const salSel = document.getElementById("fSalon");
+    if (v === "local"){
+      uniSel.value = "__ALL__";
+      salSel.value = "__ALL__";
+      uniSel.disabled = true;
+      salSel.disabled = true;
+    } else if (v !== "horarios" && v !== "impresiones" && v !== "silabos") {
+      uniSel.disabled = false;
+      salSel.disabled = false;
+    }
+
+    if (v !== "horarios" && v !== "impresiones" && v !== "silabos"){
+      rebuildSalonOptions();
+    }
+    render();
+  }
+
+  // ============================ FILTERS (MATRÍCULA) ============================
+  function initFilters(){
+    const locals = uniq(SALONES.map(s=>s.local)).sort();
+    fillSelectKeep("fLocal", locals, "LOCAL: TODOS");
+    fillSelectKeep("fUni", ["AGRARIA","PUCP","U.LIMA"], "UNIVERSIDAD: TODAS");
+    rebuildSalonOptions();
+    fillSelectKeep("fModalidad", ["PRESENCIAL","VIRTUAL"], "MODALIDAD: TODAS");
+
+    // ✅ Estado para tabla (incluye CAMBIO)
+    fillSelectKeep("fEstado", ["ACTIVO","RETIRO","CAMBIO"], "ESTADO: TODOS");
+  }
+
+  function getBaseForCurrentView(){
+    // Overview/Local: solo matrícula (ACTIVO/RETIRO) dedupe
+    if (state.view !== "table"){
+      return state.canonical.slice();
+    }
+
+    // Tabla: permitir CAMBIO y TODOS
+    const fEstado = document.getElementById("fEstado").value;
+
+    if (fEstado === "CAMBIO"){
+      return state.cambiosRows.slice();
+    }
+    if (fEstado === "ACTIVO" || fEstado === "RETIRO"){
+      return state.canonical.filter(r=>r.estado===fEstado);
+    }
+    // TODOS (tabla): activos+retiros dedupe + cambios (sin dedupe)
+    return state.canonical.concat(state.cambiosRows);
+  }
+
+  function rebuildSalonOptions(){
+    const fLocal = document.getElementById("fLocal").value;
+    const fUni = document.getElementById("fUni").value;
+
+    let base = getBaseForCurrentView();
+    if (fLocal !== "__ALL__") base = base.filter(r=>r.local===fLocal);
+    if (fUni !== "__ALL__") base = base.filter(r=>uniGroupFromCiclo(r.ciclo)===fUni);
+
+    const salones = uniq(base.map(r=>r.salon)).sort();
+    fillSelectKeep("fSalon", salones, "SALÓN: TODOS");
+  }
+
+  function applyFilters(){
+    const fLocal = document.getElementById("fLocal").value;
+    const fUni   = document.getElementById("fUni").value;
+    const fSalon = document.getElementById("fSalon").value;
+    const fMod   = document.getElementById("fModalidad").value;
+    const q      = low(document.getElementById("q").value);
+
+    let base = getBaseForCurrentView();
+
+    base = base.filter(r=>{
+      if (fLocal!=="__ALL__" && r.local!==fLocal) return false;
+      if (fUni!=="__ALL__" && uniGroupFromCiclo(r.ciclo)!==fUni) return false;
+      if (fSalon!=="__ALL__" && r.salon!==fSalon) return false;
+      if (fMod!=="__ALL__" && r.modalidad!==fMod) return false;
+
+      if (q){
+        const blob = low([r.nombre, r.local, r.ciclo, r.salon, r.modalidad, r.estado].join(" | "));
+        if (!blob.includes(q)) return false;
+      }
+      return true;
+    });
+
+    state.filtered = base;
+  }
+
+  // ============================ LAYOUTS (MATRÍCULA) ============================
+  function ensureOverviewLayout(){
+    const el = document.getElementById("view_overview");
+    if (el.dataset.ready === "1") return;
+
+    el.innerHTML = `
+      <div class="card kpi">
+        <div class="label">TOTAL DE ALUMNOS</div>
+        <div class="value" id="k_total">0</div>
+        <div class="hint">ACTIVOS + RETIROS</div>
+      </div>
+
+      <div class="card kpi">
+        <div class="label">ACTIVOS</div>
+        <div class="value" id="k_act">0</div>
+      </div>
+
+      <div class="card kpi">
+        <div class="label">RETIROS</div>
+        <div class="value" id="k_ret">0</div>
+      </div>
+
+      <div class="card kpi">
+        <div class="label">CAMBIOS (TRASLADOS)</div>
+        <div class="value" id="k_cam">0</div>
+        <div class="hint">NO SUMA AL TOTAL</div>
+      </div>
+
+      <div class="card panel8">
+        <div class="cardtitle">
+          ESTADO Y MODALIDAD
+          <div class="panelHint">
+            <span class="pill"><span class="dot agraria"></span>AGRARIA</span>
+            <span class="pill"><span class="dot pucp"></span>PUCP</span>
+            <span class="pill"><span class="dot ulima"></span>U.LIMA</span>
+          </div>
+        </div>
+        <div class="grid" style="margin-top:0;">
+          <div class="card panel6" style="box-shadow:none; border:1px solid var(--border);">
+            <div class="cardtitle">ESTADO</div>
+            <div class="chartBox"><canvas id="over_estado"></canvas></div>
+          </div>
+          <div class="card panel6" style="box-shadow:none; border:1px solid var(--border);">
+            <div class="cardtitle">MODALIDAD</div>
+            <div class="chartBox"><canvas id="over_modalidad"></canvas></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card panel4">
+        <div class="cardtitle">RESUMEN POR UNIVERSIDAD</div>
+        <div class="chartBoxTall"><canvas id="over_uni_stack"></canvas></div>
+
+        <div class="uniCards">
+          <div class="uniCard">
+            <img src="logo_agraria.png" alt="AGRARIA" onerror="this.style.display='none'">
+            <div class="t">
+              <div class="name">AGRARIA</div>
+              <div class="nums">
+                <span class="pill" style="border-color:rgba(76,175,80,0.35); background:rgba(76,175,80,0.10);">Activos: <b id="uA_act">0</b></span>
+                <span class="pill">Retiros: <b id="uA_ret">0</b></span>
+              </div>
+            </div>
+          </div>
+
+          <div class="uniCard">
+            <img src="logo_pucp.png" alt="PUCP" onerror="this.style.display='none'">
+            <div class="t">
+              <div class="name">PUCP</div>
+              <div class="nums">
+                <span class="pill" style="border-color:rgba(110,168,218,0.50); background:rgba(110,168,218,0.12);">Activos: <b id="uP_act">0</b></span>
+                <span class="pill">Retiros: <b id="uP_ret">0</b></span>
+              </div>
+            </div>
+          </div>
+
+          <div class="uniCard">
+            <img src="logo_ulima.png" alt="U.LIMA" onerror="this.style.display='none'">
+            <div class="t">
+              <div class="name">U.LIMA</div>
+              <div class="nums">
+                <span class="pill" style="border-color:rgba(255,153,0,0.55); background:rgba(255,153,0,0.12);">Activos: <b id="uL_act">0</b></span>
+                <span class="pill">Retiros: <b id="uL_ret">0</b></span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    state.ch_over_estado = mkDoughnutWithLabels(
+      "over_estado",
+      ["ACTIVO","RETIRO","CAMBIO"],
+      [0,0,0],
+      [EST_COLORS.ACTIVO, EST_COLORS.RETIRO, EST_COLORS.CAMBIO],
+      { minPercent: 6, outsideOffset: 34, horizOffset: 26, minGap: 20, fontSize: 14 }
+    );
+
+    state.ch_over_modalidad = mkDoughnutWithLabels(
+      "over_modalidad",
+      ["PRESENCIAL","VIRTUAL"],
+      [0,0],
+      [MOD_COLORS.PRESENCIAL, MOD_COLORS.VIRTUAL],
+      { minPercent: 10, outsideOffset: 28, horizOffset: 22, minGap: 18, fontSize: 14 }
+    );
+
+    state.ch_over_uni_stack = mkStackedUni("over_uni_stack");
+    el.dataset.ready = "1";
+  }
+
+  function ensureLocalLayout(){
+    const el = document.getElementById("view_local");
+    if (el.dataset.ready === "1") return;
+
+    el.innerHTML = `
+      <div class="card kpi">
+        <div class="label">TOTAL (LOCAL)</div>
+        <div class="value" id="lk_total">0</div>
+        <div class="hint">ACTIVOS + RETIROS</div>
+      </div>
+
+      <div class="card kpi">
+        <div class="label">ACTIVOS (LOCAL)</div>
+        <div class="value" id="lk_act">0</div>
+      </div>
+
+      <div class="card kpi">
+        <div class="label">RETIROS (LOCAL)</div>
+        <div class="value" id="lk_ret">0</div>
+      </div>
+
+      <div class="card kpi">
+        <div class="label">CAMBIOS (LOCAL)</div>
+        <div class="value" id="lk_cam">0</div>
+        <div class="hint">NO SUMA AL TOTAL</div>
+      </div>
+
+      <div class="card panel12">
+        <div class="cardtitle">
+          ACTIVOS POR SALÓN (LOCAL)
+          <div class="panelHint">
+            <span class="dot agraria"></span>AGRARIA
+            <span class="dot pucp"></span>PUCP
+            <span class="dot ulima"></span>U.LIMA
+          </div>
+        </div>
+        <div class="chartBoxTall"><canvas id="loc_activos_salon"></canvas></div>
+      </div>
+
+      <div class="card panel12">
+        <div class="cardtitle">RETIROS POR SALÓN (LOCAL)</div>
+        <div class="chartBoxTall"><canvas id="loc_retiros_salon"></canvas></div>
+      </div>
+
+      <div class="card panel12">
+        <div class="cardtitle">DETALLE (SALONES)</div>
+        <div style="overflow:auto; max-height: 55vh;">
+          <table>
+            <thead>
+              <tr>
+                <th>LOCAL</th>
+                <th>UNIVERSIDAD</th>
+                <th>SALÓN</th>
+                <th>ACTIVOS</th>
+                <th>RETIROS</th>
+                <th>TOTAL</th>
+                <th>CAMBIOS</th>
+              </tr>
+            </thead>
+            <tbody id="loc_table_salon"></tbody>
+          </table>
+        </div>
+      </div>
+    `;
+
+    state.ch_loc_activos_salon = mkBarReadable("loc_activos_salon", "ACTIVOS");
+    state.ch_loc_retiros_salon = mkBarReadable("loc_retiros_salon", "RETIROS");
+
+    el.dataset.ready = "1";
+  }
+
+  function ensureTableLayout(){
+    const el = document.getElementById("view_table");
+    if (el.dataset.ready === "1") return;
+
+    const isTutor = (CURRENT_ROLE === "tutor");
+
+    const theadTutor = `
+      <tr>
+        <th>NOMBRE</th>
+        <th>LOCAL</th>
+        <th>UNIVERSIDAD</th>
+        <th>SALÓN</th>
+        <th>MODALIDAD</th>
+        <th>ESTADO</th>
+        <th>USUARIO</th>
+        <th>CONTRASEÑA</th>
+      </tr>
+    `;
+
+    const theadAdmin = `
+      <tr>
+        <th>NOMBRES COMPLETOS</th>
+        <th>LOCAL</th>
+        <th>UNIVERSIDAD</th>
+        <th>SALÓN</th>
+        <th>MODALIDAD</th>
+        <th>ESTADO</th>
+
+        <th>CORREO</th>
+        <th>DNI</th>
+        <th>CELULAR</th>
+        <th>ACADEMIA</th>
+        <th>CARRERA</th>
+
+        <th>APODERADO</th>
+        <th>CEL APODERADO</th>
+        <th>DNI APODERADO</th>
+        <th>CORREO APODERADO</th>
+
+        <th>USUARIO</th>
+        <th>CONTRASEÑA</th>
+      </tr>
+    `;
+
+    el.innerHTML = `
+      <div class="card panel12">
+        <div class="cardtitle">ALUMNOS</div>
+        <div style="overflow:auto; max-height: 75vh;">
+          <table>
+            <thead>
+              ${isTutor ? theadTutor : theadAdmin}
+            </thead>
+            <tbody id="tb_body"></tbody>
+          </table>
+        </div>
+      </div>
+    `;
+
+    el.dataset.ready = "1";
+  }
+
+  function renderOverview(){
+    ensureOverviewLayout();
+
+    // ✅ overview siempre con matrícula ACTIVO/RETIRO (NO CAMBIO)
+    const prevView = state.view;
+    state.view = "overview";
+    applyFilters();
+    state.view = prevView;
+
+    const rows = state.filtered;
+
+    const act = rows.filter(r=>r.estado==="ACTIVO").length;
+    const ret = rows.filter(r=>r.estado==="RETIRO").length;
+    const total = act + ret;
+
+    const fLocal = document.getElementById("fLocal").value;
+    const fUni   = document.getElementById("fUni").value;
+    const fSalon = document.getElementById("fSalon").value;
+    const fMod   = document.getElementById("fModalidad").value;
+    const q      = low(document.getElementById("q").value);
+
+    let cambiosBase = state.cambiosRows;
+    if (fLocal!=="__ALL__") cambiosBase = cambiosBase.filter(r=>r.local===fLocal);
+    if (fUni!=="__ALL__") cambiosBase = cambiosBase.filter(r=>uniGroupFromCiclo(r.ciclo)===fUni);
+    if (fSalon!=="__ALL__") cambiosBase = cambiosBase.filter(r=>r.salon===fSalon);
+    if (fMod!=="__ALL__") cambiosBase = cambiosBase.filter(r=>r.modalidad===fMod);
+    if (q){
+      cambiosBase = cambiosBase.filter(r=>{
+        const blob = low([r.nombre, r.local, r.ciclo, r.salon, r.modalidad, r.estado].join(" | "));
+        return blob.includes(q);
+      });
+    }
+    const cambiosUnique = uniq(cambiosBase.map(r=>low(r.nombre))).filter(Boolean).length;
+
+    const pres = rows.filter(r=>r.modalidad==="PRESENCIAL").length;
+    const virt = rows.filter(r=>r.modalidad==="VIRTUAL").length;
+
+    document.getElementById("k_total").textContent = total.toLocaleString("es-PE");
+    document.getElementById("k_act").textContent = act.toLocaleString("es-PE");
+    document.getElementById("k_ret").textContent = ret.toLocaleString("es-PE");
+    document.getElementById("k_cam").textContent = cambiosUnique.toLocaleString("es-PE");
+
+    state.ch_over_estado.data.datasets[0].data = [act, ret, cambiosUnique];
+    state.ch_over_estado.update("none");
+
+    state.ch_over_modalidad.data.datasets[0].data = [pres, virt];
+    state.ch_over_modalidad.update("none");
+
+    const aAct = rows.filter(r=>uniGroupFromCiclo(r.ciclo)==="AGRARIA" && r.estado==="ACTIVO").length;
+    const aRet = rows.filter(r=>uniGroupFromCiclo(r.ciclo)==="AGRARIA" && r.estado==="RETIRO").length;
+
+    const pAct = rows.filter(r=>uniGroupFromCiclo(r.ciclo)==="PUCP" && r.estado==="ACTIVO").length;
+    const pRet = rows.filter(r=>uniGroupFromCiclo(r.ciclo)==="PUCP" && r.estado==="RETIRO").length;
+
+    const lAct = rows.filter(r=>uniGroupFromCiclo(r.ciclo)==="U.LIMA" && r.estado==="ACTIVO").length;
+    const lRet = rows.filter(r=>uniGroupFromCiclo(r.ciclo)==="U.LIMA" && r.estado==="RETIRO").length;
+
+    document.getElementById("uA_act").textContent = aAct;
+    document.getElementById("uA_ret").textContent = aRet;
+
+    document.getElementById("uP_act").textContent = pAct;
+    document.getElementById("uP_ret").textContent = pRet;
+
+    document.getElementById("uL_act").textContent = lAct;
+    document.getElementById("uL_ret").textContent = lRet;
+
+    state.ch_over_uni_stack.data.datasets[0].data = [aAct, pAct, lAct];
+    state.ch_over_uni_stack.data.datasets[1].data = [aRet, pRet, lRet];
+    state.ch_over_uni_stack.update("none");
+  }
+
+  function renderLocal(){
+    ensureLocalLayout();
+
+    const fLocal = document.getElementById("fLocal").value;
+    const fMod   = document.getElementById("fModalidad").value;
+    const q      = low(document.getElementById("q").value);
+
+    let salonesLocal = SALONES
+      .filter(s => (fLocal==="__ALL__" ? true : s.local === fLocal))
+      .map(s => s.salon);
+    salonesLocal = uniq(salonesLocal);
+
+    // local = matrícula dedupe (sin cambios)
+    let baseMat = state.canonical;
+    if (fLocal!=="__ALL__") baseMat = baseMat.filter(r=>r.local===fLocal);
+    if (fMod!=="__ALL__") baseMat = baseMat.filter(r=>r.modalidad===fMod);
+    if (q){
+      baseMat = baseMat.filter(r=>{
+        const blob = low([r.nombre, r.local, r.ciclo, r.salon, r.modalidad, r.estado].join(" | "));
+        return blob.includes(q);
+      });
+    }
+
+    const act = baseMat.filter(r=>r.estado==="ACTIVO").length;
+    const ret = baseMat.filter(r=>r.estado==="RETIRO").length;
+    const total = act + ret;
+
+    let baseCam = state.cambiosRows;
+    if (fLocal!=="__ALL__") baseCam = baseCam.filter(r=>r.local===fLocal);
+    if (fMod!=="__ALL__") baseCam = baseCam.filter(r=>r.modalidad===fMod);
+    if (q){
+      baseCam = baseCam.filter(r=>{
+        const blob = low([r.nombre, r.local, r.ciclo, r.salon, r.modalidad, r.estado].join(" | "));
+        return blob.includes(q);
+      });
+    }
+    const cambiosUnique = uniq(baseCam.map(r=>low(r.nombre))).filter(Boolean).length;
+
+    document.getElementById("lk_total").textContent = total.toLocaleString("es-PE");
+    document.getElementById("lk_act").textContent = act.toLocaleString("es-PE");
+    document.getElementById("lk_ret").textContent = ret.toLocaleString("es-PE");
+    document.getElementById("lk_cam").textContent = cambiosUnique.toLocaleString("es-PE");
+
+    const activosPorSalon = salonesLocal.map(s => baseMat.filter(r=>r.salon===s && r.estado==="ACTIVO").length);
+    const activosColors = salonesLocal.map(s=>{
+      const conf = SALONES.find(x => x.salon===s && (fLocal==="__ALL__" ? true : x.local===fLocal));
+      const uni = conf ? uniGroupFromCiclo(conf.ciclo) : "U.LIMA";
+      return UNI_COLORS[uni] || UNI_COLORS["AGRARIA"];
+    });
+
+    const retirosPorSalon = salonesLocal.map(s => baseMat.filter(r=>r.salon===s && r.estado==="RETIRO").length);
+    const retirosColors = salonesLocal.map(_ => "#dc2626");
+
+    setChartData(state.ch_loc_activos_salon, salonesLocal, activosPorSalon, activosColors);
+    setChartData(state.ch_loc_retiros_salon, salonesLocal, retirosPorSalon, retirosColors);
+
+    const tbody = document.getElementById("loc_table_salon");
+    tbody.innerHTML = salonesLocal.map(s=>{
+      const rs = baseMat.filter(r=>r.salon===s);
+      const a = rs.filter(r=>r.estado==="ACTIVO").length;
+      const r = rs.filter(r=>r.estado==="RETIRO").length;
+      const t = a + r;
+
+      const conf = SALONES.find(x => x.salon === s && (fLocal==="__ALL__" ? true : x.local===fLocal));
+      const uni = conf ? uniGroupFromCiclo(conf.ciclo) : (rs[0] ? uniGroupFromCiclo(rs[0].ciclo) : "");
+
+      const c = uniq(baseCam.filter(x=>x.salon===s).map(x=>low(x.nombre))).filter(Boolean).length;
+      const loc = (fLocal==="__ALL__" ? (conf?.local || rs[0]?.local || "") : fLocal);
+
+      return `
+        <tr>
+          <td>${escapeHtml(loc)}</td>
+          <td>${escapeHtml(uni)}</td>
+          <td>${escapeHtml(s)}</td>
+          <td>${a}</td>
+          <td>${r}</td>
+          <td>${t}</td>
+          <td>${c}</td>
+        </tr>
+      `;
+    }).join("");
+  }
+
+  function renderTable(){
+    ensureTableLayout();
+    applyFilters();
+
+    const isTutor = (CURRENT_ROLE === "tutor");
+    const rows = state.filtered;
+
+    const tbody = document.getElementById("tb_body");
+
+    if (isTutor){
+      tbody.innerHTML = rows.slice(0,1200).map(r=>`
+        <tr>
+          <td>${escapeHtml(r.nombre)}</td>
+          <td>${escapeHtml(r.local)}</td>
+          <td>${escapeHtml(uniGroupFromCiclo(r.ciclo))}</td>
+          <td>${escapeHtml(r.salon)}</td>
+          <td>${escapeHtml(r.modalidad)}</td>
+          <td>${escapeHtml(r.estado)}</td>
+          <td>${escapeHtml(r.usuario || "")}</td>
+          <td>${escapeHtml(r.contrasena || "")}</td>
+        </tr>
+      `).join("");
+      return;
+    }
+
+    // ADMIN: mostrar datos ampliados
+    tbody.innerHTML = rows.slice(0,1200).map(r=>`
+      <tr>
+        <td>${escapeHtml(r.nombre)}</td>
+        <td>${escapeHtml(r.local)}</td>
+        <td>${escapeHtml(uniGroupFromCiclo(r.ciclo))}</td>
+        <td>${escapeHtml(r.salon)}</td>
+        <td>${escapeHtml(r.modalidad)}</td>
+        <td>${escapeHtml(r.estado)}</td>
+
+        <td>${escapeHtml(r.correo_al || "")}</td>
+        <td>${escapeHtml(r.dni_al || "")}</td>
+        <td>${escapeHtml(r.celular_al || "")}</td>
+        <td>${escapeHtml(r.academia || "")}</td>
+        <td>${escapeHtml(r.carrera || "")}</td>
+
+        <td>${escapeHtml(r.nombre_apo || "")}</td>
+        <td>${escapeHtml(r.cel_apo || "")}</td>
+        <td>${escapeHtml(r.dni_apo || "")}</td>
+        <td>${escapeHtml(r.correo_apo || "")}</td>
+
+        <td>${escapeHtml(r.usuario || "")}</td>
+        <td>${escapeHtml(r.contrasena || "")}</td>
+      </tr>
+    `).join("");
+  }
+
+  // ===================== IMPRESIONES (NUEVO) =====================
+  // ===================== IMPRESIONES (NUEVO) =====================
+  const IMP_LOCALS = ["LA MOLINA","SAN MIGUEL","SAN BORJA"];
+
+  function toInt(x){
+    const n = parseInt(String(x||"").replace(/[^\d]/g,""), 10);
+    return Number.isFinite(n) ? n : 0;
+  }
+
+  function inferUniFromSalonLabel(label){
+    const s = String(label||"").toUpperCase();
+    if (s.includes("AGRARIA")) return "AGRARIA";
+    if (s.includes("PUCP")) return "PUCP";
+    if (s.includes("U.LIMA") || s.includes("U LIMA") || s.includes("ULIMA")) return "U.LIMA";
+    return "OTRO";
+  }
+
+  /**
+   * Reglas solicitadas:
+   * 1) Quitar "ACTUALIZADO" (ya no se muestra en UI)
+   * 2) OTRO: punto ROJO + número ROJO (mismo color)
+   * 3) PARALELO: mostrar etiqueta "U.LIMA" pero en ROJO (no naranja)
+   * 4) Orden fijo en cada local: VERDE (AGRARIA) -> AZUL (PUCP) -> NARANJA (U.LIMA) -> ROJO (OTRO/PARALELO)
+   */
+  function imprMetaFromSalon(salon){
+    const s = String(salon||"").toUpperCase();
+
+    // Caso especial: PARALELO -> etiqueta U.LIMA pero ROJO
+    if (s.includes("PARALELO") || s.includes("ADELANTO")){
+      const red = getCss("--accent2");
+      return { group: 3, label: "U.LIMA", dot: red, num: red };
+    }
+
+    const uni = inferUniFromSalonLabel(salon);
+
+    if (uni === "AGRARIA"){
+      const c = getCss("--agraria");
+      return { group: 0, label: "AGRARIA", dot: c, num: c };
+    }
+    if (uni === "PUCP"){
+      const c = getCss("--pucp");
+      return { group: 1, label: "PUCP", dot: c, num: c };
+    }
+    if (uni === "U.LIMA"){
+      const c = getCss("--ulima");
+      return { group: 2, label: "U.LIMA", dot: c, num: c };
+    }
+
+    // OTRO (ej: ADELANTO): punto ROJO + número ROJO
+    const red = getCss("--accent2");
+    return { group: 3, label: "OTRO", dot: red, num: red };
+  }
+
+  function parseImpresionesCSV(csvText){
+    const lines = csvText.split(/\r?\n/).filter(l=>l.trim().length>0);
+    const grid = lines.map(parseCSVLine).map(r=>r.map(norm));
+
+    // buscar fila cabecera donde aparezcan LA MOLINA / SAN MIGUEL / SAN BORJA
+    let headerRow = -1;
+    for (let r=0; r<Math.min(grid.length, 40); r++){
+      const rowU = grid[r].map(x=>String(x||"").toUpperCase());
+      const hits = IMP_LOCALS.filter(L => rowU.includes(L)).length;
+      if (hits >= 2){ headerRow = r; break; }
+    }
+    if (headerRow < 0) return [];
+
+    const rowU = grid[headerRow].map(x=>String(x||"").toUpperCase());
+    const cols = []; // { local, colSalon, colCount }
+    for (const loc of IMP_LOCALS){
+      const c = rowU.indexOf(loc);
+      if (c >= 0){
+        cols.push({ local: loc, colSalon: c, colCount: c+1 });
+      }
+    }
+    if (!cols.length) return [];
+
+    const out = [];
+    for (let r=headerRow+1; r<grid.length; r++){
+      const anySalon = cols.some(cc => norm(grid[r][cc.colSalon] || "").length > 0);
+      const anyCount = cols.some(cc => norm(grid[r][cc.colCount] || "").length > 0);
+      if (!anySalon && !anyCount) continue;
+
+      for (const cc of cols){
+        const salon = norm(grid[r][cc.colSalon] || "");
+        if (!salon) continue;
+
+        const up = salon.toUpperCase();
+        if (up.includes("IMPRESION")) continue; // evita encabezados del estilo "# IMPRESIONES"
+
+        const count = toInt(grid[r][cc.colCount] || "0");
+        out.push({ local: cc.local, salon, count });
+      }
+    }
+
+    // dedupe por (local + salon), manteniendo el último
+    const best = new Map();
+    for (const it of out){
+      const k = `${it.local}||${it.salon}`.toUpperCase();
+      best.set(k, it);
+    }
+    return [...best.values()];
+  }
+
+  function ensureImpresionesLayout(){
+    const el = document.getElementById("view_impresiones");
+    if (el.dataset.ready === "1") return;
+
+    // ✅ Se quitó el pill de ACTUALIZADO
+    el.innerHTML = `
+      <div class="card panel12">
+        <div class="cardtitle">FILTRO</div>
+        <div class="controls" style="justify-content:flex-start;">
+          <select id="iLocal"></select>
+          <button id="iReset">VER TODO</button>
+        </div>
+        <div class="panelHint" style="margin-top:10px;">
+          <span class="pill"><span class="dot agraria"></span>AGRARIA</span>
+          <span class="pill"><span class="dot pucp"></span>PUCP</span>
+          <span class="pill"><span class="dot ulima"></span>U.LIMA</span>
+          <span class="pill"><span class="dot" style="background:${getCss("--accent2")};"></span>ADELANTO / PARALELO</span>
+        </div>
+      </div>
+
+      <div class="card panel12">
+        <div class="iLocalHead">
+          <div class="cardtitle" style="margin:0;">RESUMEN GENERAL</div>
+          <div class="iKpis">
+            <span class="iKpiPill">TOTAL: <b id="iTotal">0</b></span>
+            <span class="iKpiPill">SALONES: <b id="iSalones">0</b></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel12" id="iBlocks"></div>
+    `;
+
+    document.getElementById("iReset").addEventListener("click", ()=>{
+      document.getElementById("iLocal").value = "__ALL__";
+      renderImpresiones();
+    });
+    document.getElementById("iLocal").addEventListener("change", renderImpresiones);
+
+    el.dataset.ready = "1";
+  }
+
+  function renderImpresiones(){
+    ensureImpresionesLayout();
+
+    const locals = uniq(state.imprRows.map(x=>x.local)).sort((a,b)=>a.localeCompare(b,"es"));
+    fillSelectKeep("iLocal", locals, "LOCAL: TODOS");
+
+    const fLocal = document.getElementById("iLocal").value;
+
+    let rows = state.imprRows.slice();
+    if (fLocal !== "__ALL__") rows = rows.filter(x=>x.local === fLocal);
+
+    const total = rows.reduce((a,b)=>a+(+b.count||0),0);
+    document.getElementById("iTotal").textContent = total.toLocaleString("es-PE");
+    document.getElementById("iSalones").textContent = rows.length.toLocaleString("es-PE");
+
+    // agrupar por local
+    const byLocal = new Map();
+    for (const r of rows){
+      if (!byLocal.has(r.local)) byLocal.set(r.local, []);
+      byLocal.get(r.local).push(r);
+    }
+
+    // Orden local fijo
+    const LOCAL_ORDER = ["LA MOLINA","SAN MIGUEL","SAN BORJA","VIRTUAL"];
+    const orderedLocals = [...byLocal.keys()].sort((a,b)=>{
+      const ia = LOCAL_ORDER.indexOf(a); const ib = LOCAL_ORDER.indexOf(b);
+      return (ia<0?999:ia) - (ib<0?999:ib);
+    });
+
+    // Orden de tarjetas dentro de cada local:
+    // AGRARIA (0) -> PUCP (1) -> U.LIMA (2) -> ROJO (3)
+    function itemSortKey(it){
+      const meta = imprMetaFromSalon(it.salon);
+      return [meta.group, String(it.salon||"").toUpperCase()];
+    }
+
+    const blocks = orderedLocals.map(loc=>{
+      const list = byLocal.get(loc).slice().sort((a,b)=>{
+        const ka = itemSortKey(a);
+        const kb = itemSortKey(b);
+        if (ka[0] !== kb[0]) return ka[0] - kb[0];
+        return ka[1].localeCompare(kb[1], "es");
+      });
+
+      const subTotal = list.reduce((x,y)=>x+(+y.count||0),0);
+
+      const items = list.map(it=>{
+        const meta = imprMetaFromSalon(it.salon);
+
+        return `
+          <div class="iItem">
+            <div class="iLeft">
+              <div class="iSalon">${escapeHtml(it.salon)}</div>
+              <div class="iMeta">
+                <span class="dot" style="background:${meta.dot};"></span>
+                <span>${escapeHtml(meta.label)}</span>
+              </div>
+            </div>
+            <div class="iNum" style="color:${meta.num};">
+              ${(+it.count||0).toLocaleString("es-PE")}
+            </div>
+          </div>
+        `;
+      }).join("");
+
+      return `
+        <div class="card panel12">
+          <div class="iLocalHead">
+            <div class="cardtitle" style="margin:0;">${escapeHtml(loc)}</div>
+            <div class="iKpis">
+              <span class="iKpiPill">TOTAL: <b>${subTotal.toLocaleString("es-PE")}</b></span>
+              <span class="iKpiPill">SALONES: <b>${list.length}</b></span>
+            </div>
+          </div>
+          <div class="iGrid">${items}</div>
+        </div>
+      `;
+    }).join("");
+
+    document.getElementById("iBlocks").innerHTML = blocks || `
+      <div class="card panel12">
+        <div class="cardtitle">SIN DATOS</div>
+        <div style="color:var(--muted); font-weight:900;">No se encontraron registros en IMPRESIONES.</div>
+      </div>
+    `;
+  }
+
+  async function loadImpresiones(){
+    try{
+      const url = csvUrl(IMPRESIONES_GID) + "&v=" + Date.now();
+      const res = await fetch(url, { cache:"no-store" });
+      if (!res.ok) throw new Error("HTTP "+res.status);
+      const text = await res.text();
+
+      state.imprRows = parseImpresionesCSV(text);
+      state.imprUpdatedAt = Date.now(); // se conserva, pero ya no se muestra en pantalla
+    } catch(e){
+      console.error("IMPRESIONES:", e);
+      state.imprRows = state.imprRows || [];
+    }
+  }
+  // ===================== FIN IMPRESIONES =====================
+
+  // ===================== SÍLABOS (NUEVO) =====================
+  const SILABOS = {
+    "AGRARIA": [
+      { name:"RAZ. MATEMÁTICO", url:"https://docs.google.com/spreadsheets/d/1cost_xvSR9VRFb271chp9H6kWOWl9tcML_YW0oa7yRw/edit" },
+      { name:"RAZ. VERBAL", url:"https://docs.google.com/spreadsheets/d/15o_A2VH5mK23k99a9uUVM19lnDvQXgvFpBTyDeQct6k/edit" },
+      { name:"ARITMÉTICA", url:"https://docs.google.com/spreadsheets/d/1ecqBHOiGPcJZHK-pQLgZVL05DJ11nojEV8m3_cFszrs/edit" },
+      { name:"ÁLGEBRA", url:"https://docs.google.com/spreadsheets/d/1AeOuMxAbq9BMCe6SDYbfH9KxC4JG-naCVr-ePVoupYY/edit?gid=11988891#gid=11988891" },
+      { name:"GEOMETRÍA", url:"https://docs.google.com/spreadsheets/d/1NEqVFKLJUSFNuVdhPcVj8zt98IpJZyvxNqhjcquovkk/edit?gid=11988891#gid=11988891" },
+      { name:"TRIGONOMETRÍA", url:"https://docs.google.com/spreadsheets/d/1FBu6heTtfsvZfLZyhihECQfLpuozdTZFgQUEza8DnAA/edit?gid=11988891#gid=11988891" },
+      { name:"FÍSICA", url:"https://docs.google.com/spreadsheets/d/1WrpeZk4CxJLh9T5qylMbOBTD6kAPF_3dhbmaJRKtE10/edit?usp=drive_web&ouid=109996193497961946614" },
+      { name:"QUÍMICA", url:"https://docs.google.com/spreadsheets/d/1VDu1iJP4nXOAJVkrqot4ZKqRlfmSttkdmDGA9mlZj_U/edit?gid=11988891#gid=11988891" },
+      { name:"BIOLOGÍA", url:"https://docs.google.com/spreadsheets/d/1JdUEKgdVFdSMzNsqmLxVs8CTh_bbdJlPNKegi05QFjk/edit" },
+      { name:"ECONOMÍA", url:"https://docs.google.com/spreadsheets/d/1cPs5QW6GZuBOIXH_bXrgamUG_mgTPzCPp0myMHJzt9Y/edit?gid=482549845#gid=482549845" },
+      { name:"HISTORIA", url:"https://docs.google.com/spreadsheets/d/1BlbP3Oxo0WZKNs9NT9829Eq7mcI28qrLy_71Ui4O0vo/edit?gid=376763430#gid=376763430" },
+      { name:"GEOGRAFÍA", url:"https://docs.google.com/spreadsheets/d/115VUXKuIaFyHV5gpSs0QsBpWRGomMhVPVg0H2kroG1M/edit" },
+    ],
+    "PUCP": [
+      { name:"TEXTOS", url:"https://docs.google.com/spreadsheets/d/11PPCqit8X-uD5e2coD0vHsAPv7ro6uLRsp5_jyMl0rQ/edit" },
+      { name:"NÚMEROS Y OPERACIONES", url:"https://docs.google.com/spreadsheets/d/1JmMRZKDt2455BMyXNK-wwc6aMucArgtgJFHwLVvv-yQ/edit?usp=drive_web&ouid=109996193497961946614" },
+      { name:"ÁLGEBRA", url:"https://docs.google.com/spreadsheets/d/1BVZUYGBZgeVjgi-FVwoGTiCnUDnbBwDTRxPxRX4cbk4/edit?usp=drive_web&ouid=109996193497961946614" },
+      { name:"GEOMETRÍA Y MEDIDA", url:"https://docs.google.com/spreadsheets/d/1kS4G-2eCe14yo96lbvoMATNkNMcY7ASu8dqgxztlgk4/edit?gid=11988891#gid=11988891" },
+      { name:"ESTADÍSTICA", url:"https://docs.google.com/spreadsheets/d/1Gz_o4RWmabJqRVGwEAJQKQqpP-J5AKl-yZpLhjSo-ho/edit" },
+      { name:"HABILIDAD OPERATIVA", url:"https://docs.google.com/spreadsheets/d/1_HS6Go17zYGNPtjOU3voSJ-wOvE0UYPNSA-Acrdc0Z0/edit" },
+    ],
+    "U.LIMA": [
+      { name:"RAZ. MATEMÁTICO", url:"https://docs.google.com/spreadsheets/d/12Z20sVKqSanxX2sw9cQ_jT0HroEV-fzz4RWLEKvVQYY/edit?gid=11988891#gid=11988891" },
+      { name:"ÁLGEBRA", url:"https://docs.google.com/spreadsheets/d/1SXpr5vnKQaEnxBpiauxBTyBzN_iSnAso1A7EpVOXy1E/edit" },
+      { name:"GEOMETRÍA Y TRIGONOMETRÍA", url:"https://docs.google.com/spreadsheets/d/1PX97aFUQy_yzugcQ7c4Fgpg3-xHA-Eb7VFOK-MFUcc0/edit?gid=11988891#gid=11988891" },
+      { name:"ARITMÉTICA", url:"https://docs.google.com/spreadsheets/d/1N_eSBLRHiUcE5EevFw4pnnC-4tV_pPmm1bp7o8DtE04/edit" },
+      { name:"RAZ. VERBAL", url:"https://docs.google.com/spreadsheets/d/10akBiiuoasqVOMfv7g1uHiMKBJ_PHYUjR98fQMqzyQA/edit" },
+      { name:"TEXTOS", url:"https://docs.google.com/spreadsheets/d/1vgmeTjdoPPfzauwUhqWcCdr6j7UWodDSWhtmX9P-lG0/edit" },
+      { name:"LENGUAJE", url:"https://docs.google.com/spreadsheets/d/1e79bVVbVYL7QdFLiMWFMdDGYQrz1ye9FQAHVxcPUyUU/edit" },
+      { name:"PROCESOS", url:"https://docs.google.com/spreadsheets/d/1ISwc2A8G-jISa5ni-oebxF6D8C2l0O0QJkD8eKTPcjI/edit" },
+      { name:"HABILIDAD OPERATIVA", url:"https://docs.google.com/spreadsheets/d/1SebdIqWuN8y1Rt9ypqu5Q3TZfh91_EpP6RwAV5i8oCw/edit" },
+    ]
+  };
+
+  function uniDot(uni){
+    if (uni==="AGRARIA") return getCss("--agraria");
+    if (uni==="PUCP") return getCss("--pucp");
+    return getCss("--ulima");
+  }
+
+  function ensureSilabosLayout(){
+    const el = document.getElementById("view_silabos");
+    if (el.dataset.ready === "1") return;
+
+    el.innerHTML = `
+      <div class="card panel12">
+        <div class="cardtitle">FILTROS</div>
+        <div class="controls" style="justify-content:flex-start;">
+          <select id="sUni"></select>
+          <input id="sQ" type="text" placeholder="Buscar curso (ej: álgebra, física, textos)"/>
+          <button id="sReset">VER TODO</button>
+        </div>
+        <div class="panelHint" style="margin-top:10px;">
+          <span class="pill"><span class="dot agraria"></span>AGRARIA</span>
+          <span class="pill"><span class="dot pucp"></span>PUCP</span>
+          <span class="pill"><span class="dot ulima"></span>U.LIMA</span>
+        </div>
+      </div>
+
+      <div class="card panel12">
+        <div class="syLocalHead">
+          <div class="cardtitle" style="margin:0;">RESUMEN GENERAL</div>
+          <div class="syKpis">
+            <span class="syKpiPill">CURSOS: <b id="sTotal">0</b></span>
+            <span class="syKpiPill">UNIVERSIDADES: <b id="sUnis">3</b></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel12" id="sBlocks"></div>
+    `;
+
+    fillSelectKeep("sUni", ["AGRARIA","PUCP","U.LIMA"], "UNIVERSIDAD: TODAS");
+
+    document.getElementById("sReset").addEventListener("click", ()=>{
+      document.getElementById("sUni").value="__ALL__";
+      document.getElementById("sQ").value="";
+      renderSilabos();
+    });
+    document.getElementById("sUni").addEventListener("change", renderSilabos);
+    document.getElementById("sQ").addEventListener("input", renderSilabos);
+
+    el.dataset.ready = "1";
+  }
+
+  function renderSilabos(){
+    ensureSilabosLayout();
+
+    const fUni = document.getElementById("sUni").value;
+    const q = low(document.getElementById("sQ").value);
+
+    const uniOrder = ["AGRARIA","PUCP","U.LIMA"];
+    let unis = uniOrder.slice();
+    if (fUni !== "__ALL__") unis = unis.filter(u=>u===fUni);
+
+    let totalCourses = 0;
+
+    const blocks = unis.map(uni=>{
+      const dot = uniDot(uni);
+      let list = (SILABOS[uni] || []).slice();
+
+      if (q){
+        list = list.filter(x => low(x.name).includes(q));
+      }
+
+      totalCourses += list.length;
+
+      const items = list.map(it=>{
+        return `
+          <a class="syItem" href="${escapeHtml(it.url)}" target="_blank" rel="noopener noreferrer">
+            <div class="syLeft">
+              <div class="syCourse">${escapeHtml(it.name)}</div>
+              <div class="syMeta">
+                <span class="dot" style="background:${dot};"></span>
+                <span>${escapeHtml(uni)}</span>
+              </div>
+            </div>
+            <div class="syOpen">ABRIR EXCEL</div>
+          </a>
+        `;
+      }).join("");
+
+      return `
+        <div class="card panel12">
+          <div class="syLocalHead">
+            <div class="cardtitle" style="margin:0;">
+              ${escapeHtml(uni)}
+            </div>
+            <div class="syKpis">
+              <span class="syKpiPill">CURSOS: <b>${list.length}</b></span>
+            </div>
+          </div>
+          <div class="syWrap">
+            ${items || `<div class="card panel12" style="box-shadow:none;">
+              <div class="cardtitle">SIN RESULTADOS</div>
+              <div style="color:var(--muted); font-weight:900;">No se encontraron cursos con el filtro actual.</div>
+            </div>`}
+          </div>
+        </div>
+      `;
+    }).join("");
+
+    document.getElementById("sTotal").textContent = totalCourses.toLocaleString("es-PE");
+    document.getElementById("sBlocks").innerHTML = blocks || `
+      <div class="card panel12">
+        <div class="cardtitle">SIN DATOS</div>
+        <div style="color:var(--muted); font-weight:900;">No se encontraron sílabos para mostrar.</div>
+      </div>
+    `;
+  }
+  // ===================== FIN SÍLABOS =====================
+// ===================== MATERIALES (NUEVO) =====================
+const MATERIALES = [
+  { uni:"AGRARIA", url:"https://drive.google.com/drive/folders/1IXvAs551Wzjm2NbU2Ljoa9H4CudSG5he" },
+  { uni:"PUCP",    url:"https://drive.google.com/drive/folders/1uKPA66xWD56-hObLiNzf7fafFH0GbXkw" },
+  { uni:"U.LIMA",  url:"https://drive.google.com/drive/folders/1bFR0PRaSJFGnSJy6Ii6jU8SvHKCJrC9n" },
+];
+
+function ensureMaterialesLayout(){
+  const el = document.getElementById("view_materiales");
+  if (el.dataset.ready === "1") return;
+
+  el.innerHTML = `
+    <div class="card panel12">
+      <div class="cardtitle">MATERIALES</div>
+      <div style="color:var(--muted); font-weight:900; margin-bottom:12px;">
+        Acceso directo a carpetas por universidad.
+      </div>
+
+      <div class="iGrid" id="matGrid"></div>
+    </div>
+  `;
+  el.dataset.ready = "1";
+}
+
+function renderMateriales(){
+  ensureMaterialesLayout();
+
+  const grid = document.getElementById("matGrid");
+  grid.innerHTML = MATERIALES.map(x => {
+    const dot =
+      x.uni === "AGRARIA" ? getCss("--agraria") :
+      x.uni === "PUCP"    ? getCss("--pucp") :
+                            getCss("--ulima");
+
+    return `
+      <a class="iItem" href="${escapeHtml(x.url)}" target="_blank" rel="noopener"
+         style="text-decoration:none; color:inherit;">
+        <div class="iLeft">
+          <div class="iSalon">${escapeHtml(x.uni)}</div>
+          <div class="iMeta">
+            <span class="dot" style="background:${dot};"></span>
+            <span>ABRIR CARPETA</span>
+          </div>
+        </div>
+        <div class="iNum" style="color:${dot};">→</div>
+      </a>
+    `;
+  }).join("");
+}
+// ===================== LISTAS (NUEVO) =====================
+const LISTAS = [
+  // ================= LA MOLINA =================
+  { local:"LA MOLINA", name:"AGRARIA 1", url:"https://docs.google.com/spreadsheets/d/1-8NMov8UicPEBIGDlNLu_qkxy7YZ_4jULswoAhvGQ5w/edit?gid=1104164959#gid=1104164959" },
+  { local:"LA MOLINA", name:"AGRARIA 2", url:"https://docs.google.com/spreadsheets/d/12JXoFV7DE8o9_hrPK_QgRpsOhv9mD7wxVqVMlTgVdt0/edit?usp=drive_web&ouid=109996193497961946614" },
+  { local:"LA MOLINA", name:"PUCP",      url:"https://docs.google.com/spreadsheets/d/11ccHJmPBzkCuWgMWfUKwRfOUgyWG4_8a2rM8Ur_BYq0/edit" },
+  { local:"LA MOLINA", name:"U.LIMA",    url:"https://docs.google.com/spreadsheets/d/1y3hfwo3NYmrShRNBOdwLCwM9AUd9Aj2YoJtfgvlZrOY/edit?usp=drive_web&ouid=109996193497961946614" },
+  { local:"LA MOLINA", name:"PARALELO",  url:"https://docs.google.com/spreadsheets/d/1uqJMpS3_QY6DmvnDjatf8tWcArf8kCtyYjIt7mSpJXU/edit?usp=drive_web&ouid=109996193497961946614" },
+  { local:"LA MOLINA", name:"ADELANTO",  url:"https://docs.google.com/spreadsheets/d/1k6oglFw7pd-XqFyv4NZf5xl0MM7PYZ507vuSFkp6uFU/edit?gid=1104164959#gid=1104164959" },
+
+  // ================= SAN MIGUEL =================
+  { local:"SAN MIGUEL", name:"AGRARIA",   url:"https://docs.google.com/spreadsheets/d/1m1AYybda5vQFrhth8GogCdF9Y-ukbt9g5kgnAssTZcc/edit" },
+  { local:"SAN MIGUEL", name:"PUCP",      url:"https://docs.google.com/spreadsheets/d/1a2H6-1tUwosj2cRCXQ_kzcfT0CILTIJLomS-xcr7WsM/edit?usp=drive_web&ouid=109996193497961946614" },
+  { local:"SAN MIGUEL", name:"U.LIMA 1",  url:"https://docs.google.com/spreadsheets/d/1epSbc_HEN0VfVQXE581x6uU-QcuDZ0kESwL5WlRwYgU/edit?usp=drive_web&ouid=109996193497961946614" },
+  { local:"SAN MIGUEL", name:"U.LIMA 2",  url:"https://docs.google.com/spreadsheets/d/1--AqnIDhIdZvbeIUjYC_BPwdHHHOAhSIqOnmIODNUkU/edit?usp=drive_web&ouid=109996193497961946614" },
+  { local:"SAN MIGUEL", name:"PARALELO",  url:"https://docs.google.com/spreadsheets/d/1KlFuLnC99juHJoI7VT9Ez6cVN3c-X76eZzcZS17IXqM/edit?gid=1104164959#gid=1104164959" },
+  { local:"SAN MIGUEL", name:"ADELANTO",  url:"https://docs.google.com/spreadsheets/d/1SrjJdlBjeNf12I0XFZ0FuripltmSNNmPOa_bTD0pZa8/edit?usp=drive_web&ouid=109996193497961946614" },
+
+  // ================= SAN BORJA =================
+  { local:"SAN BORJA", name:"AGRARIA",   url:"https://docs.google.com/spreadsheets/d/1m9Ysoosg3G37OLpjQqk2jhqZ6wDJARBYm-6VbY5CaZA/edit?usp=drive_web&ouid=109996193497961946614" },
+  { local:"SAN BORJA", name:"PUCP",      url:"https://docs.google.com/spreadsheets/d/1MUPBs6yAWzUgU02Qz2PnJ-kVmVtS82XdM89IXlnwF8g/edit?usp=drive_web&ouid=109996193497961946614" },
+  { local:"SAN BORJA", name:"U.LIMA 1",  url:"https://docs.google.com/spreadsheets/d/1yPhbG38WC0tl97qQ5LXahAS2L6jqSdga6u3vAkuneC0/edit?usp=drive_web&ouid=109996193497961946614" },
+  { local:"SAN BORJA", name:"U.LIMA 2",  url:"https://docs.google.com/spreadsheets/d/1BJSLmUr2ECAfanxuI2py0R2Yi_eqovmkHuLcUNgMFSw/edit?usp=drive_web&ouid=109996193497961946614" },
+
+  // ================= VIRTUAL =================
+  { local:"VIRTUAL", name:"AGRARIA",   url:"https://docs.google.com/spreadsheets/d/1IaN_cx4XYJUf5-lFW8RcB8qAZAfox8jd-lJyc4A37hs/edit?gid=1104164959#gid=1104164959" },
+    { local:"VIRTUAL", name:"U.LIMA 1",  url:"https://docs.google.com/spreadsheets/d/1o22eorhLJWwKU3gyZgkB204MBVZX5tQ11jP3p73ll3s/edit?gid=1104164959#gid=1104164959" },
+  { local:"VIRTUAL", name:"U.LIMA 2",  url:"https://docs.google.com/spreadsheets/d/1KGhDGI2tKrXs2sf29m2_y0ft6P7VtKyq4rNU_rWTMSE/edit?gid=1104164959#gid=1104164959" },
+  { local:"VIRTUAL", name:"ESCOLAR",   url:"https://docs.google.com/spreadsheets/d/15JJwUgf7WARdS4yBjUPAxkUigrPXm3LjTqrFJBI1mxE/edit?usp=drive_web&ouid=109996193497961946614" },
+];
+const LISTAS_LOCAL_ORDER = ["LA MOLINA","SAN MIGUEL","SAN BORJA","VIRTUAL"];
+
+function sortListasByLocalOrder(values){
+  return values.slice().sort((a,b)=>{
+    const ia = LISTAS_LOCAL_ORDER.indexOf(a); 
+    const ib = LISTAS_LOCAL_ORDER.indexOf(b);
+    return (ia<0?999:ia) - (ib<0?999:ib);
+  });
+}
+
+function ensureListasLayout(){
+  const el = document.getElementById("view_listas");
+  if (el.dataset.ready === "1") return;
+
+  el.innerHTML = `
+    <div class="card panel12">
+      <div class="cardtitle">FILTROS</div>
+      <div class="controls" style="justify-content:flex-start;">
+        <select id="lLocal"></select>
+        <input id="lQ" type="text" placeholder="Buscar (ej: agraria, pucp, paralelo, adelanto)"/>
+        <button id="lReset">VER TODO</button>
+      </div>
+    </div>
+
+    <div class="card panel12">
+      <div class="syLocalHead">
+        <div class="cardtitle" style="margin:0;">RESUMEN</div>
+        <div class="syKpis">
+          <span class="syKpiPill">ENLACES: <b id="lTotal">0</b></span>
+          <span class="syKpiPill">SEDES: <b id="lLocs">0</b></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel12" id="lBlocks"></div>
+  `;
+
+  const locals = uniq(LISTAS.map(x=>x.local));
+  fillSelectKeep("lLocal", sortListasByLocalOrder(locals), "LOCAL: TODOS");
+
+  document.getElementById("lReset").addEventListener("click", ()=>{
+    document.getElementById("lLocal").value="__ALL__";
+    document.getElementById("lQ").value="";
+    renderListas();
+  });
+  document.getElementById("lLocal").addEventListener("change", renderListas);
+  document.getElementById("lQ").addEventListener("input", renderListas);
+
+  el.dataset.ready = "1";
+}
+function listaMetaFromName(name){
+  const s = String(name || "").toUpperCase();
+
+  // Paralelo / Adelanto => rojo al final
+  if (s.includes("PARALELO") || s.includes("ADELANTO")){
+    const red = getCss("--accent2");
+    return { group: 3, dot: red, label: "PARALELO / ADELANTO" };
+  }
+
+  // AGRARIA => verde
+  if (s.includes("AGRARIA")){
+    const c = getCss("--agraria");
+    return { group: 0, dot: c, label: "AGRARIA" };
+  }
+
+  // PUCP => azul
+  if (s.includes("PUCP")){
+    const c = getCss("--pucp");
+    return { group: 1, dot: c, label: "PUCP" };
+  }
+
+  // U.LIMA / LIMA / ESCOLAR => naranja
+  if (s.includes("U.LIMA") || s.includes("U LIMA") || s.includes("ULIMA") || s.includes("LIMA") || s.includes("ESCOLAR")){
+    const c = getCss("--ulima");
+    return { group: 2, dot: c, label: "U.LIMA" };
+  }
+
+  // Si algo no calza, lo mandamos al final en rojo
+  const red = getCss("--accent2");
+  return { group: 3, dot: red, label: "OTRO" };
+}
+
+function renderListas(){
+  ensureListasLayout();
+
+  const fLocal = document.getElementById("lLocal").value;
+  const q = low(document.getElementById("lQ").value);
+
+  let base = LISTAS.slice();
+  if (fLocal !== "__ALL__") base = base.filter(x=>x.local===fLocal);
+  if (q) base = base.filter(x => low(x.name).includes(q) || low(x.local).includes(q));
+
+  // agrupar por local (orden fijo)
+  const byLocal = new Map();
+  for (const it of base){
+    if (!byLocal.has(it.local)) byLocal.set(it.local, []);
+    byLocal.get(it.local).push(it);
+  }
+
+  const orderedLocals = [...byLocal.keys()].sort((a,b)=>{
+    const ia = LISTAS_LOCAL_ORDER.indexOf(a);
+    const ib = LISTAS_LOCAL_ORDER.indexOf(b);
+    return (ia<0?999:ia) - (ib<0?999:ib);
+  });
+
+  let totalLinks = 0;
+
+  const blocks = orderedLocals.map(loc=>{
+    const list = byLocal.get(loc).slice().sort((a,b)=>{
+      const ma = listaMetaFromName(a.name);
+      const mb = listaMetaFromName(b.name);
+      if (ma.group !== mb.group) return ma.group - mb.group;
+      return String(a.name||"").localeCompare(String(b.name||""), "es");
+    });
+
+    totalLinks += list.length;
+
+const items = list.map(it=>{
+  const meta = listaMetaFromName(it.name);
+
+  return `
+    <a class="syItem" href="${escapeHtml(it.url)}" target="_blank" rel="noopener noreferrer">
+      <div class="syLeft">
+        <div class="syCourse">${escapeHtml(it.name)}</div>
+        <div class="syMeta">
+          <span class="dot" style="background:${meta.dot};"></span>
+          <span>${escapeHtml(loc)}</span>
+        </div>
+      </div>
+      <div class="syOpen">ABRIR</div>
+    </a>
+  `;
+}).join("");
+
+
+    return `
+      <div class="card panel12">
+        <div class="syLocalHead">
+          <div class="cardtitle" style="margin:0;">${escapeHtml(loc)}</div>
+          <div class="syKpis">
+            <span class="syKpiPill">ENLACES: <b>${list.length}</b></span>
+          </div>
+        </div>
+        <div class="syWrap">
+          ${items || `<div class="card panel12" style="box-shadow:none;">
+            <div class="cardtitle">SIN RESULTADOS</div>
+            <div style="color:var(--muted); font-weight:900;">No hay listas con el filtro actual.</div>
+          </div>`}
+        </div>
+      </div>
+    `;
+  }).join("");
+
+  document.getElementById("lTotal").textContent = totalLinks.toLocaleString("es-PE");
+  document.getElementById("lLocs").textContent  = orderedLocals.length.toLocaleString("es-PE");
+  document.getElementById("lBlocks").innerHTML  = blocks || `
+    <div class="card panel12">
+      <div class="cardtitle">SIN DATOS</div>
+      <div style="color:var(--muted); font-weight:900;">No se encontraron listas para mostrar.</div>
+    </div>
+  `;
+}
+// ===================== FIN LISTAS =====================
+
+// ===================== ENVÍO DE REPORTES (NUEVO) =====================
+// ✅ Pega tus enlaces en el campo url (deja "" si aún no tienes el link).
+// ✅ Se mantiene el mismo ORDEN y COLORES que en LISTAS (AGRARIA verde, PUCP azul, U.LIMA/ESCOLAR naranja, ADELANTO/PARALELO rojo).
+const REPORTES = [
+  // ================= LA MOLINA =================
+  { local:"LA MOLINA", name:"AGRARIA LM 1",      url:"https://colab.research.google.com/drive/1VTKBuf26KoDD_qum3r1r-bQnbZTRkXdg" },
+  { local:"LA MOLINA", name:"AGRARIA LM 2",      url:"https://colab.research.google.com/drive/17sCgiKn2UdrE-gOuO9f5ouAxf4gPOqvy" },
+  { local:"LA MOLINA", name:"PUCP LM",           url:"https://colab.research.google.com/drive/1Edgesw6yJC1vD7J44Sq7ZMqouXImuINU" },
+  { local:"LA MOLINA", name:"U.LIMA LM",         url:"https://colab.research.google.com/drive/1TU7HoBroIBo7XONr4hifgd0r3gzKQbd1" },
+  { local:"LA MOLINA", name:"ADELANTO LM",       url:"https://colab.research.google.com/drive/1GmBZNfVlXi7z6DUTg3hnVMiW0DlONKJ-" },
+
+  // ================= SAN MIGUEL =================
+  { local:"SAN MIGUEL", name:"AGRARIA SM",       url:"https://colab.research.google.com/drive/1OZWR5Z1HaAVgmWx2ofS4d0nj-Arl9sMs" },
+  { local:"SAN MIGUEL", name:"PUCP SM",          url:"https://colab.research.google.com/drive/1roEJq2NiU4pQB8rsbhDKvR_g8wjCKgoi" },
+  { local:"SAN MIGUEL", name:"U.LIMA SM 1",      url:"https://colab.research.google.com/drive/1wLAf1p8LmF4dI-qLVjTv8Ax0XmJH2vHr" },
+  { local:"SAN MIGUEL", name:"U.LIMA SM 2",      url:"https://colab.research.google.com/drive/1AKoWoQ4LzXg7DCJNF_Vaqw9kmUXxuuWu" },
+  { local:"SAN MIGUEL", name:"ADELANTO SM",      url:"https://colab.research.google.com/drive/1K_LFFycdNc6KS_LMCb5-2groejZlvBXI" },
+
+  // ================= SAN BORJA =================
+  { local:"SAN BORJA",  name:"AGRARIA SB",       url:"https://colab.research.google.com/drive/14r9W48Q1pvH9ANFB15c7sbk7pYoWOf-_" },
+  { local:"SAN BORJA",  name:"PUCP SB",          url:"https://colab.research.google.com/drive/1czyfJSMFAMdDkjXvI8t3UPNO9KfzGtIC" },
+  { local:"SAN BORJA",  name:"U.LIMA SB 1",      url:"https://colab.research.google.com/drive/1mElja6XYJ25gG10y-UneEgjUFEDK-i-M" },
+  { local:"SAN BORJA",  name:"U.LIMA SB 2",      url:"https://colab.research.google.com/drive/19KkIWlb1oNy4VoRCflfv6GWXPlQNO6-u" },
+
+  // ================= VIRTUAL =================
+  { local:"VIRTUAL",    name:"AGRARIA VIRTUAL",  url:"https://colab.research.google.com/drive/1jmxIzW1yB3h_k4J3Y9cbcqS8t3QwUW6P" },
+  { local:"VIRTUAL",    name:"U.LIMA VIRTUAL 1",   url:"https://colab.research.google.com/drive/1-AOKPLGxlb2OWCoMDrAA0kXCZRj3hrNI" },
+  { local:"VIRTUAL",    name:"U.LIMA VIRTUAL 2",   url:"https://colab.research.google.com/drive/1tX_yYM7H1s_dHACnLoPJo4kTePWVc8jJ" },
+  { local:"VIRTUAL",    name:"U.LIMA ESCOLAR",   url:"https://colab.research.google.com/drive/1Wmj0Py2AdOihL_hXZCT-kfbj2ezqvbDe" },
+];
+
+function ensureReportesLayout(){
+  const el = document.getElementById("view_reportes");
+  if (el.dataset.ready === "1") return;
+
+  el.innerHTML = `
+    <div class="card panel12">
+      <div class="cardtitle">FILTROS</div>
+      <div class="controls" style="justify-content:flex-start;">
+        <select id="rLocal"></select>
+        <input id="rQ" type="text" placeholder="Buscar (ej: agraria, pucp, u.lima, paralelo, adelanto, virtual)"/>
+        <button id="rReset">VER TODO</button>
+      </div>
+    </div>
+
+    <div class="card panel12">
+      <div class="syLocalHead">
+        <div class="cardtitle" style="margin:0;">RESUMEN</div>
+        <div class="syKpis">
+          <span class="syKpiPill">AULAS: <b id="rTotal">0</b></span>
+          <span class="syKpiPill">SEDES: <b id="rLocs">0</b></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel12" id="rBlocks"></div>
+  `;
+
+  const locals = uniq(REPORTES.map(x=>x.local));
+  fillSelectKeep("rLocal", sortListasByLocalOrder(locals), "LOCAL: TODOS");
+
+  document.getElementById("rReset").addEventListener("click", ()=>{
+    document.getElementById("rLocal").value="__ALL__";
+    document.getElementById("rQ").value="";
+    renderReportes();
+  });
+  document.getElementById("rLocal").addEventListener("change", renderReportes);
+  document.getElementById("rQ").addEventListener("input", renderReportes);
+
+  el.dataset.ready = "1";
+}
+
+function renderReportes(){
+  ensureReportesLayout();
+
+  const fLocal = document.getElementById("rLocal").value;
+  const q = low(document.getElementById("rQ").value);
+
+  let base = REPORTES.slice();
+  if (fLocal !== "__ALL__") base = base.filter(x=>x.local===fLocal);
+  if (q) base = base.filter(x => low(x.name).includes(q) || low(x.local).includes(q));
+
+  // agrupar por local (orden fijo)
+  const byLocal = new Map();
+  for (const it of base){
+    if (!byLocal.has(it.local)) byLocal.set(it.local, []);
+    byLocal.get(it.local).push(it);
+  }
+
+  const orderedLocals = [...byLocal.keys()].sort((a,b)=>{
+    const ia = LISTAS_LOCAL_ORDER.indexOf(a);
+    const ib = LISTAS_LOCAL_ORDER.indexOf(b);
+    return (ia<0?999:ia) - (ib<0?999:ib);
+  });
+
+  let total = 0;
+
+  const blocks = orderedLocals.map(loc=>{
+    const list = byLocal.get(loc).slice().sort((a,b)=>{
+      const ma = listaMetaFromName(a.name);
+      const mb = listaMetaFromName(b.name);
+      if (ma.group !== mb.group) return ma.group - mb.group;
+      return String(a.name||"").localeCompare(String(b.name||""), "es");
+    });
+
+    total += list.length;
+
+    const items = list.map(it=>{
+      const meta = listaMetaFromName(it.name);
+      const hasUrl = !!(it.url && String(it.url).trim().length>0);
+
+      if (!hasUrl){
+        return `
+          <div class="syItem" style="opacity:.70; cursor:default;">
+            <div class="syLeft">
+              <div class="syCourse">${escapeHtml(it.name)}</div>
+              <div class="syMeta">
+                <span class="dot" style="background:${meta.dot};"></span>
+                <span>${escapeHtml(loc)}</span>
+              </div>
+            </div>
+            <div class="syOpen">PENDIENTE</div>
+          </div>
+        `;
+      }
+
+      return `
+        <a class="syItem" href="${escapeHtml(it.url)}" target="_blank" rel="noopener noreferrer">
+          <div class="syLeft">
+            <div class="syCourse">${escapeHtml(it.name)}</div>
+            <div class="syMeta">
+              <span class="dot" style="background:${meta.dot};"></span>
+              <span>${escapeHtml(loc)}</span>
+            </div>
+          </div>
+          <div class="syOpen">ENVIAR REPORTE</div>
+        </a>
+      `;
+    }).join("");
+
+    return `
+      <div class="card panel12">
+        <div class="syLocalHead">
+          <div class="cardtitle" style="margin:0;">${escapeHtml(loc)}</div>
+          <div class="syKpis">
+            <span class="syKpiPill">AULAS: <b>${list.length}</b></span>
+          </div>
+        </div>
+        <div class="syWrap">
+          ${items || `<div class="card panel12" style="box-shadow:none;">
+            <div class="cardtitle">SIN RESULTADOS</div>
+            <div style="color:var(--muted); font-weight:900;">No hay aulas con el filtro actual.</div>
+          </div>`}
+        </div>
+      </div>
+    `;
+  }).join("");
+
+  document.getElementById("rTotal").textContent = total.toLocaleString("es-PE");
+  document.getElementById("rLocs").textContent  = orderedLocals.length.toLocaleString("es-PE");
+  document.getElementById("rBlocks").innerHTML  = blocks || `
+    <div class="card panel12">
+      <div class="cardtitle">SIN DATOS</div>
+      <div style="color:var(--muted); font-weight:900;">No se encontraron reportes para mostrar.</div>
+    </div>
+  `;
+}
+// ===================== FIN ENVÍO DE REPORTES =====================
+
+  // ===================== HORARIOS =====================
+  const DAYS = ["LUNES","MARTES","MIÉRCOLES","JUEVES","VIERNES","SÁBADO"];
+
+  const TIME_ROWS = [
+    { start:"08:00", end:"08:30", label:"8:00 - 8:30" },
+    { start:"08:30", end:"09:00", label:"8:30 - 9:00" },
+    { start:"09:00", end:"09:30", label:"9:00 - 9:30" },
+
+    { start:"09:30", end:"09:50", label:"9:30 - 9:50" },
+    { start:"09:50", end:"10:00", label:"" },
+
+    { start:"10:00", end:"10:30", label:"10:00 - 10:30" },
+    { start:"10:30", end:"11:00", label:"10:30 - 11:00" },
+    { start:"11:00", end:"11:30", label:"11:00 - 11:30" },
+
+    { start:"11:30", end:"11:50", label:"11:30 - 11:50" },
+    { start:"11:50", end:"12:00", label:"" },
+
+    { start:"12:00", end:"12:30", label:"12:00 - 12:30" },
+    { start:"12:30", end:"13:00", label:"12:30 - 13:00" },
+    { start:"13:00", end:"13:30", label:"13:00 - 13:30" },
+
+    { start:"13:30", end:"13:50", label:"13:30 - 13:50" },
+    { start:"13:50", end:"15:00", label:"13:50 - 15:00" },
+
+    { start:"15:00", end:"15:30", label:"15:00 - 15:30" },
+    { start:"15:30", end:"16:00", label:"15:30 - 16:00" },
+    { start:"16:00", end:"16:30", label:"16:00 - 16:30" },
+    { start:"16:30", end:"17:00", label:"16:30 - 17:00" },
+
+    { start:"17:00", end:"17:30", label:"17:00 - 17:30" },
+    { start:"17:30", end:"18:00", label:"17:30 - 18:00" },
+  ];
+
+  const TIME_MARKS = (()=>{
+    const marks = TIME_ROWS.map(r=>r.start);
+    marks.push(TIME_ROWS[TIME_ROWS.length-1].end);
+    return marks;
+  })();
+  function idxMark(t){ return TIME_MARKS.indexOf(t); }
+
+  function normalizeDayKey(d){
+    const x = String(d||"").trim().toUpperCase();
+    if (x==="MIERCOLES") return "MIÉRCOLES";
+    if (x==="SABADO") return "SÁBADO";
+    return x;
+  }
+
+  // “ÁLG 1” / “RV 2” / “FÍS 1” / “G&M 1” / “G&T 2” => 1 sola línea
+  function isCodePlusNumber(tokens){
+    if (tokens.length !== 2) return false;
+    const left = tokens[0];
+    const right = tokens[1];
+    const num = /^[0-9]+$/.test(right);
+    if (!num) return false;
+
+    // ✅ acepta & y puntos (G&M, G&T, REF.)
+    const okLeft = /^[A-ZÁÉÍÓÚÑ&\.]{2,}$/.test(left);
+    return okLeft;
+  }
+
+  // Convierte course en 1–3 líneas (slots 1–3). Docente siempre slot 4.
+  function courseToLines(courseRaw){
+    let s = norm(courseRaw || "");
+    if (!s) return [];
+
+    // Forzado manual por el usuario
+    if (s.includes("\n")){
+      return s.split("\n").map(norm).filter(Boolean).slice(0,3);
+    }
+    if (s.includes(" / ")){
+      return s.split(" / ").map(norm).filter(Boolean).slice(0,3);
+    }
+
+    const tokens = s.split(" ").map(norm).filter(Boolean);
+
+    // ✅ Caso “REF. ÁLG 2” o “REF RM 2”:
+    // REF. arriba, “ÁLG 2” al centro (como bloque), profesor abajo
+    const t0 = (tokens[0] || "").toUpperCase();
+    const isRef = (t0 === "REF" || t0 === "REF." || t0.startsWith("REF."));
+    if (isRef && tokens.length >= 2){
+      const rest = tokens.slice(1);
+      if (isCodePlusNumber(rest.slice(0,2)) && rest.length === 2){
+        return [tokens[0], `${rest[0]} ${rest[1]}`];
+      }
+      // si no es code+num, lo dejamos como segunda línea completa
+      return [tokens[0], rest.join(" ")].slice(0,3);
+    }
+
+    // “ÁLG 1” => una línea
+    if (isCodePlusNumber(tokens)) return [`${tokens[0]} ${tokens[1]}`];
+
+    // 1 token => una línea
+    if (tokens.length === 1) return [tokens[0]];
+
+    // 2 tokens => dos líneas
+    if (tokens.length === 2) return [tokens[0], tokens[1]];
+
+    // 3 o más => tres líneas (máximo)
+    return [tokens[0], tokens[1], tokens.slice(2).join(" ")].slice(0,3);
+  }
+
+  function renderCell4(courseRaw, teacherRaw){
+    const lines = courseToLines(courseRaw);
+    const teacher = norm(teacherRaw || "");
+
+    // ✅ Reglas de colocación:
+    // - 1 línea => centro (slot2)
+    // - 2 líneas => arriba + centro (slot1 + slot2)  [más ordenado]
+    // - 3 líneas => slot1 + slot2 + slot3
+    let slot1 = "", slot2 = "", slot3 = "";
+    if (lines.length === 3){
+      slot1 = lines[0]; slot2 = lines[1]; slot3 = lines[2];
+    } else if (lines.length === 2){
+      slot1 = lines[0]; slot2 = lines[1];
+    } else if (lines.length === 1){
+      slot2 = lines[0];
+    }
+
+    return `
+      <div class="cell4">
+        <div class="slot"><div class="cLine">${escapeHtml(slot1)}</div></div>
+        <div class="slot"><div class="cLine">${escapeHtml(slot2)}</div></div>
+        <div class="slot"><div class="cLine">${escapeHtml(slot3)}</div></div>
+        <div class="slot"><div class="tLine">${teacher ? escapeHtml(teacher) : "&nbsp;"}</div></div>
+      </div>
+    `;
+  }
+
+  function buildScheduleMatrix(schedule){
+    const rows = TIME_ROWS.map(()=> {
+      const o = {};
+      DAYS.forEach(d=>o[d] = { kind:"empty" });
+      return o;
+    });
+
+    for (const b of (schedule.blocks||[])){
+      const day = normalizeDayKey(b.day);
+      if (!DAYS.includes(day)) continue;
+
+      const s = idxMark(b.start);
+      const e = idxMark(b.end);
+      if (s < 0 || e < 0 || e <= s) continue;
+
+      const rowStart = TIME_ROWS.findIndex(r=>r.start === b.start);
+      if (rowStart < 0) continue;
+
+      let span = 0;
+      for (let i=rowStart; i<TIME_ROWS.length; i++){
+        const row = TIME_ROWS[i];
+        span++;
+        if (row.end === b.end) break;
+        const nextMark = idxMark(row.end);
+        if (nextMark >= e) break;
+      }
+
+      rows[rowStart][day] = {
+        kind:"start",
+        rowspan: span,
+        block: {
+          course: b.course || "",
+          teacher: b.teacher || ""
+        }
+      };
+
+      for (let k=1; k<span; k++){
+        const rr = rowStart + k;
+        if (rr >= TIME_ROWS.length) break;
+        rows[rr][day] = { kind:"skip" };
+      }
+    }
+
+    return rows;
+  }
+
+  function uniDotColor(uni){
+    if (uni==="AGRARIA") return getCss("--agraria");
+    if (uni==="PUCP") return getCss("--pucp");
+    return getCss("--ulima");
+  }
+
+  function scheduleToHtmlCard(s){
+    const dot = uniDotColor(s.uni);
+    const matrix = buildScheduleMatrix(s);
+
+    const colgroup = `
+      <colgroup>
+        <col class="timeCol">
+        ${DAYS.map(()=>`<col>`).join("")}
+      </colgroup>
+    `;
+
+    const thead = `
+      <thead>
+        <tr>
+          <th class="timeHead">AG</th>
+          ${DAYS.map(d=>`<th>${escapeHtml(d)}</th>`).join("")}
+        </tr>
+      </thead>
+    `;
+
+    const tbody = matrix.map((rowObj, i)=>{
+      const timeLabel = TIME_ROWS[i].label;
+      const timeCell = `<td class="timeCell">${escapeHtml(timeLabel)}</td>`;
+
+      const tds = DAYS.map(d=>{
+        const cell = rowObj[d];
+        if (cell.kind === "skip") return "";
+        if (cell.kind === "start"){
+          return `
+            <td class="schCell" rowspan="${cell.rowspan}">
+              ${renderCell4(cell.block.course, cell.block.teacher)}
+            </td>
+          `;
+        }
+        return `<td class="schEmpty"></td>`;
+      }).join("");
+
+      return `<tr>${timeCell}${tds}</tr>`;
+    }).join("");
+
+    return `
+      <div class="schCard" data-id="${escapeHtml(s.id)}" data-local="${escapeHtml(s.local)}" data-uni="${escapeHtml(s.uni)}" data-salon="${escapeHtml(s.salon)}">
+        <div class="schHead">
+          <div class="hLeft">
+            <p class="loc">${escapeHtml(s.local)}</p>
+            <p class="sal">${escapeHtml(s.salon)}</p>
+          </div>
+
+          <div style="display:flex; gap:10px; align-items:center;">
+            <div class="schUniPill">
+              <span class="b" style="background:${dot};"></span>
+              ${escapeHtml(s.uni)}
+            </div>
+            <button class="schDl" data-sid="${escapeHtml(s.id)}">DESCARGAR PNG</button>
+          </div>
+        </div>
+
+        <div class="schTableWrap">
+          <table class="schTable">
+            ${colgroup}
+            ${thead}
+            <tbody>${tbody}</tbody>
+          </table>
+        </div>
+      </div>
+    `;
+  }
+
+  // ===================== ORDEN DE HORARIOS =====================
+  const LOCAL_ORDER = ["LA MOLINA","SAN MIGUEL","SAN BORJA","VIRTUAL"];
+  const UNI_ORDER = ["AGRARIA","PUCP","U.LIMA"];
+
+  function sortSchedules(list){
+    const idxLoc = (x)=> {
+      const i = LOCAL_ORDER.indexOf(x.local);
+      return i<0 ? 999 : i;
+    };
+    const idxUni = (x)=> {
+      const i = UNI_ORDER.indexOf(x.uni);
+      return i<0 ? 999 : i;
+    };
+    return list.slice().sort((a,b)=>{
+      const dl = idxLoc(a) - idxLoc(b);
+      if (dl !== 0) return dl;
+      const du = idxUni(a) - idxUni(b);
+      if (du !== 0) return du;
+      return String(a.salon||"").localeCompare(String(b.salon||""), "es");
+    });
+  }
+
+  /* ======================================================================
+    HORARIOS (SCHEDULES)
+  ====================================================================== */
+  const SCHEDULES = sortSchedules([
+    // ========================= AGRARIA =========================
+    {
+      id:"AGR_LM_1",
+      local:"LA MOLINA",
+      uni:"AGRARIA",
+      salon:"AGRARIA LM 1",
+      blocks:[
+        { day:"LUNES", start:"08:00", end:"09:50", course:"HIS", teacher:"RIOJA" },
+        { day:"MARTES", start:"08:00", end:"09:50", course:"ECO", teacher:"SOTO" },
+        { day:"MIÉRCOLES", start:"08:00", end:"09:50", course:"RV 1", teacher:"TABER" },
+        { day:"JUEVES", start:"08:00", end:"09:50", course:"GEO", teacher:"TORRES" },
+        { day:"VIERNES", start:"08:00", end:"09:50", course:"FÍS 1", teacher:"RUBEN" },
+        { day:"SÁBADO", start:"08:00", end:"11:00", course:"SIM", teacher:"" },
+
+        { day:"LUNES", start:"10:00", end:"11:50", course:"QUÍ 1", teacher:"COSTA" },
+        { day:"MARTES", start:"10:00", end:"11:50", course:"ARI", teacher:"DIAZ" },
+        { day:"MIÉRCOLES", start:"10:00", end:"11:50", course:"REF. MAT", teacher:"ANGEL" },
+        { day:"JUEVES", start:"10:00", end:"11:50", course:"TRI", teacher:"TORRES" },
+        { day:"VIERNES", start:"10:00", end:"11:50", course:"RM 1", teacher:"OBANDO" },
+
+        { day:"LUNES", start:"12:00", end:"13:50", course:"GGF", teacher:"RIOJA" },
+        { day:"MARTES", start:"12:00", end:"13:50", course:"ÁLG 1", teacher:"UCANCIAL" },
+        { day:"MIÉRCOLES", start:"12:00", end:"13:50", course:"TXT", teacher:"ZAVALA" },
+        { day:"JUEVES", start:"12:00", end:"13:50", course:"BIO 1", teacher:"LUYO" },
+        { day:"VIERNES", start:"12:00", end:"13:50", course:"FÍS 2", teacher:"RUBEN" },
+
+        { day:"LUNES", start:"15:00", end:"17:00", course:"QUÍ 2", teacher:"COSTA" },
+        { day:"MARTES", start:"15:00", end:"17:00", course:"ÁLG 2", teacher:"UCANCIAL" },
+        { day:"MIÉRCOLES", start:"15:00", end:"17:00", course:"RV 2", teacher:"TABER" },
+        { day:"JUEVES", start:"15:00", end:"17:00", course:"BIO 2", teacher:"LUYO" },
+        { day:"VIERNES", start:"15:00", end:"17:00", course:"RM 2", teacher:"OBANDO" },
+      ]
+    },
+
+    {
+      id:"AGR_LM_2",
+      local:"LA MOLINA",
+      uni:"AGRARIA",
+      salon:"AGRARIA LM 2",
+      blocks:[
+        { day:"LUNES", start:"08:00", end:"09:50", course:"QUÍ 1", teacher:"COSTA" },
+        { day:"MARTES", start:"08:00", end:"09:50", course:"ARI", teacher:"DÍAZ" },
+        { day:"MIÉRCOLES", start:"08:00", end:"09:50", course:"REF. MAT", teacher:"ÁNGEL" },
+        { day:"JUEVES", start:"08:00", end:"09:50", course:"BIO 1", teacher:"LUYO" },
+        { day:"VIERNES", start:"08:00", end:"09:50", course:"RM 1", teacher:"OBANDO" },
+        { day:"SÁBADO", start:"08:00", end:"11:00", course:"SIM", teacher:"" },
+
+        { day:"LUNES", start:"10:00", end:"11:50", course:"HIS", teacher:"RIOJA" },
+        { day:"MARTES", start:"10:00", end:"11:50", course:"ALG 1", teacher:"UCANCIAL" },
+        { day:"MIÉRCOLES", start:"10:00", end:"11:50", course:"RV 1", teacher:"TABER" },
+        { day:"JUEVES", start:"10:00", end:"11:50", course:"BIO 2", teacher:"LUYO" },
+        { day:"VIERNES",start:"10:00", end:"11:50", course:"FIS 1", teacher:"RUBEN" },
+
+        { day:"LUNES", start:"12:00", end:"13:50", course:"QUÍ 2", teacher:"COSTA" },
+        { day:"MARTES", start:"12:00", end:"13:50", course:"EVAS", teacher:"JASON" },
+        { day:"MIÉRCOLES", start:"12:00", end:"13:50", course:"RV 2", teacher:"TABER" },
+        { day:"JUEVES", start:"12:00", end:"13:50", course:"TRI", teacher:"TORRES" },
+        { day:"VIERNES", start:"12:00", end:"13:50", course:"RM 2", teacher:"OBANDO" },
+
+        { day:"LUNES", start:"15:00", end:"17:00", course:"GGF", teacher:"RIOJA" },
+        { day:"MARTES", start:"15:00", end:"17:00", course:"ECO", teacher:"SOTO" },
+        { day:"MIÉRCOLES", start:"15:00", end:"17:00", course:"GEO", teacher:"TORRES" },
+        { day:"JUEVES", start:"15:00", end:"17:00", course:"ÁLG 2", teacher:"UCANCIAL" },
+        { day:"VIERNES", start:"15:00", end:"17:00", course:"FÍS 2", teacher:"RUBÉN" },
+      ]
+    },
+
+    {
+      id:"AGR_SM",
+      local:"SAN MIGUEL",
+      uni:"AGRARIA",
+      salon:"AGRARIA SM",
+      blocks:[
+        { day:"LUNES", start:"08:00", end:"09:50", course:"RM 1", teacher:"OBANDO" },
+        { day:"MARTES", start:"08:00", end:"09:50", course:"BIO 1", teacher:"ZERILLO" },
+        { day:"MIÉRCOLES", start:"08:00", end:"09:50", course:"HIS", teacher:"RIOJA" },
+        { day:"JUEVES", start:"08:00", end:"09:50", course:"QUÍ 1", teacher:"COSTA" },
+        { day:"VIERNES", start:"08:00", end:"09:50", course:"RV 1", teacher:"TABER" },
+        { day:"SÁBADO", start:"08:00", end:"11:00", course:"SIM", teacher:"" },
+
+        { day:"LUNES", start:"10:00", end:"11:50", course:"GEO", teacher:"JULCA" },
+        { day:"MARTES", start:"10:00", end:"11:50", course:"BIO 2", teacher:"ZERILLO" },
+        { day:"MIÉRCOLES", start:"10:00", end:"11:50", course:"GGF", teacher:"RIOJA" },
+        { day:"JUEVES", start:"10:00", end:"11:50", course:"QUÍ 2", teacher:"COSTA" },
+        { day:"VIERNES", start:"10:00", end:"11:50", course:"REF. MAT", teacher:"MARCELA" },
+
+        { day:"LUNES", start:"12:00", end:"13:50", course:"TXT", teacher:"ZAVALA" },
+        { day:"MARTES", start:"13:00", end:"15:00", course:"FÍS 1", teacher:"RUBÉN" },
+        { day:"MIÉRCOLES", start:"13:00", end:"15:00", course:"ECO", teacher:"SOTO" },
+        { day:"JUEVES", start:"13:00", end:"15:00", course:"ARI", teacher:"DÍAZ" },
+        { day:"VIERNES", start:"12:00", end:"13:50", course:"RV 2", teacher:"TABER" },
+
+        { day:"LUNES", start:"15:00", end:"17:00", course:"RM 2", teacher:"OBANDO" },
+        { day:"MARTES", start:"15:00", end:"17:00", course:"FÍS", teacher:"RUBÉN" },
+        { day:"MIÉRCOLES", start:"15:00", end:"17:00", course:"ÁLG 1", teacher:"UCANCIAL" },
+        { day:"JUEVES", start:"15:00", end:"17:00", course:"TRI", teacher:"JULCA" },
+        { day:"VIERNES", start:"15:00", end:"17:00", course:"ÁLG 2", teacher:"UCANCIAL" },
+      ]
+    },
+
+    {
+      id:"AGR_SB",
+      local:"SAN BORJA",
+      uni:"AGRARIA",
+      salon:"AGRARIA SB",
+      blocks:[
+        { day:"LUNES", start:"08:00", end:"09:50", course:"ÁLG 1", teacher:"UCANCIAL" },
+        { day:"MARTES", start:"08:00", end:"09:50", course:"FÍS 1", teacher:"RUBÉN" },
+        { day:"MIÉRCOLES", start:"08:00", end:"09:50", course:"BIO", teacher:"LUYO" },
+        { day:"JUEVES", start:"08:00", end:"09:50", course:"RM 2", teacher:"OBANDO" },
+        { day:"VIERNES", start:"08:00", end:"09:50", course:"GEO", teacher:"JULCA" },
+        { day:"SÁBADO", start:"08:00", end:"11:00", course:"SIM", teacher:"" },
+
+        { day:"LUNES", start:"10:00", end:"11:50", course:"ARI", teacher:"DÍAZ" },
+        { day:"MARTES", start:"10:00", end:"11:50", course:"FÍS 2", teacher:"RUBÉN" },
+        { day:"MIÉRCOLES", start:"10:00", end:"11:50", course:"BIO 2", teacher:"LUYO" },
+        { day:"JUEVES", start:"10:00", end:"11:50", course:"REF. MAT", teacher:"OBANDO" },
+        { day:"VIERNES", start:"10:00", end:"11:50", course:"TRI", teacher:"JULCA" },
+
+        { day:"LUNES", start:"12:00", end:"13:50", course:"RV 1", teacher:"TABER" },
+        { day:"MARTES", start:"12:00", end:"13:50", course:"RV 2", teacher:"TABER" },
+        { day:"MIÉRCOLES", start:"13:00", end:"15:00", course:"HIS", teacher:"RIOJA" },
+        { day:"JUEVES", start:"13:00", end:"15:00", course:"QUÍ 1", teacher:"COSTA" },
+        { day:"VIERNES", start:"12:00", end:"13:50", course:"TXT", teacher:"ZAVALA" },
+
+        { day:"LUNES", start:"15:00", end:"17:00", course:"ÁLG 2", teacher:"UCANCIAL" },
+        { day:"MARTES", start:"15:00", end:"17:00", course:"RM 1", teacher:"OBANDO" },
+        { day:"MIÉRCOLES", start:"15:00", end:"17:00", course:"GGF", teacher:"RIOJA" },
+        { day:"JUEVES", start:"15:00", end:"17:00", course:"QUÍ 2", teacher:"COSTA" },
+        { day:"VIERNES", start:"15:00", end:"17:00", course:"ECO", teacher:"SOTO" },
+      ]
+    },
+
+    {
+      id:"AGR_VIRT",
+      local:"VIRTUAL",
+      uni:"AGRARIA",
+      salon:"AGRARIA VIRTUAL",
+      blocks:[
+        { day:"LUNES", start:"08:00", end:"09:50", course:"RM 1", teacher:"OBANDO" },
+        { day:"MARTES", start:"08:00", end:"09:50", course:"BIO 1", teacher:"ZERILLO" },
+        { day:"MIÉRCOLES", start:"08:00", end:"09:50", course:"HIS", teacher:"RIOJA" },
+        { day:"JUEVES", start:"08:00", end:"09:50", course:"QUÍ 1", teacher:"COSTA" },
+        { day:"VIERNES", start:"08:00", end:"09:50", course:"RV 1", teacher:"TABER" },
+        { day:"SÁBADO", start:"08:00", end:"11:00", course:"SIM", teacher:"" },
+
+        { day:"LUNES", start:"10:00", end:"11:50", course:"GEO", teacher:"JULCA" },
+        { day:"MARTES", start:"10:00", end:"11:50", course:"BIO 2", teacher:"ZERILLO" },
+        { day:"MIÉRCOLES", start:"10:00", end:"11:50", course:"GGF", teacher:"RIOJA" },
+        { day:"JUEVES", start:"10:00", end:"11:50", course:"QUÍ 2", teacher:"COSTA" },
+        { day:"VIERNES", start:"10:00", end:"11:50", course:"REF. MAT", teacher:"MARCELA" },
+
+        { day:"LUNES", start:"12:00", end:"13:50", course:"TXT", teacher:"ZAVALA" },
+        { day:"MARTES", start:"13:00", end:"15:00", course:"FÍS 1", teacher:"RUBÉN" },
+        { day:"MIÉRCOLES", start:"13:00", end:"15:00", course:"ECO", teacher:"SOTO" },
+        { day:"JUEVES", start:"13:00", end:"15:00", course:"ARI", teacher:"DÍAZ" },
+        { day:"VIERNES", start:"12:00", end:"13:50", course:"RV 2", teacher:"TABER" },
+
+        { day:"LUNES", start:"15:00", end:"17:00", course:"RM 2", teacher:"OBANDO" },
+        { day:"MARTES", start:"15:00", end:"17:00", course:"FÍS", teacher:"RUBÉN" },
+        { day:"MIÉRCOLES", start:"15:00", end:"17:00", course:"ÁLG 1", teacher:"UCANCIAL" },
+        { day:"JUEVES", start:"15:00", end:"17:00", course:"TRI", teacher:"JULCA" },
+        { day:"VIERNES", start:"15:00", end:"17:00", course:"ÁLG 2", teacher:"UCANCIAL" },
+      ]
+    },
+
+    // ========================= PUCP =========================
+    {
+      id:"PUCP_LM",
+      local:"LA MOLINA",
+      uni:"PUCP",
+      salon:"PUCP LM",
+      blocks:[
+        { day:"LUNES", start:"08:00", end:"09:50", course:"SOL", teacher:"TORRES" },
+        { day:"MARTES", start:"08:00", end:"09:50", course:"PRE N&O", teacher:"CHAMBI R." },
+        { day:"MIÉRCOLES", start:"08:00", end:"09:50", course:"TXT 1", teacher:"ZAVALA" },
+        { day:"JUEVES", start:"08:00", end:"09:50", course:"ÁLG 1", teacher:"UCANCIAL" },
+        { day:"VIERNES", start:"08:00", end:"09:50", course:"G&M 1", teacher:"TORRES" },
+
+        { day:"LUNES", start:"10:00", end:"11:50", course:"PRE TXT", teacher:"TABER" },
+        { day:"MARTES", start:"10:00", end:"11:50", course:"PRE ÁLG", teacher:"OBANDO" },
+        { day:"MIÉRCOLES", start:"10:00", end:"11:50", course:"TXT 2", teacher:"ZAVALA" },
+        { day:"JUEVES", start:"10:00", end:"11:50", course:"G&M", teacher:"ÁNGEL" },
+        { day:"VIERNES", start:"10:00", end:"11:50", course:"REF. G&M 2", teacher:"TORRES" },
+
+        { day:"LUNES", start:"12:00", end:"13:50", course:"N&O 1", teacher:"DÍAZ P." },
+        { day:"MARTES", start:"12:00", end:"13:50", course:"N&O 2", teacher:"DÍAZ P." },
+        { day:"MIÉRCOLES", start:"12:00", end:"13:50", course:"HOP", teacher:"CHAMBI J." },
+        { day:"JUEVES", start:"12:00", end:"13:50", course:"ÁLG 2", teacher:"UCANCIAL" },
+        { day:"VIERNES", start:"12:00", end:"14:00", course:"SIM", teacher:"" },
+
+        { day:"MARTES", start:"15:00", end:"17:00", course:"EST", teacher:"DÍAZ P." },
+        { day:"MIÉRCOLES", start:"15:00", end:"17:00", course:"PRÁC", teacher:"CHAMBI J." },
+      ]
+    },
+
+    {
+      id:"PUCP_SM",
+      local:"SAN MIGUEL",
+      uni:"PUCP",
+      salon:"PUCP SM",
+      blocks:[
+        { day:"LUNES", start:"08:00", end:"09:50", course:"TXT 1", teacher:"ZAVALA" },
+        { day:"MARTES", start:"08:00", end:"09:50", course:"G&M 1", teacher:"JULCA" },
+        { day:"MIÉRCOLES", start:"08:00", end:"09:50", course:"ÁLG 1", teacher:"UCANCIAL" },
+        { day:"JUEVES", start:"08:00", end:"09:50", course:"N&O 1", teacher:"DÍAZ" },
+        { day:"VIERNES", start:"08:00", end:"09:50", course:"PRE ÁLG", teacher:"MARCELA" },
+
+        { day:"LUNES", start:"10:00", end:"11:50", course:"TXT 2", teacher:"ZAVALA" },
+        { day:"MARTES", start:"10:00", end:"11:50", course:"PRE TXT", teacher:"VALDIVIA" },
+        { day:"MIÉRCOLES", start:"10:00", end:"11:50", course:"ÁLG 2", teacher:"UCANCIAL" },
+        { day:"JUEVES", start:"10:00", end:"11:50", course:"N&O 2", teacher:"DÍAZ" },
+        { day:"VIERNES", start:"10:00", end:"11:50", course:"PRE TXT", teacher:"JARA" },
+
+        { day:"LUNES", start:"12:00", end:"13:50", course:"SOL", teacher:"MARCELA" },
+        { day:"MARTES", start:"12:00", end:"13:50", course:"G&M 2", teacher:"JULCA" },
+        { day:"MIÉRCOLES", start:"12:00", end:"13:50", course:"PRE G&M", teacher:"JULCA" },
+        { day:"JUEVES", start:"12:00", end:"13:50", course:"PRE N&O", teacher:"TORERO" },
+        { day:"VIERNES", start:"12:00", end:"14:00", course:"SIM", teacher:"" },
+
+        { day:"MARTES", start:"15:00", end:"17:00", course:"EST", teacher:"JULCA" },
+        { day:"JUEVES", start:"15:00", end:"17:00", course:"PRÁC", teacher:"TORERO" },
+      ]
+    },
+
+    {
+      id:"PUCP_SB",
+      local:"SAN BORJA",
+      uni:"PUCP",
+      salon:"PUCP SB",
+      blocks:[
+        { day:"LUNES", start:"08:00", end:"09:50", course:"SOL", teacher:"CHAMBI J." },
+        { day:"MARTES", start:"08:00", end:"09:50", course:"RM 1", teacher:"OBANDO" },
+        { day:"MIÉRCOLES", start:"08:00", end:"09:50", course:"ARI 1", teacher:"DÍAZ P." },
+        { day:"JUEVES", start:"08:00", end:"09:50", course:"G&M 1", teacher:"JULCA" },
+        { day:"VIERNES", start:"08:00", end:"09:50", course:"LEN", teacher:"ZAVALA" },
+        { day:"SÁBADO", start:"08:00", end:"10:00", course:"SIM", teacher:"" },
+
+        { day:"LUNES", start:"10:00", end:"11:50", course:"ÁLG 1", teacher:"UCANCIAL" },
+        { day:"MARTES", start:"10:00", end:"11:50", course:"RV", teacher:"TABER" },
+        { day:"MIÉRCOLES", start:"10:00", end:"11:50", course:"REF. ÁLG", teacher:"DÍAZ J." },
+        { day:"JUEVES", start:"10:00", end:"11:50", course:"G&M 2", teacher:"JULCA" },
+        { day:"VIERNES", start:"10:00", end:"11:50", course:"PRO", teacher:"ZAVALA" },
+
+        { day:"LUNES", start:"12:00", end:"13:50", course:"ÁLG 2", teacher:"UCANCIAL" },
+        { day:"MARTES", start:"12:00", end:"13:50", course:"RM 2", teacher:"OBANDO" },
+        { day:"MIÉRCOLES", start:"12:00", end:"13:50", course:"ARI 2", teacher:"DÍAZ P." },
+        { day:"JUEVES", start:"12:00", end:"13:50", course:"REF. RM", teacher:"OBANDO" },
+        { day:"VIERNES", start:"12:00", end:"15:00", course:"REF. ARI", teacher:"SOTO" },
+
+        { day:"MARTES", start:"15:00", end:"17:00", course:"PRE ÁLG", teacher:"ÁNGEL" },
+        { day:"MIÉRCOLES", start:"15:00", end:"17:00", course:"PRE N&O", teacher:"PERCY D." },
+        { day:"JUEVES", start:"15:00", end:"17:00", course:"PRE G&M", teacher:"ÁNGEL" },
+      ]
+    },
+
+    // ========================= U.LIMA =========================
+    {
+      id:"UL_LM",
+      local:"LA MOLINA",
+      uni:"U.LIMA",
+      salon:"U.LIMA LM",
+      blocks:[
+        { day:"LUNES", start:"08:00", end:"09:50", course:"RV", teacher:"TABER" },
+        { day:"MARTES", start:"08:00", end:"09:50", course:"ÁLG 1", teacher:"UCANCIAL" },
+        { day:"MIÉRCOLES", start:"08:00", end:"09:50", course:"ARI 1", teacher:"CHAMBI J." },
+        { day:"JUEVES", start:"08:00", end:"09:50", course:"LEN", teacher:"VALDIVIA" },
+        { day:"VIERNES", start:"08:00", end:"09:50", course:"REF RM", teacher:"SOTO" },
+        { day:"SÁBADO", start:"08:00", end:"10:00", course:"SIM", teacher:"" },
+
+        { day:"LUNES", start:"10:00", end:"11:50", course:"SOL", teacher:"TORRES" },
+        { day:"MARTES", start:"10:00", end:"11:50", course:"RM 1", teacher:"CHAMBI R." },
+        { day:"MIÉRCOLES", start:"10:00", end:"11:50", course:"ARI 2", teacher:"CHAMBI J." },
+        { day:"JUEVES", start:"10:00", end:"11:50", course:"ÁLG 2", teacher:"UCANCIAL" },
+        { day:"VIERNES", start:"10:00", end:"11:50", course:"ARI", teacher:"SOTO" },
+
+        { day:"LUNES", start:"12:00", end:"13:50", course:"G&T 1", teacher:"TORRES" },
+        { day:"MARTES", start:"12:00", end:"13:50", course:"RM 2", teacher:"CHAMBI R." },
+        { day:"MIÉRCOLES", start:"12:00", end:"13:50", course:"REF. G&T", teacher:"ÁNGEL" },
+        { day:"JUEVES", start:"12:00", end:"13:50", course:"HOP", teacher:"ÁNGEL" },
+        { day:"VIERNES", start:"12:00", end:"13:50", course:"G&T 2", teacher:"TORRES" },
+
+        { day:"JUEVES", start:"15:00", end:"17:00", course:"VIRT PRO", teacher:"RIOJA" },
+      ]
+    },
+
+    {
+      id:"UL_SM_1",
+      local:"SAN MIGUEL",
+      uni:"U.LIMA",
+      salon:"U.LIMA SM 1",
+      blocks:[
+        { day:"LUNES", start:"08:00", end:"09:50", course:"G&T 1", teacher:"JULCA" },
+        { day:"MARTES", start:"08:00", end:"09:50", course:"ARI 1", teacher:"CHAMBI J." },
+        { day:"MIÉRCOLES", start:"08:00", end:"09:50", course:"RM 1", teacher:"SOTO" },
+        { day:"JUEVES", start:"08:00", end:"09:50", course:"HOP", teacher:"TORERO" },
+        { day:"VIERNES", start:"08:00", end:"09:50", course:"LEN", teacher:"JARA" },
+        { day:"SÁBADO", start:"08:00", end:"10:00", course:"SIM", teacher:"" },
+
+        { day:"LUNES", start:"10:00", end:"11:50", course:"SOL", teacher:"MARCELA" },
+        { day:"MARTES", start:"10:00", end:"11:50", course:"REF G&T", teacher:"JULCA" },
+        { day:"MIÉRCOLES", start:"10:00", end:"11:50", course:"RM 2", teacher:"SOTO" },
+        { day:"JUEVES", start:"10:00", end:"11:50", course:"REF. RM", teacher:"CHAMBI R." },
+        { day:"VIERNES", start:"10:00", end:"11:50", course:"RV", teacher:"TABER" },
+
+        { day:"LUNES", start:"12:00", end:"13:50", course:"G&T 2", teacher:"JULCA" },
+        { day:"MARTES", start:"12:00", end:"13:50", course:"ARI 2", teacher:"CHAMBI J." },
+        { day:"MIÉRCOLES", start:"12:00", end:"13:50", course:"ÁLG 1", teacher:"UCANCIAL" },
+        { day:"JUEVES", start:"12:00", end:"13:50", course:"REF. ARI", teacher:"MARCO" },
+        { day:"VIERNES", start:"13:00", end:"15:00", course:"ÁLG 2", teacher:"UCANCIAL" },
+
+        { day:"MARTES", start:"15:00", end:"17:00", course:"VIRT PRO", teacher:"RIOJA" },
+      ]
+    },
+
+    {
+      id:"UL_SM_2",
+      local:"SAN MIGUEL",
+      uni:"U.LIMA",
+      salon:"U.LIMA SM 2",
+      blocks:[
+        { day:"LUNES", start:"08:00", end:"09:50", course:"SOL", teacher:"MARCELA" },
+        { day:"MARTES", start:"08:00", end:"09:50", course:"LEN", teacher:"VALDIVIA" },
+        { day:"MIÉRCOLES", start:"08:00", end:"09:50", course:"G&T 1", teacher:"JULCA" },
+        { day:"JUEVES", start:"08:00", end:"09:50", course:"RM 1", teacher:"CHAMBI R." },
+        { day:"VIERNES", start:"08:00", end:"09:50", course:"ÁLG 1", teacher:"MARCO CH." },
+        { day:"SÁBADO", start:"08:00", end:"10:00", course:"SIM", teacher:"" },
+
+        { day:"LUNES", start:"10:00", end:"11:50", course:"ARI 1", teacher:"OBANDO" },
+        { day:"MARTES", start:"10:00", end:"11:50", course:"REF. RM", teacher:"CHAMBI J." },
+        { day:"MIÉRCOLES", start:"10:00", end:"11:50", course:"G&T 2", teacher:"JULCA" },
+        { day:"JUEVES", start:"10:00", end:"11:50", course:"HOP", teacher:"TORERO" },
+        { day:"VIERNES", start:"10:00", end:"11:50", course:"ÁLG 2", teacher:"MARCO CH." },
+
+        { day:"LUNES", start:"12:00", end:"13:50", course:"ARI 2", teacher:"OBANDO" },
+        { day:"MARTES", start:"12:00", end:"13:50", course:"REF. ARI", teacher:"MARCO CH." },
+        { day:"MIÉRCOLES", start:"12:00", end:"13:50", course:"REF. ÁLG", teacher:"MARCELA" },
+        { day:"JUEVES", start:"12:00", end:"13:50", course:"RM 2", teacher:"CHAMBI R." },
+        { day:"VIERNES", start:"12:00", end:"13:50", course:"RV", teacher:"JARA" },
+
+        { day:"MARTES", start:"16:00", end:"18:00", course:"VIRT PRO", teacher:"RIOJA" },
+      ]
+    },
+
+    {
+      id:"UL_SB_1",
+      local:"SAN BORJA",
+      uni:"U.LIMA",
+      salon:"U.LIMA SB 1",
+      blocks:[
+        { day:"LUNES", start:"08:00", end:"09:50", course:"SOL", teacher:"CHAMBI J." },
+        { day:"MARTES", start:"08:00", end:"09:50", course:"RM 1", teacher:"OBANDO" },
+        { day:"MIÉRCOLES", start:"08:00", end:"09:50", course:"ARI 1", teacher:"DÍAZ" },
+        { day:"JUEVES", start:"08:00", end:"09:50", course:"G&T 1", teacher:"JULCA" },
+        { day:"VIERNES", start:"08:00", end:"09:50", course:"LEN", teacher:"ZAVALA" },
+        { day:"SÁBADO", start:"08:00", end:"10:00", course:"SIM", teacher:"" },
+
+        { day:"LUNES", start:"10:00", end:"11:50", course:"ÁLG 1", teacher:"UCANCIAL" },
+        { day:"MARTES", start:"10:00", end:"11:50", course:"RV", teacher:"TABER" },
+        { day:"MIÉRCOLES", start:"10:00", end:"11:50", course:"REF. ÁLG", teacher:"DÍAZ J." },
+        { day:"JUEVES", start:"10:00", end:"11:50", course:"G&T 2", teacher:"JULCA" },
+        { day:"VIERNES", start:"10:00", end:"11:50", course:"TXT", teacher:"ZAVALA" },
+
+        { day:"LUNES", start:"12:00", end:"13:50", course:"ÁLG 2", teacher:"UCANCIAL" },
+        { day:"MARTES", start:"12:00", end:"13:50", course:"RM 2", teacher:"OBANDO" },
+        { day:"MIÉRCOLES", start:"12:00", end:"13:50", course:"ARI 2", teacher:"DÍAZ" },
+        { day:"JUEVES", start:"12:00", end:"13:50", course:"REF. RM", teacher:"OBANDO" },
+        { day:"VIERNES", start:"12:00", end:"13:50", course:"REF. ARI", teacher:"SOTO" },
+
+        { day:"MARTES", start:"16:00", end:"18:00", course:"VIRT PRO", teacher:"RIOJA" },
+        { day:"MIÉRCOLES", start:"15:00", end:"17:00", course:"PRÁCT", teacher:"DÍAZ" },
+      ]
+    },
+
+    {
+      id:"UL_SB_2",
+      local:"SAN BORJA",
+      uni:"U.LIMA",
+      salon:"U.LIMA SB 2",
+      blocks:[
+        { day:"LUNES", start:"08:00", end:"09:50", course:"SOL", teacher:"DÍAZ" },
+        { day:"MARTES", start:"08:00", end:"09:50", course:"RV", teacher:"TABER" },
+        { day:"MIÉRCOLES", start:"08:00", end:"09:50", course:"REF. ARI", teacher:"DÍAZ J." },
+        { day:"JUEVES", start:"08:00", end:"09:50", course:"REF. G&T", teacher:"ÁNGEL" },
+        { day:"VIERNES", start:"08:00", end:"09:50", course:"ÁLG 1", teacher:"UCANCIAL" },
+        { day:"SÁBADO", start:"08:00", end:"10:00", course:"SIM", teacher:"" },
+
+        { day:"LUNES", start:"10:00", end:"11:50", course:"ARI 1", teacher:"CHAMBI J." },
+        { day:"MARTES", start:"10:00", end:"11:50", course:"RM 1", teacher:"SOTO" },
+        { day:"MIÉRCOLES", start:"10:00", end:"11:50", course:"HOP", teacher:"DÍAZ" },
+        { day:"JUEVES", start:"10:00", end:"11:50", course:"LEN", teacher:"VALDIVIA" },
+        { day:"VIERNES", start:"10:00", end:"11:50", course:"ÁLG 2", teacher:"UCANCIAL" },
+
+        { day:"LUNES", start:"12:00", end:"13:50", course:"ARI 2", teacher:"CHAMBI J." },
+        { day:"MARTES", start:"12:00", end:"13:50", course:"RM 2", teacher:"SOTO" },
+        { day:"MIÉRCOLES", start:"12:00", end:"13:50", course:"ÁLG 1", teacher:"DÍAZ J." },
+        { day:"JUEVES", start:"12:00", end:"13:50", course:"G&T 1", teacher:"JULCA" },
+        { day:"VIERNES", start:"12:00", end:"13:50", course:"G&T 2", teacher:"JULCA" },
+
+        { day:"MARTES", start:"16:00", end:"18:00", course:"VIRT PRO", teacher:"RIOJA" },
+        { day:"JUEVES", start:"15:00", end:"17:00", course:"PRÁCT", teacher:"OBANDO" },
+      ]
+    },
+
+    {
+      id:"UL_ESC",
+      local:"VIRTUAL",
+      uni:"U.LIMA",
+      salon:"U.LIMA ESCOLAR",
+      blocks:[
+        { day:"LUNES", start:"08:00", end:"09:50", course:"SOL", teacher:"MARCELA" },
+        { day:"MARTES", start:"08:00", end:"09:50", course:"LEN", teacher:"VALDIVIA" },
+        { day:"MIÉRCOLES", start:"08:00", end:"09:50", course:"G&T 1", teacher:"JULCA" },
+        { day:"JUEVES", start:"08:00", end:"09:50", course:"RM 1", teacher:"CHAMBI R." },
+        { day:"VIERNES", start:"08:00", end:"09:50", course:"ÁLG 1", teacher:"MARCO CH." },
+        { day:"SÁBADO", start:"08:00", end:"10:00", course:"SIM", teacher:"" },
+
+        { day:"LUNES", start:"10:00", end:"11:50", course:"ARI 1", teacher:"OBANDO" },
+        { day:"MARTES", start:"10:00", end:"11:50", course:"REF. RM", teacher:"CHAMBI J." },
+        { day:"MIÉRCOLES", start:"10:00", end:"11:50", course:"G&T 2", teacher:"JULCA" },
+        { day:"JUEVES", start:"10:00", end:"11:50", course:"HOP", teacher:"TORERO" },
+        { day:"VIERNES", start:"10:00", end:"11:50", course:"ÁLG 2", teacher:"MARCO CH." },
+
+        { day:"LUNES", start:"12:00", end:"13:50", course:"ARI 2", teacher:"OBANDO" },
+        { day:"MARTES", start:"12:00", end:"13:50", course:"REF. ARI", teacher:"MARCO CH." },
+        { day:"MIÉRCOLES", start:"12:00", end:"13:50", course:"REF. ÁLG", teacher:"MARCELA" },
+        { day:"JUEVES", start:"12:00", end:"13:50", course:"RM 2", teacher:"CHAMBI R." },
+        { day:"VIERNES", start:"12:00", end:"13:50", course:"RV", teacher:"JARA" },
+
+        { day:"MARTES", start:"16:00", end:"18:00", course:"VIRT PRO", teacher:"RIOJA" },
+        { day:"JUEVES", start:"15:00", end:"17:00", course:"PRÁCT", teacher:"DÍAZ P." },
+      ]
+    },
+
+        {
+      id:"UL_VIRT_1",
+      local:"VIRTUAL",
+      uni:"U.LIMA",
+      salon:"U.LIMA VIRTUAL 1",
+      blocks:[
+        { day:"LUNES", start:"08:00", end:"09:50", course:"G&T 1", teacher:"JULCA" },
+        { day:"MARTES", start:"08:00", end:"09:50", course:"ARI 1", teacher:"CHAMBI J." },
+        { day:"MIÉRCOLES", start:"08:00", end:"09:50", course:"RM 1", teacher:"SOTO" },
+        { day:"JUEVES", start:"08:00", end:"09:50", course:"HOP", teacher:"TORERO" },
+        { day:"VIERNES", start:"08:00", end:"09:50", course:"LEN", teacher:"JARA" },
+        { day:"SÁBADO", start:"08:00", end:"10:00", course:"SIM", teacher:"" },
+
+        { day:"LUNES", start:"10:00", end:"11:50", course:"SOL", teacher:"MARCELA" },
+        { day:"MARTES", start:"10:00", end:"11:50", course:"REF G&T", teacher:"JULCA" },
+        { day:"MIÉRCOLES", start:"10:00", end:"11:50", course:"RM 2", teacher:"SOTO" },
+        { day:"JUEVES", start:"10:00", end:"11:50", course:"REF. RM", teacher:"CHAMBI R." },
+        { day:"VIERNES", start:"10:00", end:"11:50", course:"RV", teacher:"TABER" },
+
+        { day:"LUNES", start:"12:00", end:"13:50", course:"G&T 2", teacher:"JULCA" },
+        { day:"MARTES", start:"12:00", end:"13:50", course:"ARI 2", teacher:"CHAMBI J." },
+        { day:"MIÉRCOLES", start:"12:00", end:"13:50", course:"ÁLG 1", teacher:"UCANCIAL" },
+        { day:"JUEVES", start:"12:00", end:"13:50", course:"REF. ARI", teacher:"MARCO" },
+        { day:"VIERNES", start:"13:00", end:"15:00", course:"ÁLG 2", teacher:"UCANCIAL" },
+
+        { day:"MARTES", start:"15:00", end:"17:00", course:"VIRT PRO", teacher:"RIOJA" },
+      ]
+    },
+
+    {
+      id:"UL_VIRT_2",
+      local:"VIRTUAL",
+      uni:"U.LIMA",
+      salon:"U.LIMA VIRTUAL 2",
+      blocks:[
+        { day:"LUNES", start:"08:00", end:"09:50", course:"SOL", teacher:"MARCELA" },
+        { day:"MARTES", start:"08:00", end:"09:50", course:"LEN", teacher:"VALDIVIA" },
+        { day:"MIÉRCOLES", start:"08:00", end:"09:50", course:"G&T 1", teacher:"JULCA" },
+        { day:"JUEVES", start:"08:00", end:"09:50", course:"RM 1", teacher:"CHAMBI R." },
+        { day:"VIERNES", start:"08:00", end:"09:50", course:"ÁLG 1", teacher:"MARCO CH." },
+        { day:"SÁBADO", start:"08:00", end:"10:00", course:"SIM", teacher:"" },
+
+        { day:"LUNES", start:"10:00", end:"11:50", course:"ARI 1", teacher:"OBANDO" },
+        { day:"MARTES", start:"10:00", end:"11:50", course:"REF. RM", teacher:"CHAMBI J." },
+        { day:"MIÉRCOLES", start:"10:00", end:"11:50", course:"G&T 2", teacher:"JULCA" },
+        { day:"JUEVES", start:"10:00", end:"11:50", course:"HOP", teacher:"TORERO" },
+        { day:"VIERNES", start:"10:00", end:"11:50", course:"ÁLG 2", teacher:"MARCO CH." },
+
+        { day:"LUNES", start:"12:00", end:"13:50", course:"ARI 2", teacher:"OBANDO" },
+        { day:"MARTES", start:"12:00", end:"13:50", course:"REF. ARI", teacher:"MARCO CH." },
+        { day:"MIÉRCOLES", start:"12:00", end:"13:50", course:"REF. ÁLG", teacher:"MARCELA" },
+        { day:"JUEVES", start:"12:00", end:"13:50", course:"RM 2", teacher:"CHAMBI R." },
+        { day:"VIERNES", start:"12:00", end:"13:50", course:"RV", teacher:"JARA" },
+
+        { day:"MARTES", start:"16:00", end:"18:00", course:"VIRT PRO", teacher:"RIOJA" },
+      ]
+    },
+  ]);
+
+  function ensureHorariosLayout(){
+    const el = document.getElementById("view_horarios");
+    if (el.dataset.ready === "1") return;
+
+    el.innerHTML = `
+      <div class="card panel12">
+        <div class="cardtitle">FILTROS</div>
+        <div class="controls" style="justify-content:flex-start;">
+          <select id="hLocal"></select>
+          <select id="hUni"></select>
+          <select id="hSalon"></select>
+          <button id="hReset">VER TODO</button>
+        </div>
+        <div class="panelHint" style="margin-top:10px;">
+          <span class="pill"><span class="dot agraria"></span>AGRARIA</span>
+          <span class="pill"><span class="dot pucp"></span>PUCP</span>
+          <span class="pill"><span class="dot ulima"></span>U.LIMA</span>
+        </div>
+      </div>
+
+      <div class="panel12">
+        <div class="schGridWrap" id="schGrid"></div>
+      </div>
+    `;
+
+    const locals = uniq(SCHEDULES.map(s=>s.local));
+    fillSelectKeep("hLocal", sortByLocalOrder(locals), "LOCAL: TODOS");
+    fillSelectKeep("hUni", ["AGRARIA","PUCP","U.LIMA"], "UNIVERSIDAD: TODAS");
+
+    document.getElementById("hLocal").value = "__ALL__";
+    document.getElementById("hUni").value = "__ALL__";
+    rebuildHorariosSalonOptions();
+    document.getElementById("hSalon").value = "__ALL__";
+
+    document.getElementById("hLocal").addEventListener("change", ()=>{
+      rebuildHorariosSalonOptions();
+      renderHorarios();
+    });
+    document.getElementById("hUni").addEventListener("change", ()=>{
+      rebuildHorariosSalonOptions();
+      renderHorarios();
+    });
+    document.getElementById("hSalon").addEventListener("change", renderHorarios);
+    document.getElementById("hReset").addEventListener("click", ()=>{
+      document.getElementById("hLocal").value="__ALL__";
+      document.getElementById("hUni").value="__ALL__";
+      rebuildHorariosSalonOptions();
+      document.getElementById("hSalon").value="__ALL__";
+      renderHorarios();
+    });
+
+    el.dataset.ready = "1";
+  }
+
+  function sortByLocalOrder(values){
+    return values.slice().sort((a,b)=>{
+      const ia = LOCAL_ORDER.indexOf(a); const ib = LOCAL_ORDER.indexOf(b);
+      return (ia<0?999:ia) - (ib<0?999:ib);
+    });
+  }
+
+  function rebuildHorariosSalonOptions(){
+    const fLocal = document.getElementById("hLocal").value;
+    const fUni = document.getElementById("hUni").value;
+
+    let base = SCHEDULES.slice();
+    if (fLocal !== "__ALL__") base = base.filter(s=>s.local===fLocal);
+    if (fUni !== "__ALL__") base = base.filter(s=>s.uni===fUni);
+
+    const salones = uniq(base.map(s=>s.salon)).sort((a,b)=>a.localeCompare(b,"es"));
+    fillSelectKeep("hSalon", salones, "SALÓN: TODOS");
+  }
+
+  function renderHorarios(){
+    ensureHorariosLayout();
+
+    const fLocal = document.getElementById("hLocal").value;
+    const fUni   = document.getElementById("hUni").value;
+    const fSalon = document.getElementById("hSalon").value;
+
+    let base = SCHEDULES.slice();
+    if (fLocal !== "__ALL__") base = base.filter(s=>s.local===fLocal);
+    if (fUni !== "__ALL__") base = base.filter(s=>s.uni===fUni);
+    if (fSalon !== "__ALL__") base = base.filter(s=>s.salon===fSalon);
+
+    base = sortSchedules(base);
+
+    const grid = document.getElementById("schGrid");
+    grid.innerHTML = base.map(scheduleToHtmlCard).join("");
+  }
+
+  // ===================== DESCARGAR PNG =====================
+  function safeFileName(s){
+    return String(s||"horario")
+      .trim()
+      .toLowerCase()
+      .replace(/[^\w]+/g,"_")
+      .replace(/^_+|_+$/g,"");
+  }
+
+  async function downloadSchedulePNG(scheduleId){
+    const card = document.querySelector(`.schCard[data-id="${scheduleId}"]`);
+    if (!card) return;
+
+    const prevBody = document.body.classList.contains("exportMode");
+    document.body.classList.add("exportMode");
+
+    // ocultar botón para que no salga en la imagen
+    const btn = card.querySelector(".schDl");
+    const prevBtnDisplay = btn ? btn.style.display : "";
+    if (btn) btn.style.display = "none";
+
+    const wrap = card.querySelector(".schTableWrap");
+    if (wrap) wrap.scrollLeft = 0;
+
+    await new Promise(r=>requestAnimationFrame(()=>r()));
+
+    const canvas = await html2canvas(card, {
+      backgroundColor: "#ffffff",
+      scale: 2,
+      useCORS: true
+    });
+
+    if (btn) btn.style.display = prevBtnDisplay;
+    if (!prevBody) document.body.classList.remove("exportMode");
+
+    const nameLocal = safeFileName(card.getAttribute("data-local"));
+    const nameSalon = safeFileName(card.getAttribute("data-salon"));
+    const nameUni   = safeFileName(card.getAttribute("data-uni"));
+
+    const a = document.createElement("a");
+    a.download = `horario_${nameUni}_${nameLocal}_${nameSalon}.png`;
+    a.href = canvas.toDataURL("image/png");
+    a.click();
+  }
+
+  document.addEventListener("click", (e)=>{
+    const btn = e.target.closest(".schDl");
+    if (!btn) return;
+    const sid = btn.getAttribute("data-sid");
+    if (!sid) return;
+    downloadSchedulePNG(sid);
+  });
+
+  
+  // ===================== PORTAL ALUMNO =====================
+  function apiJsonp(url, timeoutMs=15000){
+    return new Promise((resolve,reject)=>{
+      const cbName = "cb_" + Date.now() + "_" + Math.floor(Math.random()*1e6);
+      const s = document.createElement("script");
+      let done = false;
+
+      const cleanup = ()=>{
+        if (s.parentNode) s.parentNode.removeChild(s);
+        try{ delete window[cbName]; }catch(e){ window[cbName]=undefined; }
+      };
+
+      const timer = setTimeout(()=>{
+        if(done) return;
+        done = true;
+        cleanup();
+        reject(new Error("Tiempo de espera agotado"));
+      }, timeoutMs);
+
+      window[cbName] = (data)=>{
+        if(done) return;
+        done = true;
+        clearTimeout(timer);
+        cleanup();
+        resolve(data);
+      };
+
+      s.onerror = ()=>{
+        if(done) return;
+        done = true;
+        clearTimeout(timer);
+        cleanup();
+        reject(new Error("No se pudo conectar con el servidor"));
+      };
+
+      const joiner = url.includes("?") ? "&" : "?";
+      s.src = url + joiner + "callback=" + encodeURIComponent(cbName);
+      document.body.appendChild(s);
+    });
+  }
+
+  async function apiStudent(action, params={}){
+    const qs = new URLSearchParams({ action, ...params });
+    const url = STUDENT_API_URL + "?" + qs.toString();
+    return await apiJsonp(url, 15000);
+  }
+
+  function ensureAlumnoLayout(){
+    const el = document.getElementById("view_alumno");
+    if (!el) return;
+    if (el.dataset.ready === "1") return;
+
+    el.innerHTML = `
+      <div class="card">
+        <div class="cardTitle">MI PERFIL</div>
+        <div class="small" style="color:#64748b;font-weight:800;margin-bottom:10px;">
+          Acceso por contraseña (1 sola). Build: <b>${BUILD}</b>
+        </div>
+
+        <div class="grid2">
+          <div class="miniCard">
+            <div class="miniTitle">Datos del alumno</div>
+            <div id="alumnoData" class="kv"></div>
+          </div>
+          <div class="miniCard">
+            <div class="miniTitle">Evaluaciones</div>
+
+            <div class="row2">
+              <label class="lbl">Curso</label>
+              <select id="alCurso" class="sel">
+                <option value="ALGEBRA">Álgebra</option>
+                <option value="ARITMETICA" disabled>Aritmética (próx.)</option>
+                <option value="GEOMETRIA" disabled>Geometría (próx.)</option>
+                <option value="TRIGONOMETRIA" disabled>Trigonometría (próx.)</option>
+                <option value="RAZONAMIENTO" disabled>Razonamiento (próx.)</option>
+                <option value="FISICA" disabled>Física (próx.)</option>
+                <option value="QUIMICA" disabled>Química (próx.)</option>
+                <option value="BIOLOGIA" disabled>Biología (próx.)</option>
+                <option value="LENGUAJE" disabled>Lenguaje (próx.)</option>
+                <option value="LITERATURA" disabled>Literatura (próx.)</option>
+                <option value="HISTORIA" disabled>Historia (próx.)</option>
+                <option value="GEOGRAFIA" disabled>Geografía (próx.)</option>
+              </select>
+            </div>
+
+            <div style="margin-top:10px;">
+              <div class="lbl">Bloques disponibles (A y B)</div>
+              <div id="alItems" class="chips"></div>
+            </div>
+
+            <div id="alEvalBox" style="margin-top:12px; display:none;">
+              <div class="row3">
+                <a id="alPdf" class="btn2" target="_blank" rel="noopener">ABRIR PDF</a>
+                <div class="small" id="alMeta" style="color:#64748b;font-weight:900;"></div>
+              </div>
+
+              <div id="alForm" class="quiz"></div>
+
+              <div class="row3" style="margin-top:10px;">
+                <button id="alSend" class="btnRed">ENVIAR</button>
+                <div id="alMsg" class="small" style="font-weight:900;"></div>
+              </div>
+
+              <div id="alSolved" style="margin-top:10px;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    // estilos locales mínimos (no rompe tu CSS)
+    const style = document.createElement("style");
+    style.textContent = `
+      .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+      .miniCard{border:1px solid #e5e7eb;border-radius:14px;padding:14px;background:#fff}
+      .miniTitle{font-weight:950;margin-bottom:8px}
+      .kv div{display:flex;gap:10px;border-bottom:1px dashed #e5e7eb;padding:6px 0}
+      .kv b{min-width:140px}
+      .row2{display:flex;align-items:center;gap:10px}
+      .lbl{font-weight:900;color:#0f172a}
+      .sel{flex:1;height:42px;border-radius:12px;border:1px solid #e5e7eb;padding:0 10px;font-weight:800}
+      .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+      .chip{border:1px solid #e5e7eb;border-radius:999px;padding:8px 12px;font-weight:900;cursor:pointer;background:#fff}
+      .chip.active{border:2px solid #dc2626;background:#fff1f2}
+      .btn2{display:inline-flex;align-items:center;justify-content:center;height:40px;padding:0 14px;border-radius:12px;border:1px solid #dc2626;color:#991b1b;font-weight:950;text-decoration:none}
+      .btnRed{height:44px;border-radius:12px;border:0;background:#b91c1c;color:#fff;font-weight:950;padding:0 16px;cursor:pointer}
+      .btnRed:disabled{opacity:.55;cursor:not-allowed}
+      .quiz .q{border:1px solid #e5e7eb;border-radius:12px;padding:10px;margin-top:10px}
+      .quiz .qtitle{font-weight:950;margin-bottom:6px}
+      .opts{display:flex;gap:10px;flex-wrap:wrap}
+      .opt{display:flex;align-items:center;gap:6px;font-weight:900}
+      @media (max-width:980px){.grid2{grid-template-columns:1fr}}
+    `;
+    document.head.appendChild(style);
+
+    // eventos
+    const sel = document.getElementById("alCurso");
+    sel.addEventListener("change", ()=>loadAlumnoCourse());
+
+    el.dataset.ready = "1";
+  }
+
+  let ALUMNO_ITEMS = [];
+  let ALUMNO_SELECTED = null;
+
+  function alumnoKV(){
+    const row = localStorage.getItem("lameta_student_row") || "-";
+    const name = localStorage.getItem("lameta_student_name") || "-";
+    const user = localStorage.getItem("lameta_student_user") || "-";
+    const a = (STUDENT_SESSION && STUDENT_SESSION.alumno) ? STUDENT_SESSION.alumno : {};
+    return `
+      <div><b>Fila (hoja I)</b><span>${row}</span></div>
+      <div><b>Nombre completo</b><span>${a.nombre || name}</span></div>
+      <div><b>Usuario</b><span>${a.usuario || user}</span></div>
+      <div><b>Correo</b><span>${a.correo || "-"}</span></div>
+      <div><b>DNI apoderado</b><span>${a.apoderado_dni || "-"}</span></div>
+      <div><b>Correo apoderado</b><span>${a.apoderado_correo || "-"}</span></div>
+    `;
+  }
+
+  async function loadAlumnoCourse(){
+    const course = document.getElementById("alCurso").value;
+    const itemsEl = document.getElementById("alItems");
+    const box = document.getElementById("alEvalBox");
+    box.style.display = "none";
+    itemsEl.innerHTML = '<span class="small" style="font-weight:900;color:#64748b;">Cargando...</span>';
+
+    try{
+      const res = await apiStudent("getCourseItems", { course });
+      if(!res || !res.ok) throw new Error(res && res.error ? res.error : "No se pudo cargar");
+      ALUMNO_ITEMS = res.items || [];
+      if(ALUMNO_ITEMS.length === 0){
+        itemsEl.innerHTML = '<span class="small" style="font-weight:900;color:#64748b;">Sin evaluaciones publicadas.</span>';
+        return;
+      }
+      itemsEl.innerHTML = "";
+      ALUMNO_ITEMS.forEach((it, idx)=>{
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "chip";
+        btn.textContent = `${it.date} • Bloque ${it.block}`;
+        btn.addEventListener("click", ()=>selectAlumnoItem(idx));
+        itemsEl.appendChild(btn);
+      });
+    }catch(ex){
+      itemsEl.innerHTML = '<span class="small" style="font-weight:900;color:#b91c1c;">' + (ex.message||ex) + '</span>';
+    }
+  }
+
+  async function selectAlumnoItem(idx){
+    const itemsEl = document.getElementById("alItems");
+    [...itemsEl.querySelectorAll(".chip")].forEach((c,i)=>c.classList.toggle("active", i===idx));
+
+    ALUMNO_SELECTED = ALUMNO_ITEMS[idx];
+    const box = document.getElementById("alEvalBox");
+    const pdf = document.getElementById("alPdf");
+    const meta = document.getElementById("alMeta");
+    const form = document.getElementById("alForm");
+    const msg = document.getElementById("alMsg");
+    const solved = document.getElementById("alSolved");
+    const send = document.getElementById("alSend");
+
+    msg.textContent = "";
+    solved.innerHTML = "";
+    box.style.display = "";
+    pdf.href = ALUMNO_SELECTED.url || "#";
+    meta.textContent = `Curso: ${ALUMNO_SELECTED.course} | Fecha: ${ALUMNO_SELECTED.date} | Bloque: ${ALUMNO_SELECTED.block}`;
+
+    // construir formulario
+    form.innerHTML = "";
+    for(let q=1;q<=5;q++) {
+      const d = document.createElement("div");
+      d.className = "q";
+      d.innerHTML = `
+        <div class="qtitle">Pregunta ${q}</div>
+        <div class="opts">
+          ${["A","B","C","D","E"].map(opt=>`
+            <label class="opt">
+              <input type="radio" name="q${q}" value="${opt}">
+              <span>${opt}</span>
+            </label>
+          `).join("")}
+        </div>
+      `;
+      form.appendChild(d);
+    }
+
+    // consultar si ya fue enviado (1 oportunidad)
+    try {
+      send.disabled = true;
+      msg.textContent = "Verificando intento...";
+      const row = Number(localStorage.getItem("lameta_student_row") || 0);
+      const pw = STUDENT_SESSION ? STUDENT_SESSION.password : "";
+      const res = await apiStudent("getAttempt", {
+        row, password: pw,
+        course: ALUMNO_SELECTED.course,
+        date: ALUMNO_SELECTED.date,
+        block: ALUMNO_SELECTED.block
+      });
+
+      if(res && res.ok && res.submitted){
+        msg.textContent = "Evaluación resuelta (ya enviada).";
+        renderSolved_(res);
+        send.style.display = "none";
+        form.style.display = "none";
+      } else {
+        msg.textContent = "Listo para responder (1 sola oportunidad).";
+        send.style.display = "";
+        form.style.display = "";
+        send.disabled = false;
+      }
+    } catch(ex) {
+      msg.textContent = ex.message || ex;
+      send.disabled = false;
+    }
+
+    // evento enviar (reemplaza para no duplicar)
+    send.onclick = ()=>submitAlumno();
+  }
+
+  function getAnswersFromForm_(){
+    const ans = [];
+    for(let q=1;q<=5;q++) {
+      const v = document.querySelector('input[name="q'+q+'"]:checked');
+      ans.push(v ? v.value : "");
+    }
+    return ans;
+  }
+
+  function renderSolved_(res){
+    const solved = document.getElementById("alSolved");
+    const answers = res.answers || [];
+    const score = res.score || null;
+
+    const aTxt = answers.map((x,i)=>`<div><b>P${i+1}</b>: ${x||"-"}</div>`).join("");
+    let scoreTxt = "";
+    if(score && score.available){
+      scoreTxt = `<div style="margin-top:8px;font-weight:950;color:#166534;">Puntaje: ${score.score} / 5</div>`;
+    } else {
+      scoreTxt = `<div style="margin-top:8px;font-weight:950;color:#64748b;">Clave: no publicada</div>`;
+    }
+
+    solved.innerHTML = `
+      <div class="miniCard">
+        <div class="miniTitle">EVALUACIÓN RESUELTA</div>
+        <div class="kv">${aTxt}</div>
+        ${scoreTxt}
+      </div>
+    `;
+  }
+
+  async function submitAlumno(){
+    const msg = document.getElementById("alMsg");
+    const send = document.getElementById("alSend");
+    const form = document.getElementById("alForm");
+
+    const answers = getAnswersFromForm_();
+    if(answers.some(x=>!x)){
+      msg.textContent = "Marca las 5 respuestas (A–E).";
+      msg.style.color = "#b91c1c";
+      return;
+    }
+
+    try {
+      send.disabled = true;
+      msg.textContent = "Enviando...";
+      msg.style.color = "#64748b";
+
+      const row = Number(localStorage.getItem("lameta_student_row") || 0);
+      const pw = STUDENT_SESSION ? STUDENT_SESSION.password : "";
+      const res = await apiStudent("submitAnswers", {
+        row, password: pw,
+        course: ALUMNO_SELECTED.course,
+        date: ALUMNO_SELECTED.date,
+        block: ALUMNO_SELECTED.block,
+        a1: answers[0], a2: answers[1], a3: answers[2], a4: answers[3], a5: answers[4]
+      });
+
+      if(!res || !res.ok) {
+        throw new Error(res && res.error ? res.error : "No se pudo enviar");
+      }
+
+      msg.textContent = "Enviado. Evaluación resuelta.";
+      msg.style.color = "#166534";
+      send.style.display = "none";
+      form.style.display = "none";
+      renderSolved_(res);
+    } catch(ex) {
+      msg.textContent = ex.message || ex;
+      msg.style.color = "#b91c1c";
+      send.disabled = false;
+    }
+  }
+
+  function renderAlumno(){
+    ensureAlumnoLayout();
+    const elData = document.getElementById("alumnoData");
+    if (elData) elData.innerHTML = alumnoKV();
+    if (!ALUMNO_ITEMS.length) loadAlumnoCourse();
+  }
+
+// ===================== RENDER =====================
+  function render(){
+    if (state.view==="overview") renderOverview();
+    if (state.view==="local") renderLocal();
+    if (state.view==="table") renderTable();
+    if (state.view==="alumno") renderAlumno();
+    if (state.view==="horarios") renderHorarios();
+    if (state.view==="impresiones") renderImpresiones();
+    if (state.view==="silabos") renderSilabos();
+    if (state.view==="materiales") renderMateriales();
+    if (state.view==="listas") renderListas();
+    if (state.view==="reportes") renderReportes();
+  }
+
+  // ===================== LOAD DATA MATRÍCULA =====================
+  async function loadOneSalon(salon){
+    const url = csvUrl(salon.gid) + "&v=" + Date.now();
+    const res = await fetch(url, { cache:"no-store" });
+    if (!res.ok) throw new Error(`HTTP ${res.status} (${salon.local} / ${salon.ciclo} / ${salon.salon})`);
+
+    const text = await res.text();
+    const lines = text.split(/\r?\n/).filter(l=>l.trim().length>0);
+
+    let headerIdx = -1;
+    let header = null;
+
+    for (let i=0;i<Math.min(lines.length, 200);i++){
+      const cells = parseCSVLine(lines[i]).map(norm);
+      const hasName = cells.includes(HEAD.NOMBRES_A) || cells.includes(HEAD.NOMBRES_B) || cells.includes(HEAD.NOMBRES_C);
+      const hasEst = cells.includes(HEAD.ESTADO);
+      if (hasName && hasEst){ headerIdx = i; header = cells; break; }
+    }
+
+    if (headerIdx === -1){
+      return { salon, rows: [], error: "No se encontró encabezado con NOMBRES y ESTADO." };
+    }
+
+    const idx = (name) => header.findIndex(h => norm(h) === name);
+    const iNombreA = idx(HEAD.NOMBRES_A);
+    const iNombreB = idx(HEAD.NOMBRES_B);
+    const iNombreC = idx(HEAD.NOMBRES_C);
+    const iNombre = (iNombreA>=0) ? iNombreA : (iNombreB>=0 ? iNombreB : iNombreC);
+
+    const iMod = idx(HEAD.MODALIDAD);
+    const iEst = idx(HEAD.ESTADO);
+
+    const idxAll = (label) => {
+      const L = String(label||"").toUpperCase();
+      const arr = [];
+      for (let i=0;i<header.length;i++){
+        if (String(header[i]||"").toUpperCase() === L) arr.push(i);
+      }
+      return arr;
+    };
+
+    // ✅ Columnas del sheet (estructura 26.0)
+    // Alumno
+    const iCorreoAl = idxAll("CORREO")[0] ?? -1;
+    const dniIdxs = idxAll("DNI");
+    const iDniAl = dniIdxs[0] ?? -1;
+    const iCelAl = idxAll("CELULAR")[0] ?? -1;
+    const iUniAl = idxAll("UNIVERSIDAD")[0] ?? -1;
+    const iAcademia = idxAll("ACADEMIA")[0] ?? -1;
+    const iCarrera = idxAll("CARRERA")[0] ?? -1;
+
+    // Apoderado
+    const iNombreApo = idxAll("NOMBRE COMPLETO").slice(-1)[0] ?? -1;
+    const iCelApo = idxAll("CEL")[0] ?? -1;
+    const correoIdxs = idxAll("CORREO");
+    const iCorreoApo = correoIdxs.length > 1 ? correoIdxs[correoIdxs.length-1] : -1;
+
+    // Accesos
+    const iUsuario = idxAll("USUARIO")[0] ?? -1;
+    let iPass = idxAll("CONTRASEÑA")[0] ?? -1;
+    if (iPass < 0) iPass = idxAll("CONTRASENA")[0] ?? -1;
+
+    // Ajuste: si DNI solo aparece una vez, no hay DNI apoderado
+    const iDniApo2 = dniIdxs.length > 1 ? dniIdxs[dniIdxs.length-1] : -1;
+
+    const out = [];
+    for (let i=headerIdx+1; i<lines.length; i++){
+      const cells = parseCSVLine(lines[i]);
+      if (!cells.some(v=>norm(v).length>0)) continue;
+
+      const nombre = norm(cells[iNombre]);
+      if (!nombre) continue;
+
+      const modalidadCell = (iMod>=0) ? cells[iMod] : "";
+      const modalidad = normalizeModalidad(modalidadCell, salon.local);
+
+      const estado = normalizeEstado(cells[iEst]);
+
+      // ✅ Extraer datos por columnas (si no existe, queda vacío)
+      const correo_al = (iCorreoAl>=0) ? norm(cells[iCorreoAl] || "") : "";
+      const dni_al = (iDniAl>=0) ? norm(cells[iDniAl] || "") : "";
+      const celular_al = (iCelAl>=0) ? norm(cells[iCelAl] || "") : "";
+      const uni_sheet = (iUniAl>=0) ? norm(cells[iUniAl] || "") : "";
+      const academia = (iAcademia>=0) ? norm(cells[iAcademia] || "") : "";
+      const carrera = (iCarrera>=0) ? norm(cells[iCarrera] || "") : "";
+
+      const nombre_apo = (iNombreApo>=0) ? norm(cells[iNombreApo] || "") : "";
+      const cel_apo = (iCelApo>=0) ? norm(cells[iCelApo] || "") : "";
+      const dni_apo = (iDniApo2>=0) ? norm(cells[iDniApo2] || "") : "";
+      const correo_apo = (iCorreoApo>=0) ? norm(cells[iCorreoApo] || "") : "";
+
+      const usuario = (iUsuario>=0) ? norm(cells[iUsuario] || "") : "";
+      const contrasena = (iPass>=0) ? norm(cells[iPass] || "") : "";
+
+      out.push({
+        nombre,
+        modalidad,
+        estado,
+        local: salon.local,
+        ciclo: salon.ciclo,
+        salon: salon.salon,
+        gid: salon.gid,
+
+        // alumno
+        correo_al,
+        dni_al,
+        celular_al,
+        uni_sheet,
+        academia,
+        carrera,
+
+        // apoderado
+        nombre_apo,
+        cel_apo,
+        dni_apo,
+        correo_apo,
+
+        // accesos
+        usuario,
+        contrasena
+      });
+    }
+
+    return { salon, rows: out, error: null };
+  }
+
+// ===================== LOAD ALL (SIN DELAY / SIN FLASH) =====================
+let LOADING = false;
+let PENDING = false;
+
+function ensureBoot(){
+  if (state.booted) return;
+
+  // eventos NAV (una sola vez)
+  document.getElementById("nav_overview").addEventListener("click", ()=>setView("overview"));
+  document.getElementById("nav_local").addEventListener("click", ()=>setView("local"));
+  document.getElementById("nav_table").addEventListener("click", ()=>setView("table"));
+  document.getElementById("nav_alumno").addEventListener("click", ()=>setView("alumno"));
+  document.getElementById("nav_horarios").addEventListener("click", ()=>setView("horarios"));
+  document.getElementById("nav_impresiones").addEventListener("click", ()=>setView("impresiones"));
+  document.getElementById("nav_silabos").addEventListener("click", ()=>setView("silabos"));
+  document.getElementById("nav_materiales").addEventListener("click", ()=>setView("materiales"));
+  document.getElementById("nav_listas").addEventListener("click", ()=>setView("listas"));
+  document.getElementById("nav_reportes").addEventListener("click", ()=>setView("reportes"));
+
+
+
+  // logout
+  const outBtn = document.getElementById("btnLogout");
+  if (outBtn) outBtn.addEventListener("click", ()=>{
+    clearRole();
+    location.reload();
+  });
+  // eventos filtros matrícula
+  ["fLocal","fUni","fSalon","fModalidad","fEstado"].forEach(id=>{
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.addEventListener("change", ()=>{
+      rebuildSalonOptions();
+      render();
+    });
+  });
+
+  const q = document.getElementById("q");
+  if (q) q.addEventListener("input", render);
+
+  const btn = document.getElementById("btnNowTop");
+  if (btn) btn.addEventListener("click", loadAll);
+
+  state.booted = true;
+}
+
+async function loadAll(){
+  // candado anti-overlap
+  if (LOADING){
+    PENDING = true;
+    return;
+  }
+  LOADING = true;
+
+  try{
+    // ✅ 1) Restaurar vista INMEDIATO (antes de descargar)
+    const sv = loadSavedView();
+    if (sv && ALLOWED_VIEWS.includes(sv) && state.view !== sv){
+      setView(sv);
+    }
+
+    // ✅ 2) Descargar matrícula
+    const results = await Promise.allSettled(SALONES.map(loadOneSalon));
+    let rows = [];
+    for (const r of results){
+      if (r.status === "fulfilled") rows = rows.concat(r.value.rows);
+    }
+
+    state.rawRows = rows;
+
+    const matriculaRows = state.rawRows.filter(r => r.estado==="ACTIVO" || r.estado==="RETIRO");
+    state.canonical = dedupeMatriculaByName(matriculaRows);
+    state.cambiosRows = state.rawRows.filter(r => r.estado==="CAMBIO");
+
+    // ✅ 3) Descargar impresiones
+    await loadImpresiones();
+
+    // ✅ 4) Boot una sola vez + filtros + render
+    ensureBoot();
+
+    // Importante: initFilters puede rearmar selects; se ejecuta aquí para mantener data al día
+    initFilters();
+    render();
+
+  } catch(e){
+    console.error("loadAll:", e);
+  } finally {
+    LOADING = false;
+
+    // si hubo refresh pendiente, ejecuta 1 más (sin overlap)
+    if (PENDING){
+      PENDING = false;
+      loadAll();
+    }
   }
 }
 
-btn.addEventListener('click', enter);
-passEl.addEventListener('keydown', (e)=>{ if(e.key==='Enter') enter(); });
+
+
+function startApp(){
+  ensureBoot();
+  applyRoleUI();
+
+  // si había una vista guardada, aplícala
+  const sv = loadSavedView();
+  if (sv && ALLOWED_VIEWS.includes(sv) && state.view !== sv){
+    setView(sv);
+  }
+
+  loadAll();
+  setInterval(loadAll, AUTO_REFRESH_MS);
+}
+
+// ✅ Arranque: lo antes posible (para reducir flash)
+window.addEventListener("DOMContentLoaded", () => {
+  // 1) Auth primero
+  const hasSession = initAuth();
+
+  // 2) Si no hay sesión, esperar a que el usuario inicie (overlay)
+  //    (La app se inicia cuando el overlay se oculta tras login)
+  if (!hasSession){
+    // Al primer login exitoso se ejecutará esto automáticamente:
+    const observer = new MutationObserver(() => {
+      const o = document.getElementById("authOverlay");
+      if (o && o.style.display === "none"){
+        observer.disconnect();
+        startApp();
+      }
+    });
+    observer.observe(document.body, { attributes:true, childList:false, subtree:true });
+    return;
+  }
+
+  // 3) Sesión existente: iniciar app
+  startApp();
+});
 </script>
 </body>
 </html>
