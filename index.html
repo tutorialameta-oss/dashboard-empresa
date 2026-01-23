@@ -6,11 +6,203 @@
   <title>LA META | PANEL DE CONTROL</title>
 
   <!-- Charts -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js">
+/* ===== FIX v32: contador universal de eventos + rol sticky ===== */
+(function(){
+  let n = 0;
+  function setClicks(txt){
+    const el = document.getElementById("dbgClicks");
+    if(el) el.textContent = "Clicks: " + n + (txt ? (" | " + txt) : "");
+  }
+  function setRole(r){
+    const el = document.getElementById("dbgRole");
+    if(el) el.textContent = "Rol: " + (r ? String(r).toUpperCase() : "-");
+  }
+
+  // Escucha TODOS los eventos relevantes (por compatibilidad móvil)
+  ["click","mousedown","mouseup","touchstart","touchend","pointerdown","pointerup"].forEach(ev=>{
+    document.addEventListener(ev, (e)=>{
+      n++;
+      const t = e && e.target ? (e.target.id || e.target.className || e.target.tagName) : "";
+      setClicks(String(t||""));
+    }, true);
+  });
+
+  // Rol global
+  window.__pickRole = function(role){
+    const r = String(role||"").toLowerCase();
+    window.__ROLE__ = r;
+    try{ localStorage.setItem("lameta_role", r); }catch(e){}
+    const bA = document.getElementById("roleAdmin");
+    const bT = document.getElementById("roleTutor");
+    const bS = document.getElementById("roleAlumno");
+    const setActive = (btn,on)=>{
+      if(!btn) return;
+      btn.classList.toggle("active", !!on);
+      btn.setAttribute("aria-pressed", on ? "true" : "false");
+    };
+    setActive(bA, r==="admin");
+    setActive(bT, r==="tutor");
+    setActive(bS, r==="alumno");
+    setRole(r);
+    const err = document.getElementById("authErr");
+    if(err) err.style.display="none";
+  };
+
+  // Bind explícito (por si algún CSS/JS interfiere)
+  [["roleAdmin","admin"],["roleTutor","tutor"],["roleAlumno","alumno"]].forEach(([id,role])=>{
+    const el = document.getElementById(id);
+    if(!el) return;
+    ["pointerdown","mousedown","touchstart","click"].forEach(ev=>{
+      el.addEventListener(ev, (e)=>{
+        e.preventDefault(); e.stopPropagation();
+        window.__pickRole(role);
+      }, {passive:false, capture:true});
+    });
+  });
+
+  // Restore role
+  let saved=null;
+  try{ saved = localStorage.getItem("lameta_role"); }catch(e){}
+  if(saved) window.__pickRole(saved);
+
+  // Marca que JS está vivo
+  setClicks("JS_OK");
+})();
+
+</script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js">
+/* ===== FIX v32: contador universal de eventos + rol sticky ===== */
+(function(){
+  let n = 0;
+  function setClicks(txt){
+    const el = document.getElementById("dbgClicks");
+    if(el) el.textContent = "Clicks: " + n + (txt ? (" | " + txt) : "");
+  }
+  function setRole(r){
+    const el = document.getElementById("dbgRole");
+    if(el) el.textContent = "Rol: " + (r ? String(r).toUpperCase() : "-");
+  }
+
+  // Escucha TODOS los eventos relevantes (por compatibilidad móvil)
+  ["click","mousedown","mouseup","touchstart","touchend","pointerdown","pointerup"].forEach(ev=>{
+    document.addEventListener(ev, (e)=>{
+      n++;
+      const t = e && e.target ? (e.target.id || e.target.className || e.target.tagName) : "";
+      setClicks(String(t||""));
+    }, true);
+  });
+
+  // Rol global
+  window.__pickRole = function(role){
+    const r = String(role||"").toLowerCase();
+    window.__ROLE__ = r;
+    try{ localStorage.setItem("lameta_role", r); }catch(e){}
+    const bA = document.getElementById("roleAdmin");
+    const bT = document.getElementById("roleTutor");
+    const bS = document.getElementById("roleAlumno");
+    const setActive = (btn,on)=>{
+      if(!btn) return;
+      btn.classList.toggle("active", !!on);
+      btn.setAttribute("aria-pressed", on ? "true" : "false");
+    };
+    setActive(bA, r==="admin");
+    setActive(bT, r==="tutor");
+    setActive(bS, r==="alumno");
+    setRole(r);
+    const err = document.getElementById("authErr");
+    if(err) err.style.display="none";
+  };
+
+  // Bind explícito (por si algún CSS/JS interfiere)
+  [["roleAdmin","admin"],["roleTutor","tutor"],["roleAlumno","alumno"]].forEach(([id,role])=>{
+    const el = document.getElementById(id);
+    if(!el) return;
+    ["pointerdown","mousedown","touchstart","click"].forEach(ev=>{
+      el.addEventListener(ev, (e)=>{
+        e.preventDefault(); e.stopPropagation();
+        window.__pickRole(role);
+      }, {passive:false, capture:true});
+    });
+  });
+
+  // Restore role
+  let saved=null;
+  try{ saved = localStorage.getItem("lameta_role"); }catch(e){}
+  if(saved) window.__pickRole(saved);
+
+  // Marca que JS está vivo
+  setClicks("JS_OK");
+})();
+
+</script>
 
   <!-- PNG export (captura COMPLETA del elemento, no solo lo visible) -->
-  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js">
+/* ===== FIX v32: contador universal de eventos + rol sticky ===== */
+(function(){
+  let n = 0;
+  function setClicks(txt){
+    const el = document.getElementById("dbgClicks");
+    if(el) el.textContent = "Clicks: " + n + (txt ? (" | " + txt) : "");
+  }
+  function setRole(r){
+    const el = document.getElementById("dbgRole");
+    if(el) el.textContent = "Rol: " + (r ? String(r).toUpperCase() : "-");
+  }
+
+  // Escucha TODOS los eventos relevantes (por compatibilidad móvil)
+  ["click","mousedown","mouseup","touchstart","touchend","pointerdown","pointerup"].forEach(ev=>{
+    document.addEventListener(ev, (e)=>{
+      n++;
+      const t = e && e.target ? (e.target.id || e.target.className || e.target.tagName) : "";
+      setClicks(String(t||""));
+    }, true);
+  });
+
+  // Rol global
+  window.__pickRole = function(role){
+    const r = String(role||"").toLowerCase();
+    window.__ROLE__ = r;
+    try{ localStorage.setItem("lameta_role", r); }catch(e){}
+    const bA = document.getElementById("roleAdmin");
+    const bT = document.getElementById("roleTutor");
+    const bS = document.getElementById("roleAlumno");
+    const setActive = (btn,on)=>{
+      if(!btn) return;
+      btn.classList.toggle("active", !!on);
+      btn.setAttribute("aria-pressed", on ? "true" : "false");
+    };
+    setActive(bA, r==="admin");
+    setActive(bT, r==="tutor");
+    setActive(bS, r==="alumno");
+    setRole(r);
+    const err = document.getElementById("authErr");
+    if(err) err.style.display="none";
+  };
+
+  // Bind explícito (por si algún CSS/JS interfiere)
+  [["roleAdmin","admin"],["roleTutor","tutor"],["roleAlumno","alumno"]].forEach(([id,role])=>{
+    const el = document.getElementById(id);
+    if(!el) return;
+    ["pointerdown","mousedown","touchstart","click"].forEach(ev=>{
+      el.addEventListener(ev, (e)=>{
+        e.preventDefault(); e.stopPropagation();
+        window.__pickRole(role);
+      }, {passive:false, capture:true});
+    });
+  });
+
+  // Restore role
+  let saved=null;
+  try{ saved = localStorage.getItem("lameta_role"); }catch(e){}
+  if(saved) window.__pickRole(saved);
+
+  // Marca que JS está vivo
+  setClicks("JS_OK");
+})();
+
+</script>
 
   <style>
     /* ======================================================================
@@ -811,6 +1003,29 @@
 }
 
 
+
+/* ===== FIX v32: clicks + rol debug (para detectar bloqueo) ===== */
+html, body { pointer-events:auto !important; }
+#authOverlay, .authOverlay, .authCard, .authBox, .authPanel, .authModal { pointer-events:auto !important; }
+#authOverlay { position:fixed !important; inset:0 !important; z-index:999999 !important; }
+.authCard { position:relative !important; z-index:1000000 !important; pointer-events:auto !important; }
+.roleBtn, #roleAdmin, #roleTutor, #roleAlumno { pointer-events:auto !important; cursor:pointer !important; z-index:1000001 !important; }
+.dbgRow{ margin-top:10px; display:flex; gap:10px; flex-wrap:wrap; }
+.dbgChip{
+  display:inline-block;
+  padding:6px 10px;
+  border-radius:999px;
+  font-weight:800;
+  font-size:12px;
+  border:1px solid rgba(148,163,184,.55);
+  background: rgba(15,23,42,.06);
+  color:#0f172a;
+}
+.roleBtn.active{
+  border:2px solid rgba(220,38,38,.9) !important;
+  background: rgba(220,38,38,.06) !important;
+}
+
 </style>
 </head>
 
@@ -822,12 +1037,13 @@
     <div class="authCard">
       <p class="authTitle">ACCESO AL PANEL</p>
       <p class="authSub">Seleccione su tipo de acceso e ingrese la clave.</p>
-      <div class="buildTag" style="font-weight:900;color:#64748b;font-size:12px;margin:6px 0 10px 0;">Build: v31</div>
+      <div class="buildTag" style="font-weight:900;color:#64748b;font-size:12px;margin:6px 0 10px 0;">Build: v32</div>
+<div class="dbgRow"><span id="dbgClicks" class="dbgChip">Clicks: 0</span><span id="dbgRole" class="dbgChip">Rol: -</span></div>
 
       <div class="roleRow">
-        <button id="roleAdmin" class="roleBtn" type="button">ADMIN</button>
-        <button id="roleTutor" class="roleBtn" type="button">TUTOR</button>
-        <button id="roleAlumno" class="roleBtn" type="button">ALUMNO</button>
+        <button id="roleAdmin" class="roleBtn" type="button" onclick="window.__pickRole && window.__pickRole('admin'); return false;" aria-pressed="false">ADMIN</button>
+        <button id="roleTutor" class="roleBtn" type="button" onclick="window.__pickRole && window.__pickRole('tutor'); return false;" aria-pressed="false">TUTOR</button>
+        <button id="roleAlumno" class="roleBtn" type="button" onclick="window.__pickRole && window.__pickRole('alumno'); return false;" aria-pressed="false">ALUMNO</button>
       </div>
 
       <div class="authRow">
@@ -985,8 +1201,7 @@
   // ===================== PORTAL ALUMNO (Apps Script) =====================
   // Endpoint del Apps Script publicado como Web App (exec)
   const STUDENT_API_URL = "https://script.google.com/macros/s/AKfycbzWE1G1EwtGfF4xk6ON2ArMe_Kwfwnj6M2YUXWxkFJGU4iwscmmPelMErwHMtNR4cvg/exec";
-  let CURRENT_STUDENT = null;
-let CURRENT_STUDENT_PASS = null; // objeto alumno (datos principales)
+  let CURRENT_STUDENT = null; // objeto alumno (datos principales)
 
 
   function jsonpRequest(url, params, timeoutMs){
@@ -1041,7 +1256,7 @@ function setRole(role){
 
   function loadRole(){
     const r = localStorage.getItem(ROLE_KEY);
-    return (r === "admin" || r === "tutor" || r === "alumno") ? r : null;
+    return (r === "admin" || r === "tutor") ? r : null;
   }
 
   function clearRole(){
@@ -1052,7 +1267,6 @@ function setRole(role){
   function canAccessView(v){
     // Tutor NO puede ver RESUMEN GENERAL ni CONTROL DE SEDES
     if (CURRENT_ROLE === "tutor" && (v === "overview" || v === "local")) return false;
-      if (CURRENT_ROLE === "alumno" && (v !== "mipanel" && v !== "cursos")) return false;
     return true;
   }
 
@@ -1177,82 +1391,26 @@ function setRole(role){
       selected = r;
       if (bA) bA.classList.toggle("active", r === "admin");
       if (bT) bT.classList.toggle("active", r === "tutor");
-            if (bS) bS.classList.toggle("active", r === "alumno");
-if (err) err.style.display = "none";
+      if (err) err.style.display = "none";
       if (pass) pass.focus();
     }
 
     if (bA) bA.addEventListener("click", ()=>pick("admin"));
     if (bT) bT.addEventListener("click", ()=>pick("tutor"));
-  if (bS) bS.addEventListener("casync function doLogin(){
-      const p = String(pass?.value || "").trim();
-      if (!selected){
-        if (err){ err.textContent = "Seleccione un rol."; err.style.display="block"; }
+  if (bS) bS.addEventListener("click", ()=>pick("alumno"));
+
+    function doLogin(){
+      const p = String(pass?.value || "");
+      const ok = (selected === "admin" && p === AUTH_ADMIN_PASS) || (selected === "tutor" && p === AUTH_TUTOR_PASS);
+      if (!ok){
+        if (err) err.style.display = "block";
         return;
       }
-      if (!p){
-        if (err){ err.textContent = "Ingrese su clave."; err.style.display="block"; }
-        return;
-      }
-      if (err) err.style.display = "none";
-
-      // ADMIN / TUTOR (claves internas)
-      if (selected === "admin"){
-        if (p !== AUTH_ADMIN){
-          if (err){ err.textContent = "Contraseña inválida."; err.style.display="block"; }
-          return;
-        }
-        setRole("admin");
-        showAuth(false);
-        applyRoleUI();
-        setView("overview");
-        return;
-      }
-
-      if (selected === "tutor"){
-        if (p !== AUTH_TUTOR){
-          if (err){ err.textContent = "Contraseña inválida."; err.style.display="block"; }
-          return;
-        }
-        setRole("tutor");
-        showAuth(false);
-        applyRoleUI();
-        setView("table");
-        return;
-      }
-
-      // ALUMNO (claves desde Google Sheets vía Apps Script)
-      if (selected === "alumno"){
-        const btnLogin = document.getElementById("btnLogin");
-        if (btnLogin) btnLogin.disabled = true;
-
-        try{
-          const payload = await jsonpRequest(STUDENT_API_URL, { action:"authStudent", password:p }, 20000);
-          if (!payload || payload.ok !== true){
-            if (err){ err.textContent = (payload && payload.error) ? String(payload.error) : "Contraseña inválida."; err.style.display="block"; }
-            return;
-          }
-
-          // guarda sesión alumno
-          CURRENT_STUDENT = payload.alumno || null;
-          CURRENT_STUDENT_PASS = p; // se usa para enviar respuestas
-          setRole("alumno");
-          showAuth(false);
-          applyRoleUI();
-          setView("mipanel"); // vista por defecto alumno
-          return;
-
-        }catch(ex){
-          if (err){ err.textContent = "Tiempo de espera agotado"; err.style.display="block"; }
-          return;
-        }finally{
-          if (btnLogin) btnLogin.disabled = false;
-        }
-      }
-
-      if (err){ err.textContent = "Rol no soportado."; err.style.display="block"; }
-    }
-w)) setView("table");
+      setRole(selected);
+      showAuth(false);
+      if (pass) pass.value = "";
+      // Al entrar, fuerza vista permitida
+      if (!canAccessView(loadSavedView() || state.view)) setView("table");
     }
 
     const btn = document.getElementById("btnLogin");
@@ -1774,8 +1932,6 @@ function loadSavedView(){
     document.getElementById("nav_materiales").classList.toggle("active", v==="materiales");
     document.getElementById("nav_listas").classList.toggle("active", v==="listas");
     document.getElementById("nav_reportes").classList.toggle("active", v==="reportes");
-    document.getElementById("nav_mipanel")?.classList.toggle("active", v==="mipanel");
-    document.getElementById("nav_cursos")?.classList.toggle("active", v==="cursos");
 
 
     document.getElementById("view_overview").style.display = (v==="overview") ? "" : "none";
@@ -1787,12 +1943,10 @@ function loadSavedView(){
     document.getElementById("view_materiales").style.display = (v==="materiales") ? "" : "none";
     document.getElementById("view_listas").style.display     = (v==="listas") ? "" : "none";
     document.getElementById("view_reportes").style.display   = (v==="reportes") ? "" : "none";
-    document.getElementById("view_alumno_panel").style.display = (v==="mipanel") ? "" : "none";
-    document.getElementById("view_alumno_cursos").style.display = (v==="cursos") ? "" : "none";
 
 
     document.getElementById("controlsMatricula").style.display =
-      (v==="horarios" || v==="impresiones" || v==="silabos" || v==="materiales" || v==="listas" || v==="reportes" || v==="mipanel" || v==="cursos") ? "none" : "";
+      (v==="horarios" || v==="impresiones" || v==="silabos" || v==="materiales" || v==="listas" || v==="reportes") ? "none" : "";
 
 
     // ✅ estado solo visible en ALUMNOS (tabla)
@@ -4229,8 +4383,6 @@ function ensureBoot(){
   document.getElementById("nav_materiales").addEventListener("click", ()=>setView("materiales"));
   document.getElementById("nav_listas").addEventListener("click", ()=>setView("listas"));
   document.getElementById("nav_reportes").addEventListener("click", ()=>setView("reportes"));
-  document.getElementById("nav_mipanel")?.addEventListener("click", ()=>setView("mipanel"));
-  document.getElementById("nav_cursos")?.addEventListener("click", ()=>setView("cursos"));
 
 
 
@@ -4351,11 +4503,6 @@ window.addEventListener("DOMContentLoaded", () => {
 });
 // ===================== ALUMNO: RENDER =====================
 function renderAlumnoPerfil(){
-  if (!CURRENT_STUDENT){
-    const box0 = document.getElementById("alumnoPerfilGrid");
-    if (box0) box0.innerHTML = "<div class=\"muted\">No hay datos del alumno en sesión.</div>";
-    return;
-  }
   const box = document.getElementById("alumnoPerfilGrid");
   if (!box) return;
   const s = CURRENT_STUDENT || {};
@@ -4483,7 +4630,8 @@ document.getElementById("btnEnviarEval")?.addEventListener("click", async functi
 
   try{
     // Sólo una oportunidad de enviar: (luego lo volvemos estricto cuando se guarde en hoja R)
-    const password = CURRENT_STUDENT_PASS ? String(CURRENT_STUDENT_PASS).trim() : "";
+    const passBox = document.getElementById("authPass");
+    const password = (passBox && passBox.value) ? String(passBox.value).trim() : "";
     const payload = await jsonpRequest(STUDENT_API_URL, {
       action: "submitAnswers",
       password: password,
@@ -4503,6 +4651,70 @@ document.getElementById("btnEnviarEval")?.addEventListener("click", async functi
   }
 });
 
+
+
+/* ===== FIX v32: contador universal de eventos + rol sticky ===== */
+(function(){
+  let n = 0;
+  function setClicks(txt){
+    const el = document.getElementById("dbgClicks");
+    if(el) el.textContent = "Clicks: " + n + (txt ? (" | " + txt) : "");
+  }
+  function setRole(r){
+    const el = document.getElementById("dbgRole");
+    if(el) el.textContent = "Rol: " + (r ? String(r).toUpperCase() : "-");
+  }
+
+  // Escucha TODOS los eventos relevantes (por compatibilidad móvil)
+  ["click","mousedown","mouseup","touchstart","touchend","pointerdown","pointerup"].forEach(ev=>{
+    document.addEventListener(ev, (e)=>{
+      n++;
+      const t = e && e.target ? (e.target.id || e.target.className || e.target.tagName) : "";
+      setClicks(String(t||""));
+    }, true);
+  });
+
+  // Rol global
+  window.__pickRole = function(role){
+    const r = String(role||"").toLowerCase();
+    window.__ROLE__ = r;
+    try{ localStorage.setItem("lameta_role", r); }catch(e){}
+    const bA = document.getElementById("roleAdmin");
+    const bT = document.getElementById("roleTutor");
+    const bS = document.getElementById("roleAlumno");
+    const setActive = (btn,on)=>{
+      if(!btn) return;
+      btn.classList.toggle("active", !!on);
+      btn.setAttribute("aria-pressed", on ? "true" : "false");
+    };
+    setActive(bA, r==="admin");
+    setActive(bT, r==="tutor");
+    setActive(bS, r==="alumno");
+    setRole(r);
+    const err = document.getElementById("authErr");
+    if(err) err.style.display="none";
+  };
+
+  // Bind explícito (por si algún CSS/JS interfiere)
+  [["roleAdmin","admin"],["roleTutor","tutor"],["roleAlumno","alumno"]].forEach(([id,role])=>{
+    const el = document.getElementById(id);
+    if(!el) return;
+    ["pointerdown","mousedown","touchstart","click"].forEach(ev=>{
+      el.addEventListener(ev, (e)=>{
+        e.preventDefault(); e.stopPropagation();
+        window.__pickRole(role);
+      }, {passive:false, capture:true});
+    });
+  });
+
+  // Restore role
+  let saved=null;
+  try{ saved = localStorage.getItem("lameta_role"); }catch(e){}
+  if(saved) window.__pickRole(saved);
+
+  // Marca que JS está vivo
+  setClicks("JS_OK");
+})();
 
 </script>
 </body>
