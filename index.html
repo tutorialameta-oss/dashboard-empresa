@@ -1039,7 +1039,7 @@
 
   // ✅ API (Apps Script Web App) para ALUMNOS (login + guardar respuestas)
   const STUDENT_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxHaXXfPIsGODuJo5J1TZvESJuYBslDloH4p8AphemCIPScRROxPjlMdJNluMqxgnMh/exec";
-  const BUILD = "V11-STUDENTFIX";
+  const BUILD = "V12-STUDENTFIX";
 
   const FORCE_AUTH_EVERY_LOAD = true; // ✅ PON EN false cuando ya esté estable
 
@@ -1841,7 +1841,8 @@ function loadSavedView(){
       silabos: ["SÍLABOS", "Acceso directo a sílabos por universidad. Haga clic en el curso para abrir el Excel."],
       materiales: ["MATERIALES", "Acceso directo a carpetas por universidad."],
       listas: ["LISTAS", "Acceso directo a listas por sede y grupo."],
-      reportes: ["ENVÍO DE REPORTES", "Acceso directo a enlaces por sede y aula (tutor)."]
+      reportes: ["ENVÍO DE REPORTES", "Acceso directo a enlaces por sede y aula (tutor)."],
+      student: ["PORTAL DE ALUMNOS", "Acceso a material y evaluación (pruebas actuales: Álgebra)."]
 
     };
     document.getElementById("viewTitle").textContent = titles[v][0];
