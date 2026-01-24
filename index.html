@@ -724,6 +724,8 @@
     .authTitle{ font-weight:950; font-size:16px; margin:0 0 8px 0; text-transform:uppercase; }
     .authSub{ color:var(--muted); font-weight:800; margin:0 0 14px 0; font-size:12px; }
     .roleRow{ display:flex; gap:10px; flex-wrap:wrap; margin-bottom:12px; }
+    .roleRowFull{ margin-top:-4px; }
+    .roleBtnFull{ flex:1 1 100%; min-width:100%; }
     .roleBtn{
       flex:1;
       min-width: 160px;
@@ -776,18 +778,37 @@
     }
 
   
-  .grid2{ display:grid; grid-template-columns:1fr 1fr; gap:18px; }
-  @media(max-width: 980px){ .grid2{ grid-template-columns:1fr; } }
-  .kvGrid{ display:grid; grid-template-columns:1fr 1fr; gap:10px 14px; margin-top:10px;}
-  .kv{ padding:10px 12px; border:1px solid rgba(0,0,0,.06); border-radius:12px; background:#fff;}
-  .kv .k{ font-size:12px; color:rgba(20,30,50,.7); margin-bottom:6px; font-weight:700; text-transform:uppercase; letter-spacing:.02em;}
-  .kv .v{ font-size:14px; color:#0f172a; font-weight:700; }
-  .courseBox{ border:1px solid rgba(0,0,0,.06); border-radius:14px; background:#fff; padding:10px 12px; margin:10px 0; }
-  .courseBox summary{ cursor:pointer; font-weight:800; color:#111827; }
-  .topics{ display:flex; flex-direction:column; gap:8px; padding:10px 0 0; }
-  .topicBtn{ text-align:left; padding:10px 12px; border-radius:12px; border:1px solid rgba(0,0,0,.08); background:#f8fafc; font-weight:700; cursor:pointer; }
-  .topicBtn:hover{ background:#eef2ff; }
-
+    /* === Alumno (panel institucional) === */
+    .hero{ display:flex; justify-content:space-between; align-items:flex-end; gap:18px; }
+    .badge{ display:inline-block; padding:6px 10px; border:1px solid #f0c9c9; border-radius:999px; font-weight:800; letter-spacing:.4px; color:#b10000; background:#fff; }
+    .heroRight{ text-align:right; }
+    .bigName{ font-size:20px; font-weight:900; }
+    .smallLine{ color:var(--muted); font-weight:700; }
+    .grid2{ display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+    @media (max-width: 980px){ .grid2{ grid-template-columns:1fr; } .heroRight{ text-align:left; } }
+    .kv{ width:100%; border-collapse:collapse; margin-top:10px; }
+    .kv td{ padding:10px 8px; border-top:1px solid #eee; vertical-align:top; }
+    .kv td.k{ width:42%; color:#4b5563; font-weight:800; }
+    .kv td.v{ font-weight:700; }
+    .acc{ margin-top:12px; display:flex; flex-direction:column; gap:10px; }
+    .accItem{ border:1px solid #eee; border-radius:14px; overflow:hidden; }
+    .accBtn{ width:100%; text-align:left; padding:12px 14px; background:#fff; border:0; cursor:pointer; display:flex; justify-content:space-between; align-items:center; font-weight:900; }
+    .accBody{ display:none; padding:12px 14px; border-top:1px solid #eee; background:#fff; }
+    .accBody.open{ display:block; }
+    .topics{ display:flex; flex-direction:column; gap:10px; }
+    .topicRow{ display:flex; justify-content:space-between; align-items:center; gap:12px; padding:10px 10px; border:1px solid #f2f2f2; border-radius:12px; }
+    .topicName{ font-weight:800; }
+    .miniBtn{ padding:10px 12px; border-radius:12px; border:1px solid #f0c9c9; background:#fff; cursor:pointer; font-weight:900; color:#b10000; }
+    .miniBtn:hover{ background:#fff6f6; }
+    .evalBox{ margin-top:12px; border:1px solid #eee; border-radius:14px; padding:12px 12px; background:#fafafa; }
+    .evalHead{ display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:10px; }
+    .evalTitle{ font-weight:900; }
+    .sendBtn{ padding:10px 14px; border-radius:12px; border:0; background:var(--brand); color:#fff; font-weight:900; cursor:pointer; }
+    .q{ padding:10px 10px; background:#fff; border:1px solid #eee; border-radius:12px; margin-bottom:10px; }
+    .qTitle{ font-weight:900; margin-bottom:8px; }
+    .opts{ display:flex; flex-wrap:wrap; gap:8px; }
+    .opt{ display:inline-flex; align-items:center; gap:8px; padding:8px 10px; border:1px solid #eee; border-radius:999px; cursor:pointer; font-weight:800; background:#fff; }
+    .opt input{ margin:0; }
 </style>
 </head>
 
@@ -803,7 +824,9 @@
       <div class="roleRow">
         <button id="roleAdmin" class="roleBtn" type="button">ADMIN</button>
         <button id="roleTutor" class="roleBtn" type="button">TUTOR</button>
-        <button id="roleAlumno" class="roleBtn" type="button">ALUMNO</button>
+      </div>
+      <div class="roleRow roleRowFull">
+        <button id="roleAlumno" class="roleBtn roleBtnFull" type="button">ALUMNO</button>
       </div>
 
       <div class="authRow">
@@ -867,6 +890,7 @@
         </div>
       </div>
 
+      <div id="view_student" class="grid" style="display:none;"></div>
       <div id="view_overview" class="grid"></div>
       <div id="view_local" class="grid" style="display:none;"></div>
       <div id="view_table" class="grid" style="display:none;"></div>
@@ -910,9 +934,7 @@
   }
 
   function canAccessView(v){
-    // Alumno: solo MI PANEL
     if (CURRENT_ROLE === "alumno") return (v === "student");
-
     // Tutor NO puede ver RESUMEN GENERAL ni CONTROL DE SEDES
     if (CURRENT_ROLE === "tutor" && (v === "overview" || v === "local")) return false;
     return true;
@@ -922,40 +944,32 @@
     const roleLabel = document.getElementById("userRole");
     if (roleLabel) roleLabel.textContent = CURRENT_ROLE ? ("ROL: " + CURRENT_ROLE.toUpperCase()) : "ROL: -";
 
-    const isTutor = (CURRENT_ROLE === "tutor");
-
-    const isAlumno = (CURRENT_ROLE === "alumno");
-    // Alumno: solo MI PANEL
-    if (btnStudent) btnStudent.style.display = isAlumno ? "block" : "none";
-
-    // Botones generales que deben ocultarse para alumno
-    const navIds = ["nav_overview","nav_local","nav_table","nav_horarios","nav_impresiones","nav_silabos","nav_materiales","nav_listas","nav_reportes"];
-    if (isAlumno){
-      navIds.forEach(id=>{
-        if (id === "nav_student") return;
-        const el = document.getElementById(id);
-        if (el) el.style.display = "none";
-      });
-      // Forzar vista alumno
-      if (state.view !== "student") setView("student");
-    } else {
-      // Restaurar visibilidad al no ser alumno
-      navIds.forEach(id=>{
-        const el = document.getElementById(id);
-        if (!el) return;
-        if (id === "nav_overview" || id === "nav_local"){
-          // estos se manejan por rol tutor
-          return;
-        }
-        el.style.display = "block";
-      });
-    }
-
+    const btnStudent = document.getElementById("nav_student");
     const btnOverview = document.getElementById("nav_overview");
     const btnLocal = document.getElementById("nav_local");
-    const btnStudent = document.getElementById("nav_student");
+    const btnTable = document.getElementById("nav_table");
+    const btnHorarios = document.getElementById("nav_horarios");
+    const btnImpresiones = document.getElementById("nav_impresiones");
+    const btnSilabos = document.getElementById("nav_silabos");
+    const btnMateriales = document.getElementById("nav_materiales");
+    const btnListas = document.getElementById("nav_listas");
+    const btnReportes = document.getElementById("nav_reportes");
 
-    // Ocultar
+    const controls = document.getElementById("controls"); // barra de filtros
+
+    if (CURRENT_ROLE === "alumno"){
+      if (btnStudent) btnStudent.style.display = "";
+      [btnOverview,btnLocal,btnTable,btnHorarios,btnImpresiones,btnSilabos,btnMateriales,btnListas,btnReportes].forEach(b=>{ if(b) b.style.display="none"; });
+      if (controls) controls.style.display = "none";
+      if (state && state.view !== "student") setView("student");
+      return;
+    }
+
+    // ADMIN / TUTOR
+    if (btnStudent) btnStudent.style.display = "none";
+    if (controls) controls.style.display = "";
+
+    const isTutor = (CURRENT_ROLE === "tutor");
     if (btnOverview) btnOverview.style.display = isTutor ? "none" : "";
     if (btnLocal) btnLocal.style.display = isTutor ? "none" : "";
 
@@ -974,13 +988,14 @@
 
   function initAuth(){
     const saved = loadRole();
-    if (saved){
+    if (saved && saved !== "alumno"){
       CURRENT_ROLE = saved;
       showAuth(false);
       applyRoleUI();
       return true;
     }
 
+    // Para ALUMNO siempre se solicita clave
     showAuth(true);
 
     let selected = null;
@@ -994,39 +1009,71 @@
       selected = r;
       if (bA) bA.classList.toggle("active", r === "admin");
       if (bT) bT.classList.toggle("active", r === "tutor");
+      if (bS) bS.classList.toggle("active", r === "alumno");
       if (err) err.style.display = "none";
       if (pass) pass.focus();
     }
 
-    if (bA) bA.addEventListener("click", (e)=>{ e.preventDefault(); e.stopPropagation(); pick("admin"); });
-    if (bT) bT.addEventListener("click", (e)=>{ e.preventDefault(); e.stopPropagation(); pick("tutor"); });
-    if (bS) bS.addEventListener("click", (e)=>{ e.preventDefault(); e.stopPropagation(); pick("alumno"); });
+    if (bA) bA.addEventListener("click", ()=>pick("admin"));
+    if (bT) bT.addEventListener("click", ()=>pick("tutor"));
+    if (bS) bS.addEventListener("click", ()=>pick("alumno"));
 
-    function doLogin(){
-      const p = String(pass?.value || "");
-
-      // ADMIN / TUTOR: claves fijas
-      const okFixed = (selected === "admin" && p === AUTH_ADMIN_PASS) || (selected === "tutor" && p === AUTH_TUTOR_PASS);
-
-      // ALUMNO: por ahora validamos después de cargar data (para no descargar todo antes)
-      const okStudent = (selected === "alumno" && p.trim().length > 0);
-
-      if (!(okFixed || okStudent)){
-        if (err) err.style.display = "block";
+    async function doLogin(){
+      const pRaw = String(pass?.value || "");
+      const p = pRaw.trim();
+      if (!selected){
+        if (err){ err.textContent = "Seleccione un rol."; err.style.display = "block"; }
+        return;
+      }
+      if (!p){
+        if (err){ err.textContent = "Ingrese su clave."; err.style.display = "block"; }
         return;
       }
 
-      if (selected === "alumno"){
-        sessionStorage.setItem("LAMETA_STUDENT_PASS", p.trim());
+      // ADMIN / TUTOR: clave fija
+      if (selected === "admin" || selected === "tutor"){
+        const ok = (selected === "admin" && p === AUTH_ADMIN_PASS) || (selected === "tutor" && p === AUTH_TUTOR_PASS);
+        if (!ok){
+          if (err){ err.textContent = "Clave incorrecta."; err.style.display = "block"; }
+          return;
+        }
+        setRole(selected);
+        showAuth(false);
+        if (pass) pass.value = "";
+        if (!canAccessView(loadSavedView() || state.view)) setView("table");
+        return;
       }
 
-      setRole(selected);
-      showAuth(false);
-      if (pass) pass.value = "";
-
-      // Al entrar, fuerza vista permitida
-      if (!canAccessView(loadSavedView() || state.view)){
-        setView(selected === "alumno" ? "student" : "table");
+      // ALUMNO: clave existe en la columna CONTRASEÑA (ACCESO AL CAMPUS) de cualquier salón
+      if (selected === "alumno"){
+        const btnLogin = document.getElementById("btnLogin");
+        try{
+          if (btnLogin) btnLogin.disabled = true;
+          if (err){ err.textContent = "Validando..."; err.style.display = "block"; }
+          // Carga toda la base una sola vez (la misma que usa ADMIN -> ALUMNOS)
+          if (!state.allRows || !Array.isArray(state.allRows) || state.allRows.length === 0){
+            await loadAll(); // usa las mismas hojas (SALONES) ya configuradas
+          }
+          const row = (state.allRows || []).find(r => String(r.contrasena || "").trim() === p);
+          if (!row){
+            if (err){ err.textContent = "Contraseña inválida."; err.style.display = "block"; }
+            return;
+          }
+          state.currentStudent = row; // guarda el alumno activo
+          setRole("alumno");
+          showAuth(false);
+          if (pass) pass.value = "";
+          setView("student");
+          renderStudentPanel();
+          return;
+        }catch(ex){
+          console.error(ex);
+          if (err){ err.textContent = "No se pudo validar la clave. Verifique que las hojas estén publicadas y reintente."; err.style.display = "block"; }
+          return;
+        }
+        finally{
+          if (btnLogin) btnLogin.disabled = false;
+        }
       }
     }
 
@@ -1311,7 +1358,7 @@
   };
 // ===================== PERSISTENCIA DE VISTA (FIX) =====================
 const VIEW_STORAGE_KEY = "LA_META_CURRENT_VIEW";
-const ALLOWED_VIEWS = ["overview","local","table","horarios","impresiones","silabos","materiales","listas","reportes", "student"];
+const ALLOWED_VIEWS = ["student","overview","local","table","horarios","impresiones","silabos","materiales","listas","reportes"];
 
 function saveView(v){
   try { localStorage.setItem(VIEW_STORAGE_KEY, v); } catch(e){}
@@ -1325,6 +1372,7 @@ function loadSavedView(){
 
   const state = {
     view: "overview",
+    currentStudent: null,
     rawRows: [],
     canonical: [],
     cambiosRows: [],
@@ -1570,6 +1618,7 @@ function loadSavedView(){
     document.getElementById("fEstado").style.display = (v==="table") ? "" : "none";
 
     const titles = {
+      student: ["MI PANEL", "Acceso institucional del estudiante."],
       overview: ["RESUMEN GENERAL", "Panel estructurado para control de matrícula, modalidad y distribución por universidad."],
       local: ["POR LOCAL", "Monitoreo por salón (tutor) del local seleccionado."],
       table: ["ALUMNOS", "Búsqueda y filtros para consulta interna."],
@@ -1857,34 +1906,6 @@ function loadSavedView(){
 
     const isTutor = (CURRENT_ROLE === "tutor");
 
-    const isAlumno = (CURRENT_ROLE === "alumno");
-    // Alumno: solo MI PANEL
-    if (btnStudent) btnStudent.style.display = isAlumno ? "block" : "none";
-
-    // Botones generales que deben ocultarse para alumno
-    const navIds = ["nav_overview","nav_local","nav_table","nav_horarios","nav_impresiones","nav_silabos","nav_materiales","nav_listas","nav_reportes"];
-    if (isAlumno){
-      navIds.forEach(id=>{
-        if (id === "nav_student") return;
-        const el = document.getElementById(id);
-        if (el) el.style.display = "none";
-      });
-      // Forzar vista alumno
-      if (state.view !== "student") setView("student");
-    } else {
-      // Restaurar visibilidad al no ser alumno
-      navIds.forEach(id=>{
-        const el = document.getElementById(id);
-        if (!el) return;
-        if (id === "nav_overview" || id === "nav_local"){
-          // estos se manejan por rol tutor
-          return;
-        }
-        el.style.display = "block";
-      });
-    }
-
-
     const theadTutor = `
       <tr>
         <th>NOMBRE</th>
@@ -2094,39 +2115,156 @@ function loadSavedView(){
     }).join("");
   }
 
-  function renderTable(){
+  
+  function renderStudentPanel(){
+    const el = document.getElementById("view_student");
+    if (!el) return;
+
+    const s = state.currentStudent || null;
+    if (!s){
+      el.innerHTML = `<div class="card"><h3>Panel del Estudiante</h3><p>No se encontró información del alumno activo. Cierre sesión e ingrese nuevamente.</p></div>`;
+      return;
+    }
+
+    // Datos principales (formato institucional)
+    const datos = [
+      ["Nombres completos", s.nombreCompleto || "-"],
+      ["DNI", s.dni || "-"],
+      ["Correo", s.correo || (s.usuario || "-")],
+      ["Celular", s.cel || "-"],
+      ["Universidad", s.universidad || "-"],
+      ["Local", s.local || "-"],
+      ["Salón", s.salon || "-"],
+      ["Modalidad", s.modalidad || "-"],
+      ["Estado", s.estado || "-"],
+    ];
+
+    const datosHtml = datos.map(([k,v]) => `<tr><td class="k">${esc(k)}</td><td class="v">${esc(v)}</td></tr>`).join("");
+
+    const cursos = [
+      {name:"Álgebra", topics:["Ecuaciones y desigualdades","Polinomios y factorización","Sistemas de ecuaciones","Funciones"]},
+      {name:"Aritmética", topics:["Números y operaciones","Razones y proporciones","Porcentajes","Problemas clásicos"]},
+      {name:"Geometría", topics:["Ángulos y triángulos","Circunferencia","Polígonos","Geometría analítica (básico)"]},
+      {name:"Trigonometría", topics:["Razones trigonométricas","Identidades","Ecuaciones trigonométricas","Aplicaciones"]},
+      {name:"Física", topics:["Cinemática","Dinámica","Trabajo y energía","Ondas (básico)"]},
+      {name:"Química", topics:["Estructura atómica","Enlace químico","Estequiometría","Soluciones"]},
+      {name:"Biología", topics:["Célula","Genética","Evolución","Ecología"]},
+      {name:"Lenguaje", topics:["Comprensión lectora","Gramática","Redacción","Vocabulario"]},
+      {name:"Literatura", topics:["Géneros literarios","Narrativa","Poesía","Literatura peruana (básico)"]},
+      {name:"Historia", topics:["Perú","Mundo","Edad contemporánea (básico)","Procesos clave"]},
+      {name:"Geografía", topics:["Perú físico","Clima y relieve","Geografía humana","Cartografía (básico)"]},
+      {name:"Cívica", topics:["Estado y ciudadanía","Derechos y deberes","Constitución (básico)","Ética cívica"]},
+    ];
+
+    const cursosHtml = cursos.map((c, i) => `
+      <div class="accItem">
+        <button class="accBtn" type="button" data-acc="${i}">
+          <span>${esc(c.name)}</span>
+          <span class="accIcon">▾</span>
+        </button>
+        <div class="accBody" id="acc_${i}">
+          <div class="topics">
+            ${c.topics.map((t,j)=>`
+              <div class="topicRow">
+                <div class="topicName">${esc(t)}</div>
+                <button class="miniBtn" type="button" data-course="${i}" data-topic="${j}">Resolver evaluación</button>
+              </div>
+            `).join("")}
+          </div>
+          <div class="evalBox" id="eval_${i}" style="display:none;"></div>
+        </div>
+      </div>
+    `).join("");
+
+    el.innerHTML = `
+      <div class="card hero">
+        <div>
+          <div class="badge">LA META</div>
+          <h2>Panel del Estudiante</h2>
+          <p class="muted">Acceso institucional para evaluación y seguimiento académico.</p>
+        </div>
+        <div class="heroRight">
+          <div class="bigName">${esc(s.nombreCompleto || "Estudiante")}</div>
+          <div class="smallLine">${esc(s.universidad || "")} · ${esc(s.modalidad || "")}</div>
+        </div>
+      </div>
+
+      <div class="grid2">
+        <div class="card">
+          <h3>Datos principales</h3>
+          <table class="kv"><tbody>${datosHtml}</tbody></table>
+        </div>
+
+        <div class="card">
+          <h3>Cursos del examen</h3>
+          <p class="muted">Selecciona un curso, luego un tema, y resuelve tu evaluación (5 preguntas).</p>
+          <div class="acc">${cursosHtml}</div>
+        </div>
+      </div>
+    `;
+
+    // Acordeón
+    el.querySelectorAll(".accBtn").forEach(btn=>{
+      btn.addEventListener("click", ()=>{
+        const k = btn.getAttribute("data-acc");
+        const body = document.getElementById("acc_"+k);
+        const open = body?.classList.contains("open");
+        el.querySelectorAll(".accBody").forEach(x=>x.classList.remove("open"));
+        if (!open && body) body.classList.add("open");
+      });
+    });
+
+    // Evaluación (UI demo; vinculación real se hará en el siguiente paso)
+    el.querySelectorAll(".miniBtn").forEach(btn=>{
+      btn.addEventListener("click", ()=>{
+        const course = btn.getAttribute("data-course");
+        const box = document.getElementById("eval_"+course);
+        if (!box) return;
+        box.style.display = "";
+        box.innerHTML = renderMiniEvalHTML();
+        box.querySelectorAll('input[type="radio"]').forEach(r=>{
+          r.addEventListener("change", ()=>{ /* placeholder */ });
+        });
+        const send = box.querySelector(".sendBtn");
+        if (send){
+          send.addEventListener("click", ()=>{
+            alert("Evaluación registrada (demo). En el siguiente paso se vinculará a Google Sheets.");
+          });
+        }
+      });
+    });
+  }
+
+  function renderMiniEvalHTML(){
+    const q = [1,2,3,4,5].map(n=>`
+      <div class="q">
+        <div class="qTitle">Pregunta ${n}</div>
+        <div class="opts">
+          ${["A","B","C","D","E"].map(o=>`
+            <label class="opt">
+              <input type="radio" name="q${n}" value="${o}">
+              <span>${o}</span>
+            </label>
+          `).join("")}
+        </div>
+      </div>
+    `).join("");
+
+    return `
+      <div class="evalHead">
+        <div class="evalTitle">Evaluación (5 preguntas)</div>
+        <button class="sendBtn" type="button">Enviar</button>
+      </div>
+      ${q}
+      <div class="evalNote muted">Puedes dejar preguntas en blanco.</div>
+    `;
+  }
+
+function renderTable(){
     ensureTableLayout();
     applyFilters();
 
     const isTutor = (CURRENT_ROLE === "tutor");
-
-    const isAlumno = (CURRENT_ROLE === "alumno");
-    // Alumno: solo MI PANEL
-    if (btnStudent) btnStudent.style.display = isAlumno ? "block" : "none";
-
-    // Botones generales que deben ocultarse para alumno
-    const navIds = ["nav_overview","nav_local","nav_table","nav_horarios","nav_impresiones","nav_silabos","nav_materiales","nav_listas","nav_reportes"];
-    if (isAlumno){
-      navIds.forEach(id=>{
-        if (id === "nav_student") return;
-        const el = document.getElementById(id);
-        if (el) el.style.display = "none";
-      });
-      // Forzar vista alumno
-      if (state.view !== "student") setView("student");
-    } else {
-      // Restaurar visibilidad al no ser alumno
-      navIds.forEach(id=>{
-        const el = document.getElementById(id);
-        if (!el) return;
-        if (id === "nav_overview" || id === "nav_local"){
-          // estos se manejan por rol tutor
-          return;
-        }
-        el.style.display = "block";
-      });
-    }
-
     const rows = state.filtered;
 
     const tbody = document.getElementById("tb_body");
@@ -4047,6 +4185,7 @@ function ensureBoot(){
   if (state.booted) return;
 
   // eventos NAV (una sola vez)
+  document.getElementById("nav_student")?.addEventListener("click", ()=>{ setView("student"); renderStudentPanel(); });
   document.getElementById("nav_overview").addEventListener("click", ()=>setView("overview"));
   document.getElementById("nav_local").addEventListener("click", ()=>setView("local"));
   document.getElementById("nav_table").addEventListener("click", ()=>setView("table"));
@@ -4120,10 +4259,6 @@ async function loadAll(){
 
     // Importante: initFilters puede rearmar selects; se ejecuta aquí para mantener data al día
     initFilters();
-
-    // Alumno: resolver sesión y cargar datos del estudiante
-    hydrateStudentSession_();
-
     render();
 
   } catch(e){
@@ -4140,111 +4275,6 @@ async function loadAll(){
 }
 
 
-
-
-// ===================== ALUMNO: sesión + panel =====================
-function normalizeKey_(v){
-  return String(v ?? "").trim();
-}
-
-function findStudentByPassword_(pass){
-  const p = normalizeKey_(pass);
-  if (!p) return null;
-  // Busca en rawRows (incluye local/salon/ciclo)
-  const hit = (state.rawRows || []).find(r => normalizeKey_(r.contrasena) === p);
-  return hit || null;
-}
-
-function hydrateStudentSession_(){
-  if (CURRENT_ROLE !== "alumno") return true;
-
-  const p = sessionStorage.getItem("LAMETA_STUDENT_PASS") || "";
-  const row = findStudentByPassword_(p);
-
-  if (!row){
-    // cerrar sesión alumno
-    sessionStorage.removeItem("LAMETA_STUDENT_PASS");
-    setRole(null);
-    showAuth(true);
-    const err = document.getElementById("authErr");
-    if (err){
-      err.textContent = "Contraseña inválida.";
-      err.style.display = "block";
-    }
-    return false;
-  }
-
-  state.student = row;
-  return true;
-}
-
-function renderStudent(){
-  // Mostrar solo vista alumno
-  const views = document.querySelectorAll(".view");
-  views.forEach(v => v.style.display = "none");
-
-  const v = document.getElementById("view_student");
-  if (v) v.style.display = "block";
-
-  // Ocultar barra de filtros / acciones si existe
-  const tools = document.getElementById("toolsBar");
-  if (tools) tools.style.display = "none";
-
-  const sc = document.getElementById("studentCard");
-  if (!sc) return;
-
-  const s = state.student || {};
-
-  const items = [
-    ["Nombre completo", s.nombre || "-"],
-    ["Correo", s.correoAl || s.correo || "-"],
-    ["DNI", s.dniAl || "-"],
-    ["Celular", s.celularAl || "-"],
-    ["Universidad", s.universidad || "-"],
-    ["Modalidad", s.modalidad || "-"],
-    ["Academia", s.academia || "-"],
-    ["Carrera", s.carrera || "-"],
-    ["Estado", s.estado || "-"],
-    ["Local", s.local || "-"],
-    ["Ciclo", s.ciclo || "-"],
-    ["Salón", s.salon || "-"],
-  ];
-
-  sc.innerHTML = items.map(([k,val]) => (
-    `<div class="kv"><div class="k">${escapeHtml(k)}</div><div class="v">${escapeHtml(val)}</div></div>`
-  )).join("");
-
-  // Cursos: estructura lista (prototipo)
-  const cc = document.getElementById("studentCourses");
-  if (cc){
-    const courses = [
-      { name:"Álgebra", topics:["Ecuaciones de 1er grado (Bloque A)","Sistemas de ecuaciones (Bloque A)"]},
-      { name:"Aritmética", topics:["(pendiente)"]},
-      { name:"Geometría", topics:["(pendiente)"]},
-      { name:"Trigonometría", topics:["(pendiente)"]},
-      { name:"RM", topics:["(pendiente)"]},
-      { name:"RV", topics:["(pendiente)"]},
-      { name:"Física", topics:["(pendiente)"]},
-      { name:"Química", topics:["(pendiente)"]},
-      { name:"Biología", topics:["(pendiente)"]},
-      { name:"Historia", topics:["(pendiente)"]},
-      { name:"Geografía", topics:["(pendiente)"]},
-      { name:"Economía", topics:["(pendiente)"]},
-    ];
-
-    cc.innerHTML = courses.map((c, i) => {
-      const tid = `course_${i}`;
-      const topics = c.topics.map(t=>`<button class="topicBtn" type="button" onclick="alert('Próximo paso: abrir evaluación del tema.');">${escapeHtml(t)}</button>`).join("");
-      return `
-        <details class="courseBox">
-          <summary>${escapeHtml(c.name)}</summary>
-          <div class="topics">${topics}</div>
-        </details>
-      `;
-    }).join("");
-  }
-}
-// ===================== FIN ALUMNO =====================
 
 function startApp(){
   ensureBoot();
@@ -4286,25 +4316,3 @@ window.addEventListener("DOMContentLoaded", () => {
 </script>
 </body>
 </html>
-      <!-- ===================== VISTA ALUMNO ===================== -->
-      <section id="view_student" class="view" style="display:none;">
-        <div class="pageTitle">
-          <h2>Panel del Estudiante</h2>
-          <p class="muted">Resumen personal y acceso a cursos del examen.</p>
-        </div>
-
-        <div class="grid2">
-          <div class="card">
-            <h3>Datos principales</h3>
-            <div id="studentCard" class="kvGrid"></div>
-          </div>
-
-          <div class="card">
-            <h3>Cursos del examen</h3>
-            <p class="muted">Selecciona un curso para ver sus temas. (En este paso dejamos la estructura lista.)</p>
-            <div id="studentCourses"></div>
-          </div>
-        </div>
-      </section>
-
-
