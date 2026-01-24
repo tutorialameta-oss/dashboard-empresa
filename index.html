@@ -6,7 +6,168 @@
   <title>LA META | PANEL DE CONTROL</title>
 
   <!-- Charts -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js">
+/* ===== ALUMNO AUTH FIX+DEBUG (vX) ===== */
+const APPS_URL = "https://script.google.com/macros/s/AKfycbzWE1G1EwtGfF4xk6ON2ArMe_Kwfwnj6M2YUXWxkFJGU4iwscmmPelMErwHMtNR4cvg/exec";
+
+function _cleanPass(p){
+  return String(p||"")
+    .normalize("NFKC")
+    .replace(/[\u200B-\u200D\uFEFF]/g,"")
+    .replace(/\u00A0/g," ")
+    .trim();
+}
+
+function _setAlumnoDbg(msg){
+  const el = document.getElementById("dbgAlumno");
+  if(el) el.textContent = "ALUMNO debug: " + msg;
+}
+
+function _fetchWithTimeout(url, ms=8000){
+  return new Promise((resolve, reject)=>{
+    const t = setTimeout(()=>reject(new Error("timeout")), ms);
+    fetch(url, { method:"GET", mode:"cors", cache:"no-store" })
+      .then(r=>r.text())
+      .then(txt=>{ clearTimeout(t); resolve(txt); })
+      .catch(err=>{ clearTimeout(t); reject(err); });
+  });
+}
+
+function _tryParseJSON(txt){
+  try { return JSON.parse(txt); } catch(e) { return null; }
+}
+
+function _jsonp(url, ms=9000){
+  return new Promise((resolve, reject)=>{
+    const cb = "cb_" + Math.random().toString(16).slice(2);
+    const s = document.createElement("script");
+    let done = false;
+    const t = setTimeout(()=>{
+      if(done) return;
+      done = true;
+      try{ delete window[cb]; }catch(e){}
+      s.remove();
+      reject(new Error("jsonp_timeout"));
+    }, ms);
+    window[cb] = (data)=>{
+      if(done) return;
+      done = true;
+      clearTimeout(t);
+      try{ delete window[cb]; }catch(e){}
+      s.remove();
+      resolve(data);
+    };
+    s.onerror = ()=>{
+      if(done) return;
+      done = true;
+      clearTimeout(t);
+      try{ delete window[cb]; }catch(e){}
+      s.remove();
+      reject(new Error("jsonp_error"));
+    };
+    const sep = url.includes("?") ? "&" : "?";
+    s.src = url + sep + "callback=" + cb;
+    document.head.appendChild(s);
+  });
+}
+
+async function authAlumnoByPassword(passRaw){
+  const pass = _cleanPass(passRaw);
+  if(!pass) return { ok:false, error:"empty" };
+
+  // 1) try CORS fetch returning JSON
+  const url = `${APPS_URL}?action=authStudent&pass=${encodeURIComponent(pass)}&t=${Date.now()}`;
+  _setAlumnoDbg("consultando AppsScript...");
+  try {
+    const txt = await _fetchWithTimeout(url, 8000);
+    let data = _tryParseJSON(txt);
+    if(!data){
+      // if AppsScript returns JSONP-like wrapper accidentally, attempt strip
+      const m = txt.match(/\{[\s\S]*\}/);
+      if(m) data = _tryParseJSON(m[0]);
+    }
+    if(data){
+      _setAlumnoDbg("respuesta OK (fetch)");
+      return data;
+    }
+  } catch(e) {
+    _setAlumnoDbg("fetch falló → JSONP");
+  }
+
+  // 2) fallback JSONP
+  const url2 = `${APPS_URL}?action=authStudent&pass=${encodeURIComponent(pass)}&t=${Date.now()}`;
+  try {
+    const data = await _jsonp(url2, 9000);
+    _setAlumnoDbg("respuesta OK (jsonp)");
+    return data;
+  } catch(e) {
+    _setAlumnoDbg("ERROR: no responde AppsScript");
+    return { ok:false, error:"no_response" };
+  }
+}
+
+/* Hook: reemplaza SOLO la validación de ALUMNO sin tocar ADMIN/TUTOR */
+(function(){
+  const oldDoLogin = window.doLogin || window._doLogin || null;
+
+  async function patchedLogin(){
+    try {
+      const role = (window.__ROLE__ || "").toLowerCase();
+      const passInput = document.getElementById("authPass");
+      const pass = passInput ? passInput.value : "";
+      if(role !== "alumno"){
+        // usa flujo normal
+        if(typeof oldDoLogin === "function") return oldDoLogin();
+        if(typeof window._doLogin === "function") return window._doLogin();
+        return;
+      }
+      // Alumno
+      const res = await authAlumnoByPassword(pass);
+      if(res && res.ok){
+        _setAlumnoDbg("OK: " + (res.student?.nombreCompleto || res.student?.NOMBRES_COMPLETOS || "ALUMNO"));
+        // guarda sesión mínima
+        try{ sessionStorage.setItem("lameta_role","alumno"); }catch(e){}
+        try{ sessionStorage.setItem("lameta_student", JSON.stringify(res.student||{})); }catch(e){}
+        // activa vista alumno si existe
+        if(typeof window.showAlumnoPanel === "function") window.showAlumnoPanel(res.student||{});
+        else if(typeof window.renderAlumnoDashboard === "function") window.renderAlumnoDashboard(res.student||{});
+        else {
+          // fallback: navega al resumen si es tu landing
+          if(typeof window.showView === "function") window.showView("alumno");
+          else {
+            // último recurso: ocultar login
+            const overlay = document.getElementById("authOverlay");
+            if(overlay) overlay.style.display="none";
+          }
+        }
+        // ocultar error
+        const err = document.getElementById("authErr");
+        if(err) err.style.display="none";
+        return;
+      }
+      // error
+      const err = document.getElementById("authErr");
+      if(err){
+        err.style.display="block";
+        err.textContent = "Contraseña inválida.";
+      }
+      _setAlumnoDbg("NO MATCH (revisa espacios invisibles o que AppsScript lea la hoja correcta)");
+    } catch(ex) {
+      const err = document.getElementById("authErr");
+      if(err){
+        err.style.display="block";
+        err.textContent = "Error de acceso ALUMNO.";
+      }
+      _setAlumnoDbg("EX: " + (ex && ex.message ? ex.message : String(ex)));
+    }
+  }
+
+  // engancha al botón entrar
+  window.doLogin = patchedLogin;
+  window._doLogin = patchedLogin;
+})();
+
+</script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
 
   <!-- PNG export (captura COMPLETA del elemento, no solo lo visible) -->
@@ -809,6 +970,19 @@
     .opts{ display:flex; flex-wrap:wrap; gap:8px; }
     .opt{ display:inline-flex; align-items:center; gap:8px; padding:8px 10px; border:1px solid #eee; border-radius:999px; cursor:pointer; font-weight:800; background:#fff; }
     .opt input{ margin:0; }
+
+.dbgRow{ margin-top:10px; display:flex; gap:10px; flex-wrap:wrap; }
+.dbgChip{
+  display:inline-block;
+  padding:6px 10px;
+  border-radius:999px;
+  font-weight:800;
+  font-size:12px;
+  border:1px solid rgba(148,163,184,.55);
+  background: rgba(15,23,42,.06);
+  color:#0f172a;
+}
+
 </style>
 </head>
 
