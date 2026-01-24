@@ -1344,6 +1344,7 @@
         <button id="nav_impresiones">IMPRESIONES</button>
         <!-- ✅ NUEVO -->
         <button id="nav_silabos">SÍLABOS</button>
+        <button id="nav_evaluaciones">EVALUACIONES</button>
         <button id="nav_materiales">MATERIALES</button>
         <button id="nav_listas">LISTAS</button>
         <button id="nav_reportes">ENVÍO DE REPORTES</button>
@@ -1388,6 +1389,7 @@
       <div id="view_impresiones" class="grid" style="display:none;"></div>
       <!-- ✅ NUEVO -->
       <div id="view_silabos" class="grid" style="display:none;"></div>
+      <div id="view_evaluaciones" class="grid" style="display:none;"></div>
       <div id="view_materiales" class="grid" style="display:none;"></div>
       <div id="view_listas" class="grid" style="display:none;"></div>
       <div id="view_reportes" class="grid" style="display:none;"></div>
@@ -1403,6 +1405,10 @@
   // ⚠️ CAMBIA ESTAS CLAVES AQUÍ
   const AUTH_ADMIN_PASS = "202619";
   const AUTH_TUTOR_PASS = "MBMLaMeta";
+
+  // ===================== EVALUACIONES (WEBAPP / JSONP) =====================
+  const EVAL_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxT0lOvu20Vo8_3leNUxgCrH1hpK2pGx2qo37t6bCRW2VusVDXvBSJni0btkI7mmdXR/exec";
+  const EVAL_API_KEY = "LAMETA2026";
 
   const ROLE_KEY = "lameta_role";
   const STUDENT_USER_KEY = "lameta_student_user";
@@ -1455,6 +1461,7 @@
 
     const profile = {
       usuario,
+      nro_lista: row?.nro_lista || "",
       nombre: row?.nombre || "",
       local: row?.local || "",
       ciclo: row?.ciclo || "",
@@ -1523,7 +1530,7 @@
 
     // Alumno: entorno limitado (sin materiales)
     if (CURRENT_ROLE === "alumno"){
-      return (v === "inicio_alumno" || v === "perfil_alumno" || v === "horarios" || v === "silabos");
+      return (v === "inicio_alumno" || v === "perfil_alumno" || v === "horarios" || v === "silabos" || v === "evaluaciones");
     }
     return true;
   }
@@ -1571,6 +1578,7 @@
     const btnImpr = document.getElementById("nav_impresiones");
     const btnSil = document.getElementById("nav_silabos");
     const btnMat = document.getElementById("nav_materiales");
+    const btnEval = document.getElementById("nav_evaluaciones");
     const btnList = document.getElementById("nav_listas");
     const btnRep = document.getElementById("nav_reportes");
 
@@ -1594,6 +1602,7 @@
 
     // Materiales: oculto para alumnos (se habilitará cuando esté listo)
     if (btnMat) btnMat.style.display = isAlumno ? "none" : "";
+    if (btnEval) btnEval.style.display = isAlumno ? "" : "none";
 
     // Si la vista actual no está permitida, enviar a fallback
     if (state && state.view && !canAccessView(state.view)){
@@ -2236,6 +2245,7 @@ function loadSavedView(){
     t("nav_horarios", v==="horarios");
     t("nav_impresiones", v==="impresiones");
     t("nav_silabos", v==="silabos");
+    t("nav_evaluaciones", v==="evaluaciones");
     t("nav_materiales", v==="materiales");
     t("nav_listas", v==="listas");
     t("nav_reportes", v==="reportes");
@@ -2253,6 +2263,7 @@ function loadSavedView(){
     s("view_horarios", v==="horarios");
     s("view_impresiones", v==="impresiones");
     s("view_silabos", v==="silabos");
+    s("view_evaluaciones", v==="evaluaciones");
     s("view_materiales", v==="materiales");
     s("view_listas", v==="listas");
     s("view_reportes", v==="reportes");
@@ -2279,6 +2290,7 @@ function loadSavedView(){
       horarios: ["HORARIOS", "Horarios por local/universidad/salón. Ideal para que el alumno ubique sus clases."],
       impresiones: ["IMPRESIONES", "Registros y control de impresiones por fecha y alumno."],
       silabos: ["SÍLABOS", "Repositorio de sílabos por universidad y curso."],
+      evaluaciones: ["EVALUACIONES","Responde tus evaluaciones semanales por curso (PDF + 5 preguntas)."],
       materiales: ["MATERIALES", "Accesos a carpetas de materiales por universidad."],
       listas: ["LISTAS", "Listas y exportables por salón."],
       reportes: ["ENVÍO DE REPORTES", "Plantillas y envío de reportes por alumno."]
@@ -3357,6 +3369,366 @@ function ensureMaterialesLayout(){
   `;
   el.dataset.ready = "1";
 }
+
+
+  // ===================== EVALUACIONES (ALUMNO) =====================
+  const AGRARIA_CURSOS_ORDER = [
+    "RAZONAMIENTO VERBAL","RAZONAMIENTO MATEMATICO","ARITMETICA","ALGEBRA","GEOMETRIA","TRIGONOMETRIA",
+    "FISICA","QUIMICA","BIOLOGIA","ECONOMIA","HISTORIA","GEOGRAFIA"
+  ];
+
+  function evalSalonKeyFromProfile(prof){
+    const s = String(prof?.salon || "").toUpperCase();
+    if (!s) return "";
+    // Agraria / UNALM
+    if (s.includes("AGRARIA") || s.includes("UNALM")){
+      if (s.includes("LM") && s.includes(" 2")) return "AGRARIA2";
+      if (s.includes("LM") && s.includes(" 1")) return "AGRARIA1";
+      if (s.includes("LM2") || s.includes(" 2") || s.includes("2")) return "AGRARIA2";
+      if (s.includes("LM1") || s.includes(" 1") || s.includes("1")) return "AGRARIA1";
+      if (s.includes("SB")) return "AGRARIA_SB";
+      if (s.includes("SM")) return "AGRARIA_SM";
+      if (s.includes("VIR") || s.includes("VIRTUAL")) return "AGRARIA_VIR";
+      return "AGRARIA";
+    }
+    // Otras universidades (si luego se amplía)
+    return s.replace(/\s+/g, "");
+  }
+
+  function evalJsonp(params, timeoutMs=15000){
+    return new Promise((resolve, reject)=>{
+      const cb = "__lameta_cb_" + Math.random().toString(36).slice(2);
+      const timer = setTimeout(()=>{
+        cleanup();
+        reject(new Error("Tiempo de espera agotado (JSONP)."));
+      }, timeoutMs);
+
+      function cleanup(){
+        clearTimeout(timer);
+        try { delete window[cb]; } catch(e){ window[cb] = undefined; }
+        if (script && script.parentNode) script.parentNode.removeChild(script);
+      }
+
+      window[cb] = (data)=>{
+        cleanup();
+        resolve(data);
+      };
+
+      const qs = new URLSearchParams({...params, callback: cb}).toString();
+      const url = EVAL_WEBAPP_URL + (EVAL_WEBAPP_URL.includes("?") ? "&" : "?") + qs;
+
+      const script = document.createElement("script");
+      script.src = url;
+      script.async = true;
+      script.onerror = ()=>{
+        cleanup();
+        reject(new Error("No se pudo cargar el endpoint (JSONP)."));
+      };
+      document.body.appendChild(script);
+    });
+  }
+
+  async function fetchEvaluacionesAlumno(){
+    const prof = getAlumnoProfile();
+    if (!prof) return [];
+    const universidad = prof.uni || "";
+    const salon = evalSalonKeyFromProfile(prof) || prof.salon || "";
+    const key = universidad + "|" + salon;
+
+    if (!state.evalCache) state.evalCache = {key:null, ts:0, items:[]};
+    const fresh = (state.evalCache.key === key) && (Date.now() - state.evalCache.ts < 30000);
+    if (fresh) return state.evalCache.items || [];
+
+    const data = await evalJsonp({ action:"list_evals", apiKey:EVAL_API_KEY, universidad, salon });
+    if (!data || !data.ok) throw new Error(data?.error || "No se pudo cargar evaluaciones.");
+    const items = Array.isArray(data.items) ? data.items : [];
+    state.evalCache = {key, ts: Date.now(), items};
+    return items;
+  }
+
+  function ensureEvalModal(){
+    if (document.getElementById("evalModalOverlay")) return;
+
+    const css = document.createElement("style");
+    css.textContent = `
+      .evalOverlay{
+        position: fixed; inset:0; background: rgba(0,0,0,.35);
+        display:none; align-items:center; justify-content:center; z-index: 2000;
+        padding: 16px;
+      }
+      .evalModal{
+        width: min(820px, 100%); background: #fff; border-radius: 18px; overflow:hidden;
+        box-shadow: 0 24px 70px rgba(0,0,0,.25);
+        border: 1px solid rgba(0,0,0,.06);
+      }
+      .evalModalHeader{
+        padding: 14px 16px; border-bottom: 1px solid rgba(0,0,0,.06);
+        display:flex; gap:12px; align-items:center; justify-content:space-between;
+      }
+      .evalModalTitle{ font-weight: 900; }
+      .evalModalSub{ color: var(--muted); font-size: 13px; margin-top:2px; }
+      .evalModalBody{ padding: 14px 16px; max-height: 70vh; overflow:auto; }
+      .qBlock{ padding: 12px; border: 1px solid rgba(0,0,0,.06); border-radius: 14px; margin-bottom: 10px; }
+      .qHead{ font-weight: 800; margin-bottom: 8px; }
+      .opts{ display:grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; }
+      .opt{ display:flex; align-items:center; gap:8px; padding: 10px; border-radius: 14px; border: 1px solid rgba(0,0,0,.08); cursor:pointer; user-select:none; }
+      .opt input{ margin:0; }
+      .evalModalFooter{ padding: 14px 16px; border-top: 1px solid rgba(0,0,0,.06); display:flex; gap:10px; justify-content:flex-end; flex-wrap:wrap; }
+      .btnGhost{ background: transparent; border: 1px solid rgba(0,0,0,.12); border-radius: 999px; padding: 10px 14px; font-weight: 800; cursor:pointer; }
+      .btnPrimary{ background: var(--primary); color:#fff; border:none; border-radius: 999px; padding: 10px 14px; font-weight: 900; cursor:pointer; }
+      .evalMsg{ font-size: 13px; color: var(--muted); margin-right:auto; }
+    `;
+    document.head.appendChild(css);
+
+    const overlay = document.createElement("div");
+    overlay.id = "evalModalOverlay";
+    overlay.className = "evalOverlay";
+    overlay.innerHTML = `
+      <div class="evalModal" role="dialog" aria-modal="true">
+        <div class="evalModalHeader">
+          <div>
+            <div class="evalModalTitle" id="evalModalTitle">Evaluación</div>
+            <div class="evalModalSub" id="evalModalSub">Marca tus respuestas (puedes dejar en blanco).</div>
+          </div>
+          <button class="btnGhost" id="evalModalClose" type="button">Cerrar</button>
+        </div>
+        <div class="evalModalBody" id="evalModalBody"></div>
+        <div class="evalModalFooter">
+          <div class="evalMsg" id="evalModalMsg"></div>
+          <button class="btnGhost" id="evalModalCancel" type="button">Cancelar</button>
+          <button class="btnPrimary" id="evalModalSend" type="button">Enviar</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+
+    const closeAll = ()=>{
+      overlay.style.display = "none";
+      overlay.dataset.evalid = "";
+    };
+    overlay.addEventListener("click", (e)=>{ if (e.target === overlay) closeAll(); });
+    overlay.querySelector("#evalModalClose").addEventListener("click", closeAll);
+    overlay.querySelector("#evalModalCancel").addEventListener("click", closeAll);
+    overlay.querySelector("#evalModalSend").addEventListener("click", ()=>submitEvalFromModal());
+  }
+
+  function openEvalModal(evalItem){
+    ensureEvalModal();
+    const overlay = document.getElementById("evalModalOverlay");
+    const body = document.getElementById("evalModalBody");
+    const title = document.getElementById("evalModalTitle");
+    const sub = document.getElementById("evalModalSub");
+    const msg = document.getElementById("evalModalMsg");
+
+    overlay.dataset.evalid = evalItem.eval_id || "";
+    title.textContent = `${evalItem.curso || "EVALUACIÓN"} — Bloque ${evalItem.bloque || ""}`;
+    sub.textContent = `${evalItem.titulo || ""}`;
+    msg.textContent = "";
+
+    const q = [1,2,3,4,5].map(n=>`
+      <div class="qBlock">
+        <div class="qHead">Pregunta ${n}</div>
+        <div class="opts">
+          ${["A","B","C","D","E"].map(L=>`
+            <label class="opt">
+              <input type="radio" name="q${n}" value="${L}">
+              <span>${L}</span>
+            </label>
+          `).join("")}
+        </div>
+      </div>
+    `).join("");
+
+    body.innerHTML = q + `
+      <div style="margin-top:10px; font-size:13px; color: var(--muted);">
+        Si todavía no deseas responder, puedes cerrar y hacerlo más tarde.
+      </div>
+    `;
+
+    overlay.style.display = "flex";
+  }
+
+  async function submitEvalFromModal(){
+    const overlay = document.getElementById("evalModalOverlay");
+    const evalid = overlay.dataset.evalid || "";
+    const msg = document.getElementById("evalModalMsg");
+    if (!evalid) return;
+
+    const prof = getAlumnoProfile();
+    if (!prof) return;
+
+    const getAns = (n)=>{
+      const el = overlay.querySelector(`input[name="q${n}"]:checked`);
+      return el ? String(el.value||"") : "";
+    };
+
+    const payload = {
+      action: "submit",
+      apiKey: EVAL_API_KEY,
+      eval_id: evalid,
+      universidad: prof.uni || "",
+      salon: evalSalonKeyFromProfile(prof) || prof.salon || "",
+      nro_list: prof.nro_lista || "",
+      usuario: prof.usuario || "",
+      nombre: prof.nombre || "",
+      r1: getAns(1),
+      r2: getAns(2),
+      r3: getAns(3),
+      r4: getAns(4),
+      r5: getAns(5),
+    };
+
+    msg.textContent = "Enviando…";
+    try {
+      const data = await evalJsonp(payload, 20000);
+      if (!data || !data.ok) throw new Error(data?.error || "Error al enviar.");
+      const p = (data.puntaje != null) ? ` Puntaje: ${data.puntaje}/5.` : "";
+      msg.textContent = "Envío registrado." + p;
+      setTimeout(()=>{ overlay.style.display = "none"; }, 900);
+    } catch(err){
+      msg.textContent = "Error: " + (err?.message || String(err));
+    }
+  }
+
+  async function renderEvaluaciones(){
+    const prof = getAlumnoProfile();
+    const root = document.getElementById("view_evaluaciones");
+    if (!root) return;
+
+    root.innerHTML = `
+      <div class="card" style="grid-column: 1 / -1;">
+        <div class="cardTitleRow">
+          <div class="cardTitle">EVALUACIONES</div>
+          <div class="badge">${(prof?.estado||"").toUpperCase() || "—"}</div>
+        </div>
+        <div class="muted" style="margin-top:6px;">
+          Abre el PDF, marca tus 5 respuestas (A–E) y envía. Puedes dejar en blanco si no respondes alguna.
+        </div>
+      </div>
+      <div class="card" style="grid-column: 1 / -1;">
+        <div class="cardTitleRow">
+          <div class="cardTitle">Cargando…</div>
+        </div>
+        <div class="muted">Obteniendo evaluaciones disponibles para tu salón.</div>
+      </div>
+    `;
+
+    let items = [];
+    try {
+      items = await fetchEvaluacionesAlumno();
+    } catch(err){
+      root.innerHTML = `
+        <div class="card" style="grid-column: 1 / -1;">
+          <div class="cardTitleRow">
+            <div class="cardTitle">EVALUACIONES</div>
+          </div>
+          <div class="muted">No se pudo cargar. ${(err?.message||"") ? ("Detalle: " + err.message) : ""}</div>
+        </div>
+      `;
+      return;
+    }
+
+    if (!items.length){
+      root.innerHTML = `
+        <div class="card" style="grid-column: 1 / -1;">
+          <div class="cardTitleRow">
+            <div class="cardTitle">EVALUACIONES</div>
+          </div>
+          <div class="muted">Aún no hay evaluaciones publicadas para tu salón. Cuando el tutor cargue TÍTULO + PDF_URL, aquí aparecerán automáticamente.</div>
+        </div>
+      `;
+      return;
+    }
+
+    // Agrupar por curso
+    const byCurso = {};
+    for (const it of items){
+      const c = String(it.curso||"").toUpperCase();
+      if (!byCurso[c]) byCurso[c] = [];
+      byCurso[c].push(it);
+    }
+
+    // Orden cursos (Agraria)
+    const cursos = Object.keys(byCurso).sort((a,b)=>{
+      const ia = AGRARIA_CURSOS_ORDER.indexOf(a);
+      const ib = AGRARIA_CURSOS_ORDER.indexOf(b);
+      if (ia>=0 && ib>=0) return ia-ib;
+      if (ia>=0) return -1;
+      if (ib>=0) return 1;
+      return a.localeCompare(b);
+    });
+
+    const blocks = cursos.map(c=>{
+      const list = byCurso[c].slice().sort((x,y)=>{
+        const dx = String(x.semana_lunes||"");
+        const dy = String(y.semana_lunes||"");
+        if (dx !== dy) return dx.localeCompare(dy);
+        return String(x.bloque||"").localeCompare(String(y.bloque||""));
+      });
+
+      // Agrupar por semana
+      const byWeek = {};
+      for (const it of list){
+        const w = String(it.semana_lunes||"");
+        if (!byWeek[w]) byWeek[w] = [];
+        byWeek[w].push(it);
+      }
+
+      const weeks = Object.keys(byWeek).sort().map(w=>{
+        const its = byWeek[w];
+        const rows = its.map(it=>`
+          <div class="card" style="margin-top:10px;">
+            <div class="cardTitleRow">
+              <div class="cardTitle">${it.titulo || "Sin título"}</div>
+              <div class="badge">Bloque ${it.bloque || "—"}</div>
+            </div>
+            <div class="muted" style="margin-top:6px; display:flex; gap:10px; flex-wrap:wrap;">
+              <span><b>Semana (lunes):</b> ${w || "—"}</span>
+              <span><b>EVAL_ID:</b> ${it.eval_id || "—"}</span>
+            </div>
+            <div style="margin-top:12px; display:flex; gap:10px; flex-wrap:wrap;">
+              <a class="pillBtn" href="${it.pdf_url || "#"}" target="_blank" rel="noopener" style="text-decoration:none;">
+                Abrir PDF
+              </a>
+              <button class="pillBtn primary" type="button" data-evalid="${it.eval_id||""}">Responder</button>
+            </div>
+          </div>
+        `).join("");
+
+        return `
+          <div class="card" style="margin-top:14px;">
+            <div class="cardTitleRow">
+              <div class="cardTitle">Semana: ${w}</div>
+            </div>
+            ${rows}
+          </div>
+        `;
+      }).join("");
+
+      return `
+        <div class="card" style="grid-column: 1 / -1;">
+          <div class="cardTitleRow">
+            <div class="cardTitle">${c}</div>
+            <div class="badge">${byCurso[c].length} eval(s)</div>
+          </div>
+          <div class="muted">Selecciona una evaluación, abre el PDF y responde.</div>
+          ${weeks}
+        </div>
+      `;
+    }).join("");
+
+    root.innerHTML = blocks;
+
+    // Eventos: abrir modal
+    root.querySelectorAll('button[data-evalid]').forEach(btn=>{
+      btn.addEventListener("click", ()=>{
+        const evalid = btn.getAttribute("data-evalid") || "";
+        const item = items.find(x=>String(x.eval_id) === String(evalid));
+        if (item) openEvalModal(item);
+      });
+    });
+  }
+
 
 function renderMateriales(){
   ensureMaterialesLayout();
@@ -5052,6 +5424,7 @@ function render(){
     if (state.view==="horarios") renderHorarios();
     if (state.view==="impresiones") renderImpresiones();
     if (state.view==="silabos") renderSilabos();
+    if (state.view==="evaluaciones") renderEvaluaciones();
     if (state.view==="materiales") renderMateriales();
     if (state.view==="listas") renderListas();
     if (state.view==="reportes") renderReportes();
@@ -5152,6 +5525,7 @@ function render(){
       const contrasena = (iPass>=0) ? norm(cells[iPass] || "") : "";
 
       out.push({
+        nro_lista: out.length + 1,
         nombre,
         modalidad,
         estado,
@@ -5205,6 +5579,7 @@ function ensureBoot(){
   bind("nav_horarios", ()=>setView("horarios"));
   bind("nav_impresiones", ()=>setView("impresiones"));
   bind("nav_silabos", ()=>setView("silabos"));
+  bind("nav_evaluaciones", ()=>setView("evaluaciones"));
   bind("nav_materiales", ()=>setView("materiales"));
   bind("nav_listas", ()=>setView("listas"));
   bind("nav_reportes", ()=>setView("reportes"));
