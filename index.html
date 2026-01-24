@@ -775,7 +775,395 @@
       cursor:pointer;
     }
 
-  </style>
+  
+    /* ======================================================================
+       ✅ MODO ALUMNO: Más profesional y dinámico (solo visual)
+    ====================================================================== */
+    body.role-alumno{
+      background: radial-gradient(1200px 600px at 15% 0%, rgba(209,11,11,0.10), transparent 55%),
+                  radial-gradient(900px 500px at 85% 10%, rgba(164,0,0,0.10), transparent 55%),
+                  var(--bg);
+    }
+    body.role-alumno .app{
+      background: transparent;
+    }
+    body.role-alumno .sidebar{
+      border-right: 1px solid rgba(15,23,42,0.08);
+      background: rgba(255,255,255,0.92);
+      backdrop-filter: blur(8px);
+    }
+    body.role-alumno .brand{
+      box-shadow: none;
+      border: 1px solid rgba(15,23,42,0.08);
+      background: linear-gradient(180deg, rgba(255,255,255,0.95), rgba(255,245,245,0.85));
+    }
+    .alHero{
+      grid-column: span 12;
+      border-radius: 22px;
+      border: 1px solid rgba(15,23,42,0.08);
+      background: linear-gradient(135deg, rgba(209,11,11,0.10), rgba(164,0,0,0.06), rgba(255,255,255,0.85));
+      box-shadow: 0 22px 55px rgba(15,23,42,0.08);
+      overflow: hidden;
+    }
+    .alHeroInner{
+      padding: 22px;
+      display: grid;
+      grid-template-columns: 1.4fr 0.9fr;
+      gap: 18px;
+      align-items: stretch;
+    }
+    .alHeroKicker{
+      font-weight: 1000;
+      letter-spacing: 0.12em;
+      color: rgba(15,23,42,0.55);
+      font-size: 12px;
+    }
+    .alHeroTitle{
+      margin-top: 6px;
+      font-size: 34px;
+      font-weight: 1100;
+      line-height: 1.06;
+      color: var(--text);
+    }
+    .alHeroSub{
+      margin-top: 10px;
+      color: rgba(15,23,42,0.65);
+      font-weight: 900;
+      max-width: 58ch;
+    }
+    .alHeroActions{
+      margin-top: 14px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .alBtn{
+      border: 1px solid rgba(15,23,42,0.10);
+      background: #ffffff;
+      padding: 10px 14px;
+      border-radius: 14px;
+      font-weight: 1000;
+      cursor: pointer;
+      transition: transform .15s ease, box-shadow .15s ease, background .15s ease;
+    }
+    .alBtn:hover{
+      transform: translateY(-1px);
+      box-shadow: 0 10px 20px rgba(15,23,42,0.10);
+    }
+    .alBtnPrimary{
+      background: linear-gradient(180deg, var(--accent), var(--accent2));
+      color: #fff;
+      border-color: rgba(0,0,0,0.0);
+    }
+    .alBtnGhost{
+      background: rgba(255,255,255,0.75);
+    }
+    .alBtnSoft{
+      background: rgba(209,11,11,0.08);
+      border-color: rgba(209,11,11,0.18);
+      color: var(--accent2);
+    }
+    .alHeroRight{
+      display: grid;
+      gap: 12px;
+    }
+    .alStat{
+      background: rgba(255,255,255,0.80);
+      border: 1px solid rgba(15,23,42,0.08);
+      border-radius: 18px;
+      padding: 14px 14px;
+      box-shadow: 0 16px 30px rgba(15,23,42,0.06);
+    }
+    .alStatLabel{
+      color: rgba(15,23,42,0.55);
+      font-weight: 1000;
+      font-size: 12px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+    .alStatValue{
+      margin-top: 6px;
+      font-size: 18px;
+      font-weight: 1100;
+      color: var(--text);
+    }
+    .alStatMeta{
+      margin-top: 4px;
+      color: rgba(15,23,42,0.65);
+      font-weight: 900;
+      font-size: 13px;
+    }
+
+    .alSection{
+      border: 1px solid rgba(15,23,42,0.08);
+      box-shadow: 0 18px 44px rgba(15,23,42,0.08);
+      border-radius: 20px;
+    }
+    .alSectionHead{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+    .alSectionTitle{
+      font-weight: 1100;
+      font-size: 16px;
+      letter-spacing: 0.06em;
+      color: rgba(15,23,42,0.75);
+    }
+    .alSectionSub{
+      margin-top: 6px;
+      color: rgba(15,23,42,0.60);
+      font-weight: 900;
+      max-width: 90ch;
+    }
+    .alProfileWrap{
+      display:grid;
+      grid-template-columns: 1.2fr 1fr;
+      gap: 14px;
+    }
+    .alProfileCard{
+      display:flex;
+      gap: 12px;
+      align-items:flex-start;
+      border: 1px solid rgba(15,23,42,0.08);
+      background: rgba(255,255,255,0.90);
+      border-radius: 18px;
+      padding: 14px;
+    }
+    .alAvatar{
+      width: 48px;
+      height: 48px;
+      border-radius: 16px;
+      background: linear-gradient(180deg, rgba(209,11,11,0.18), rgba(164,0,0,0.10));
+      border: 1px solid rgba(209,11,11,0.20);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-weight: 1200;
+      color: var(--accent2);
+      font-size: 18px;
+      flex: 0 0 auto;
+    }
+    .alName{
+      font-size: 18px;
+      font-weight: 1200;
+      color: var(--text);
+    }
+    .alMetaRow{
+      margin-top: 10px;
+      display:flex;
+      flex-wrap:wrap;
+      gap: 8px;
+    }
+    .alPill{
+      display:inline-flex;
+      gap: 6px;
+      align-items:center;
+      background: rgba(15,23,42,0.04);
+      border: 1px solid rgba(15,23,42,0.08);
+      border-radius: 999px;
+      padding: 6px 10px;
+      font-weight: 950;
+      color: rgba(15,23,42,0.72);
+      font-size: 12px;
+    }
+    .alInfoGrid{
+      display:grid;
+      grid-template-columns: 1fr;
+      gap: 12px;
+    }
+    .alInfoCard{
+      border: 1px solid rgba(15,23,42,0.08);
+      background: rgba(255,255,255,0.90);
+      border-radius: 18px;
+      padding: 14px;
+    }
+    .alInfoTitle{
+      font-weight: 1100;
+      color: rgba(15,23,42,0.75);
+      letter-spacing: 0.06em;
+      margin-bottom: 10px;
+      font-size: 13px;
+    }
+    .alInfoLine{
+      display:flex;
+      align-items:baseline;
+      justify-content:space-between;
+      gap: 10px;
+      padding: 6px 0;
+      border-top: 1px dashed rgba(15,23,42,0.10);
+    }
+    .alInfoLine:first-of-type{
+      border-top: none;
+      padding-top: 0;
+    }
+    .alInfoLine span{
+      color: rgba(15,23,42,0.55);
+      font-weight: 950;
+    }
+    .alInfoLine b{
+      color: rgba(15,23,42,0.80);
+      font-weight: 1100;
+      text-align:right;
+    }
+
+    .alChip{
+      display:inline-flex;
+      align-items:center;
+      gap: 8px;
+      border-radius: 999px;
+      padding: 8px 12px;
+      border: 1px solid rgba(15,23,42,0.10);
+      background: rgba(255,255,255,0.85);
+      font-weight: 1100;
+    }
+    .alChip.ok{
+      border-color: rgba(22,163,74,0.30);
+      background: rgba(22,163,74,0.10);
+      color: rgba(22,163,74,0.95);
+    }
+    .alChip.warn{
+      border-color: rgba(245,158,11,0.30);
+      background: rgba(245,158,11,0.12);
+      color: rgba(146,64,14,0.95);
+    }
+    .alChip.soft{
+      border-color: rgba(209,11,11,0.16);
+      background: rgba(209,11,11,0.08);
+      color: var(--accent2);
+    }
+
+    .alScheduleShell .schCard{
+      margin-top: 10px;
+      box-shadow: none;
+      border: 1px solid rgba(15,23,42,0.08);
+    }
+    .alScheduleShell .schHead{ display:none; }
+    .alScheduleTop{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap: 12px;
+      padding: 10px 12px;
+      border: 1px solid rgba(15,23,42,0.08);
+      border-radius: 18px;
+      background: rgba(255,255,255,0.86);
+    }
+    .alScheduleTitle{
+      font-weight: 1200;
+      color: var(--text);
+    }
+    .alScheduleSub{
+      color: rgba(15,23,42,0.60);
+      font-weight: 950;
+      margin-top: 4px;
+      font-size: 12px;
+    }
+    .schTable thead th.isToday{
+      outline: 2px solid rgba(209,11,11,0.28);
+      outline-offset: -2px;
+      border-radius: 8px;
+    }
+    .schTable td.isTodayCol{
+      background: rgba(209,11,11,0.06);
+    }
+
+    .alSilaboTools{
+      display:flex;
+      align-items:center;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 12px;
+    }
+    .alSilaboTools input{
+      flex: 1 1 320px;
+      padding: 10px 12px;
+      border-radius: 14px;
+      border: 1px solid rgba(15,23,42,0.10);
+      font-weight: 950;
+      outline: none;
+      background: rgba(255,255,255,0.92);
+    }
+    .alSilaboPill{
+      display:inline-flex;
+      gap: 8px;
+      align-items:center;
+      border-radius: 999px;
+      padding: 10px 12px;
+      border: 1px solid rgba(15,23,42,0.10);
+      background: rgba(255,255,255,0.92);
+      font-weight: 1100;
+    }
+    .alSyItem{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap: 12px;
+      padding: 12px 14px;
+      border: 1px solid rgba(15,23,42,0.08);
+      border-radius: 16px;
+      background: rgba(255,255,255,0.88);
+      text-decoration: none;
+      color: inherit;
+      margin-bottom: 10px;
+      transition: transform .12s ease, box-shadow .12s ease;
+    }
+    .alSyItem:hover{
+      transform: translateY(-1px);
+      box-shadow: 0 16px 34px rgba(15,23,42,0.10);
+    }
+    .alSyCourse{
+      font-weight: 1100;
+      color: var(--text);
+    }
+    .alSyMeta{
+      margin-top: 6px;
+      display:flex;
+      gap: 8px;
+      align-items:center;
+      color: rgba(15,23,42,0.62);
+      font-weight: 950;
+      font-size: 12px;
+    }
+    .alSyOpen{
+      font-weight: 1100;
+      color: var(--accent2);
+      background: rgba(209,11,11,0.08);
+      border: 1px solid rgba(209,11,11,0.18);
+      border-radius: 999px;
+      padding: 8px 12px;
+      white-space: nowrap;
+    }
+
+    .alEmpty{
+      border: 1px dashed rgba(15,23,42,0.20);
+      background: rgba(255,255,255,0.80);
+      border-radius: 18px;
+      padding: 18px;
+    }
+    .alEmptyTitle{
+      font-weight: 1200;
+      color: var(--text);
+    }
+    .alEmptyText{
+      margin-top: 8px;
+      color: rgba(15,23,42,0.62);
+      font-weight: 950;
+    }
+    .alFootNote{
+      color: rgba(15,23,42,0.60);
+      font-weight: 950;
+      padding: 0 6px;
+    }
+
+    @media (max-width: 980px){
+      .alHeroInner{ grid-template-columns: 1fr; }
+      .alProfileWrap{ grid-template-columns: 1fr; }
+    }
+
+</style>
 </head>
 
 <body>
@@ -930,21 +1318,36 @@
 
     try { localStorage.setItem(STUDENT_USER_KEY, usuario); } catch(e){}
 
+    const uniFromSheet = norm(row?.uni_sheet || "");
+    const uni = uniFromSheet || uniGroupFromCiclo(row?.ciclo || "");
+
     const profile = {
       usuario,
       nombre: row?.nombre || "",
       local: row?.local || "",
       ciclo: row?.ciclo || "",
-      uni: uniGroupFromCiclo(row?.ciclo || ""),
+      uni,
+      uni_sheet: row?.uni_sheet || "",
       salon: row?.salon || "",
       modalidad: row?.modalidad || "",
       estado: row?.estado || "",
-      correo: row?.correo || "",
-      dni: row?.dni || "",
-      celular: row?.celular || "",
+
+      // Alumno
+      correo: row?.correo_al || row?.correo || "",
+      dni: row?.dni_al || row?.dni || "",
+      celular: row?.celular_al || row?.celular || "",
       academia: row?.academia || "",
-      carrera: row?.carrera || ""
+      carrera: row?.carrera || "",
+
+      // Apoderado
+      nombre_apo: row?.nombre_apo || "",
+      cel_apo: row?.cel_apo || "",
+      dni_apo: row?.dni_apo || "",
+      correo_apo: row?.correo_apo || "",
+
+      updated_at: new Date().toISOString()
     };
+
     try { localStorage.setItem(STUDENT_PROFILE_KEY, JSON.stringify(profile)); } catch(e){}
   }
 
@@ -987,23 +1390,38 @@
     // Tutor NO puede ver RESUMEN GENERAL ni CONTROL DE SEDES
     if (CURRENT_ROLE === "tutor" && (v === "overview" || v === "local")) return false;
 
-    // Alumno: entorno limitado
+    // Alumno: entorno limitado (sin materiales)
     if (CURRENT_ROLE === "alumno"){
-      return (v === "inicio_alumno" || v === "horarios" || v === "silabos" || v === "materiales");
+      return (v === "inicio_alumno" || v === "horarios" || v === "silabos");
     }
-
     return true;
   }
 
   function applyRoleUI(){
+    // Clase de rol en <body> para estilos por perfil
+    document.body.classList.toggle("role-alumno", CURRENT_ROLE === "alumno");
+    document.body.classList.toggle("role-tutor", CURRENT_ROLE === "tutor");
+    document.body.classList.toggle("role-admin", CURRENT_ROLE === "admin");
+
     const roleLabel = document.getElementById("userRole");
     const prof = getAlumnoProfile();
 
+    // Etiqueta inferior del sidebar
+    const userMini = document.getElementById("userMini");
+    const userMiniName = document.getElementById("userMiniName");
+    if (userMini && userMiniName){
+      if (CURRENT_ROLE === "alumno" && prof){
+        userMini.style.display = "";
+        userMiniName.textContent = `ALUMNO: ${prof.nombre || prof.usuario || ""}`.trim();
+      } else {
+        userMini.style.display = "none";
+        userMiniName.textContent = "";
+      }
+    }
+
+    // Chip de rol
     if (roleLabel){
-      if (CURRENT_ROLE === "alumno"){
-        const n = String(prof?.nombre || "").trim();
-        roleLabel.textContent = n ? ("ALUMNO: " + n) : "ALUMNO";
-      } else if (CURRENT_ROLE) {
+      if (CURRENT_ROLE){
         roleLabel.textContent = "ROL: " + CURRENT_ROLE.toUpperCase();
       } else {
         roleLabel.textContent = "ROL: -";
@@ -1027,18 +1445,22 @@
     // Mostrar/ocultar por rol
     if (btnInicioAlumno) btnInicioAlumno.style.display = isAlumno ? "" : "none";
 
+    // Admin/Tutor
     if (btnOverview) btnOverview.style.display = (isTutor || isAlumno) ? "none" : "";
     if (btnLocal) btnLocal.style.display     = (isTutor || isAlumno) ? "none" : "";
 
+    // Alumno no ve módulos administrativos
     if (btnTable) btnTable.style.display = isAlumno ? "none" : "";
     if (btnImpr) btnImpr.style.display   = isAlumno ? "none" : "";
     if (btnList) btnList.style.display   = isAlumno ? "none" : "";
     if (btnRep) btnRep.style.display     = isAlumno ? "none" : "";
 
-    // Disponibles para todos (incluye alumno)
+    // Disponibles para todos
     if (btnHorarios) btnHorarios.style.display = "";
     if (btnSil) btnSil.style.display = "";
-    if (btnMat) btnMat.style.display = "";
+
+    // Materiales: oculto para alumnos (se habilitará cuando esté listo)
+    if (btnMat) btnMat.style.display = isAlumno ? "none" : "";
 
     // Si la vista actual no está permitida, enviar a fallback
     if (state && state.view && !canAccessView(state.view)){
@@ -2546,6 +2968,48 @@ function loadSavedView(){
     const el = document.getElementById("view_silabos");
     if (el.dataset.ready === "1") return;
 
+    // Alumno: solo su universidad
+    if (CURRENT_ROLE === "alumno"){
+      el.innerHTML = `
+        <div class="card panel12 alSection">
+          <div class="alSectionHead">
+            <div>
+              <div class="alSectionTitle">MI SÍLABO</div>
+              <div class="alSectionSub">Se muestran únicamente los cursos de su universidad.</div>
+            </div>
+            <div class="alSectionTools">
+              <button class="alBtn alBtnGhost" id="sBackHome">Volver a Inicio</button>
+            </div>
+          </div>
+          <div class="alSilaboTools" style="margin-top:12px;">
+            <input id="sQ" type="text" placeholder="Buscar curso dentro de mi sílabo (ej: álgebra, física, textos)"/>
+            <div class="alSilaboPill" id="sUniPill">—</div>
+          </div>
+        </div>
+
+        <div class="card panel12">
+          <div class="syLocalHead">
+            <div class="cardtitle" style="margin:0;">RESUMEN</div>
+            <div class="syKpis">
+              <span class="syKpiPill">CURSOS: <b id="sTotal">0</b></span>
+              <span class="syKpiPill">UNIVERSIDAD: <b id="sUniOnly">—</b></span>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel12" id="sBlocks"></div>
+      `;
+
+      const b = document.getElementById("sBackHome");
+      if (b) b.addEventListener("click", ()=>setView("inicio_alumno"));
+      const q = document.getElementById("sQ");
+      if (q) q.addEventListener("input", renderSilabos);
+
+      el.dataset.ready = "1";
+      return;
+    }
+
+    // Admin/Tutor: filtros completos
     el.innerHTML = `
       <div class="card panel12">
         <div class="cardtitle">FILTROS</div>
@@ -2590,6 +3054,73 @@ function loadSavedView(){
   function renderSilabos(){
     ensureSilabosLayout();
 
+    // Alumno: forzar su universidad
+    if (CURRENT_ROLE === "alumno"){
+      const prof = getAlumnoProfile();
+      const q = low(document.getElementById("sQ")?.value || "");
+      const blocksWrap = document.getElementById("sBlocks");
+      const totalEl = document.getElementById("sTotal");
+      const uniOnlyEl = document.getElementById("sUniOnly");
+      const uniPill = document.getElementById("sUniPill");
+
+      if (!blocksWrap) return;
+
+      if (!prof){
+        blocksWrap.innerHTML = `<div class="card panel12" style="box-shadow:none;">
+          <div class="cardtitle">SIN PERFIL</div>
+          <div style="color:var(--muted); font-weight:900;">Cierre sesión y vuelva a ingresar.</div>
+        </div>`;
+        if (totalEl) totalEl.textContent = "0";
+        if (uniOnlyEl) uniOnlyEl.textContent = "-";
+        if (uniPill) uniPill.textContent = "-";
+        return;
+      }
+
+      const uni = prof.uni || "-";
+      let list = (SILABOS[uni] || []).slice();
+      if (q) list = list.filter(x => low(x.name).includes(q));
+
+      if (uniOnlyEl) uniOnlyEl.textContent = uni;
+      if (totalEl) totalEl.textContent = String(list.length);
+      if (uniPill){
+        uniPill.innerHTML = `<span class="dot" style="background:${uniDotColor(uni)};"></span><b>${escapeHtml(uni)}</b>`;
+      }
+
+      const items = list.map(it=>{
+        return `
+          <a class="syItem" href="${escapeHtml(it.url)}" target="_blank" rel="noopener noreferrer">
+            <div class="syLeft">
+              <div class="syCourse">${escapeHtml(it.name)}</div>
+              <div class="syMeta">
+                <span class="dot" style="background:${uniDotColor(uni)};"></span>
+                <span>${escapeHtml(uni)}</span>
+              </div>
+            </div>
+            <div class="syOpen">ABRIR EXCEL</div>
+          </a>
+        `;
+      }).join("");
+
+      blocksWrap.innerHTML = `
+        <div class="card panel12">
+          <div class="syLocalHead">
+            <div class="cardtitle" style="margin:0;">${escapeHtml(uni)}</div>
+            <div class="syKpis">
+              <span class="syKpiPill">CURSOS: <b>${list.length}</b></span>
+            </div>
+          </div>
+          <div class="syWrap">
+            ${items || `<div class="card panel12" style="box-shadow:none;">
+              <div class="cardtitle">SIN RESULTADOS</div>
+              <div style="color:var(--muted); font-weight:900;">No se encontraron cursos con el filtro actual.</div>
+            </div>`}
+          </div>
+        </div>
+      `;
+      return;
+    }
+
+    // Admin/Tutor: filtros normales
     const fUni = document.getElementById("sUni").value;
     const q = low(document.getElementById("sQ").value);
 
@@ -2644,13 +3175,11 @@ function loadSavedView(){
       `;
     }).join("");
 
-    document.getElementById("sTotal").textContent = totalCourses.toLocaleString("es-PE");
-    document.getElementById("sBlocks").innerHTML = blocks || `
-      <div class="card panel12">
-        <div class="cardtitle">SIN DATOS</div>
-        <div style="color:var(--muted); font-weight:900;">No se encontraron sílabos para mostrar.</div>
-      </div>
-    `;
+    const sBlocks = document.getElementById("sBlocks");
+    if (sBlocks) sBlocks.innerHTML = blocks;
+
+    const sTotal = document.getElementById("sTotal");
+    if (sTotal) sTotal.textContent = String(totalCourses);
   }
   // ===================== FIN SÍLABOS =====================
 // ===================== MATERIALES (NUEVO) =====================
@@ -3837,6 +4366,34 @@ function renderReportes(){
     const el = document.getElementById("view_horarios");
     if (el.dataset.ready === "1") return;
 
+    // Entorno alumno: solo su horario
+    if (CURRENT_ROLE === "alumno"){
+      el.innerHTML = `
+        <div class="card panel12 alSection">
+          <div class="alSectionHead">
+            <div>
+              <div class="alSectionTitle">MI HORARIO</div>
+              <div class="alSectionSub">Vista exclusiva para su matrícula (sin filtros).</div>
+            </div>
+            <div class="alSectionTools">
+              <button class="alBtn alBtnGhost" id="hBackHome">Volver a Inicio</button>
+            </div>
+          </div>
+          <div id="hAlumnoMeta" class="panelHint" style="margin-top:8px;"></div>
+        </div>
+        <div class="panel12">
+          <div class="schGridWrap" id="schGrid"></div>
+        </div>
+      `;
+
+      const b = document.getElementById("hBackHome");
+      if (b) b.addEventListener("click", ()=>setView("inicio_alumno"));
+
+      el.dataset.ready = "1";
+      return;
+    }
+
+    // Admin/Tutor: filtros completos
     el.innerHTML = `
       <div class="card panel12">
         <div class="cardtitle">FILTROS</div>
@@ -3909,6 +4466,47 @@ function renderReportes(){
   function renderHorarios(){
     ensureHorariosLayout();
 
+    // Alumno: forzar horario propio (sin filtros)
+    if (CURRENT_ROLE === "alumno"){
+      const prof = getAlumnoProfile();
+      const grid = document.getElementById("schGrid");
+      const meta = document.getElementById("hAlumnoMeta");
+      if (!grid) return;
+
+      if (!prof){
+        grid.innerHTML = `<div class="card panel12" style="box-shadow:none;">
+          <div class="cardtitle">SIN PERFIL</div>
+          <div style="color:var(--muted); font-weight:900;">Cierre sesión y vuelva a ingresar.</div>
+        </div>`;
+        if (meta) meta.textContent = "";
+        return;
+      }
+
+      const sch = getAlumnoSchedule(prof);
+      if (meta){
+        meta.innerHTML = `
+          <span class="pill">UNIVERSIDAD: <b>${escapeHtml(prof.uni || "-")}</b></span>
+          <span class="pill">LOCAL: <b>${escapeHtml(prof.local || "-")}</b></span>
+          <span class="pill">SALÓN: <b>${escapeHtml(prof.salon || "-")}</b></span>
+        `;
+      }
+
+      if (!sch){
+        grid.innerHTML = `<div class="card panel12" style="box-shadow:none;">
+          <div class="cardtitle">HORARIO NO ENCONTRADO</div>
+          <div style="color:var(--muted); font-weight:900;">No se encontró un horario que coincida con su matrícula.</div>
+        </div>`;
+        return;
+      }
+
+      grid.innerHTML = scheduleToHtmlCard(sch);
+      const innerBtn = grid.querySelector(".schDl");
+      if (innerBtn) innerBtn.style.display = "none";
+      try { highlightScheduleToday(grid.querySelector(".schTable")); } catch(e){}
+      return;
+    }
+
+    // Admin/Tutor: filtros normales
     const fLocal = document.getElementById("hLocal").value;
     const fUni   = document.getElementById("hUni").value;
     const fSalon = document.getElementById("hSalon").value;
@@ -3985,109 +4583,359 @@ function renderReportes(){
     if (!el || el.dataset.ready === "1") return;
 
     el.innerHTML = `
-      <div class="card panel8">
-        <div class="cardtitle">MI PERFIL</div>
-        <div id="alPerfil" style="margin-top:10px;"></div>
+      <div class="alHero panel12">
+        <div class="alHeroInner">
+          <div class="alHeroLeft">
+            <div class="alHeroKicker">PORTAL DEL ALUMNO</div>
+            <div class="alHeroTitle">Bienvenido(a), <span id="alHeroName">Alumno</span></div>
+            <div class="alHeroSub">Tu información, tu horario y tu sílabo en un solo lugar.</div>
+            <div class="alHeroActions">
+              <button class="alBtn alBtnPrimary" id="alJumpHorario">Ver mi horario</button>
+              <button class="alBtn alBtnGhost" id="alJumpSilabo">Ver mi sílabo</button>
+              <button class="alBtn alBtnSoft" id="alOpenFullHorario">Pantalla completa: Horario</button>
+            </div>
+          </div>
+          <div class="alHeroRight">
+            <div class="alStat">
+              <div class="alStatLabel">Próxima clase</div>
+              <div class="alStatValue" id="alNextClass">—</div>
+              <div class="alStatMeta" id="alNextClassMeta">—</div>
+            </div>
+            <div class="alStat">
+              <div class="alStatLabel">Estado</div>
+              <div class="alStatValue" id="alEstadoChip">—</div>
+              <div class="alStatMeta" id="alLocalChip">—</div>
+            </div>
+          </div>
+        </div>
       </div>
 
-      <div class="card panel4">
-        <div class="cardtitle">ACCESOS RÁPIDOS</div>
-        <div class="controls" style="justify-content:flex-start; margin-top:10px;">
-          <button id="alGoHorario">VER MI HORARIO</button>
-          <button id="alGoSilabos">VER SÍLABOS</button>
-          <button id="alGoMateriales">VER MATERIALES</button>
+      <div class="card panel12 alSection" id="alDatos">
+        <div class="alSectionHead">
+          <div>
+            <div class="alSectionTitle">DATOS DEL ALUMNO</div>
+            <div class="alSectionSub">Información registrada en su matrícula.</div>
+          </div>
+          <div class="alSectionTools">
+            <button class="alBtn alBtnGhost" id="alRefreshProfile">Actualizar</button>
+          </div>
         </div>
-        <div id="alHint" class="panelHint" style="margin-top:10px;"></div>
+        <div id="alPerfilPro" class="alProfileGrid"></div>
       </div>
+
+      <div class="card panel12 alSection" id="alHorario">
+        <div class="alSectionHead">
+          <div>
+            <div class="alSectionTitle">MI HORARIO</div>
+            <div class="alSectionSub">Solo se muestra el horario que corresponde a su local, salón y universidad.</div>
+          </div>
+          <div class="alSectionTools">
+            <button class="alBtn alBtnPrimary" id="alGoHorarioFull">Abrir en pantalla completa</button>
+          </div>
+        </div>
+        <div id="alHorarioWrap"></div>
+      </div>
+
+      <div class="card panel12 alSection" id="alSilabo">
+        <div class="alSectionHead">
+          <div>
+            <div class="alSectionTitle">MI SÍLABO</div>
+            <div class="alSectionSub">Se listan únicamente los sílabos de su universidad.</div>
+          </div>
+          <div class="alSectionTools">
+            <button class="alBtn alBtnPrimary" id="alGoSilabosFull">Abrir en pantalla completa</button>
+          </div>
+        </div>
+        <div class="alSilaboTools">
+          <input id="alSilaboQ" type="text" placeholder="Buscar curso dentro de mi sílabo (ej: álgebra, física)"/>
+          <div class="alSilaboPill" id="alSilaboUniPill">—</div>
+        </div>
+        <div id="alSilaboWrap"></div>
+      </div>
+
+      <div class="panel12 alFootNote" id="alHintPro"></div>
     `;
 
-    const bH = document.getElementById("alGoHorario");
-    const bS = document.getElementById("alGoSilabos");
-    const bM = document.getElementById("alGoMateriales");
-    if (bH) bH.addEventListener("click", goAlumnoHorarios);
-    if (bS) bS.addEventListener("click", goAlumnoSilabos);
-    if (bM) bM.addEventListener("click", goAlumnoMateriales);
+    const jump = (id)=>{
+      const node = document.getElementById(id);
+      if (!node) return;
+      node.scrollIntoView({ behavior:"smooth", block:"start" });
+    };
+
+    const bH = document.getElementById("alJumpHorario");
+    const bS = document.getElementById("alJumpSilabo");
+    const bFullH = document.getElementById("alOpenFullHorario");
+    const bFullH2 = document.getElementById("alGoHorarioFull");
+    const bFullS = document.getElementById("alGoSilabosFull");
+    const bRef = document.getElementById("alRefreshProfile");
+
+    if (bH) bH.addEventListener("click", ()=>jump("alHorario"));
+    if (bS) bS.addEventListener("click", ()=>jump("alSilabo"));
+    if (bFullH) bFullH.addEventListener("click", ()=>{ setView("horarios"); renderHorarios(); });
+    if (bFullH2) bFullH2.addEventListener("click", ()=>{ setView("horarios"); renderHorarios(); });
+    if (bFullS) bFullS.addEventListener("click", ()=>{ setView("silabos"); renderSilabos(); });
+
+    if (bRef) bRef.addEventListener("click", async ()=>{
+      // Relee desde las filas crudas ya cargadas (sin recargar la página)
+      updateAlumnoProfileFromRawRows();
+      renderInicioAlumno();
+    });
+
+    const q = document.getElementById("alSilaboQ");
+    if (q) q.addEventListener("input", ()=>renderInicioAlumno());
 
     el.dataset.ready = "1";
   }
 
   function goAlumnoHorarios(){
-    const prof = getAlumnoProfile();
     setView("horarios");
-    ensureHorariosLayout();
-
-    if (prof){
-      const hLocal = document.getElementById("hLocal");
-      const hUni = document.getElementById("hUni");
-      const hSalon = document.getElementById("hSalon");
-
-      if (hLocal && prof.local) hLocal.value = prof.local;
-      if (hUni && prof.uni) hUni.value = prof.uni;
-
-      // recargar salones según local + uni
-      if (typeof rebuildHorariosSalonOptions === "function") rebuildHorariosSalonOptions();
-
-      if (hSalon && prof.salon) hSalon.value = prof.salon;
-    }
     renderHorarios();
   }
 
   function goAlumnoSilabos(){
-    const prof = getAlumnoProfile();
     setView("silabos");
-    ensureSilabosLayout();
-
-    if (prof){
-      const sUni = document.getElementById("sUni");
-      if (sUni && prof.uni) sUni.value = prof.uni;
-    }
     renderSilabos();
   }
 
   function goAlumnoMateriales(){
-    setView("materiales");
-    ensureMaterialesLayout();
-    renderMateriales();
+    // MATERIALES: deshabilitado temporalmente para alumnos
+    setView("inicio_alumno");
   }
 
-  function renderInicioAlumno(){
+  
+  // ===================== ALUMNO | HELPERS (HORARIO / SÍLABO) =====================
+  function alumnoUniFromProfile(prof){
+    if (!prof) return "";
+    const u = norm(prof.uni || prof.uni_sheet || "");
+    if (u) return u;
+    return normUniFromCiclo(prof.ciclo || "");
+  }
+
+  function getAlumnoSchedule(prof){
+    if (!prof) return null;
+    const uni = alumnoUniFromProfile(prof) || prof.uni || "";
+    const local = norm(prof.local || "");
+    const salon = norm(prof.salon || "");
+    let base = SCHEDULES.slice();
+
+    // Coincidencia estricta
+    let hit = base.find(s => norm(s.uni)===uni && norm(s.local)===local && norm(s.salon)===salon);
+    if (hit) return hit;
+
+    // Fallback por uni + salón
+    hit = base.find(s => norm(s.uni)===uni && norm(s.salon)===salon);
+    if (hit) return hit;
+
+    // Fallback por salón (último recurso)
+    hit = base.find(s => norm(s.salon)===salon);
+    return hit || null;
+  }
+
+  function dayNameFromDate(d){
+    const map = ["DOMINGO","LUNES","MARTES","MIÉRCOLES","JUEVES","VIERNES","SÁBADO"];
+    return map[d.getDay()];
+  }
+
+  function timeToMin(hhmm){
+    const [h,m] = String(hhmm||"0:0").split(":").map(x=>parseInt(x,10));
+    return (h*60) + (m||0);
+  }
+
+  function getAlumnoNextClass(prof){
+    const sch = getAlumnoSchedule(prof);
+    if (!sch) return null;
+
+    const now = new Date();
+    const today = dayNameFromDate(now);
+    const nowMin = now.getHours()*60 + now.getMinutes();
+
+    // bloques de hoy ordenados por inicio
+    const todayBlocks = sch.blocks
+      .filter(b => norm(b.day) === norm(today))
+      .slice()
+      .sort((a,b)=>timeToMin(a.start)-timeToMin(b.start));
+
+    // próxima de hoy
+    for (const b of todayBlocks){
+      if (timeToMin(b.end) >= nowMin){
+        return { day: today, start:b.start, end:b.end, course:b.course, teacher:b.teacher || "" };
+      }
+    }
+
+    // siguiente día con clases
+    const order = ["LUNES","MARTES","MIÉRCOLES","JUEVES","VIERNES","SÁBADO","DOMINGO"];
+    const idxToday = order.indexOf(today);
+    for (let k=1;k<=7;k++){
+      const dn = order[(idxToday + k) % 7];
+      const blocks = sch.blocks
+        .filter(b => norm(b.day)===norm(dn))
+        .slice()
+        .sort((a,b)=>timeToMin(a.start)-timeToMin(b.start));
+      if (blocks.length){
+        const b = blocks[0];
+        return { day: dn, start:b.start, end:b.end, course:b.course, teacher:b.teacher || "" };
+      }
+    }
+    return null;
+  }
+
+  function highlightScheduleToday(table){
+    if (!table) return;
+    const now = new Date();
+    const today = dayNameFromDate(now);
+
+    const ths = Array.from(table.querySelectorAll("thead th"));
+    if (!ths.length) return;
+
+    const th = ths.find(x => norm(x.textContent) === norm(today));
+    if (!th) return;
+    th.classList.add("isToday");
+  }
+
+function renderInicioAlumno(){
     ensureInicioAlumnoLayout();
 
     const prof = getAlumnoProfile();
-    const box = document.getElementById("alPerfil");
-    const hint = document.getElementById("alHint");
-    if (!box) return;
+    const box = document.getElementById("alPerfilPro");
+    const hint = document.getElementById("alHintPro");
+    const heroName = document.getElementById("alHeroName");
+    const nextBox = document.getElementById("alNextClass");
+    const nextMeta = document.getElementById("alNextClassMeta");
+    const estadoChip = document.getElementById("alEstadoChip");
+    const localChip = document.getElementById("alLocalChip");
+
+    if (heroName) heroName.textContent = (prof?.nombre ? String(prof.nombre).split(" ")[0] : "Alumno");
 
     if (!prof){
-      box.innerHTML = `<div class="panelHint">No se encontró su perfil. Cierre sesión y vuelva a ingresar.</div>`;
+      if (box) box.innerHTML = `<div class="panelHint">No se encontró su perfil. Cierre sesión y vuelva a ingresar.</div>`;
       if (hint) hint.textContent = "";
       return;
     }
 
-    const pills1 = [
-      `<span class="pill">USUARIO: <b>${escapeHtml(prof.usuario)}</b></span>`,
-      `<span class="pill">UNIVERSIDAD: <b>${escapeHtml(prof.uni || "-")}</b></span>`,
-      `<span class="pill">LOCAL: <b>${escapeHtml(prof.local || "-")}</b></span>`,
-      `<span class="pill">SALÓN: <b>${escapeHtml(prof.salon || "-")}</b></span>`,
-      `<span class="pill">MODALIDAD: <b>${escapeHtml(prof.modalidad || "-")}</b></span>`,
-      `<span class="pill">ESTADO: <b>${escapeHtml(prof.estado || "-")}</b></span>`
-    ].join(" ");
+    // === Chips superiores
+    if (estadoChip) estadoChip.innerHTML = `<span class="alChip ${low(prof.estado)==="activo" ? "ok":"warn"}">${escapeHtml(prof.estado || "-")}</span>`;
+    if (localChip) localChip.innerHTML = `<span class="alChip soft">${escapeHtml(prof.local || "-")} • ${escapeHtml(prof.salon || "-")}</span>`;
 
-    const extra = [
-      prof.ciclo ? `<span class="pill">CICLO: <b>${escapeHtml(prof.ciclo)}</b></span>` : "",
-      prof.carrera ? `<span class="pill">CARRERA: <b>${escapeHtml(prof.carrera)}</b></span>` : "",
-      prof.academia ? `<span class="pill">ACADEMIA: <b>${escapeHtml(prof.academia)}</b></span>` : "",
-      prof.correo ? `<span class="pill">CORREO: <b>${escapeHtml(prof.correo)}</b></span>` : "",
-      prof.celular ? `<span class="pill">CELULAR: <b>${escapeHtml(prof.celular)}</b></span>` : ""
-    ].filter(Boolean).join(" ");
+    // === Próxima clase
+    const nxt = getAlumnoNextClass(prof);
+    if (nextBox) nextBox.textContent = nxt ? `${nxt.day} ${nxt.start}–${nxt.end}` : "—";
+    if (nextMeta) nextMeta.textContent = nxt ? `${nxt.course}${nxt.teacher ? " • " + nxt.teacher : ""}` : "Sin clases próximas (revise su horario)";
 
-    box.innerHTML = `
-      <div class="card panel12" style="box-shadow:none; border:1px solid var(--border);">
-        <div class="cardtitle" style="margin-bottom:8px;">${escapeHtml(prof.nombre || "ALUMNO")}</div>
-        <div class="panelHint">${pills1}</div>
-        ${extra ? `<div class="panelHint" style="margin-top:10px;">${extra}</div>` : ``}
+    // === Perfil
+    const left = `
+      <div class="alProfileCard">
+        <div class="alAvatar">${escapeHtml((prof.nombre||"A").trim().slice(0,1).toUpperCase())}</div>
+        <div>
+          <div class="alName">${escapeHtml(prof.nombre || "ALUMNO")}</div>
+          <div class="alMetaRow">
+            <span class="alPill">USUARIO: <b>${escapeHtml(prof.usuario || "-")}</b></span>
+            <span class="alPill">UNIVERSIDAD: <b>${escapeHtml(prof.uni || "-")}</b></span>
+            <span class="alPill">MODALIDAD: <b>${escapeHtml(prof.modalidad || "-")}</b></span>
+          </div>
+          <div class="alMetaRow" style="margin-top:8px;">
+            <span class="alPill">LOCAL: <b>${escapeHtml(prof.local || "-")}</b></span>
+            <span class="alPill">SALÓN: <b>${escapeHtml(prof.salon || "-")}</b></span>
+            ${prof.ciclo ? `<span class="alPill">CICLO: <b>${escapeHtml(prof.ciclo)}</b></span>` : ``}
+            ${prof.carrera ? `<span class="alPill">CARRERA: <b>${escapeHtml(prof.carrera)}</b></span>` : ``}
+            ${prof.academia ? `<span class="alPill">ACADEMIA: <b>${escapeHtml(prof.academia)}</b></span>` : ``}
+          </div>
+        </div>
       </div>
     `;
+
+    const right = `
+      <div class="alInfoGrid">
+        <div class="alInfoCard">
+          <div class="alInfoTitle">Contacto del alumno</div>
+          <div class="alInfoLine"><span>Correo</span><b>${escapeHtml(prof.correo || "-")}</b></div>
+          <div class="alInfoLine"><span>Celular</span><b>${escapeHtml(prof.celular || "-")}</b></div>
+          <div class="alInfoLine"><span>DNI</span><b>${escapeHtml(prof.dni || "-")}</b></div>
+        </div>
+        <div class="alInfoCard">
+          <div class="alInfoTitle">Apoderado</div>
+          <div class="alInfoLine"><span>Nombre</span><b>${escapeHtml(prof.nombre_apo || "-")}</b></div>
+          <div class="alInfoLine"><span>Celular</span><b>${escapeHtml(prof.cel_apo || "-")}</b></div>
+          <div class="alInfoLine"><span>Correo</span><b>${escapeHtml(prof.correo_apo || "-")}</b></div>
+        </div>
+      </div>
+    `;
+
+    if (box){
+      box.innerHTML = `
+        <div class="alProfileWrap">
+          ${left}
+          ${right}
+        </div>
+      `;
+    }
+
+    // === Horario (home)
+    const hw = document.getElementById("alHorarioWrap");
+    if (hw){
+      const sch = getAlumnoSchedule(prof);
+      if (!sch){
+        hw.innerHTML = `<div class="alEmpty">
+          <div class="alEmptyTitle">Horario no encontrado</div>
+          <div class="alEmptyText">No se encontró un horario que coincida con su matrícula (local, salón y universidad). Comuníquese con su tutor.</div>
+        </div>`;
+      } else {
+        hw.innerHTML = `
+          <div class="alScheduleShell">
+            <div class="alScheduleTop">
+              <div>
+                <div class="alScheduleTitle">${escapeHtml(sch.salon)} • ${escapeHtml(sch.local)}</div>
+                <div class="alScheduleSub">Universidad: <b>${escapeHtml(sch.uni)}</b></div>
+              </div>
+              <button class="alBtn alBtnSoft" onclick="downloadSchedulePNG('${escapeHtml(sch.id)}')">Descargar PNG</button>
+            </div>
+            ${scheduleToHtmlCard(sch)}
+          </div>
+        `;
+        // Ocultar botón interno de descarga (se usa el superior)
+        const innerBtn = hw.querySelector(".schDl");
+        if (innerBtn) innerBtn.style.display = "none";
+
+        // resaltar día actual
+        try { highlightScheduleToday(hw.querySelector(".schTable")); } catch(e){}
+      }
+    }
+
+    // === Sílabos (home)
+    const sw = document.getElementById("alSilaboWrap");
+    const uniPill = document.getElementById("alSilaboUniPill");
+    const q = low(document.getElementById("alSilaboQ")?.value || "");
+
+    if (uniPill){
+      uniPill.innerHTML = `
+        <span class="dot" style="background:${uniDotColor(prof.uni)};"></span>
+        <b>${escapeHtml(prof.uni || "-")}</b>
+      `;
+    }
+
+    if (sw){
+      let list = (SILABOS[prof.uni] || []).slice();
+      if (q) list = list.filter(x => low(x.name).includes(q));
+
+      const items = list.map(it=>{
+        return `
+          <a class="alSyItem" href="${escapeHtml(it.url)}" target="_blank" rel="noopener noreferrer">
+            <div class="alSyLeft">
+              <div class="alSyCourse">${escapeHtml(it.name)}</div>
+              <div class="alSyMeta">
+                <span class="dot" style="background:${uniDotColor(prof.uni)};"></span>
+                <span>${escapeHtml(prof.uni)}</span>
+              </div>
+            </div>
+            <div class="alSyOpen">ABRIR</div>
+          </a>
+        `;
+      }).join("");
+
+      sw.innerHTML = items || `<div class="alEmpty">
+        <div class="alEmptyTitle">Sin resultados</div>
+        <div class="alEmptyText">No se encontraron cursos con el filtro actual.</div>
+      </div>`;
+    }
 
     if (hint){
       hint.innerHTML = `Sus accesos se ajustan a su matrícula. Si no ve su salón u horario, comuníquese con su tutor para actualización de datos.`;
