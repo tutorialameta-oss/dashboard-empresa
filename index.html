@@ -775,7 +775,20 @@
       cursor:pointer;
     }
 
-  </style>
+  
+  .grid2{ display:grid; grid-template-columns:1fr 1fr; gap:18px; }
+  @media(max-width: 980px){ .grid2{ grid-template-columns:1fr; } }
+  .kvGrid{ display:grid; grid-template-columns:1fr 1fr; gap:10px 14px; margin-top:10px;}
+  .kv{ padding:10px 12px; border:1px solid rgba(0,0,0,.06); border-radius:12px; background:#fff;}
+  .kv .k{ font-size:12px; color:rgba(20,30,50,.7); margin-bottom:6px; font-weight:700; text-transform:uppercase; letter-spacing:.02em;}
+  .kv .v{ font-size:14px; color:#0f172a; font-weight:700; }
+  .courseBox{ border:1px solid rgba(0,0,0,.06); border-radius:14px; background:#fff; padding:10px 12px; margin:10px 0; }
+  .courseBox summary{ cursor:pointer; font-weight:800; color:#111827; }
+  .topics{ display:flex; flex-direction:column; gap:8px; padding:10px 0 0; }
+  .topicBtn{ text-align:left; padding:10px 12px; border-radius:12px; border:1px solid rgba(0,0,0,.08); background:#f8fafc; font-weight:700; cursor:pointer; }
+  .topicBtn:hover{ background:#eef2ff; }
+
+</style>
 </head>
 
 <body>
@@ -813,7 +826,7 @@
       </div>
 
       <div class="nav">
-        <button id="nav_alumno" style="display:none;">MI PANEL</button>
+        <button id="nav_student" style="display:none;">MI PANEL</button>
         <button id="nav_overview" class="active">RESUMEN GENERAL</button>
         <button id="nav_local">CONTROL DE SEDES</button>
         <button id="nav_table">ALUMNOS</button>
@@ -854,7 +867,6 @@
         </div>
       </div>
 
-      <div id="view_alumno" class="grid" style="display:none;"></div>
       <div id="view_overview" class="grid"></div>
       <div id="view_local" class="grid" style="display:none;"></div>
       <div id="view_table" class="grid" style="display:none;"></div>
@@ -881,45 +893,26 @@
   const ROLE_KEY = "lameta_role";
   let CURRENT_ROLE = null; // "admin" | "tutor"
 
-  function setRole(role, studentObj){
+  function setRole(role){
     CURRENT_ROLE = role;
     localStorage.setItem(ROLE_KEY, role);
-    if (role === "alumno") {
-      CURRENT_STUDENT = studentObj || CURRENT_STUDENT || loadStudent();
-      saveStudent(CURRENT_STUDENT);
-    } else {
-      CURRENT_STUDENT = null;
-      clearStudent();
-    }
     applyRoleUI();
   }
 
   function loadRole(){
     const r = localStorage.getItem(ROLE_KEY);
-    return (r === "admin" || r === "tutor" || r === "alumno") ? r : null;
-  }
-  function saveStudent(studentObj){
-    try { localStorage.setItem(STUDENT_KEY, JSON.stringify(studentObj || null)); } catch(e) {}
-  }
-  function loadStudent(){
-    try {
-      const raw = localStorage.getItem(STUDENT_KEY);
-      return raw ? JSON.parse(raw) : null;
-    } catch(e){ return null; }
-  }
-  function clearStudent(){
-    try { localStorage.removeItem(STUDENT_KEY); } catch(e) {}
+    return (r === "admin" || r === "tutor") ? r : null;
   }
 
   function clearRole(){
     localStorage.removeItem(ROLE_KEY);
-    clearStudent();
     CURRENT_ROLE = null;
-    CURRENT_STUDENT = null;
   }
 
   function canAccessView(v){
-    if (CURRENT_ROLE === "alumno") return v === "alumno";
+    // Alumno: solo MI PANEL
+    if (CURRENT_ROLE === "alumno") return (v === "student");
+
     // Tutor NO puede ver RESUMEN GENERAL ni CONTROL DE SEDES
     if (CURRENT_ROLE === "tutor" && (v === "overview" || v === "local")) return false;
     return true;
@@ -930,39 +923,45 @@
     if (roleLabel) roleLabel.textContent = CURRENT_ROLE ? ("ROL: " + CURRENT_ROLE.toUpperCase()) : "ROL: -";
 
     const isTutor = (CURRENT_ROLE === "tutor");
+
     const isAlumno = (CURRENT_ROLE === "alumno");
+    // Alumno: solo MI PANEL
+    if (btnStudent) btnStudent.style.display = isAlumno ? "block" : "none";
 
-    const navIdsAll = ["nav_overview","nav_local","nav_table","nav_horarios","nav_impresiones","nav_silabos","nav_materiales","nav_listas","nav_reportes"];
-    const btnAlumno = document.getElementById("nav_alumno");
-
-    // Por defecto (ADMIN): mostrar todo (menos MI PANEL)
-    navIdsAll.forEach(id=>{
-      const el = document.getElementById(id);
-      if (!el) return;
-      el.style.display = "";
-    });
-    if (btnAlumno) btnAlumno.style.display = "none";
-
-    // TUTOR: ocultar RESUMEN y SEDES
-    if (isTutor){
-      const btnOverview = document.getElementById("nav_overview");
-      const btnLocal = document.getElementById("nav_local");
-      if (btnOverview) btnOverview.style.display = "none";
-      if (btnLocal) btnLocal.style.display = "none";
-    }
-
-    // ALUMNO: solo MI PANEL
+    // Botones generales que deben ocultarse para alumno
+    const navIds = ["nav_overview","nav_local","nav_table","nav_horarios","nav_impresiones","nav_silabos","nav_materiales","nav_listas","nav_reportes"];
     if (isAlumno){
-      navIdsAll.forEach(id=>{
+      navIds.forEach(id=>{
+        if (id === "nav_student") return;
         const el = document.getElementById(id);
         if (el) el.style.display = "none";
       });
-      if (btnAlumno) btnAlumno.style.display = "";
+      // Forzar vista alumno
+      if (state.view !== "student") setView("student");
+    } else {
+      // Restaurar visibilidad al no ser alumno
+      navIds.forEach(id=>{
+        const el = document.getElementById(id);
+        if (!el) return;
+        if (id === "nav_overview" || id === "nav_local"){
+          // estos se manejan por rol tutor
+          return;
+        }
+        el.style.display = "block";
+      });
     }
 
-    // Si la vista actual no está permitida, enviar a la que corresponde
+    const btnOverview = document.getElementById("nav_overview");
+    const btnLocal = document.getElementById("nav_local");
+    const btnStudent = document.getElementById("nav_student");
+
+    // Ocultar
+    if (btnOverview) btnOverview.style.display = isTutor ? "none" : "";
+    if (btnLocal) btnLocal.style.display = isTutor ? "none" : "";
+
+    // Bloquear: si la vista actual no está permitida, enviar a ALUMNOS
     if (state && state.view && !canAccessView(state.view)){
-      setView(isAlumno ? "alumno" : "table");
+      setView("table");
     }
   }
 
@@ -974,131 +973,71 @@
   }
 
   function initAuth(){
-    const overlay = document.getElementById("authOverlay");
-    const app = document.getElementById("app");
-    const roleAdmin = document.getElementById("roleAdmin");
-    const roleTutor = document.getElementById("roleTutor");
-    const roleAlumno = document.getElementById("roleAlumno");
-    const pass = document.getElementById("authPass");
-    const msg = document.getElementById("authMsg");
-
-    let selected = null;
-
-    function showAuth(on){
-      if (!overlay || !app) return;
-      overlay.classList.toggle("hidden", !on);
-      app.classList.toggle("hidden", on);
-    }
-
-    function setMsg(t){
-      if (!msg) return;
-      msg.textContent = t || "";
-      msg.style.display = t ? "block" : "none";
-    }
-
-    function pick(role){
-      selected = role;
-      const btns = [roleAdmin, roleTutor, roleAlumno].filter(Boolean);
-      btns.forEach(b=>b.classList.remove("selected"));
-      if (role === "admin" && roleAdmin) roleAdmin.classList.add("selected");
-      if (role === "tutor" && roleTutor) roleTutor.classList.add("selected");
-      if (role === "alumno" && roleAlumno) roleAlumno.classList.add("selected");
-      setMsg("");
-    }
-
-    async function doLogin(){
-      const p = (pass ? String(pass.value || "") : "").trim();
-      if (!selected){
-        setMsg("Seleccione un rol.");
-        return;
-      }
-      if (!p){
-        setMsg("Ingrese la clave.");
-        return;
-      }
-
-      const btn = document.getElementById("btnLogin");
-      const oldText = btn ? btn.textContent : null;
-      const lock = ()=>{ if(btn){ btn.disabled = true; btn.textContent = "VALIDANDO..."; } };
-      const unlock = ()=>{ if(btn){ btn.disabled = false; btn.textContent = oldText || "ENTRAR"; } };
-
-      try{
-        lock();
-
-        if (selected === "admin"){
-          if (p !== ADMIN_PASS){ setMsg("Clave incorrecta."); return; }
-          setRole("admin");
-          if (pass) pass.value = "";
-          showAuth(false);
-          return;
-        }
-
-        if (selected === "tutor"){
-          if (p !== TUTOR_PASS){ setMsg("Clave incorrecta."); return; }
-          setRole("tutor");
-          if (pass) pass.value = "";
-          showAuth(false);
-          return;
-        }
-
-        // ALUMNO: solo contraseña (se valida contra la columna CONTRASEÑA en ACCESO AL CAMPUS)
-        if (selected === "alumno"){
-          const student = await findStudentByPassword(p);
-          if (!student){
-            setMsg("Clave de alumno no encontrada.");
-            return;
-          }
-          setRole("alumno", student);
-          if (pass) pass.value = "";
-          showAuth(false);
-          setView("alumno");
-          return;
-        }
-
-        setMsg("Rol inválido.");
-      } finally {
-        unlock();
-      }
-    }
-
-    // Sesión guardada
     const saved = loadRole();
     if (saved){
-      if (saved === "alumno"){
-        const st = loadStudent();
-        if (st){
-          CURRENT_ROLE = saved;
-          CURRENT_STUDENT = st;
-          showAuth(false);
-          applyRoleUI();
-          setView("alumno");
-          return true;
-        } else {
-          clearRole();
-        }
-      } else {
-        CURRENT_ROLE = saved;
-        CURRENT_STUDENT = null;
-        showAuth(false);
-        applyRoleUI();
-        if (!canAccessView(loadSavedView() || state.view)) setView("table");
-        return true;
-      }
+      CURRENT_ROLE = saved;
+      showAuth(false);
+      applyRoleUI();
+      return true;
     }
 
-    // No hay sesión: mostrar login
     showAuth(true);
 
-    if (roleAdmin) roleAdmin.addEventListener("click", ()=>pick("admin"));
-    if (roleTutor) roleTutor.addEventListener("click", ()=>pick("tutor"));
-    if (roleAlumno) roleAlumno.addEventListener("click", ()=>pick("alumno"));
+    let selected = null;
+    const bA = document.getElementById("roleAdmin");
+    const bT = document.getElementById("roleTutor");
+    const bS = document.getElementById("roleAlumno");
+    const pass = document.getElementById("authPass");
+    const err = document.getElementById("authErr");
+
+    function pick(r){
+      selected = r;
+      if (bA) bA.classList.toggle("active", r === "admin");
+      if (bT) bT.classList.toggle("active", r === "tutor");
+      if (err) err.style.display = "none";
+      if (pass) pass.focus();
+    }
+
+    if (bA) bA.addEventListener("click", (e)=>{ e.preventDefault(); e.stopPropagation(); pick("admin"); });
+    if (bT) bT.addEventListener("click", (e)=>{ e.preventDefault(); e.stopPropagation(); pick("tutor"); });
+    if (bS) bS.addEventListener("click", (e)=>{ e.preventDefault(); e.stopPropagation(); pick("alumno"); });
+
+    function doLogin(){
+      const p = String(pass?.value || "");
+
+      // ADMIN / TUTOR: claves fijas
+      const okFixed = (selected === "admin" && p === AUTH_ADMIN_PASS) || (selected === "tutor" && p === AUTH_TUTOR_PASS);
+
+      // ALUMNO: por ahora validamos después de cargar data (para no descargar todo antes)
+      const okStudent = (selected === "alumno" && p.trim().length > 0);
+
+      if (!(okFixed || okStudent)){
+        if (err) err.style.display = "block";
+        return;
+      }
+
+      if (selected === "alumno"){
+        sessionStorage.setItem("LAMETA_STUDENT_PASS", p.trim());
+      }
+
+      setRole(selected);
+      showAuth(false);
+      if (pass) pass.value = "";
+
+      // Al entrar, fuerza vista permitida
+      if (!canAccessView(loadSavedView() || state.view)){
+        setView(selected === "alumno" ? "student" : "table");
+      }
+    }
 
     const btn = document.getElementById("btnLogin");
     if (btn) btn.addEventListener("click", doLogin);
 
-    if (pass) pass.addEventListener("keydown", (e)=>{ if (e.key === "Enter") doLogin(); });
+    if (pass) pass.addEventListener("keydown", (e)=>{
+      if (e.key === "Enter") doLogin();
+    });
 
-    // Por defecto
+    // Por defecto, sugiere TUTOR (más común)
     pick("tutor");
     return false;
   }
@@ -1372,7 +1311,7 @@
   };
 // ===================== PERSISTENCIA DE VISTA (FIX) =====================
 const VIEW_STORAGE_KEY = "LA_META_CURRENT_VIEW";
-const ALLOWED_VIEWS = ["overview","local","table","horarios","impresiones","silabos","materiales","listas","reportes"];
+const ALLOWED_VIEWS = ["overview","local","table","horarios","impresiones","silabos","materiales","listas","reportes", "student"];
 
 function saveView(v){
   try { localStorage.setItem(VIEW_STORAGE_KEY, v); } catch(e){}
@@ -1631,7 +1570,6 @@ function loadSavedView(){
     document.getElementById("fEstado").style.display = (v==="table") ? "" : "none";
 
     const titles = {
-      alumno: ["MI PANEL", "Vista del estudiante (acceso por contraseña)."],
       overview: ["RESUMEN GENERAL", "Panel estructurado para control de matrícula, modalidad y distribución por universidad."],
       local: ["POR LOCAL", "Monitoreo por salón (tutor) del local seleccionado."],
       table: ["ALUMNOS", "Búsqueda y filtros para consulta interna."],
@@ -1919,6 +1857,34 @@ function loadSavedView(){
 
     const isTutor = (CURRENT_ROLE === "tutor");
 
+    const isAlumno = (CURRENT_ROLE === "alumno");
+    // Alumno: solo MI PANEL
+    if (btnStudent) btnStudent.style.display = isAlumno ? "block" : "none";
+
+    // Botones generales que deben ocultarse para alumno
+    const navIds = ["nav_overview","nav_local","nav_table","nav_horarios","nav_impresiones","nav_silabos","nav_materiales","nav_listas","nav_reportes"];
+    if (isAlumno){
+      navIds.forEach(id=>{
+        if (id === "nav_student") return;
+        const el = document.getElementById(id);
+        if (el) el.style.display = "none";
+      });
+      // Forzar vista alumno
+      if (state.view !== "student") setView("student");
+    } else {
+      // Restaurar visibilidad al no ser alumno
+      navIds.forEach(id=>{
+        const el = document.getElementById(id);
+        if (!el) return;
+        if (id === "nav_overview" || id === "nav_local"){
+          // estos se manejan por rol tutor
+          return;
+        }
+        el.style.display = "block";
+      });
+    }
+
+
     const theadTutor = `
       <tr>
         <th>NOMBRE</th>
@@ -2045,82 +2011,6 @@ function loadSavedView(){
     state.ch_over_uni_stack.update("none");
   }
 
-  function renderAlumno(){
-    const root = document.getElementById("view_alumno");
-    if (!root) return;
-
-    const st = CURRENT_STUDENT || loadStudent();
-    if (!st){
-      root.innerHTML = `
-        <div class="card">
-          <div class="cardHead">
-            <div>
-              <h2>MI PANEL</h2>
-              <div class="muted">Sesión de alumno no encontrada. Por favor, cierre sesión e ingrese nuevamente.</div>
-            </div>
-          </div>
-        </div>`;
-      return;
-    }
-
-    const fila = (k,v)=>`<div class="kv"><div class="k">${escapeHtml(k)}</div><div class="v">${escapeHtml(v ?? "-")}</div></div>`;
-
-    root.innerHTML = `
-      <div class="card" style="grid-column: 1 / -1;">
-        <div class="cardHead">
-          <div>
-            <h2>Panel del Estudiante</h2>
-            <div class="muted">Acceso institucional — datos personales y estado de matrícula.</div>
-          </div>
-          <span class="pill">LA META</span>
-        </div>
-        <div style="margin-top:10px;">
-          <div style="font-weight:800;font-size:18px;">${escapeHtml(st.nombres_completos || "Estudiante")}</div>
-          <div class="muted">${escapeHtml(st.universidad || "-")} · ${escapeHtml(st.carrera || "-")}</div>
-        </div>
-      </div>
-
-      <div class="card">
-        <h3 style="margin:0 0 8px 0;">Datos principales</h3>
-        <div class="kvGrid">
-          ${fila("Correo", st.correo)}
-          ${fila("DNI", st.dni)}
-          ${fila("Celular", st.celular)}
-          ${fila("Academia", st.academia)}
-          ${fila("Carrera", st.carrera)}
-        </div>
-      </div>
-
-      <div class="card">
-        <h3 style="margin:0 0 8px 0;">Matrícula y aula</h3>
-        <div class="kvGrid">
-          ${fila("Local", st.local)}
-          ${fila("Salón", st.salon)}
-          ${fila("Modalidad", st.modalidad)}
-          ${fila("Estado", st.estado)}
-          ${fila("Universidad", st.universidad)}
-        </div>
-      </div>
-
-      <div class="card" style="grid-column: 1 / -1;">
-        <h3 style="margin:0 0 8px 0;">Apoderado</h3>
-        <div class="kvGrid" style="grid-template-columns: repeat(4, minmax(0,1fr));">
-          ${fila("Nombre", st.nombre_apoderado)}
-          ${fila("DNI", st.dni_apoderado)}
-          ${fila("Celular", st.cel_apoderado)}
-          ${fila("Correo", st.correo_apoderado)}
-        </div>
-      </div>
-
-      <div class="card" style="grid-column: 1 / -1;">
-        <h3 style="margin:0 0 8px 0;">Cursos del examen</h3>
-        <div class="muted">Siguiente paso: aquí se mostrarán los 12 cursos, temas y la evaluación de 5 preguntas por tema.</div>
-      </div>
-    `;
-  }
-
-
-
   function renderLocal(){
     ensureLocalLayout();
 
@@ -2209,6 +2099,34 @@ function loadSavedView(){
     applyFilters();
 
     const isTutor = (CURRENT_ROLE === "tutor");
+
+    const isAlumno = (CURRENT_ROLE === "alumno");
+    // Alumno: solo MI PANEL
+    if (btnStudent) btnStudent.style.display = isAlumno ? "block" : "none";
+
+    // Botones generales que deben ocultarse para alumno
+    const navIds = ["nav_overview","nav_local","nav_table","nav_horarios","nav_impresiones","nav_silabos","nav_materiales","nav_listas","nav_reportes"];
+    if (isAlumno){
+      navIds.forEach(id=>{
+        if (id === "nav_student") return;
+        const el = document.getElementById(id);
+        if (el) el.style.display = "none";
+      });
+      // Forzar vista alumno
+      if (state.view !== "student") setView("student");
+    } else {
+      // Restaurar visibilidad al no ser alumno
+      navIds.forEach(id=>{
+        const el = document.getElementById(id);
+        if (!el) return;
+        if (id === "nav_overview" || id === "nav_local"){
+          // estos se manejan por rol tutor
+          return;
+        }
+        el.style.display = "block";
+      });
+    }
+
     const rows = state.filtered;
 
     const tbody = document.getElementById("tb_body");
@@ -3984,7 +3902,6 @@ function renderReportes(){
 
   // ===================== RENDER =====================
   function render(){
-    if (state.view==="alumno") renderAlumno();
     if (state.view==="overview") renderOverview();
     if (state.view==="local") renderLocal();
     if (state.view==="table") renderTable();
@@ -4122,30 +4039,6 @@ function renderReportes(){
     return { salon, rows: out, error: null };
   }
 
-  // ===================== LOGIN ALUMNO (BUSCA CONTRASEÑA EN TODAS LAS HOJAS) =====================
-  async function findStudentByPassword(pw){
-    const target = String(pw || "").trim();
-    if (!target) return null;
-
-    // Buscar en todas las aulas/salones (misma estructura en todas las hojas)
-    const results = await Promise.allSettled(SALONES.map(s => loadOneSalon(s)));
-
-    for (const r of results){
-      if (r.status !== "fulfilled" || !r.value || r.value.error) continue;
-      const { salon, rows } = r.value;
-      if (!Array.isArray(rows)) continue;
-
-      for (const row of rows){
-        const pass = String(row.contrasena || "").trim();
-        if (pass && pass === target){
-          // Guardamos también metadatos del salón por si se necesitan
-          return { ...row, _salon: salon };
-        }
-      }
-    }
-    return null;
-  }
-
 // ===================== LOAD ALL (SIN DELAY / SIN FLASH) =====================
 let LOADING = false;
 let PENDING = false;
@@ -4154,7 +4047,6 @@ function ensureBoot(){
   if (state.booted) return;
 
   // eventos NAV (una sola vez)
-  document.getElementById("nav_alumno").addEventListener("click", ()=>setView("alumno"));
   document.getElementById("nav_overview").addEventListener("click", ()=>setView("overview"));
   document.getElementById("nav_local").addEventListener("click", ()=>setView("local"));
   document.getElementById("nav_table").addEventListener("click", ()=>setView("table"));
@@ -4228,6 +4120,10 @@ async function loadAll(){
 
     // Importante: initFilters puede rearmar selects; se ejecuta aquí para mantener data al día
     initFilters();
+
+    // Alumno: resolver sesión y cargar datos del estudiante
+    hydrateStudentSession_();
+
     render();
 
   } catch(e){
@@ -4244,6 +4140,111 @@ async function loadAll(){
 }
 
 
+
+
+// ===================== ALUMNO: sesión + panel =====================
+function normalizeKey_(v){
+  return String(v ?? "").trim();
+}
+
+function findStudentByPassword_(pass){
+  const p = normalizeKey_(pass);
+  if (!p) return null;
+  // Busca en rawRows (incluye local/salon/ciclo)
+  const hit = (state.rawRows || []).find(r => normalizeKey_(r.contrasena) === p);
+  return hit || null;
+}
+
+function hydrateStudentSession_(){
+  if (CURRENT_ROLE !== "alumno") return true;
+
+  const p = sessionStorage.getItem("LAMETA_STUDENT_PASS") || "";
+  const row = findStudentByPassword_(p);
+
+  if (!row){
+    // cerrar sesión alumno
+    sessionStorage.removeItem("LAMETA_STUDENT_PASS");
+    setRole(null);
+    showAuth(true);
+    const err = document.getElementById("authErr");
+    if (err){
+      err.textContent = "Contraseña inválida.";
+      err.style.display = "block";
+    }
+    return false;
+  }
+
+  state.student = row;
+  return true;
+}
+
+function renderStudent(){
+  // Mostrar solo vista alumno
+  const views = document.querySelectorAll(".view");
+  views.forEach(v => v.style.display = "none");
+
+  const v = document.getElementById("view_student");
+  if (v) v.style.display = "block";
+
+  // Ocultar barra de filtros / acciones si existe
+  const tools = document.getElementById("toolsBar");
+  if (tools) tools.style.display = "none";
+
+  const sc = document.getElementById("studentCard");
+  if (!sc) return;
+
+  const s = state.student || {};
+
+  const items = [
+    ["Nombre completo", s.nombre || "-"],
+    ["Correo", s.correoAl || s.correo || "-"],
+    ["DNI", s.dniAl || "-"],
+    ["Celular", s.celularAl || "-"],
+    ["Universidad", s.universidad || "-"],
+    ["Modalidad", s.modalidad || "-"],
+    ["Academia", s.academia || "-"],
+    ["Carrera", s.carrera || "-"],
+    ["Estado", s.estado || "-"],
+    ["Local", s.local || "-"],
+    ["Ciclo", s.ciclo || "-"],
+    ["Salón", s.salon || "-"],
+  ];
+
+  sc.innerHTML = items.map(([k,val]) => (
+    `<div class="kv"><div class="k">${escapeHtml(k)}</div><div class="v">${escapeHtml(val)}</div></div>`
+  )).join("");
+
+  // Cursos: estructura lista (prototipo)
+  const cc = document.getElementById("studentCourses");
+  if (cc){
+    const courses = [
+      { name:"Álgebra", topics:["Ecuaciones de 1er grado (Bloque A)","Sistemas de ecuaciones (Bloque A)"]},
+      { name:"Aritmética", topics:["(pendiente)"]},
+      { name:"Geometría", topics:["(pendiente)"]},
+      { name:"Trigonometría", topics:["(pendiente)"]},
+      { name:"RM", topics:["(pendiente)"]},
+      { name:"RV", topics:["(pendiente)"]},
+      { name:"Física", topics:["(pendiente)"]},
+      { name:"Química", topics:["(pendiente)"]},
+      { name:"Biología", topics:["(pendiente)"]},
+      { name:"Historia", topics:["(pendiente)"]},
+      { name:"Geografía", topics:["(pendiente)"]},
+      { name:"Economía", topics:["(pendiente)"]},
+    ];
+
+    cc.innerHTML = courses.map((c, i) => {
+      const tid = `course_${i}`;
+      const topics = c.topics.map(t=>`<button class="topicBtn" type="button" onclick="alert('Próximo paso: abrir evaluación del tema.');">${escapeHtml(t)}</button>`).join("");
+      return `
+        <details class="courseBox">
+          <summary>${escapeHtml(c.name)}</summary>
+          <div class="topics">${topics}</div>
+        </details>
+      `;
+    }).join("");
+  }
+}
+// ===================== FIN ALUMNO =====================
 
 function startApp(){
   ensureBoot();
@@ -4285,3 +4286,25 @@ window.addEventListener("DOMContentLoaded", () => {
 </script>
 </body>
 </html>
+      <!-- ===================== VISTA ALUMNO ===================== -->
+      <section id="view_student" class="view" style="display:none;">
+        <div class="pageTitle">
+          <h2>Panel del Estudiante</h2>
+          <p class="muted">Resumen personal y acceso a cursos del examen.</p>
+        </div>
+
+        <div class="grid2">
+          <div class="card">
+            <h3>Datos principales</h3>
+            <div id="studentCard" class="kvGrid"></div>
+          </div>
+
+          <div class="card">
+            <h3>Cursos del examen</h3>
+            <p class="muted">Selecciona un curso para ver sus temas. (En este paso dejamos la estructura lista.)</p>
+            <div id="studentCourses"></div>
+          </div>
+        </div>
+      </section>
+
+
