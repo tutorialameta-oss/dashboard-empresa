@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>LA META | PANEL DE CONTROL</title>
+  <title>LA META | DASHBOARD</title>
 
   <!-- Charts -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
@@ -1163,6 +1163,136 @@
       .alProfileWrap{ grid-template-columns: 1fr; }
     }
 
+
+  /* ===== Alumno: Inicio minimalista + Perfil profesional ===== */
+  .alHeroNote{
+    margin-top:14px;
+    display:flex;
+    align-items:center;
+    gap:10px;
+    color: var(--muted);
+    font-weight:900;
+    letter-spacing:.1px;
+  }
+  .alHeroNote .dot{ width:10px; height:10px; border-radius:999px; display:inline-block; }
+
+  .alProGrid{
+    display:grid;
+    grid-template-columns: 1.1fr .9fr;
+    gap:18px;
+  }
+  @media (max-width: 980px){
+    .alProGrid{ grid-template-columns: 1fr; }
+  }
+  .alProCol{ display:flex; flex-direction:column; gap:18px; }
+
+  .alProCard{
+    border: 1px solid rgba(0,0,0,.06);
+    border-radius: 20px;
+    background: #fff;
+    padding: 18px;
+    box-shadow: 0 12px 30px rgba(0,0,0,.04);
+  }
+  .alProHead{
+    display:flex;
+    gap:14px;
+    align-items:center;
+    margin-bottom: 14px;
+  }
+  .alAvatarBig{
+    width:52px;
+    height:52px;
+    border-radius: 16px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-weight:1000;
+    background: rgba(177,15,46,.10);
+    border: 1px solid rgba(177,15,46,.25);
+    color: var(--brand);
+    flex: 0 0 auto;
+  }
+  .alNameBig{
+    font-weight: 1100;
+    letter-spacing: .2px;
+    font-size: 18px;
+    line-height: 1.2;
+  }
+  .alSmall{
+    margin-top: 8px;
+    display:flex;
+    flex-wrap: wrap;
+    gap:8px;
+  }
+  .alTag{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    padding: 7px 10px;
+    border-radius: 999px;
+    background: rgba(0,0,0,.03);
+    border: 1px solid rgba(0,0,0,.06);
+    color: #243047;
+    font-weight: 900;
+    font-size: 12px;
+    white-space: nowrap;
+  }
+  .alKVGrid{
+    display:grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px 14px;
+    margin-top: 6px;
+  }
+  @media (max-width: 520px){
+    .alKVGrid{ grid-template-columns: 1fr; }
+  }
+  .alKV{
+    padding: 10px 12px;
+    border-radius: 16px;
+    background: rgba(0,0,0,.02);
+    border: 1px solid rgba(0,0,0,.05);
+    display:flex;
+    justify-content: space-between;
+    gap: 10px;
+  }
+  .alKV span{
+    color: var(--muted);
+    font-weight: 900;
+    white-space: nowrap;
+  }
+  .alKV b{
+    color: #0b1020;
+    font-weight: 1100;
+    text-align:right;
+    overflow:hidden;
+    text-overflow: ellipsis;
+  }
+  .alProTitle{
+    font-weight: 1100;
+    letter-spacing:.18px;
+    margin-bottom: 10px;
+  }
+  .alKVList{ display:flex; flex-direction:column; gap:10px; }
+  .alKVLine{
+    display:flex;
+    justify-content: space-between;
+    gap: 12px;
+    padding-bottom: 10px;
+    border-bottom: 1px dashed rgba(0,0,0,.10);
+  }
+  .alKVLine:last-child{ border-bottom:none; padding-bottom:0; }
+  .alKVLine span{ color: var(--muted); font-weight: 900; }
+  .alKVLine b{ color:#0b1020; font-weight:1100; text-align:right; }
+
+  .alEmptyMini{
+    color: var(--muted);
+    font-weight: 900;
+    padding: 10px 12px;
+    background: rgba(0,0,0,.02);
+    border: 1px solid rgba(0,0,0,.06);
+    border-radius: 16px;
+  }
+
 </style>
 </head>
 
@@ -1199,13 +1329,14 @@
       <div class="brand">
         <img src="logo.png" alt="LA META" onerror="this.style.display='none'"/>
         <div>
-          <h1>LA META<br/>PANEL DE CONTROL</h1>
-          <div class="sub">Monitoreo de alumnos por local y salón</div>
+          <h1 id="brandTitle">LA META<br/>PANEL DE CONTROL</h1>
+          <div class="sub" id="brandSub">Monitoreo de alumnos por local y salón</div>
         </div>
       </div>
 
       <div class="nav">
         <button id="nav_inicio_alumno">INICIO</button>
+        <button id="nav_perfil_alumno">MI PERFIL</button>
         <button id="nav_overview" class="active">RESUMEN GENERAL</button>
         <button id="nav_local">CONTROL DE SEDES</button>
         <button id="nav_table">ALUMNOS</button>
@@ -1247,6 +1378,7 @@
       </div>
 
       <div id="view_inicio_alumno" class="grid" style="display:none;"></div>
+      <div id="view_perfil_alumno" class="grid" style="display:none;"></div>
 
 
       <div id="view_overview" class="grid"></div>
@@ -1318,8 +1450,8 @@
 
     try { localStorage.setItem(STUDENT_USER_KEY, usuario); } catch(e){}
 
-    const uniFromSheet = norm(row?.uni_sheet || "");
-    const uni = uniFromSheet || uniGroupFromCiclo(row?.ciclo || "");
+    const uniFromSheet = row?.uni_sheet || "";
+    const uni = uniKey(uniFromSheet) || uniKey(uniGroupFromCiclo(row?.ciclo || ""));
 
     const profile = {
       usuario,
@@ -1336,7 +1468,6 @@
       correo: row?.correo_al || row?.correo || "",
       dni: row?.dni_al || row?.dni || "",
       celular: row?.celular_al || row?.celular || "",
-      academia: row?.academia || "",
       carrera: row?.carrera || "",
 
       // Apoderado
@@ -1392,7 +1523,7 @@
 
     // Alumno: entorno limitado (sin materiales)
     if (CURRENT_ROLE === "alumno"){
-      return (v === "inicio_alumno" || v === "horarios" || v === "silabos");
+      return (v === "inicio_alumno" || v === "perfil_alumno" || v === "horarios" || v === "silabos");
     }
     return true;
   }
@@ -1432,6 +1563,7 @@
     const isAlumno = (CURRENT_ROLE === "alumno");
 
     const btnInicioAlumno = document.getElementById("nav_inicio_alumno");
+    const btnPerfilAlumno = document.getElementById("nav_perfil_alumno");
     const btnOverview = document.getElementById("nav_overview");
     const btnLocal = document.getElementById("nav_local");
     const btnTable = document.getElementById("nav_table");
@@ -1444,6 +1576,7 @@
 
     // Mostrar/ocultar por rol
     if (btnInicioAlumno) btnInicioAlumno.style.display = isAlumno ? "" : "none";
+    if (btnPerfilAlumno) btnPerfilAlumno.style.display = isAlumno ? "" : "none";
 
     // Admin/Tutor
     if (btnOverview) btnOverview.style.display = (isTutor || isAlumno) ? "none" : "";
@@ -1635,6 +1768,22 @@ const SALONES = [
     return "U.LIMA";
   }
 
+
+  // Normaliza universidades (evita fallos por mayúsculas, puntos o variantes como UNALM/AGRARIA)
+  function uniKey(raw){
+    const u0 = norm(raw).toUpperCase();
+    const u = u0.replace(/\s+/g,"").replace(/[\._-]/g,""); // ULIMA, UNALM, etc.
+    if (!u) return "";
+    if (u.includes("PUCP")) return "PUCP";
+    if (u.includes("AGRARIA") || u.includes("UNALM")) return "AGRARIA";
+    if (u.includes("ULIMA")) return "U.LIMA";
+    // fallback razonable
+    if (u0.includes("U.LIMA")) return "U.LIMA";
+    if (u0.includes("AGRARIA")) return "AGRARIA";
+    if (u0.includes("UNALM")) return "AGRARIA";
+    if (u0.includes("PUCP")) return "PUCP";
+    return u0;
+  }
   const HEAD = {
     NOMBRES_A: "NOMBRES COMPLETOS",
     NOMBRES_B: "NOMBRE COMPLETO",
@@ -1844,7 +1993,7 @@ const SALONES = [
   };
 // ===================== PERSISTENCIA DE VISTA (FIX) =====================
 const VIEW_STORAGE_KEY = "LA_META_CURRENT_VIEW";
-const ALLOWED_VIEWS = ["inicio_alumno","overview","local","table","horarios","impresiones","silabos","materiales","listas","reportes"];
+const ALLOWED_VIEWS = ["inicio_alumno","perfil_alumno","overview","local","table","horarios","impresiones","silabos","materiales","listas","reportes"];
 
 function saveView(v){
   try { localStorage.setItem(VIEW_STORAGE_KEY, v); } catch(e){}
@@ -2080,6 +2229,7 @@ function loadSavedView(){
       el.classList.toggle("active", !!on);
     };
     t("nav_inicio_alumno", v==="inicio_alumno");
+    t("nav_perfil_alumno", v==="perfil_alumno");
     t("nav_overview", v==="overview");
     t("nav_local", v==="local");
     t("nav_table", v==="table");
@@ -2096,6 +2246,7 @@ function loadSavedView(){
       el.style.display = on ? "" : "none";
     };
     s("view_inicio_alumno", v==="inicio_alumno");
+    s("view_perfil_alumno", v==="perfil_alumno");
     s("view_overview", v==="overview");
     s("view_local", v==="local");
     s("view_table", v==="table");
@@ -2120,7 +2271,8 @@ function loadSavedView(){
     }
 
     const titles = {
-      inicio_alumno: ["INICIO", "Acceso rápido para alumnos: perfil, horarios, sílabos y materiales."],
+      inicio_alumno: ["INICIO", "Acceso rápido para alumnos: perfil, horarios y sílabos."],
+      perfil_alumno: ["MI PERFIL", "Datos del alumno registrados en su matrícula."],
       overview: ["RESUMEN GENERAL", "Panel estructurado para control de alumnos en todos los locales y salones."],
       local: ["CONTROL DE SEDES", "Monitoreo por sede: resumen, salones, docentes y estado del grupo."],
       table: ["ALUMNOS", "Listado completo con filtros por local, universidad, salón, modalidad y estado."],
@@ -3076,7 +3228,7 @@ function loadSavedView(){
         return;
       }
 
-      const uni = prof.uni || "-";
+      const uni = uniKey(prof.uni || prof.uni_sheet || prof.ciclo || "") || (prof.uni || "-");
       let list = (SILABOS[uni] || []).slice();
       if (q) list = list.filter(x => low(x.name).includes(q));
 
@@ -4578,7 +4730,8 @@ function renderReportes(){
   // ===================== RENDER =====================
   
   // ===================== INICIO (ALUMNOS) =====================
-  function ensureInicioAlumnoLayout(){
+  
+function ensureInicioAlumnoLayout(){
     const el = document.getElementById("view_inicio_alumno");
     if (!el || el.dataset.ready === "1") return;
 
@@ -4588,19 +4741,27 @@ function renderReportes(){
           <div class="alHeroLeft">
             <div class="alHeroKicker">PORTAL DEL ALUMNO</div>
             <div class="alHeroTitle">Bienvenido(a), <span id="alHeroName">Alumno</span></div>
-            <div class="alHeroSub">Tu información, tu horario y tu sílabo en un solo lugar.</div>
+            <div class="alHeroSub">Tu perfil, tu horario y tu sílabo en un solo lugar.</div>
+
             <div class="alHeroActions">
+              <button class="alBtn alBtnGhost" id="alJumpPerfil">Ver mi perfil</button>
               <button class="alBtn alBtnPrimary" id="alJumpHorario">Ver mi horario</button>
               <button class="alBtn alBtnGhost" id="alJumpSilabo">Ver mi sílabo</button>
-              <button class="alBtn alBtnSoft" id="alOpenFullHorario">Pantalla completa: Horario</button>
+            </div>
+
+            <div class="alHeroNote">
+              <span class="dot" style="background:#b10f2e;"></span>
+              <span>Los accesos se ajustan a tu matrícula. Si algo no aparece, comunícate con tu tutor para actualización.</span>
             </div>
           </div>
+
           <div class="alHeroRight">
             <div class="alStat">
               <div class="alStatLabel">Próxima clase</div>
               <div class="alStatValue" id="alNextClass">—</div>
               <div class="alStatMeta" id="alNextClassMeta">—</div>
             </div>
+
             <div class="alStat">
               <div class="alStatLabel">Estado</div>
               <div class="alStatValue" id="alEstadoChip">—</div>
@@ -4609,121 +4770,164 @@ function renderReportes(){
           </div>
         </div>
       </div>
-
-      <div class="card panel12 alSection" id="alDatos">
-        <div class="alSectionHead">
-          <div>
-            <div class="alSectionTitle">DATOS DEL ALUMNO</div>
-            <div class="alSectionSub">Información registrada en su matrícula.</div>
-          </div>
-          <div class="alSectionTools">
-            <button class="alBtn alBtnGhost" id="alRefreshProfile">Actualizar</button>
-          </div>
-        </div>
-        <div id="alPerfilPro" class="alProfileGrid"></div>
-      </div>
-
-      <div class="card panel12 alSection" id="alHorario">
-        <div class="alSectionHead">
-          <div>
-            <div class="alSectionTitle">MI HORARIO</div>
-            <div class="alSectionSub">Solo se muestra el horario que corresponde a su local, salón y universidad.</div>
-          </div>
-          <div class="alSectionTools">
-            <button class="alBtn alBtnPrimary" id="alGoHorarioFull">Abrir en pantalla completa</button>
-          </div>
-        </div>
-        <div id="alHorarioWrap"></div>
-      </div>
-
-      <div class="card panel12 alSection" id="alSilabo">
-        <div class="alSectionHead">
-          <div>
-            <div class="alSectionTitle">MI SÍLABO</div>
-            <div class="alSectionSub">Se listan únicamente los sílabos de su universidad.</div>
-          </div>
-          <div class="alSectionTools">
-            <button class="alBtn alBtnPrimary" id="alGoSilabosFull">Abrir en pantalla completa</button>
-          </div>
-        </div>
-        <div class="alSilaboTools">
-          <input id="alSilaboQ" type="text" placeholder="Buscar curso dentro de mi sílabo (ej: álgebra, física)"/>
-          <div class="alSilaboPill" id="alSilaboUniPill">—</div>
-        </div>
-        <div id="alSilaboWrap"></div>
-      </div>
-
-      <div class="panel12 alFootNote" id="alHintPro"></div>
     `;
 
-    const jump = (id)=>{
-      const node = document.getElementById(id);
-      if (!node) return;
-      node.scrollIntoView({ behavior:"smooth", block:"start" });
-    };
-
+    const bP = document.getElementById("alJumpPerfil");
     const bH = document.getElementById("alJumpHorario");
     const bS = document.getElementById("alJumpSilabo");
-    const bFullH = document.getElementById("alOpenFullHorario");
-    const bFullH2 = document.getElementById("alGoHorarioFull");
-    const bFullS = document.getElementById("alGoSilabosFull");
-    const bRef = document.getElementById("alRefreshProfile");
 
-    if (bH) bH.addEventListener("click", ()=>jump("alHorario"));
-    if (bS) bS.addEventListener("click", ()=>jump("alSilabo"));
-    if (bFullH) bFullH.addEventListener("click", ()=>{ setView("horarios"); renderHorarios(); });
-    if (bFullH2) bFullH2.addEventListener("click", ()=>{ setView("horarios"); renderHorarios(); });
-    if (bFullS) bFullS.addEventListener("click", ()=>{ setView("silabos"); renderSilabos(); });
-
-    if (bRef) bRef.addEventListener("click", async ()=>{
-      // Relee desde las filas crudas ya cargadas (sin recargar la página)
-      updateAlumnoProfileFromRawRows();
-      renderInicioAlumno();
-    });
-
-    const q = document.getElementById("alSilaboQ");
-    if (q) q.addEventListener("input", ()=>renderInicioAlumno());
+    if (bP) bP.addEventListener("click", ()=>setView("perfil_alumno"));
+    if (bH) bH.addEventListener("click", ()=>setView("horarios"));
+    if (bS) bS.addEventListener("click", ()=>setView("silabos"));
 
     el.dataset.ready = "1";
   }
 
-  function goAlumnoHorarios(){
-    setView("horarios");
-    renderHorarios();
+function ensurePerfilAlumnoLayout(){
+    const el = document.getElementById("view_perfil_alumno");
+    if (!el || el.dataset.ready === "1") return;
+
+    el.innerHTML = `
+      <div class="card panel12 alSection">
+        <div class="alSectionHead">
+          <div>
+            <div class="alSectionTitle">MI PERFIL</div>
+            <div class="alSectionSub">Información registrada en su matrícula.</div>
+          </div>
+          <div class="alSectionTools">
+            <button class="alBtn alBtnGhost" id="alPerfilRefresh">Actualizar</button>
+          </div>
+        </div>
+        <div id="alPerfilGridPro"></div>
+      </div>
+    `;
+
+    const b = document.getElementById("alPerfilRefresh");
+    if (b) b.addEventListener("click", ()=>{ try{ refreshAlumnoProfileFromCache(); }catch(e){} renderPerfilAlumno(); });
+
+    el.dataset.ready = "1";
   }
 
-  function goAlumnoSilabos(){
-    setView("silabos");
-    renderSilabos();
+  function renderPerfilAlumno(){
+    ensurePerfilAlumnoLayout();
+
+    const prof = getAlumnoProfile();
+    const grid = document.getElementById("alPerfilGridPro");
+    if (!grid) return;
+
+    if (!prof){
+      grid.innerHTML = `
+        <div class="alEmpty">
+          <div class="alEmptyTitle">Perfil no encontrado</div>
+          <div class="alEmptyText">Cierre sesión y vuelva a ingresar.</div>
+        </div>`;
+      return;
+    }
+
+    const uni = uniKey(prof.uni || prof.uni_sheet || prof.ciclo || "") || (prof.uni || "-");
+    const avatar = escapeHtml((prof.nombre||"A").trim().slice(0,1).toUpperCase());
+    const first = (prof?.nombre ? String(prof.nombre).trim().split(" ")[0] : "Alumno");
+
+    const hasApo = !!(norm(prof.nombre_apo)||norm(prof.cel_apo)||norm(prof.correo_apo)||norm(prof.dni_apo));
+
+    const cardIdent = `
+      <div class="alProCard">
+        <div class="alProHead">
+          <div class="alAvatarBig">${avatar}</div>
+          <div class="alProHeadTxt">
+            <div class="alNameBig">${escapeHtml(prof.nombre || "ALUMNO")}</div>
+            <div class="alSmall">
+              <span class="alTag">USUARIO: <b>${escapeHtml(prof.usuario || "-")}</b></span>
+              <span class="alTag">DNI: <b>${escapeHtml(prof.dni || "-")}</b></span>
+              <span class="alTag">ESTADO: <b>${escapeHtml(prof.estado || "-")}</b></span>
+            </div>
+          </div>
+        </div>
+
+        <div class="alKVGrid">
+          <div class="alKV"><span>Universidad</span><b>${escapeHtml(uni || "-")}</b></div>
+          <div class="alKV"><span>Modalidad</span><b>${escapeHtml(prof.modalidad || "-")}</b></div>
+          <div class="alKV"><span>Local</span><b>${escapeHtml(prof.local || "-")}</b></div>
+          <div class="alKV"><span>Salón</span><b>${escapeHtml(prof.salon || "-")}</b></div>
+          <div class="alKV"><span>Ciclo</span><b>${escapeHtml(prof.ciclo || "-")}</b></div>
+          <div class="alKV"><span>Carrera</span><b>${escapeHtml(prof.carrera || "-")}</b></div>
+        </div>
+      </div>
+    `;
+
+    const cardContacto = `
+      <div class="alProCard">
+        <div class="alProTitle">Contacto del alumno</div>
+        <div class="alKVList">
+          <div class="alKVLine"><span>Correo</span><b>${escapeHtml(prof.correo || "-")}</b></div>
+          <div class="alKVLine"><span>Celular</span><b>${escapeHtml(prof.celular || "-")}</b></div>
+        </div>
+      </div>
+    `;
+
+    const cardApo = `
+      <div class="alProCard">
+        <div class="alProTitle">Apoderado</div>
+        ${hasApo ? `
+          <div class="alKVList">
+            <div class="alKVLine"><span>Nombre</span><b>${escapeHtml(prof.nombre_apo || "-")}</b></div>
+            <div class="alKVLine"><span>Celular</span><b>${escapeHtml(prof.cel_apo || "-")}</b></div>
+            <div class="alKVLine"><span>DNI</span><b>${escapeHtml(prof.dni_apo || "-")}</b></div>
+            <div class="alKVLine"><span>Correo</span><b>${escapeHtml(prof.correo_apo || "-")}</b></div>
+          </div>
+        ` : `
+          <div class="alEmptyMini">Sin datos de apoderado registrados.</div>
+        `}
+      </div>
+    `;
+
+    grid.innerHTML = `
+      <div class="alProGrid">
+        <div class="alProCol">
+          ${cardIdent}
+        </div>
+        <div class="alProCol">
+          ${cardContacto}
+          ${cardApo}
+        </div>
+      </div>
+    `;
   }
 
-  function goAlumnoMateriales(){
-    // MATERIALES: deshabilitado temporalmente para alumnos
-    setView("inicio_alumno");
+  // Relee el perfil desde la "cache" de matrícula si existe el usuario (sin pedir credenciales)
+  function refreshAlumnoProfileFromCache(){
+    try{
+      const user = loadAlumnoUser();
+      if (!user) return;
+      const u = norm(user);
+      const hit = (state?.allRows || []).find(r=>norm(r.usuario)===u);
+      if (hit) setAlumnoSession(hit);
+    }catch(e){}
   }
 
-  
-  // ===================== ALUMNO | HELPERS (HORARIO / SÍLABO) =====================
-  function alumnoUniFromProfile(prof){
+
+function alumnoUniFromProfile(prof){
     if (!prof) return "";
-    const u = norm(prof.uni || prof.uni_sheet || "");
+    const u = uniKey(prof.uni || prof.uni_sheet || "");
     if (u) return u;
-    return normUniFromCiclo(prof.ciclo || "");
+    return uniKey(uniGroupFromCiclo(prof.ciclo || ""));
   }
 
   function getAlumnoSchedule(prof){
     if (!prof) return null;
-    const uni = alumnoUniFromProfile(prof) || prof.uni || "";
+    const uni = alumnoUniFromProfile(prof);
     const local = norm(prof.local || "");
     const salon = norm(prof.salon || "");
     let base = SCHEDULES.slice();
 
+    const sameUni = (a,b)=> uniKey(a)===uniKey(b);
+
     // Coincidencia estricta
-    let hit = base.find(s => norm(s.uni)===uni && norm(s.local)===local && norm(s.salon)===salon);
+    let hit = base.find(s => sameUni(s.uni, uni) && norm(s.local)===local && norm(s.salon)===salon);
     if (hit) return hit;
 
     // Fallback por uni + salón
-    hit = base.find(s => norm(s.uni)===uni && norm(s.salon)===salon);
+    hit = base.find(s => sameUni(s.uni, uni) && norm(s.salon)===salon);
     if (hit) return hit;
 
     // Fallback por salón (último recurso)
@@ -4792,158 +4996,56 @@ function renderReportes(){
     th.classList.add("isToday");
   }
 
+
 function renderInicioAlumno(){
     ensureInicioAlumnoLayout();
 
     const prof = getAlumnoProfile();
-    const box = document.getElementById("alPerfilPro");
-    const hint = document.getElementById("alHintPro");
     const heroName = document.getElementById("alHeroName");
     const nextBox = document.getElementById("alNextClass");
     const nextMeta = document.getElementById("alNextClassMeta");
     const estadoChip = document.getElementById("alEstadoChip");
     const localChip = document.getElementById("alLocalChip");
 
-    if (heroName) heroName.textContent = (prof?.nombre ? String(prof.nombre).split(" ")[0] : "Alumno");
+    // Personalizar bloque de marca (sidebar) para alumno
+    const brandTitle = document.getElementById("brandTitle");
+    const brandSub = document.getElementById("brandSub");
+
+    if (prof){
+      const first = (prof?.nombre ? String(prof.nombre).trim().split(" ")[0] : "Alumno");
+      if (heroName) heroName.textContent = first;
+
+      const uni = uniKey(prof.uni || prof.uni_sheet || prof.ciclo || "") || (prof.uni || "-");
+      if (brandTitle) brandTitle.innerHTML = "LA META<br/>PORTAL DEL ALUMNO";
+      if (brandSub) brandSub.textContent = `${first} • ${uni}`.trim();
+    } else {
+      if (heroName) heroName.textContent = "Alumno";
+      if (brandTitle) brandTitle.innerHTML = "LA META<br/>PORTAL DEL ALUMNO";
+      if (brandSub) brandSub.textContent = "Acceso para estudiantes";
+    }
 
     if (!prof){
-      if (box) box.innerHTML = `<div class="panelHint">No se encontró su perfil. Cierre sesión y vuelva a ingresar.</div>`;
-      if (hint) hint.textContent = "";
+      if (estadoChip) estadoChip.innerHTML = `<span class="alChip warn">SIN PERFIL</span>`;
+      if (localChip) localChip.innerHTML = `<span class="alChip soft">—</span>`;
+      if (nextBox) nextBox.textContent = "—";
+      if (nextMeta) nextMeta.textContent = "Cierre sesión y vuelva a ingresar.";
       return;
     }
 
-    // === Chips superiores
+    // Chips superiores
     if (estadoChip) estadoChip.innerHTML = `<span class="alChip ${low(prof.estado)==="activo" ? "ok":"warn"}">${escapeHtml(prof.estado || "-")}</span>`;
     if (localChip) localChip.innerHTML = `<span class="alChip soft">${escapeHtml(prof.local || "-")} • ${escapeHtml(prof.salon || "-")}</span>`;
 
-    // === Próxima clase
+    // Próxima clase
     const nxt = getAlumnoNextClass(prof);
     if (nextBox) nextBox.textContent = nxt ? `${nxt.day} ${nxt.start}–${nxt.end}` : "—";
     if (nextMeta) nextMeta.textContent = nxt ? `${nxt.course}${nxt.teacher ? " • " + nxt.teacher : ""}` : "Sin clases próximas (revise su horario)";
-
-    // === Perfil
-    const left = `
-      <div class="alProfileCard">
-        <div class="alAvatar">${escapeHtml((prof.nombre||"A").trim().slice(0,1).toUpperCase())}</div>
-        <div>
-          <div class="alName">${escapeHtml(prof.nombre || "ALUMNO")}</div>
-          <div class="alMetaRow">
-            <span class="alPill">USUARIO: <b>${escapeHtml(prof.usuario || "-")}</b></span>
-            <span class="alPill">UNIVERSIDAD: <b>${escapeHtml(prof.uni || "-")}</b></span>
-            <span class="alPill">MODALIDAD: <b>${escapeHtml(prof.modalidad || "-")}</b></span>
-          </div>
-          <div class="alMetaRow" style="margin-top:8px;">
-            <span class="alPill">LOCAL: <b>${escapeHtml(prof.local || "-")}</b></span>
-            <span class="alPill">SALÓN: <b>${escapeHtml(prof.salon || "-")}</b></span>
-            ${prof.ciclo ? `<span class="alPill">CICLO: <b>${escapeHtml(prof.ciclo)}</b></span>` : ``}
-            ${prof.carrera ? `<span class="alPill">CARRERA: <b>${escapeHtml(prof.carrera)}</b></span>` : ``}
-            ${prof.academia ? `<span class="alPill">ACADEMIA: <b>${escapeHtml(prof.academia)}</b></span>` : ``}
-          </div>
-        </div>
-      </div>
-    `;
-
-    const right = `
-      <div class="alInfoGrid">
-        <div class="alInfoCard">
-          <div class="alInfoTitle">Contacto del alumno</div>
-          <div class="alInfoLine"><span>Correo</span><b>${escapeHtml(prof.correo || "-")}</b></div>
-          <div class="alInfoLine"><span>Celular</span><b>${escapeHtml(prof.celular || "-")}</b></div>
-          <div class="alInfoLine"><span>DNI</span><b>${escapeHtml(prof.dni || "-")}</b></div>
-        </div>
-        <div class="alInfoCard">
-          <div class="alInfoTitle">Apoderado</div>
-          <div class="alInfoLine"><span>Nombre</span><b>${escapeHtml(prof.nombre_apo || "-")}</b></div>
-          <div class="alInfoLine"><span>Celular</span><b>${escapeHtml(prof.cel_apo || "-")}</b></div>
-          <div class="alInfoLine"><span>Correo</span><b>${escapeHtml(prof.correo_apo || "-")}</b></div>
-        </div>
-      </div>
-    `;
-
-    if (box){
-      box.innerHTML = `
-        <div class="alProfileWrap">
-          ${left}
-          ${right}
-        </div>
-      `;
-    }
-
-    // === Horario (home)
-    const hw = document.getElementById("alHorarioWrap");
-    if (hw){
-      const sch = getAlumnoSchedule(prof);
-      if (!sch){
-        hw.innerHTML = `<div class="alEmpty">
-          <div class="alEmptyTitle">Horario no encontrado</div>
-          <div class="alEmptyText">No se encontró un horario que coincida con su matrícula (local, salón y universidad). Comuníquese con su tutor.</div>
-        </div>`;
-      } else {
-        hw.innerHTML = `
-          <div class="alScheduleShell">
-            <div class="alScheduleTop">
-              <div>
-                <div class="alScheduleTitle">${escapeHtml(sch.salon)} • ${escapeHtml(sch.local)}</div>
-                <div class="alScheduleSub">Universidad: <b>${escapeHtml(sch.uni)}</b></div>
-              </div>
-              <button class="alBtn alBtnSoft" onclick="downloadSchedulePNG('${escapeHtml(sch.id)}')">Descargar PNG</button>
-            </div>
-            ${scheduleToHtmlCard(sch)}
-          </div>
-        `;
-        // Ocultar botón interno de descarga (se usa el superior)
-        const innerBtn = hw.querySelector(".schDl");
-        if (innerBtn) innerBtn.style.display = "none";
-
-        // resaltar día actual
-        try { highlightScheduleToday(hw.querySelector(".schTable")); } catch(e){}
-      }
-    }
-
-    // === Sílabos (home)
-    const sw = document.getElementById("alSilaboWrap");
-    const uniPill = document.getElementById("alSilaboUniPill");
-    const q = low(document.getElementById("alSilaboQ")?.value || "");
-
-    if (uniPill){
-      uniPill.innerHTML = `
-        <span class="dot" style="background:${uniDotColor(prof.uni)};"></span>
-        <b>${escapeHtml(prof.uni || "-")}</b>
-      `;
-    }
-
-    if (sw){
-      let list = (SILABOS[prof.uni] || []).slice();
-      if (q) list = list.filter(x => low(x.name).includes(q));
-
-      const items = list.map(it=>{
-        return `
-          <a class="alSyItem" href="${escapeHtml(it.url)}" target="_blank" rel="noopener noreferrer">
-            <div class="alSyLeft">
-              <div class="alSyCourse">${escapeHtml(it.name)}</div>
-              <div class="alSyMeta">
-                <span class="dot" style="background:${uniDotColor(prof.uni)};"></span>
-                <span>${escapeHtml(prof.uni)}</span>
-              </div>
-            </div>
-            <div class="alSyOpen">ABRIR</div>
-          </a>
-        `;
-      }).join("");
-
-      sw.innerHTML = items || `<div class="alEmpty">
-        <div class="alEmptyTitle">Sin resultados</div>
-        <div class="alEmptyText">No se encontraron cursos con el filtro actual.</div>
-      </div>`;
-    }
-
-    if (hint){
-      hint.innerHTML = `Sus accesos se ajustan a su matrícula. Si no ve su salón u horario, comuníquese con su tutor para actualización de datos.`;
-    }
   }
+
 
 function render(){
     if (state.view==="inicio_alumno") renderInicioAlumno();
+    if (state.view==="perfil_alumno") renderPerfilAlumno();
     if (state.view==="overview") renderOverview();
     if (state.view==="local") renderLocal();
     if (state.view==="table") renderTable();
@@ -5096,6 +5198,7 @@ function ensureBoot(){
   };
 
   bind("nav_inicio_alumno", ()=>setView("inicio_alumno"));
+  bind("nav_perfil_alumno", ()=>setView("perfil_alumno"));
   bind("nav_overview", ()=>setView("overview"));
   bind("nav_local", ()=>setView("local"));
   bind("nav_table", ()=>setView("table"));
