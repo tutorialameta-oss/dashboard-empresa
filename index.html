@@ -7,187 +7,670 @@
 
   <!-- Charts -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js">
-/* ===== ALUMNO AUTH FIX+DEBUG (vX) ===== */
-const APPS_URL = "https://script.google.com/macros/s/AKfycbzWE1G1EwtGfF4xk6ON2ArMe_Kwfwnj6M2YUXWxkFJGU4iwscmmPelMErwHMtNR4cvg/exec";
-
-function _cleanPass(p){
-  return String(p||"")
-    .normalize("NFKC")
-    .replace(/[\u200B-\u200D\uFEFF]/g,"")
-    .replace(/\u00A0/g," ")
-    .trim();
-}
-
-function _setAlumnoDbg(msg){
-  const el = document.getElementById("dbgAlumno");
-  if(el) el.textContent = "ALUMNO debug: " + msg;
-}
-
-function _fetchWithTimeout(url, ms=8000){
-  return new Promise((resolve, reject)=>{
-    const t = setTimeout(()=>reject(new Error("timeout")), ms);
-    fetch(url, { method:"GET", mode:"cors", cache:"no-store" })
-      .then(r=>r.text())
-      .then(txt=>{ clearTimeout(t); resolve(txt); })
-      .catch(err=>{ clearTimeout(t); reject(err); });
-  });
-}
-
-function _tryParseJSON(txt){
-  try { return JSON.parse(txt); } catch(e) { return null; }
-}
-
-
-function _normAlumnoRes(res){
-  if(!res || typeof res!=="object") return res;
-  // Normaliza estructura de respuesta del Apps Script: {ok:true, alumno:{...}} o {ok:true, student:{...}}
-  if(res.ok){
-    if(!res.student && res.alumno) res.student = res.alumno;
-    // Normaliza nombre
-    if(res.student){
-      if(!res.student.nombreCompleto && res.student.nombre) res.student.nombreCompleto = res.student.nombre;
-      if(!res.student.NOMBRES_COMPLETOS && res.student.nombreCompleto) res.student.NOMBRES_COMPLETOS = res.student.nombreCompleto;
-    }
-  }
-  return res;
-}
-
-
-function _jsonp(url, ms=9000){
-  return new Promise((resolve, reject)=>{
-    const cb = "cb_" + Math.random().toString(16).slice(2);
-    const s = document.createElement("script");
-    let done = false;
-    const t = setTimeout(()=>{
-      if(done) return;
-      done = true;
-      try{ delete window[cb]; }catch(e){}
-      s.remove();
-      reject(new Error("jsonp_timeout"));
-    }, ms);
-    window[cb] = (data)=>{
-      if(done) return;
-      done = true;
-      clearTimeout(t);
-      try{ delete window[cb]; }catch(e){}
-      s.remove();
-      resolve(data);
-    };
-    s.onerror = ()=>{
-      if(done) return;
-      done = true;
-      clearTimeout(t);
-      try{ delete window[cb]; }catch(e){}
-      s.remove();
-      reject(new Error("jsonp_error"));
-    };
-    const sep = url.includes("?") ? "&" : "?";
-    s.src = url + sep + "callback=" + cb;
-    document.head.appendChild(s);
-  });
-}
-
-async function authAlumnoByPassword(passRaw){
-  const pass = _cleanPass(passRaw);
-  if(!pass) return { ok:false, error:"empty" };
-
-  // 1) try CORS fetch returning JSON
-  const url = `${APPS_URL}?action=authStudent&password=${encodeURIComponent(pass)}&t=${Date.now()}`;
-  _setAlumnoDbg("consultando AppsScript...");
-  try {
-    const txt = await _fetchWithTimeout(url, 8000);
-    let data = _tryParseJSON(txt);
-    if(!data){
-      // if AppsScript returns JSONP-like wrapper accidentally, attempt strip
-      const m = txt.match(/\{[\s\S]*\}/);
-      if(m) data = _tryParseJSON(m[0]);
-    }
-    if(data){
-      _setAlumnoDbg("respuesta OK (fetch)");
-      return _normAlumnoRes(data);
-    }
-  } catch(e) {
-    _setAlumnoDbg("fetch falló → JSONP");
+  // =========================
+  // ALUMNO: autenticación por contraseña (sin usuario)
+  // =========================
+  function normKey_(s){
+    return String(s ?? "")
+      .normalize("NFD").replace(/[\u0300-\u036f]/g,"")
+      .replace(/\s+/g," ")
+      .trim()
+      .toUpperCase();
   }
 
-  // 2) fallback JSONP
-  const url2 = `${APPS_URL}?action=authStudent&password=${encodeURIComponent(pass)}&t=${Date.now()}`;
-  try {
-    const data = await _jsonp(url2, 9000);
-    _setAlumnoDbg("respuesta OK (jsonp)");
-    return _normAlumnoRes(data);
-  } catch(e) {
-    _setAlumnoDbg("ERROR: no responde AppsScript");
-    return { ok:false, error:"no_response" };
+  async function fetchSalonCSV_(gid){
+    const url = csvUrl(gid);
+    const r = await fetch(url, { cache: "no-store" });
+    if (!r.ok) throw new Error("No se pudo leer CSV (gid=" + gid + ")");
+    return await r.text();
   }
-}
 
-/* Hook: reemplaza SOLO la validación de ALUMNO sin tocar ADMIN/TUTOR */
-(function(){
-  const oldDoLogin = window.doLogin || window._doLogin || null;
+  function csvToRows_(csvText){
+    const lines = String(csvText || "").split(/\r?\n/).filter(l=>l.trim().length);
+    const rows = lines.map(parseCSVLine);
+    return rows;
+  }
 
-  async function patchedLogin(){
-    try {
-      const role = (window.__ROLE__ || "").toLowerCase();
-      const passInput = document.getElementById("authPass");
-      const pass = passInput ? passInput.value : "";
-      if(role !== "alumno"){
-        // usa flujo normal
-        if(typeof oldDoLogin === "function") return oldDoLogin();
-        if(typeof window._doLogin === "function") return window._doLogin();
-        return;
+  function findHeaderMap_(rows){
+    if (!rows || !rows.length) return null;
+    // Heurística: usar la fila con más "headers" no vacíos en las primeras 10 filas
+    let best = { idx: 0, score: -1, headers: [] };
+    const limit = Math.min(rows.length, 10);
+    for (let i=0;i<limit;i++){
+      const h = rows[i].map(c=>String(c||"").trim());
+      const score = h.filter(x=>x).length;
+      if (score > best.score){ best = { idx:i, score, headers:h }; }
+    }
+    const headers = best.headers.map(h=>String(h||"").trim());
+    const map = new Map();
+    headers.forEach((h, i)=>{ if (h) map.set(normKey_(h), i); });
+    return { headerRowIndex: best.idx, headers, map };
+  }
+
+  function rowToObj_(headers, row){
+    const o = {};
+    for (let i=0;i<headers.length;i++){
+      const k = String(headers[i]||"").trim();
+      if (!k) continue;
+      o[k] = String(row[i] ?? "").trim();
+    }
+    return o;
+  }
+
+  async function alumnoAuthByPassword(password){
+    const pass = String(password || "").trim();
+    if (!pass) return { ok:false, error:"Falta password" };
+
+    // Probar en TODOS los salones (cada salón es una hoja con el mismo formato)
+    const gids = SALONES.map(s => s.gid).filter(Boolean);
+
+    // Peticiones en serie (más estable en redes lentas y evita rate-limit)
+    for (const gid of gids){
+      let csv;
+      try{
+        csv = await fetchSalonCSV_(gid);
+      }catch(e){
+        continue; // si una hoja falla, probamos la siguiente
       }
-      // Alumno
-      const res = await authAlumnoByPassword(pass);
-      if(res && res.ok){
-        _setAlumnoDbg("OK: " + (res.student?.nombreCompleto || res.student?.NOMBRES_COMPLETOS || "ALUMNO"));
-        // guarda sesión mínima
-        try{ sessionStorage.setItem("lameta_role","alumno"); }catch(e){}
-        try{ sessionStorage.setItem("lameta_student", JSON.stringify(res.student||{})); }catch(e){}
-        // activa vista alumno si existe
-        if(typeof window.showAlumnoPanel === "function") window.showAlumnoPanel(res.student||{});
-        else if(typeof window.renderAlumnoDashboard === "function") window.renderAlumnoDashboard(res.student||{});
-        else {
-          // fallback: navega al resumen si es tu landing
-          if(typeof window.showView === "function") window.showView("alumno");
-          else {
-            // último recurso: ocultar login
-            const overlay = document.getElementById("authOverlay");
-            if(overlay) overlay.style.display="none";
-          }
+      const rows = csvToRows_(csv);
+      if (rows.length < 3) continue;
+
+      const hm = findHeaderMap_(rows);
+      if (!hm) continue;
+
+      // Buscar columna de contraseña (CONTRASEÑA / CONTRASENA)
+      const idxPass =
+        hm.map.get("CONTRASEÑA") ??
+        hm.map.get("CONTRASENA") ??
+        hm.map.get("CONTRASENA ") ??
+        null;
+
+      if (idxPass == null) continue;
+
+      for (let r = hm.headerRowIndex + 1; r < rows.length; r++){
+        const row = rows[r];
+        const cell = String(row[idxPass] ?? "").trim();
+        if (!cell) continue;
+        if (cell === pass){
+          // Construir datos del alumno con los headers disponibles
+          const alumnoObj = rowToObj_(hm.headers, row);
+          // Campos comunes de salida (por compatibilidad)
+          const nombre = alumnoObj["NOMBRES COMPLETOS"] || alumnoObj["NOMBRE COMPLETO"] || alumnoObj["NOMBRE"] || "";
+          const correo = alumnoObj["CORREO"] || alumnoObj["USUARIO"] || "";
+          alumnoObj.__gid = gid;
+          alumnoObj.__row = r + 1; // 1-based aproximado
+          alumnoObj.__nombre = nombre;
+          alumnoObj.__correo = correo;
+          return { ok:true, row: r+1, alumno: alumnoObj };
         }
-        // ocultar error
-        const err = document.getElementById("authErr");
-        if(err) err.style.display="none";
-        return;
       }
-      // error
-      const err = document.getElementById("authErr");
-      if(err){
-        err.style.display="block";
-        err.textContent = "Contraseña inválida.";
-      }
-      _setAlumnoDbg("NO MATCH (revisa espacios invisibles o que AppsScript lea la hoja correcta)");
-    } catch(ex) {
-      const err = document.getElementById("authErr");
-      if(err){
-        err.style.display="block";
-        err.textContent = "Error de acceso ALUMNO.";
-      }
-      _setAlumnoDbg("EX: " + (ex && ex.message ? ex.message : String(ex)));
     }
+
+    return { ok:false, error:"Contraseña inválida." };
   }
 
-  // engancha al botón entrar
-  window.doLogin = patchedLogin;
-  window._doLogin = patchedLogin;
-})();
+  // Render del panel del alumno (2 secciones: Datos + Cursos)
+  function renderAlumnoPanel(alumno){
+    const box = document.getElementById("alumnoDatos");
+    if (!box) return;
+
+    const fields = [
+      ["NOMBRES COMPLETOS", alumno["NOMBRES COMPLETOS"] || alumno["NOMBRE COMPLETO"] || alumno["NOMBRE"]],
+      ["CORREO", alumno["CORREO"] || alumno["USUARIO"]],
+      ["DNI", alumno["DNI"]],
+      ["CELULAR", alumno["CELULAR"] || alumno["CEL"]],
+      ["UNIVERSIDAD", alumno["UNIVERSIDAD"]],
+      ["MODALIDAD", alumno["MODALIDAD"]],
+      ["ACADEMIA", alumno["ACADEMIA"]],
+      ["CARRERA", alumno["CARRERA"]],
+      ["ESTADO", alumno["ESTADO"]],
+    ].filter(([k,v]) => String(v||"").trim().length);
+
+    box.innerHTML = fields.map(([k,v]) => (
+      '<div class="kvKey">'+escapeHTML(String(k))+'</div><div class="kvVal">'+escapeHTML(String(v))+'</div>'
+    )).join("");
+
+    // Cursos (propuesta visual). Aún sin conexión a preguntas; se deja listo para el siguiente paso.
+    const cursosBox = document.getElementById("alumnoCursos");
+    if (!cursosBox) return;
+
+    const CURSOS = [
+      "Álgebra","Aritmética","Geometría","Trigonometría",
+      "Razonamiento Matemático","Razonamiento Verbal",
+      "Física","Química","Biología",
+      "Historia","Geografía","Economía"
+    ];
+
+    // Temas de ejemplo (se reemplazarán por los temas reales cuando vinculemos a tu hoja)
+    const TEMAS = {
+      "Álgebra":["Ecuaciones","Polinomios","Funciones"],
+      "Aritmética":["Porcentajes","Proporciones","Problemas"],
+      "Geometría":["Áreas","Perímetros","Triángulos"],
+      "Trigonometría":["Identidades","Ángulos","Triángulos"],
+      "Razonamiento Matemático":["Series","Lógica","Conteo"],
+      "Razonamiento Verbal":["Sinónimos","Comprensión lectora","Analogías"],
+      "Física":["Cinemática","Dinámica","Energía"],
+      "Química":["Enlace químico","Estequiometría","Soluciones"],
+      "Biología":["Célula","Genética","Ecología"],
+      "Historia":["Perú","Universal","Contemporánea"],
+      "Geografía":["Clima","Relieve","Mapas"],
+      "Economía":["Oferta y demanda","Macroeconomía","Indicadores"]
+    };
+
+    let cursoSel = null;
+    let temaSel = null;
+    const respuestas = {}; // q1..q5 -> A..E
+
+    function draw(){
+      cursosBox.innerHTML = `
+        <div class="courseGrid">
+          ${CURSOS.map(c=>`<button class="courseBtn ${c===cursoSel?'active':''}" type="button" data-curso="${escapeHTML(c)}">${escapeHTML(c)}</button>`).join("")}
+        </div>
+        ${cursoSel ? `
+          <div class="topicList">
+            ${(TEMAS[cursoSel]||[]).map(t=>`<button class="topicBtn" type="button" data-tema="${escapeHTML(t)}">${escapeHTML(t)}</button>`).join("")}
+          </div>
+        ` : ``}
+        ${temaSel ? `
+          <div class="quiz">
+            <div class="muted"><b>${escapeHTML(cursoSel)}</b> · ${escapeHTML(temaSel)} · Evaluación (5 preguntas)</div>
+            ${[1,2,3,4,5].map(i=>`
+              <div class="q">
+                <div><b>Pregunta ${i}</b></div>
+                <div class="opts">
+                  ${["A","B","C","D","E"].map(op=>`<span class="opt ${(respuestas[i]===op)?'active':''}" data-q="${i}" data-op="${op}">${op}</span>`).join("")}
+                </div>
+              </div>
+            `).join("")}
+            <button class="btnSend" type="button" id="btnEnviarEval">ENVIAR</button>
+            <div class="muted" style="margin-top:8px">Nota: este envío aún es una maqueta visual. Luego lo vinculamos a tu Google Sheets.</div>
+          </div>
+        ` : ``}
+      `;
+
+      cursosBox.querySelectorAll(".courseBtn").forEach(btn=>{
+        btn.addEventListener("click", ()=>{
+          cursoSel = btn.getAttribute("data-curso");
+          temaSel = null;
+          for (let i=1;i<=5;i++) delete respuestas[i];
+          draw();
+        });
+      });
+
+      cursosBox.querySelectorAll(".topicBtn").forEach(btn=>{
+        btn.addEventListener("click", ()=>{
+          temaSel = btn.getAttribute("data-tema");
+          for (let i=1;i<=5;i++) delete respuestas[i];
+          draw();
+        });
+      });
+
+      cursosBox.querySelectorAll(".opt").forEach(sp=>{
+        sp.addEventListener("click", ()=>{
+          const q = Number(sp.getAttribute("data-q"));
+          const op = sp.getAttribute("data-op");
+          // toggle: si vuelve a clicar la misma opción, la desmarca
+          respuestas[q] = (respuestas[q] === op) ? null : op;
+          draw();
+        });
+      });
+
+      const btnSend = cursosBox.querySelector("#btnEnviarEval");
+      if (btnSend){
+        btnSend.addEventListener("click", ()=>{
+          alert("Evaluación enviada (maqueta). En el siguiente paso lo conectamos a tu hoja.");
+        });
+      }
+    }
+
+    draw();
+  }
 
 </script>
-  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js">
+  // =========================
+  // ALUMNO: autenticación por contraseña (sin usuario)
+  // =========================
+  function normKey_(s){
+    return String(s ?? "")
+      .normalize("NFD").replace(/[\u0300-\u036f]/g,"")
+      .replace(/\s+/g," ")
+      .trim()
+      .toUpperCase();
+  }
+
+  async function fetchSalonCSV_(gid){
+    const url = csvUrl(gid);
+    const r = await fetch(url, { cache: "no-store" });
+    if (!r.ok) throw new Error("No se pudo leer CSV (gid=" + gid + ")");
+    return await r.text();
+  }
+
+  function csvToRows_(csvText){
+    const lines = String(csvText || "").split(/\r?\n/).filter(l=>l.trim().length);
+    const rows = lines.map(parseCSVLine);
+    return rows;
+  }
+
+  function findHeaderMap_(rows){
+    if (!rows || !rows.length) return null;
+    // Heurística: usar la fila con más "headers" no vacíos en las primeras 10 filas
+    let best = { idx: 0, score: -1, headers: [] };
+    const limit = Math.min(rows.length, 10);
+    for (let i=0;i<limit;i++){
+      const h = rows[i].map(c=>String(c||"").trim());
+      const score = h.filter(x=>x).length;
+      if (score > best.score){ best = { idx:i, score, headers:h }; }
+    }
+    const headers = best.headers.map(h=>String(h||"").trim());
+    const map = new Map();
+    headers.forEach((h, i)=>{ if (h) map.set(normKey_(h), i); });
+    return { headerRowIndex: best.idx, headers, map };
+  }
+
+  function rowToObj_(headers, row){
+    const o = {};
+    for (let i=0;i<headers.length;i++){
+      const k = String(headers[i]||"").trim();
+      if (!k) continue;
+      o[k] = String(row[i] ?? "").trim();
+    }
+    return o;
+  }
+
+  async function alumnoAuthByPassword(password){
+    const pass = String(password || "").trim();
+    if (!pass) return { ok:false, error:"Falta password" };
+
+    // Probar en TODOS los salones (cada salón es una hoja con el mismo formato)
+    const gids = SALONES.map(s => s.gid).filter(Boolean);
+
+    // Peticiones en serie (más estable en redes lentas y evita rate-limit)
+    for (const gid of gids){
+      let csv;
+      try{
+        csv = await fetchSalonCSV_(gid);
+      }catch(e){
+        continue; // si una hoja falla, probamos la siguiente
+      }
+      const rows = csvToRows_(csv);
+      if (rows.length < 3) continue;
+
+      const hm = findHeaderMap_(rows);
+      if (!hm) continue;
+
+      // Buscar columna de contraseña (CONTRASEÑA / CONTRASENA)
+      const idxPass =
+        hm.map.get("CONTRASEÑA") ??
+        hm.map.get("CONTRASENA") ??
+        hm.map.get("CONTRASENA ") ??
+        null;
+
+      if (idxPass == null) continue;
+
+      for (let r = hm.headerRowIndex + 1; r < rows.length; r++){
+        const row = rows[r];
+        const cell = String(row[idxPass] ?? "").trim();
+        if (!cell) continue;
+        if (cell === pass){
+          // Construir datos del alumno con los headers disponibles
+          const alumnoObj = rowToObj_(hm.headers, row);
+          // Campos comunes de salida (por compatibilidad)
+          const nombre = alumnoObj["NOMBRES COMPLETOS"] || alumnoObj["NOMBRE COMPLETO"] || alumnoObj["NOMBRE"] || "";
+          const correo = alumnoObj["CORREO"] || alumnoObj["USUARIO"] || "";
+          alumnoObj.__gid = gid;
+          alumnoObj.__row = r + 1; // 1-based aproximado
+          alumnoObj.__nombre = nombre;
+          alumnoObj.__correo = correo;
+          return { ok:true, row: r+1, alumno: alumnoObj };
+        }
+      }
+    }
+
+    return { ok:false, error:"Contraseña inválida." };
+  }
+
+  // Render del panel del alumno (2 secciones: Datos + Cursos)
+  function renderAlumnoPanel(alumno){
+    const box = document.getElementById("alumnoDatos");
+    if (!box) return;
+
+    const fields = [
+      ["NOMBRES COMPLETOS", alumno["NOMBRES COMPLETOS"] || alumno["NOMBRE COMPLETO"] || alumno["NOMBRE"]],
+      ["CORREO", alumno["CORREO"] || alumno["USUARIO"]],
+      ["DNI", alumno["DNI"]],
+      ["CELULAR", alumno["CELULAR"] || alumno["CEL"]],
+      ["UNIVERSIDAD", alumno["UNIVERSIDAD"]],
+      ["MODALIDAD", alumno["MODALIDAD"]],
+      ["ACADEMIA", alumno["ACADEMIA"]],
+      ["CARRERA", alumno["CARRERA"]],
+      ["ESTADO", alumno["ESTADO"]],
+    ].filter(([k,v]) => String(v||"").trim().length);
+
+    box.innerHTML = fields.map(([k,v]) => (
+      '<div class="kvKey">'+escapeHTML(String(k))+'</div><div class="kvVal">'+escapeHTML(String(v))+'</div>'
+    )).join("");
+
+    // Cursos (propuesta visual). Aún sin conexión a preguntas; se deja listo para el siguiente paso.
+    const cursosBox = document.getElementById("alumnoCursos");
+    if (!cursosBox) return;
+
+    const CURSOS = [
+      "Álgebra","Aritmética","Geometría","Trigonometría",
+      "Razonamiento Matemático","Razonamiento Verbal",
+      "Física","Química","Biología",
+      "Historia","Geografía","Economía"
+    ];
+
+    // Temas de ejemplo (se reemplazarán por los temas reales cuando vinculemos a tu hoja)
+    const TEMAS = {
+      "Álgebra":["Ecuaciones","Polinomios","Funciones"],
+      "Aritmética":["Porcentajes","Proporciones","Problemas"],
+      "Geometría":["Áreas","Perímetros","Triángulos"],
+      "Trigonometría":["Identidades","Ángulos","Triángulos"],
+      "Razonamiento Matemático":["Series","Lógica","Conteo"],
+      "Razonamiento Verbal":["Sinónimos","Comprensión lectora","Analogías"],
+      "Física":["Cinemática","Dinámica","Energía"],
+      "Química":["Enlace químico","Estequiometría","Soluciones"],
+      "Biología":["Célula","Genética","Ecología"],
+      "Historia":["Perú","Universal","Contemporánea"],
+      "Geografía":["Clima","Relieve","Mapas"],
+      "Economía":["Oferta y demanda","Macroeconomía","Indicadores"]
+    };
+
+    let cursoSel = null;
+    let temaSel = null;
+    const respuestas = {}; // q1..q5 -> A..E
+
+    function draw(){
+      cursosBox.innerHTML = `
+        <div class="courseGrid">
+          ${CURSOS.map(c=>`<button class="courseBtn ${c===cursoSel?'active':''}" type="button" data-curso="${escapeHTML(c)}">${escapeHTML(c)}</button>`).join("")}
+        </div>
+        ${cursoSel ? `
+          <div class="topicList">
+            ${(TEMAS[cursoSel]||[]).map(t=>`<button class="topicBtn" type="button" data-tema="${escapeHTML(t)}">${escapeHTML(t)}</button>`).join("")}
+          </div>
+        ` : ``}
+        ${temaSel ? `
+          <div class="quiz">
+            <div class="muted"><b>${escapeHTML(cursoSel)}</b> · ${escapeHTML(temaSel)} · Evaluación (5 preguntas)</div>
+            ${[1,2,3,4,5].map(i=>`
+              <div class="q">
+                <div><b>Pregunta ${i}</b></div>
+                <div class="opts">
+                  ${["A","B","C","D","E"].map(op=>`<span class="opt ${(respuestas[i]===op)?'active':''}" data-q="${i}" data-op="${op}">${op}</span>`).join("")}
+                </div>
+              </div>
+            `).join("")}
+            <button class="btnSend" type="button" id="btnEnviarEval">ENVIAR</button>
+            <div class="muted" style="margin-top:8px">Nota: este envío aún es una maqueta visual. Luego lo vinculamos a tu Google Sheets.</div>
+          </div>
+        ` : ``}
+      `;
+
+      cursosBox.querySelectorAll(".courseBtn").forEach(btn=>{
+        btn.addEventListener("click", ()=>{
+          cursoSel = btn.getAttribute("data-curso");
+          temaSel = null;
+          for (let i=1;i<=5;i++) delete respuestas[i];
+          draw();
+        });
+      });
+
+      cursosBox.querySelectorAll(".topicBtn").forEach(btn=>{
+        btn.addEventListener("click", ()=>{
+          temaSel = btn.getAttribute("data-tema");
+          for (let i=1;i<=5;i++) delete respuestas[i];
+          draw();
+        });
+      });
+
+      cursosBox.querySelectorAll(".opt").forEach(sp=>{
+        sp.addEventListener("click", ()=>{
+          const q = Number(sp.getAttribute("data-q"));
+          const op = sp.getAttribute("data-op");
+          // toggle: si vuelve a clicar la misma opción, la desmarca
+          respuestas[q] = (respuestas[q] === op) ? null : op;
+          draw();
+        });
+      });
+
+      const btnSend = cursosBox.querySelector("#btnEnviarEval");
+      if (btnSend){
+        btnSend.addEventListener("click", ()=>{
+          alert("Evaluación enviada (maqueta). En el siguiente paso lo conectamos a tu hoja.");
+        });
+      }
+    }
+
+    draw();
+  }
+
+</script>
 
   <!-- PNG export (captura COMPLETA del elemento, no solo lo visible) -->
-  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js">
+  // =========================
+  // ALUMNO: autenticación por contraseña (sin usuario)
+  // =========================
+  function normKey_(s){
+    return String(s ?? "")
+      .normalize("NFD").replace(/[\u0300-\u036f]/g,"")
+      .replace(/\s+/g," ")
+      .trim()
+      .toUpperCase();
+  }
+
+  async function fetchSalonCSV_(gid){
+    const url = csvUrl(gid);
+    const r = await fetch(url, { cache: "no-store" });
+    if (!r.ok) throw new Error("No se pudo leer CSV (gid=" + gid + ")");
+    return await r.text();
+  }
+
+  function csvToRows_(csvText){
+    const lines = String(csvText || "").split(/\r?\n/).filter(l=>l.trim().length);
+    const rows = lines.map(parseCSVLine);
+    return rows;
+  }
+
+  function findHeaderMap_(rows){
+    if (!rows || !rows.length) return null;
+    // Heurística: usar la fila con más "headers" no vacíos en las primeras 10 filas
+    let best = { idx: 0, score: -1, headers: [] };
+    const limit = Math.min(rows.length, 10);
+    for (let i=0;i<limit;i++){
+      const h = rows[i].map(c=>String(c||"").trim());
+      const score = h.filter(x=>x).length;
+      if (score > best.score){ best = { idx:i, score, headers:h }; }
+    }
+    const headers = best.headers.map(h=>String(h||"").trim());
+    const map = new Map();
+    headers.forEach((h, i)=>{ if (h) map.set(normKey_(h), i); });
+    return { headerRowIndex: best.idx, headers, map };
+  }
+
+  function rowToObj_(headers, row){
+    const o = {};
+    for (let i=0;i<headers.length;i++){
+      const k = String(headers[i]||"").trim();
+      if (!k) continue;
+      o[k] = String(row[i] ?? "").trim();
+    }
+    return o;
+  }
+
+  async function alumnoAuthByPassword(password){
+    const pass = String(password || "").trim();
+    if (!pass) return { ok:false, error:"Falta password" };
+
+    // Probar en TODOS los salones (cada salón es una hoja con el mismo formato)
+    const gids = SALONES.map(s => s.gid).filter(Boolean);
+
+    // Peticiones en serie (más estable en redes lentas y evita rate-limit)
+    for (const gid of gids){
+      let csv;
+      try{
+        csv = await fetchSalonCSV_(gid);
+      }catch(e){
+        continue; // si una hoja falla, probamos la siguiente
+      }
+      const rows = csvToRows_(csv);
+      if (rows.length < 3) continue;
+
+      const hm = findHeaderMap_(rows);
+      if (!hm) continue;
+
+      // Buscar columna de contraseña (CONTRASEÑA / CONTRASENA)
+      const idxPass =
+        hm.map.get("CONTRASEÑA") ??
+        hm.map.get("CONTRASENA") ??
+        hm.map.get("CONTRASENA ") ??
+        null;
+
+      if (idxPass == null) continue;
+
+      for (let r = hm.headerRowIndex + 1; r < rows.length; r++){
+        const row = rows[r];
+        const cell = String(row[idxPass] ?? "").trim();
+        if (!cell) continue;
+        if (cell === pass){
+          // Construir datos del alumno con los headers disponibles
+          const alumnoObj = rowToObj_(hm.headers, row);
+          // Campos comunes de salida (por compatibilidad)
+          const nombre = alumnoObj["NOMBRES COMPLETOS"] || alumnoObj["NOMBRE COMPLETO"] || alumnoObj["NOMBRE"] || "";
+          const correo = alumnoObj["CORREO"] || alumnoObj["USUARIO"] || "";
+          alumnoObj.__gid = gid;
+          alumnoObj.__row = r + 1; // 1-based aproximado
+          alumnoObj.__nombre = nombre;
+          alumnoObj.__correo = correo;
+          return { ok:true, row: r+1, alumno: alumnoObj };
+        }
+      }
+    }
+
+    return { ok:false, error:"Contraseña inválida." };
+  }
+
+  // Render del panel del alumno (2 secciones: Datos + Cursos)
+  function renderAlumnoPanel(alumno){
+    const box = document.getElementById("alumnoDatos");
+    if (!box) return;
+
+    const fields = [
+      ["NOMBRES COMPLETOS", alumno["NOMBRES COMPLETOS"] || alumno["NOMBRE COMPLETO"] || alumno["NOMBRE"]],
+      ["CORREO", alumno["CORREO"] || alumno["USUARIO"]],
+      ["DNI", alumno["DNI"]],
+      ["CELULAR", alumno["CELULAR"] || alumno["CEL"]],
+      ["UNIVERSIDAD", alumno["UNIVERSIDAD"]],
+      ["MODALIDAD", alumno["MODALIDAD"]],
+      ["ACADEMIA", alumno["ACADEMIA"]],
+      ["CARRERA", alumno["CARRERA"]],
+      ["ESTADO", alumno["ESTADO"]],
+    ].filter(([k,v]) => String(v||"").trim().length);
+
+    box.innerHTML = fields.map(([k,v]) => (
+      '<div class="kvKey">'+escapeHTML(String(k))+'</div><div class="kvVal">'+escapeHTML(String(v))+'</div>'
+    )).join("");
+
+    // Cursos (propuesta visual). Aún sin conexión a preguntas; se deja listo para el siguiente paso.
+    const cursosBox = document.getElementById("alumnoCursos");
+    if (!cursosBox) return;
+
+    const CURSOS = [
+      "Álgebra","Aritmética","Geometría","Trigonometría",
+      "Razonamiento Matemático","Razonamiento Verbal",
+      "Física","Química","Biología",
+      "Historia","Geografía","Economía"
+    ];
+
+    // Temas de ejemplo (se reemplazarán por los temas reales cuando vinculemos a tu hoja)
+    const TEMAS = {
+      "Álgebra":["Ecuaciones","Polinomios","Funciones"],
+      "Aritmética":["Porcentajes","Proporciones","Problemas"],
+      "Geometría":["Áreas","Perímetros","Triángulos"],
+      "Trigonometría":["Identidades","Ángulos","Triángulos"],
+      "Razonamiento Matemático":["Series","Lógica","Conteo"],
+      "Razonamiento Verbal":["Sinónimos","Comprensión lectora","Analogías"],
+      "Física":["Cinemática","Dinámica","Energía"],
+      "Química":["Enlace químico","Estequiometría","Soluciones"],
+      "Biología":["Célula","Genética","Ecología"],
+      "Historia":["Perú","Universal","Contemporánea"],
+      "Geografía":["Clima","Relieve","Mapas"],
+      "Economía":["Oferta y demanda","Macroeconomía","Indicadores"]
+    };
+
+    let cursoSel = null;
+    let temaSel = null;
+    const respuestas = {}; // q1..q5 -> A..E
+
+    function draw(){
+      cursosBox.innerHTML = `
+        <div class="courseGrid">
+          ${CURSOS.map(c=>`<button class="courseBtn ${c===cursoSel?'active':''}" type="button" data-curso="${escapeHTML(c)}">${escapeHTML(c)}</button>`).join("")}
+        </div>
+        ${cursoSel ? `
+          <div class="topicList">
+            ${(TEMAS[cursoSel]||[]).map(t=>`<button class="topicBtn" type="button" data-tema="${escapeHTML(t)}">${escapeHTML(t)}</button>`).join("")}
+          </div>
+        ` : ``}
+        ${temaSel ? `
+          <div class="quiz">
+            <div class="muted"><b>${escapeHTML(cursoSel)}</b> · ${escapeHTML(temaSel)} · Evaluación (5 preguntas)</div>
+            ${[1,2,3,4,5].map(i=>`
+              <div class="q">
+                <div><b>Pregunta ${i}</b></div>
+                <div class="opts">
+                  ${["A","B","C","D","E"].map(op=>`<span class="opt ${(respuestas[i]===op)?'active':''}" data-q="${i}" data-op="${op}">${op}</span>`).join("")}
+                </div>
+              </div>
+            `).join("")}
+            <button class="btnSend" type="button" id="btnEnviarEval">ENVIAR</button>
+            <div class="muted" style="margin-top:8px">Nota: este envío aún es una maqueta visual. Luego lo vinculamos a tu Google Sheets.</div>
+          </div>
+        ` : ``}
+      `;
+
+      cursosBox.querySelectorAll(".courseBtn").forEach(btn=>{
+        btn.addEventListener("click", ()=>{
+          cursoSel = btn.getAttribute("data-curso");
+          temaSel = null;
+          for (let i=1;i<=5;i++) delete respuestas[i];
+          draw();
+        });
+      });
+
+      cursosBox.querySelectorAll(".topicBtn").forEach(btn=>{
+        btn.addEventListener("click", ()=>{
+          temaSel = btn.getAttribute("data-tema");
+          for (let i=1;i<=5;i++) delete respuestas[i];
+          draw();
+        });
+      });
+
+      cursosBox.querySelectorAll(".opt").forEach(sp=>{
+        sp.addEventListener("click", ()=>{
+          const q = Number(sp.getAttribute("data-q"));
+          const op = sp.getAttribute("data-op");
+          // toggle: si vuelve a clicar la misma opción, la desmarca
+          respuestas[q] = (respuestas[q] === op) ? null : op;
+          draw();
+        });
+      });
+
+      const btnSend = cursosBox.querySelector("#btnEnviarEval");
+      if (btnSend){
+        btnSend.addEventListener("click", ()=>{
+          alert("Evaluación enviada (maqueta). En el siguiente paso lo conectamos a tu hoja.");
+        });
+      }
+    }
+
+    draw();
+  }
+
+</script>
 
   <style>
     /* ======================================================================
@@ -901,8 +1384,6 @@ async function authAlumnoByPassword(passRaw){
     .authTitle{ font-weight:950; font-size:16px; margin:0 0 8px 0; text-transform:uppercase; }
     .authSub{ color:var(--muted); font-weight:800; margin:0 0 14px 0; font-size:12px; }
     .roleRow{ display:flex; gap:10px; flex-wrap:wrap; margin-bottom:12px; }
-    .roleRowFull{ margin-top:-4px; }
-    .roleBtnFull{ flex:1 1 100%; min-width:100%; }
     .roleBtn{
       flex:1;
       min-width: 160px;
@@ -914,6 +1395,7 @@ async function authAlumnoByPassword(passRaw){
       cursor:pointer;
     }
     .roleBtn.active{ border-color: var(--accent); box-shadow: 0 0 0 3px rgba(209,11,11,0.15); }
+    .roleBtnFull{ width:100%; flex: 1 1 100%; }
     .authRow{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
     .authRow input{
       flex:1;
@@ -954,52 +1436,7 @@ async function authAlumnoByPassword(passRaw){
       cursor:pointer;
     }
 
-  
-    /* === Alumno (panel institucional) === */
-    .hero{ display:flex; justify-content:space-between; align-items:flex-end; gap:18px; }
-    .badge{ display:inline-block; padding:6px 10px; border:1px solid #f0c9c9; border-radius:999px; font-weight:800; letter-spacing:.4px; color:#b10000; background:#fff; }
-    .heroRight{ text-align:right; }
-    .bigName{ font-size:20px; font-weight:900; }
-    .smallLine{ color:var(--muted); font-weight:700; }
-    .grid2{ display:grid; grid-template-columns:1fr 1fr; gap:16px; }
-    @media (max-width: 980px){ .grid2{ grid-template-columns:1fr; } .heroRight{ text-align:left; } }
-    .kv{ width:100%; border-collapse:collapse; margin-top:10px; }
-    .kv td{ padding:10px 8px; border-top:1px solid #eee; vertical-align:top; }
-    .kv td.k{ width:42%; color:#4b5563; font-weight:800; }
-    .kv td.v{ font-weight:700; }
-    .acc{ margin-top:12px; display:flex; flex-direction:column; gap:10px; }
-    .accItem{ border:1px solid #eee; border-radius:14px; overflow:hidden; }
-    .accBtn{ width:100%; text-align:left; padding:12px 14px; background:#fff; border:0; cursor:pointer; display:flex; justify-content:space-between; align-items:center; font-weight:900; }
-    .accBody{ display:none; padding:12px 14px; border-top:1px solid #eee; background:#fff; }
-    .accBody.open{ display:block; }
-    .topics{ display:flex; flex-direction:column; gap:10px; }
-    .topicRow{ display:flex; justify-content:space-between; align-items:center; gap:12px; padding:10px 10px; border:1px solid #f2f2f2; border-radius:12px; }
-    .topicName{ font-weight:800; }
-    .miniBtn{ padding:10px 12px; border-radius:12px; border:1px solid #f0c9c9; background:#fff; cursor:pointer; font-weight:900; color:#b10000; }
-    .miniBtn:hover{ background:#fff6f6; }
-    .evalBox{ margin-top:12px; border:1px solid #eee; border-radius:14px; padding:12px 12px; background:#fafafa; }
-    .evalHead{ display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:10px; }
-    .evalTitle{ font-weight:900; }
-    .sendBtn{ padding:10px 14px; border-radius:12px; border:0; background:var(--brand); color:#fff; font-weight:900; cursor:pointer; }
-    .q{ padding:10px 10px; background:#fff; border:1px solid #eee; border-radius:12px; margin-bottom:10px; }
-    .qTitle{ font-weight:900; margin-bottom:8px; }
-    .opts{ display:flex; flex-wrap:wrap; gap:8px; }
-    .opt{ display:inline-flex; align-items:center; gap:8px; padding:8px 10px; border:1px solid #eee; border-radius:999px; cursor:pointer; font-weight:800; background:#fff; }
-    .opt input{ margin:0; }
-
-.dbgRow{ margin-top:10px; display:flex; gap:10px; flex-wrap:wrap; }
-.dbgChip{
-  display:inline-block;
-  padding:6px 10px;
-  border-radius:999px;
-  font-weight:800;
-  font-size:12px;
-  border:1px solid rgba(148,163,184,.55);
-  background: rgba(15,23,42,.06);
-  color:#0f172a;
-}
-
-</style>
+  </style>
 </head>
 
 <body>
@@ -1015,7 +1452,8 @@ async function authAlumnoByPassword(passRaw){
         <button id="roleAdmin" class="roleBtn" type="button">ADMIN</button>
         <button id="roleTutor" class="roleBtn" type="button">TUTOR</button>
       </div>
-      <div class="roleRow roleRowFull">
+
+      <div class="roleRow">
         <button id="roleAlumno" class="roleBtn roleBtnFull" type="button">ALUMNO</button>
       </div>
 
@@ -1039,9 +1477,9 @@ async function authAlumnoByPassword(passRaw){
       </div>
 
       <div class="nav">
-        <button id="nav_student" style="display:none;">MI PANEL</button>
         <button id="nav_overview" class="active">RESUMEN GENERAL</button>
         <button id="nav_local">CONTROL DE SEDES</button>
+        <button id="nav_alumno_panel" style="display:none">MI PANEL</button>
         <button id="nav_table">ALUMNOS</button>
         <button id="nav_horarios">HORARIOS</button>
         <button id="nav_impresiones">IMPRESIONES</button>
@@ -1080,10 +1518,31 @@ async function authAlumnoByPassword(passRaw){
         </div>
       </div>
 
-      <div id="view_student" class="grid" style="display:none;"></div>
       <div id="view_overview" class="grid"></div>
       <div id="view_local" class="grid" style="display:none;"></div>
-      <div id="view_table" class="grid" style="display:none;"></div>
+      <div 
+    <!-- Vista ALUMNO: Panel institucional -->
+    <section id="view_alumno_panel" class="view" style="display:none">
+      <div class="pageTitle">
+        <h1>MI PANEL</h1>
+        <p class="muted">Panel del estudiante: datos principales y cursos del examen.</p>
+      </div>
+
+      <div class="grid2">
+        <div class="card">
+          <h3>Datos del estudiante</h3>
+          <div id="alumnoDatos" class="kvGrid"></div>
+        </div>
+
+        <div class="card">
+          <h3>Cursos del examen (propuesta)</h3>
+          <p class="muted">Selecciona un curso y un tema para resolver una evaluación (5 preguntas).</p>
+          <div id="alumnoCursos"></div>
+        </div>
+      </div>
+    </section>
+
+id="view_table" class="grid" style="display:none;"></div>
       <div id="view_horarios" class="grid" style="display:none;"></div>
       <div id="view_impresiones" class="grid" style="display:none;"></div>
       <!-- ✅ NUEVO -->
@@ -1124,47 +1583,57 @@ async function authAlumnoByPassword(passRaw){
   }
 
   function canAccessView(v){
-    if (CURRENT_ROLE === "alumno") return (v === "student");
+    // Alumno: SOLO puede ver su panel
+    if (CURRENT_ROLE === "alumno") return v === "alumno_panel";
     // Tutor NO puede ver RESUMEN GENERAL ni CONTROL DE SEDES
     if (CURRENT_ROLE === "tutor" && (v === "overview" || v === "local")) return false;
     return true;
   }
 
   function applyRoleUI(){
-    const roleLabel = document.getElementById("userRole");
-    if (roleLabel) roleLabel.textContent = CURRENT_ROLE ? ("ROL: " + CURRENT_ROLE.toUpperCase()) : "ROL: -";
-
-    const btnStudent = document.getElementById("nav_student");
-    const btnOverview = document.getElementById("nav_overview");
-    const btnLocal = document.getElementById("nav_local");
-    const btnTable = document.getElementById("nav_table");
-    const btnHorarios = document.getElementById("nav_horarios");
-    const btnImpresiones = document.getElementById("nav_impresiones");
-    const btnSilabos = document.getElementById("nav_silabos");
-    const btnMateriales = document.getElementById("nav_materiales");
-    const btnListas = document.getElementById("nav_listas");
-    const btnReportes = document.getElementById("nav_reportes");
-
-    const controls = document.getElementById("controls"); // barra de filtros
-
-    if (CURRENT_ROLE === "alumno"){
-      if (btnStudent) btnStudent.style.display = "";
-      [btnOverview,btnLocal,btnTable,btnHorarios,btnImpresiones,btnSilabos,btnMateriales,btnListas,btnReportes].forEach(b=>{ if(b) b.style.display="none"; });
-      if (controls) controls.style.display = "none";
-      if (state && state.view !== "student") setView("student");
-      return;
+    // label
+    const roleLabel = document.getElementById("roleLabel");
+    if (roleLabel){
+      roleLabel.textContent = "ROL: " + String(CURRENT_ROLE || "-").toUpperCase();
     }
 
-    // ADMIN / TUTOR
-    if (btnStudent) btnStudent.style.display = "none";
-    if (controls) controls.style.display = "";
-
     const isTutor = (CURRENT_ROLE === "tutor");
-    if (btnOverview) btnOverview.style.display = isTutor ? "none" : "";
-    if (btnLocal) btnLocal.style.display = isTutor ? "none" : "";
+    const isAlumno = (CURRENT_ROLE === "alumno");
 
-    // Bloquear: si la vista actual no está permitida, enviar a ALUMNOS
-    if (state && state.view && !canAccessView(state.view)){
+    // Botones especiales
+    const nav_overview = document.getElementById("nav_overview");
+    const nav_local = document.getElementById("nav_local");
+    const nav_alumno_panel = document.getElementById("nav_alumno_panel");
+
+    // Mostrar/ocultar MI PANEL
+    if (nav_alumno_panel) nav_alumno_panel.style.display = isAlumno ? "" : "none";
+
+    // Alumno: ocultar todo lo demás
+    const ids = ["nav_overview","nav_local","nav_table","nav_horarios","nav_impresiones","nav_silabos","nav_materiales","nav_listas","nav_reportes"];
+    if (isAlumno){
+      ids.forEach(id=>{
+        if (id === "nav_alumno_panel") return;
+        const el = document.getElementById(id);
+        if (el) el.style.display = "none";
+      });
+      // Forzar vista alumno
+      setView("alumno_panel");
+      return;
+    }else{
+      // Restaurar visibilidad general (admin/tutor)
+      ids.forEach(id=>{
+        const el = document.getElementById(id);
+        if (el) el.style.display = "";
+      });
+      if (nav_alumno_panel) nav_alumno_panel.style.display = "none";
+    }
+
+    // Tutor: ocultar overview/local
+    if (nav_overview) nav_overview.style.display = isTutor ? "none" : "";
+    if (nav_local) nav_local.style.display = isTutor ? "none" : "";
+
+    // Si la vista actual no está permitida para el rol, ajustar
+    if (!canAccessView(state.view)){
       setView("table");
     }
   }
@@ -1178,14 +1647,13 @@ async function authAlumnoByPassword(passRaw){
 
   function initAuth(){
     const saved = loadRole();
-    if (saved && saved !== "alumno"){
+    if (saved){
       CURRENT_ROLE = saved;
       showAuth(false);
       applyRoleUI();
       return true;
     }
 
-    // Para ALUMNO siempre se solicita clave
     showAuth(true);
 
     let selected = null;
@@ -1199,28 +1667,26 @@ async function authAlumnoByPassword(passRaw){
       selected = r;
       if (bA) bA.classList.toggle("active", r === "admin");
       if (bT) bT.classList.toggle("active", r === "tutor");
-      if (bS) bS.classList.toggle("active", r === "alumno");
       if (err) err.style.display = "none";
       if (pass) pass.focus();
     }
 
     if (bA) bA.addEventListener("click", ()=>pick("admin"));
     if (bT) bT.addEventListener("click", ()=>pick("tutor"));
-    if (bS) bS.addEventListener("click", ()=>pick("alumno"));
 
     async function doLogin(){
-      const pRaw = String(pass?.value || "");
-      const p = pRaw.trim();
+      const p = String(pass?.value || "").trim();
+
       if (!selected){
         if (err){ err.textContent = "Seleccione un rol."; err.style.display = "block"; }
         return;
       }
       if (!p){
-        if (err){ err.textContent = "Ingrese su clave."; err.style.display = "block"; }
+        if (err){ err.textContent = "Ingrese la clave."; err.style.display = "block"; }
         return;
       }
 
-      // ADMIN / TUTOR: clave fija
+      // ADMIN / TUTOR (como ya funciona)
       if (selected === "admin" || selected === "tutor"){
         const ok = (selected === "admin" && p === AUTH_ADMIN_PASS) || (selected === "tutor" && p === AUTH_TUTOR_PASS);
         if (!ok){
@@ -1234,36 +1700,26 @@ async function authAlumnoByPassword(passRaw){
         return;
       }
 
-      // ALUMNO: clave existe en la columna CONTRASEÑA (ACCESO AL CAMPUS) de cualquier salón
+      // ALUMNO (entra SOLO con contraseña de la hoja)
       if (selected === "alumno"){
-        const btnLogin = document.getElementById("btnLogin");
         try{
-          if (btnLogin) btnLogin.disabled = true;
-          if (err){ err.textContent = "Validando..."; err.style.display = "block"; }
-          // Carga toda la base una sola vez (la misma que usa ADMIN -> ALUMNOS)
-          if (!state.allRows || !Array.isArray(state.allRows) || state.allRows.length === 0){
-            await loadAll(); // usa las mismas hojas (SALONES) ya configuradas
-          }
-          const row = (state.allRows || []).find(r => String(r.contrasena || "").trim() === p);
-          if (!row){
-            if (err){ err.textContent = "Contraseña inválida."; err.style.display = "block"; }
+          if (err) err.style.display = "none";
+          const res = await alumnoAuthByPassword(p);
+          if (!res?.ok){
+            if (err){ err.textContent = res?.error || "Contraseña inválida."; err.style.display = "block"; }
             return;
           }
-          state.currentStudent = row; // guarda el alumno activo
+          state.alumno = res.alumno;
           setRole("alumno");
           showAuth(false);
           if (pass) pass.value = "";
-          setView("student");
-          renderStudentPanel();
-          return;
+          setView("alumno_panel");
+          renderAlumnoPanel(state.alumno);
         }catch(ex){
+          if (err){ err.textContent = "Error validando contraseña (revise permisos/CSV publicado)."; err.style.display = "block"; }
           console.error(ex);
-          if (err){ err.textContent = "No se pudo validar la clave. Verifique que las hojas estén publicadas y reintente."; err.style.display = "block"; }
-          return;
         }
-        finally{
-          if (btnLogin) btnLogin.disabled = false;
-        }
+        return;
       }
     }
 
@@ -1548,7 +2004,7 @@ async function authAlumnoByPassword(passRaw){
   };
 // ===================== PERSISTENCIA DE VISTA (FIX) =====================
 const VIEW_STORAGE_KEY = "LA_META_CURRENT_VIEW";
-const ALLOWED_VIEWS = ["student","overview","local","table","horarios","impresiones","silabos","materiales","listas","reportes"];
+const ALLOWED_VIEWS = ["overview","local","table","horarios","impresiones","silabos","materiales","listas","reportes"];
 
 function saveView(v){
   try { localStorage.setItem(VIEW_STORAGE_KEY, v); } catch(e){}
@@ -1562,7 +2018,6 @@ function loadSavedView(){
 
   const state = {
     view: "overview",
-    currentStudent: null,
     rawRows: [],
     canonical: [],
     cambiosRows: [],
@@ -1780,6 +2235,7 @@ function loadSavedView(){
     saveView(v);
     document.getElementById("nav_overview").classList.toggle("active", v==="overview");
     document.getElementById("nav_local").classList.toggle("active", v==="local");
+    document.getElementById("nav_alumno_panel").classList.toggle("active", v==="alumno_panel");
     document.getElementById("nav_table").classList.toggle("active", v==="table");
     document.getElementById("nav_horarios").classList.toggle("active", v==="horarios");
     document.getElementById("nav_impresiones").classList.toggle("active", v==="impresiones");
@@ -1791,6 +2247,8 @@ function loadSavedView(){
 
     document.getElementById("view_overview").style.display = (v==="overview") ? "" : "none";
     document.getElementById("view_local").style.display = (v==="local") ? "" : "none";
+    document.getElementById("view_alumno_panel").style.display = (v==="alumno_panel") ? "" : "none";
+    if (v==="alumno_panel" && state.alumno) renderAlumnoPanel(state.alumno);
     document.getElementById("view_table").style.display = (v==="table") ? "" : "none";
     document.getElementById("view_horarios").style.display = (v==="horarios") ? "" : "none";
     document.getElementById("view_impresiones").style.display = (v==="impresiones") ? "" : "none";
@@ -1808,7 +2266,6 @@ function loadSavedView(){
     document.getElementById("fEstado").style.display = (v==="table") ? "" : "none";
 
     const titles = {
-      student: ["MI PANEL", "Acceso institucional del estudiante."],
       overview: ["RESUMEN GENERAL", "Panel estructurado para control de matrícula, modalidad y distribución por universidad."],
       local: ["POR LOCAL", "Monitoreo por salón (tutor) del local seleccionado."],
       table: ["ALUMNOS", "Búsqueda y filtros para consulta interna."],
@@ -2305,152 +2762,7 @@ function loadSavedView(){
     }).join("");
   }
 
-  
-  function renderStudentPanel(){
-    const el = document.getElementById("view_student");
-    if (!el) return;
-
-    const s = state.currentStudent || null;
-    if (!s){
-      el.innerHTML = `<div class="card"><h3>Panel del Estudiante</h3><p>No se encontró información del alumno activo. Cierre sesión e ingrese nuevamente.</p></div>`;
-      return;
-    }
-
-    // Datos principales (formato institucional)
-    const datos = [
-      ["Nombres completos", s.nombreCompleto || "-"],
-      ["DNI", s.dni || "-"],
-      ["Correo", s.correo || (s.usuario || "-")],
-      ["Celular", s.cel || "-"],
-      ["Universidad", s.universidad || "-"],
-      ["Local", s.local || "-"],
-      ["Salón", s.salon || "-"],
-      ["Modalidad", s.modalidad || "-"],
-      ["Estado", s.estado || "-"],
-    ];
-
-    const datosHtml = datos.map(([k,v]) => `<tr><td class="k">${esc(k)}</td><td class="v">${esc(v)}</td></tr>`).join("");
-
-    const cursos = [
-      {name:"Álgebra", topics:["Ecuaciones y desigualdades","Polinomios y factorización","Sistemas de ecuaciones","Funciones"]},
-      {name:"Aritmética", topics:["Números y operaciones","Razones y proporciones","Porcentajes","Problemas clásicos"]},
-      {name:"Geometría", topics:["Ángulos y triángulos","Circunferencia","Polígonos","Geometría analítica (básico)"]},
-      {name:"Trigonometría", topics:["Razones trigonométricas","Identidades","Ecuaciones trigonométricas","Aplicaciones"]},
-      {name:"Física", topics:["Cinemática","Dinámica","Trabajo y energía","Ondas (básico)"]},
-      {name:"Química", topics:["Estructura atómica","Enlace químico","Estequiometría","Soluciones"]},
-      {name:"Biología", topics:["Célula","Genética","Evolución","Ecología"]},
-      {name:"Lenguaje", topics:["Comprensión lectora","Gramática","Redacción","Vocabulario"]},
-      {name:"Literatura", topics:["Géneros literarios","Narrativa","Poesía","Literatura peruana (básico)"]},
-      {name:"Historia", topics:["Perú","Mundo","Edad contemporánea (básico)","Procesos clave"]},
-      {name:"Geografía", topics:["Perú físico","Clima y relieve","Geografía humana","Cartografía (básico)"]},
-      {name:"Cívica", topics:["Estado y ciudadanía","Derechos y deberes","Constitución (básico)","Ética cívica"]},
-    ];
-
-    const cursosHtml = cursos.map((c, i) => `
-      <div class="accItem">
-        <button class="accBtn" type="button" data-acc="${i}">
-          <span>${esc(c.name)}</span>
-          <span class="accIcon">▾</span>
-        </button>
-        <div class="accBody" id="acc_${i}">
-          <div class="topics">
-            ${c.topics.map((t,j)=>`
-              <div class="topicRow">
-                <div class="topicName">${esc(t)}</div>
-                <button class="miniBtn" type="button" data-course="${i}" data-topic="${j}">Resolver evaluación</button>
-              </div>
-            `).join("")}
-          </div>
-          <div class="evalBox" id="eval_${i}" style="display:none;"></div>
-        </div>
-      </div>
-    `).join("");
-
-    el.innerHTML = `
-      <div class="card hero">
-        <div>
-          <div class="badge">LA META</div>
-          <h2>Panel del Estudiante</h2>
-          <p class="muted">Acceso institucional para evaluación y seguimiento académico.</p>
-        </div>
-        <div class="heroRight">
-          <div class="bigName">${esc(s.nombreCompleto || "Estudiante")}</div>
-          <div class="smallLine">${esc(s.universidad || "")} · ${esc(s.modalidad || "")}</div>
-        </div>
-      </div>
-
-      <div class="grid2">
-        <div class="card">
-          <h3>Datos principales</h3>
-          <table class="kv"><tbody>${datosHtml}</tbody></table>
-        </div>
-
-        <div class="card">
-          <h3>Cursos del examen</h3>
-          <p class="muted">Selecciona un curso, luego un tema, y resuelve tu evaluación (5 preguntas).</p>
-          <div class="acc">${cursosHtml}</div>
-        </div>
-      </div>
-    `;
-
-    // Acordeón
-    el.querySelectorAll(".accBtn").forEach(btn=>{
-      btn.addEventListener("click", ()=>{
-        const k = btn.getAttribute("data-acc");
-        const body = document.getElementById("acc_"+k);
-        const open = body?.classList.contains("open");
-        el.querySelectorAll(".accBody").forEach(x=>x.classList.remove("open"));
-        if (!open && body) body.classList.add("open");
-      });
-    });
-
-    // Evaluación (UI demo; vinculación real se hará en el siguiente paso)
-    el.querySelectorAll(".miniBtn").forEach(btn=>{
-      btn.addEventListener("click", ()=>{
-        const course = btn.getAttribute("data-course");
-        const box = document.getElementById("eval_"+course);
-        if (!box) return;
-        box.style.display = "";
-        box.innerHTML = renderMiniEvalHTML();
-        box.querySelectorAll('input[type="radio"]').forEach(r=>{
-          r.addEventListener("change", ()=>{ /* placeholder */ });
-        });
-        const send = box.querySelector(".sendBtn");
-        if (send){
-          send.addEventListener("click", ()=>{
-            alert("Evaluación registrada (demo). En el siguiente paso se vinculará a Google Sheets.");
-          });
-        }
-      });
-    });
-  }
-
-  function renderMiniEvalHTML(){
-    const q = [1,2,3,4,5].map(n=>`
-      <div class="q">
-        <div class="qTitle">Pregunta ${n}</div>
-        <div class="opts">
-          ${["A","B","C","D","E"].map(o=>`
-            <label class="opt">
-              <input type="radio" name="q${n}" value="${o}">
-              <span>${o}</span>
-            </label>
-          `).join("")}
-        </div>
-      </div>
-    `).join("");
-
-    return `
-      <div class="evalHead">
-        <div class="evalTitle">Evaluación (5 preguntas)</div>
-        <button class="sendBtn" type="button">Enviar</button>
-      </div>
-      ${q}
-      <div class="evalNote muted">Puedes dejar preguntas en blanco.</div>
-    `;
-  }
-
-function renderTable(){
+  function renderTable(){
     ensureTableLayout();
     applyFilters();
 
@@ -4375,9 +4687,9 @@ function ensureBoot(){
   if (state.booted) return;
 
   // eventos NAV (una sola vez)
-  document.getElementById("nav_student")?.addEventListener("click", ()=>{ setView("student"); renderStudentPanel(); });
   document.getElementById("nav_overview").addEventListener("click", ()=>setView("overview"));
   document.getElementById("nav_local").addEventListener("click", ()=>setView("local"));
+  document.getElementById("nav_alumno_panel").addEventListener("click", ()=>setView("alumno_panel"));
   document.getElementById("nav_table").addEventListener("click", ()=>setView("table"));
   document.getElementById("nav_horarios").addEventListener("click", ()=>setView("horarios"));
   document.getElementById("nav_impresiones").addEventListener("click", ()=>setView("impresiones"));
@@ -4503,7 +4815,226 @@ window.addEventListener("DOMContentLoaded", () => {
   // 3) Sesión existente: iniciar app
   startApp();
 });
+
+  // =========================
+  // ALUMNO: autenticación por contraseña (sin usuario)
+  // =========================
+  function normKey_(s){
+    return String(s ?? "")
+      .normalize("NFD").replace(/[\u0300-\u036f]/g,"")
+      .replace(/\s+/g," ")
+      .trim()
+      .toUpperCase();
+  }
+
+  async function fetchSalonCSV_(gid){
+    const url = csvUrl(gid);
+    const r = await fetch(url, { cache: "no-store" });
+    if (!r.ok) throw new Error("No se pudo leer CSV (gid=" + gid + ")");
+    return await r.text();
+  }
+
+  function csvToRows_(csvText){
+    const lines = String(csvText || "").split(/\r?\n/).filter(l=>l.trim().length);
+    const rows = lines.map(parseCSVLine);
+    return rows;
+  }
+
+  function findHeaderMap_(rows){
+    if (!rows || !rows.length) return null;
+    // Heurística: usar la fila con más "headers" no vacíos en las primeras 10 filas
+    let best = { idx: 0, score: -1, headers: [] };
+    const limit = Math.min(rows.length, 10);
+    for (let i=0;i<limit;i++){
+      const h = rows[i].map(c=>String(c||"").trim());
+      const score = h.filter(x=>x).length;
+      if (score > best.score){ best = { idx:i, score, headers:h }; }
+    }
+    const headers = best.headers.map(h=>String(h||"").trim());
+    const map = new Map();
+    headers.forEach((h, i)=>{ if (h) map.set(normKey_(h), i); });
+    return { headerRowIndex: best.idx, headers, map };
+  }
+
+  function rowToObj_(headers, row){
+    const o = {};
+    for (let i=0;i<headers.length;i++){
+      const k = String(headers[i]||"").trim();
+      if (!k) continue;
+      o[k] = String(row[i] ?? "").trim();
+    }
+    return o;
+  }
+
+  async function alumnoAuthByPassword(password){
+    const pass = String(password || "").trim();
+    if (!pass) return { ok:false, error:"Falta password" };
+
+    // Probar en TODOS los salones (cada salón es una hoja con el mismo formato)
+    const gids = SALONES.map(s => s.gid).filter(Boolean);
+
+    // Peticiones en serie (más estable en redes lentas y evita rate-limit)
+    for (const gid of gids){
+      let csv;
+      try{
+        csv = await fetchSalonCSV_(gid);
+      }catch(e){
+        continue; // si una hoja falla, probamos la siguiente
+      }
+      const rows = csvToRows_(csv);
+      if (rows.length < 3) continue;
+
+      const hm = findHeaderMap_(rows);
+      if (!hm) continue;
+
+      // Buscar columna de contraseña (CONTRASEÑA / CONTRASENA)
+      const idxPass =
+        hm.map.get("CONTRASEÑA") ??
+        hm.map.get("CONTRASENA") ??
+        hm.map.get("CONTRASENA ") ??
+        null;
+
+      if (idxPass == null) continue;
+
+      for (let r = hm.headerRowIndex + 1; r < rows.length; r++){
+        const row = rows[r];
+        const cell = String(row[idxPass] ?? "").trim();
+        if (!cell) continue;
+        if (cell === pass){
+          // Construir datos del alumno con los headers disponibles
+          const alumnoObj = rowToObj_(hm.headers, row);
+          // Campos comunes de salida (por compatibilidad)
+          const nombre = alumnoObj["NOMBRES COMPLETOS"] || alumnoObj["NOMBRE COMPLETO"] || alumnoObj["NOMBRE"] || "";
+          const correo = alumnoObj["CORREO"] || alumnoObj["USUARIO"] || "";
+          alumnoObj.__gid = gid;
+          alumnoObj.__row = r + 1; // 1-based aproximado
+          alumnoObj.__nombre = nombre;
+          alumnoObj.__correo = correo;
+          return { ok:true, row: r+1, alumno: alumnoObj };
+        }
+      }
+    }
+
+    return { ok:false, error:"Contraseña inválida." };
+  }
+
+  // Render del panel del alumno (2 secciones: Datos + Cursos)
+  function renderAlumnoPanel(alumno){
+    const box = document.getElementById("alumnoDatos");
+    if (!box) return;
+
+    const fields = [
+      ["NOMBRES COMPLETOS", alumno["NOMBRES COMPLETOS"] || alumno["NOMBRE COMPLETO"] || alumno["NOMBRE"]],
+      ["CORREO", alumno["CORREO"] || alumno["USUARIO"]],
+      ["DNI", alumno["DNI"]],
+      ["CELULAR", alumno["CELULAR"] || alumno["CEL"]],
+      ["UNIVERSIDAD", alumno["UNIVERSIDAD"]],
+      ["MODALIDAD", alumno["MODALIDAD"]],
+      ["ACADEMIA", alumno["ACADEMIA"]],
+      ["CARRERA", alumno["CARRERA"]],
+      ["ESTADO", alumno["ESTADO"]],
+    ].filter(([k,v]) => String(v||"").trim().length);
+
+    box.innerHTML = fields.map(([k,v]) => (
+      '<div class="kvKey">'+escapeHTML(String(k))+'</div><div class="kvVal">'+escapeHTML(String(v))+'</div>'
+    )).join("");
+
+    // Cursos (propuesta visual). Aún sin conexión a preguntas; se deja listo para el siguiente paso.
+    const cursosBox = document.getElementById("alumnoCursos");
+    if (!cursosBox) return;
+
+    const CURSOS = [
+      "Álgebra","Aritmética","Geometría","Trigonometría",
+      "Razonamiento Matemático","Razonamiento Verbal",
+      "Física","Química","Biología",
+      "Historia","Geografía","Economía"
+    ];
+
+    // Temas de ejemplo (se reemplazarán por los temas reales cuando vinculemos a tu hoja)
+    const TEMAS = {
+      "Álgebra":["Ecuaciones","Polinomios","Funciones"],
+      "Aritmética":["Porcentajes","Proporciones","Problemas"],
+      "Geometría":["Áreas","Perímetros","Triángulos"],
+      "Trigonometría":["Identidades","Ángulos","Triángulos"],
+      "Razonamiento Matemático":["Series","Lógica","Conteo"],
+      "Razonamiento Verbal":["Sinónimos","Comprensión lectora","Analogías"],
+      "Física":["Cinemática","Dinámica","Energía"],
+      "Química":["Enlace químico","Estequiometría","Soluciones"],
+      "Biología":["Célula","Genética","Ecología"],
+      "Historia":["Perú","Universal","Contemporánea"],
+      "Geografía":["Clima","Relieve","Mapas"],
+      "Economía":["Oferta y demanda","Macroeconomía","Indicadores"]
+    };
+
+    let cursoSel = null;
+    let temaSel = null;
+    const respuestas = {}; // q1..q5 -> A..E
+
+    function draw(){
+      cursosBox.innerHTML = `
+        <div class="courseGrid">
+          ${CURSOS.map(c=>`<button class="courseBtn ${c===cursoSel?'active':''}" type="button" data-curso="${escapeHTML(c)}">${escapeHTML(c)}</button>`).join("")}
+        </div>
+        ${cursoSel ? `
+          <div class="topicList">
+            ${(TEMAS[cursoSel]||[]).map(t=>`<button class="topicBtn" type="button" data-tema="${escapeHTML(t)}">${escapeHTML(t)}</button>`).join("")}
+          </div>
+        ` : ``}
+        ${temaSel ? `
+          <div class="quiz">
+            <div class="muted"><b>${escapeHTML(cursoSel)}</b> · ${escapeHTML(temaSel)} · Evaluación (5 preguntas)</div>
+            ${[1,2,3,4,5].map(i=>`
+              <div class="q">
+                <div><b>Pregunta ${i}</b></div>
+                <div class="opts">
+                  ${["A","B","C","D","E"].map(op=>`<span class="opt ${(respuestas[i]===op)?'active':''}" data-q="${i}" data-op="${op}">${op}</span>`).join("")}
+                </div>
+              </div>
+            `).join("")}
+            <button class="btnSend" type="button" id="btnEnviarEval">ENVIAR</button>
+            <div class="muted" style="margin-top:8px">Nota: este envío aún es una maqueta visual. Luego lo vinculamos a tu Google Sheets.</div>
+          </div>
+        ` : ``}
+      `;
+
+      cursosBox.querySelectorAll(".courseBtn").forEach(btn=>{
+        btn.addEventListener("click", ()=>{
+          cursoSel = btn.getAttribute("data-curso");
+          temaSel = null;
+          for (let i=1;i<=5;i++) delete respuestas[i];
+          draw();
+        });
+      });
+
+      cursosBox.querySelectorAll(".topicBtn").forEach(btn=>{
+        btn.addEventListener("click", ()=>{
+          temaSel = btn.getAttribute("data-tema");
+          for (let i=1;i<=5;i++) delete respuestas[i];
+          draw();
+        });
+      });
+
+      cursosBox.querySelectorAll(".opt").forEach(sp=>{
+        sp.addEventListener("click", ()=>{
+          const q = Number(sp.getAttribute("data-q"));
+          const op = sp.getAttribute("data-op");
+          // toggle: si vuelve a clicar la misma opción, la desmarca
+          respuestas[q] = (respuestas[q] === op) ? null : op;
+          draw();
+        });
+      });
+
+      const btnSend = cursosBox.querySelector("#btnEnviarEval");
+      if (btnSend){
+        btnSend.addEventListener("click", ()=>{
+          alert("Evaluación enviada (maqueta). En el siguiente paso lo conectamos a tu hoja.");
+        });
+      }
+    }
+
+    draw();
+  }
+
 </script>
 </body>
 </html>
-
