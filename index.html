@@ -4,6 +4,7 @@
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <title>LA META | DASHBOARD</title>
+<!-- BUILD_ID: EVAL_V5_2026-01-25 -->
 
   <!-- Charts -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
@@ -3445,7 +3446,7 @@ function ensureMaterialesLayout(){
     const fresh = (state.evalCache.key === key) && (Date.now() - state.evalCache.ts < 30000);
     if (fresh) return state.evalCache.items || [];
 
-    const data = await evalJsonp({ action:"list_evals", apiKey:EVAL_API_KEY, universidad, salon });
+    const data = await evalJsonp({ action:"list", apiKey:EVAL_API_KEY, universidad, salon });
     if (!data || !data.ok) throw new Error(data?.error || "No se pudo cargar evaluaciones.");
     const items = Array.isArray(data.items) ? data.items : [];
     state.evalCache = {key, ts: Date.now(), items};
@@ -5715,12 +5716,15 @@ function startApp(){
   setInterval(loadAll, AUTO_REFRESH_MS);
 }
 
+// ✅ Arranque: lo antes posible (para reducir flash)
 window.addEventListener("DOMContentLoaded", () => {
-  
+  // 1) Auth primero
   const hasSession = initAuth();
 
+  // 2) Si no hay sesión, esperar a que el usuario inicie (overlay)
+  //    (La app se inicia cuando el overlay se oculta tras login)
   if (!hasSession){
-
+    // Al primer login exitoso se ejecutará esto automáticamente:
     const observer = new MutationObserver(() => {
       const o = document.getElementById("authOverlay");
       if (o && o.style.display === "none"){
@@ -5732,6 +5736,7 @@ window.addEventListener("DOMContentLoaded", () => {
     return;
   }
 
+  // 3) Sesión existente: iniciar app
   startApp();
 });
 </script>
