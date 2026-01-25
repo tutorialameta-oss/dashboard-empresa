@@ -1410,6 +1410,8 @@
   // ===================== EVALUACIONES (WEBAPP / JSONP) =====================
   // Fijo (NO usar querystring ni localStorage) para evitar inconsistencias
   const EVAL_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxT0lOvu20Vo8_3leNUxgCrH1hpK2pGx2qo37t6bCRW2VusVDXvBSJni0btkI7mmdXR/exec";
+const EVAL_SHEET_ID = "1BE-tHDe26UbhgymV3X2OiXf53ZYEGa3VLzrvB1mbjDQ"; // Sheet que contiene EVAL_PDFS y CLAVES
+
   const EVAL_API_KEY = "LAMETA2026";
 
   const ROLE_KEY = "lameta_role";
@@ -3398,38 +3400,53 @@ function ensureMaterialesLayout(){
     return s.replace(/\s+/g, " ").trim();
   }
 
-  function evalJsonp(params, timeoutMs=15000){
-    return new Promise((resolve, reject)=>{
-      const cb = "__lameta_cb_" + Math.random().toString(36).slice(2);
-      const timer = setTimeout(()=>{
+  function evalJsonp(params, timeoutMs = 15000) {
+    // Fuerza lectura del Google Sheet correcto (evita "lee otra copia")
+    const merged = Object.assign({ sid: EVAL_SHEET_ID }, params || {});
+    if (!("apiKey" in merged)) merged.apiKey = EVAL_API_KEY;
+
+    const qs = Object.keys(merged)
+      .map(k => encodeURIComponent(k) + "=" + encodeURIComponent(String(merged[k])))
+      .join("&");
+
+    const baseUrl = EVAL_WEBAPP_URL + (EVAL_WEBAPP_URL.includes("?") ? "&" : "?") + qs;
+    window.__EVAL_LAST_URL = baseUrl; // diagnóstico rápido (F12: console.log(window.__EVAL_LAST_URL))
+
+    return new Promise((resolve, reject) => {
+      const cb = "__jsonp_cb_" + Math.random().toString(36).slice(2);
+      let done = false;
+      let scriptEl = null;
+
+      const cleanup = () => {
+        if (done) return;
+        done = true;
+        try { delete window[cb]; } catch (e) { window[cb] = undefined; }
+        if (scriptEl && scriptEl.parentNode) scriptEl.parentNode.removeChild(scriptEl);
+      };
+
+      const timer = setTimeout(() => {
         cleanup();
-        reject(new Error("Tiempo de espera agotado (JSONP)."));
+        reject(new Error("timeout"));
       }, timeoutMs);
 
-      function cleanup(){
+      window[cb] = (data) => {
         clearTimeout(timer);
-        try { delete window[cb]; } catch(e){ window[cb] = undefined; }
-        if (script && script.parentNode) script.parentNode.removeChild(script);
-      }
-
-      window[cb] = (data)=>{
         cleanup();
         resolve(data);
       };
 
-      const qs = new URLSearchParams({...params, callback: cb}).toString();
-      const url = EVAL_WEBAPP_URL + (EVAL_WEBAPP_URL.includes("?") ? "&" : "?") + qs;
-
-      const script = document.createElement("script");
-      script.src = url;
-      script.async = true;
-      script.onerror = ()=>{
+      scriptEl = document.createElement("script");
+      scriptEl.src = baseUrl + (baseUrl.includes("?") ? "&" : "?") + "callback=" + encodeURIComponent(cb);
+      scriptEl.onerror = () => {
+        clearTimeout(timer);
         cleanup();
-        reject(new Error("No se pudo cargar el endpoint (JSONP)."));
+        reject(new Error("network_error"));
       };
-      document.body.appendChild(script);
+
+      document.head.appendChild(scriptEl);
     });
   }
+
 
   async function fetchEvaluacionesAlumno(){
     const prof = getAlumnoProfile();
