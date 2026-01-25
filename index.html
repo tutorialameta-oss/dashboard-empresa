@@ -3380,19 +3380,20 @@ function ensureMaterialesLayout(){
   function evalSalonKeyFromProfile(prof){
     const s = String(prof?.salon || "").toUpperCase();
     if (!s) return "";
+
+    // ✅ Convención de SALÓN igual a tu Sheet (con espacio): "AGRARIA 1", "AGRARIA 2", etc.
     // Agraria / UNALM
     if (s.includes("AGRARIA") || s.includes("UNALM")){
-      if (s.includes("LM") && s.includes(" 2")) return "AGRARIA2";
-      if (s.includes("LM") && s.includes(" 1")) return "AGRARIA1";
-      if (s.includes("LM2") || s.includes(" 2") || s.includes("2")) return "AGRARIA2";
-      if (s.includes("LM1") || s.includes(" 1") || s.includes("1")) return "AGRARIA1";
-      if (s.includes("SB")) return "AGRARIA_SB";
-      if (s.includes("SM")) return "AGRARIA_SM";
-      if (s.includes("VIR") || s.includes("VIRTUAL")) return "AGRARIA_VIR";
+      if ((s.includes("LM") && s.includes(" 2")) || s.includes("LM2") || (s.includes(" 2")) || s.includes("2")) return "AGRARIA 2";
+      if ((s.includes("LM") && s.includes(" 1")) || s.includes("LM1") || (s.includes(" 1")) || s.includes("1")) return "AGRARIA 1";
+      if (s.includes("SB")) return "AGRARIA SB";
+      if (s.includes("SM")) return "AGRARIA SM";
+      if (s.includes("VIR") || s.includes("VIRTUAL")) return "AGRARIA VIR";
       return "AGRARIA";
     }
-    // Otras universidades (si luego se amplía)
-    return s.replace(/\s+/g, "");
+
+    // Otras universidades (si luego se amplía): conserva espacios normales
+    return s.replace(/\s+/g, " ").trim();
   }
 
   function evalJsonp(params, timeoutMs=15000){
