@@ -1320,6 +1320,8 @@
   .evWorkMeta{ color:var(--muted); font-weight:900; font-size:12px; text-transform:uppercase; margin-top:6px; }
   .evEx{ border:1px dashed rgba(0,0,0,.14); border-radius: 16px; padding:12px; background: rgba(0,0,0,.02); margin-bottom:12px; }
   .evLink{ display:inline-flex; align-items:center; gap:8px; text-decoration:none; font-weight:1100; color: var(--accent2); border:1px solid rgba(209,11,11,0.25); background: var(--soft); padding:10px 12px; border-radius: 14px; }
+    .evPdf{ width:100%; height:520px; border:1px solid var(--border); border-radius:14px; margin-top:10px; background:#fff; }
+
   .evLink:hover{ border-color: rgba(209,11,11,0.45); background: rgba(209,11,11,0.10); }
 
   .evForm{ display:flex; flex-direction:column; gap:12px; margin-top:10px; }
@@ -1456,7 +1458,7 @@
   // 1) Crea un Google Apps Script (Web App) que exponga el API.
   // 2) Pega aquí la URL del deployment (termina en /exec).
   //    Ejemplo: https://script.google.com/macros/s/XXXX/exec
-  const EVALS_API_URL = "https://script.google.com/macros/s/AKfycbw5gAetJ9ryJSrM9LULkgtLgpJ-uDPYHmekOUv8TxDYk5TpAhHrc3QH2fM677KNJ2Vy/exec";
+  const EVALS_API_URL = ""; // <-- PEGAR AQUÍ
 
   // IDs del Google Sheet de Evaluaciones (solo para referencia / validación)
   const EVALS_SPREADSHEET_ID = "1Q3UGJql1UUP8i4wXtSuZ9Dvb8kQZs8tOsIDL9jznUU0";
@@ -3442,9 +3444,10 @@ function loadSavedView(){
     if (!EVALS_API_URL){
       throw new Error("EVALS_API_URL no configurado. Pegue la URL del Apps Script (/exec). ");
     }
+    // Importante: NO fijar Content-Type=application/json (provoca preflight CORS en algunos navegadores).
+    // Enviamos como text/plain (simple request) y el Apps Script igual parsea el JSON.
     const res = await fetch(EVALS_API_URL, {
       method:"POST",
-      headers:{ "Content-Type":"application/json" },
       body: JSON.stringify(payload || {})
     });
     if (!res.ok) throw new Error("HTTP " + res.status);
@@ -3627,16 +3630,11 @@ function loadSavedView(){
         <span>${o}</span>
       </label>
     `).join("");
-    const blank = `
-      <label class="evOpt">
-        <input type="radio" name="${name}" value="">
-        <span>BLANCO</span>
-      </label>
-    `;
+    // Si el alumno no marca nada, se considera "en blanco" automáticamente (sin mostrar opción extra).
     return `
       <div class="evQRow">
         <div class="evQName">Pregunta ${n}</div>
-        <div class="evOpts">${radios}${blank}</div>
+        <div class="evOpts">${radios}</div>
       </div>
     `;
   }
@@ -3662,8 +3660,21 @@ function loadSavedView(){
     const f = fmtFechaES(ev.fecha);
     const bb = String(ev.bloque||"").toUpperCase();
 
-    const showEx = String(ev.mostrar_ejercicios||"").toUpperCase() === "TRUE";
     const link = String(ev.link_ejercicios||"").trim();
+    const showCfg = String(ev.mostrar_ejercicios||"").trim();
+    // Si no configuraste mostrar_ejercicios, pero sí hay link, por defecto mostramos el botón.
+    const showEx = (showCfg === "" ? (link !== "") : (showCfg.toUpperCase() === "TRUE"));
+
+    function toDrivePreviewUrl(u){
+      const s = String(u||"").trim();
+      if (!s) return "";
+      // Convierte link "view" a "preview" para embebido (Drive).
+      const m = s.match(/https?:\/\/drive\.google\.com\/file\/d\/([^/]+)/);
+      if (m) return `https://drive.google.com/file/d/${m[1]}/preview`;
+      return s;
+    }
+
+    const previewUrl = toDrivePreviewUrl(link);
 
     const qRows = [0,1,2,3,4].map(mkQuestionRow).join("");
 
@@ -3686,9 +3697,11 @@ function loadSavedView(){
       <div class="evEx">
         ${showEx && link ? `
           <a class="evLink" href="${escapeHtml(link)}" target="_blank" rel="noopener noreferrer">ABRIR EJERCICIOS</a>
-          <div class="evMuted">Los ejercicios están habilitados para esta evaluación.</div>
+          ${previewUrl ? `<iframe class="evPdf" src="${escapeHtml(previewUrl)}" loading="lazy"></iframe>` : ``}
+          <div class="evMuted">Si no marcas una pregunta, se considera en blanco.</div>
         ` : `
-          <div class="evMuted"><b>Ejercicios ocultos.</b> Responde sin ver ejercicios (según configuración).</div>
+          <div class="evMuted"><b>Ejercicios ocultos.</b> Responde sin ver ejercicios.</div>
+          <div class="evMuted">Si no marcas una pregunta, se considera en blanco.</div>
         `}
       </div>
 
@@ -3722,11 +3735,11 @@ function loadSavedView(){
 
     const rows = (detail || []).map(d=>{
       const q = escapeHtml(d.q || "");
-      const ans = (d.ans === "" ? "BLANCO" : escapeHtml(d.ans));
+      const ans = (d.ans === "" ? "—" : escapeHtml(d.ans));
       const key = escapeHtml(d.key || "");
       const delta = (d.delta>=0 ? "+"+d.delta : String(d.delta));
       const ok = d.ok ? "ok" : (d.ans==="" ? "soft" : "warn");
-      const label = d.ok ? "CORRECTO" : (d.ans==="" ? "BLANCO" : "INCORRECTO");
+      const label = d.ok ? "CORRECTO" : (d.ans==="" ? "SIN RESPUESTA" : "INCORRECTO");
       return `
         <div class="evResRow">
           <div class="evResQ">${q}</div>
