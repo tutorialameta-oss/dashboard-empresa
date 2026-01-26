@@ -3487,7 +3487,8 @@ function loadSavedView(){
     const js = await res.json();
     if (!js || js.ok !== true) throw new Error(js?.error || "Respuesta inválida del API");
     return js.data;
-  
+  }
+
   // ===================== EVALUACIONES: DRAFT (no borrar marcado) =====================
   // Guarda respuestas marcadas localmente para que NO se pierdan por refresh/scroll.
   function draftKey_(alumnoId, evalId){
@@ -3590,7 +3591,6 @@ function loadSavedView(){
       });
     }
   }
-}
 
   function ensureEvaluacionesLayout(){
     const el = document.getElementById("view_evaluaciones");
