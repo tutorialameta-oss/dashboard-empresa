@@ -1293,6 +1293,57 @@
     border-radius: 16px;
   }
 
+
+  /* ===================== EVALUACIONES ===================== */
+  .evTopRow{ display:grid; grid-template-columns: 1fr 1.4fr; gap:14px; margin-top:12px; }
+  .evBox{ border:1px solid rgba(0,0,0,.06); border-radius: 16px; padding:12px; background:#fff; }
+  .evLabel{ color:var(--muted); font-weight:950; font-size:12px; text-transform:uppercase; margin-bottom:10px; }
+  .evCourses{ display:grid; grid-template-columns: repeat(3, 1fr); gap:10px; }
+  .evCourseBtn{ border:1px solid rgba(0,0,0,.10); border-radius: 16px; padding:10px; text-align:left; background:#fff; cursor:pointer; }
+  .evCourseBtn.on{ border-color: rgba(209,11,11,0.45); box-shadow: 0 0 0 3px rgba(209,11,11,0.10); background: var(--soft); }
+  .evCourseCode{ font-weight:1100; color: var(--accent2); font-size:12px; text-transform:uppercase; }
+  .evCourseName{ font-weight:950; font-size:12px; margin-top:4px; text-transform:uppercase; }
+
+  .evList{ display:flex; flex-direction:column; gap:10px; }
+  .evItem{ border:1px solid rgba(0,0,0,.10); border-radius: 16px; padding:10px 12px; background:#fff; cursor:pointer; text-align:left; }
+  .evItem.on{ border-color: rgba(209,11,11,0.45); box-shadow: 0 0 0 3px rgba(209,11,11,0.10); background: var(--soft); }
+  .evItemTop{ display:flex; flex-direction:column; gap:4px; }
+  .evItemTitle{ font-weight:1100; font-size:13px; text-transform:uppercase; }
+  .evItemMeta{ color:var(--muted); font-weight:900; font-size:12px; text-transform:uppercase; }
+  .evItemId{ margin-top:8px; color:#334155; font-weight:900; font-size:12px; }
+
+  .evMuted{ color:var(--muted); font-weight:900; }
+  .evError{ color: var(--bad); font-weight:950; margin-top:8px; }
+
+  .evWorkHead{ display:flex; justify-content:space-between; align-items:flex-start; gap:12px; flex-wrap:wrap; margin-bottom:12px; }
+  .evWorkTema{ font-weight:1100; font-size:14px; text-transform:uppercase; }
+  .evWorkMeta{ color:var(--muted); font-weight:900; font-size:12px; text-transform:uppercase; margin-top:6px; }
+  .evEx{ border:1px dashed rgba(0,0,0,.14); border-radius: 16px; padding:12px; background: rgba(0,0,0,.02); margin-bottom:12px; }
+  .evLink{ display:inline-flex; align-items:center; gap:8px; text-decoration:none; font-weight:1100; color: var(--accent2); border:1px solid rgba(209,11,11,0.25); background: var(--soft); padding:10px 12px; border-radius: 14px; }
+  .evLink:hover{ border-color: rgba(209,11,11,0.45); background: rgba(209,11,11,0.10); }
+
+  .evForm{ display:flex; flex-direction:column; gap:12px; margin-top:10px; }
+  .evQRow{ border:1px solid rgba(0,0,0,.08); border-radius: 16px; padding:12px; background:#fff; }
+  .evQName{ font-weight:1100; text-transform:uppercase; font-size:12px; margin-bottom:10px; color: var(--muted); }
+  .evOpts{ display:flex; gap:10px; flex-wrap:wrap; }
+  .evOpt{ display:inline-flex; gap:8px; align-items:center; border:1px solid rgba(0,0,0,.10); border-radius: 999px; padding:8px 10px; font-weight:950; font-size:12px; background:#fafafa; cursor:pointer; user-select:none; }
+  .evOpt input{ margin:0; }
+
+  .evSubmitRow{ display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-top:8px; }
+  .evResultCard{ border-top:1px dashed rgba(0,0,0,.14); margin-top:14px; padding-top:14px; }
+  .evScore{ font-weight:1100; font-size:16px; text-transform:uppercase; }
+  .evKeyLine{ display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; }
+  .evResGrid{ display:flex; flex-direction:column; gap:8px; margin-top:12px; }
+  .evResRow{ border:1px solid rgba(0,0,0,.08); border-radius: 16px; padding:10px 12px; display:grid; grid-template-columns: 90px 110px 1fr 1fr; gap:10px; align-items:center; background:#fff; }
+  .evResQ{ font-weight:1100; text-transform:uppercase; font-size:12px; color: var(--muted); }
+  .evResK, .evResD{ font-weight:900; font-size:12px; color:#334155; text-transform:uppercase; }
+  .evResA{ font-weight:900; }
+  @media (max-width: 980px){
+    .evTopRow{ grid-template-columns: 1fr; }
+    .evCourses{ grid-template-columns: repeat(2, 1fr); }
+    .evResRow{ grid-template-columns: 1fr; }
+  }
+
 </style>
 </head>
 
@@ -1344,6 +1395,7 @@
         <button id="nav_impresiones">IMPRESIONES</button>
         <!-- ✅ NUEVO -->
         <button id="nav_silabos">SÍLABOS</button>
+        <button id="nav_evaluaciones">EVALUACIONES</button>
         <button id="nav_materiales">MATERIALES</button>
         <button id="nav_listas">LISTAS</button>
         <button id="nav_reportes">ENVÍO DE REPORTES</button>
@@ -1388,6 +1440,7 @@
       <div id="view_impresiones" class="grid" style="display:none;"></div>
       <!-- ✅ NUEVO -->
       <div id="view_silabos" class="grid" style="display:none;"></div>
+      <div id="view_evaluaciones" class="grid" style="display:none;"></div>
       <div id="view_materiales" class="grid" style="display:none;"></div>
       <div id="view_listas" class="grid" style="display:none;"></div>
       <div id="view_reportes" class="grid" style="display:none;"></div>
@@ -1398,6 +1451,18 @@
 <script>
   // ===================== MATRÍCULA (TU CÓDIGO) =====================
   const SPREADSHEET_ID = "1nHCBQLuJ8RZNtLisvAqD916pcxbUmtqPrMnO4V0ewvs";
+
+  // ===================== EVALUACIONES (BD) =====================
+  // 1) Crea un Google Apps Script (Web App) que exponga el API.
+  // 2) Pega aquí la URL del deployment (termina en /exec).
+  //    Ejemplo: https://script.google.com/macros/s/XXXX/exec
+  const EVALS_API_URL = ""; // <-- PEGAR AQUÍ
+
+  // IDs del Google Sheet de Evaluaciones (solo para referencia / validación)
+  const EVALS_SPREADSHEET_ID = "1Q3UGJql1UUP8i4wXtSuZ9Dvb8kQZs8tOsIDL9jznUU0";
+  const EVALS_CURSOS_GID = 1513385023;
+  const EVALS_EVALUACIONES_GID = 1370374081;
+
 
     // ===================== ACCESO (ADMIN / TUTOR / ALUMNO) =====================
   // ⚠️ CAMBIA ESTAS CLAVES AQUÍ
@@ -1523,7 +1588,7 @@
 
     // Alumno: entorno limitado (sin materiales)
     if (CURRENT_ROLE === "alumno"){
-      return (v === "inicio_alumno" || v === "perfil_alumno" || v === "horarios" || v === "silabos");
+      return (v === "inicio_alumno" || v === "perfil_alumno" || v === "horarios" || v === "silabos" || v === "evaluaciones");
     }
     return true;
   }
@@ -1570,6 +1635,7 @@
     const btnHorarios = document.getElementById("nav_horarios");
     const btnImpr = document.getElementById("nav_impresiones");
     const btnSil = document.getElementById("nav_silabos");
+    const btnEval = document.getElementById("nav_evaluaciones");
     const btnMat = document.getElementById("nav_materiales");
     const btnList = document.getElementById("nav_listas");
     const btnRep = document.getElementById("nav_reportes");
@@ -1591,6 +1657,7 @@
     // Disponibles para todos
     if (btnHorarios) btnHorarios.style.display = "";
     if (btnSil) btnSil.style.display = "";
+    if (btnEval) btnEval.style.display = isAlumno ? "" : "none";
 
     // Materiales: oculto para alumnos (se habilitará cuando esté listo)
     if (btnMat) btnMat.style.display = isAlumno ? "none" : "";
@@ -1993,7 +2060,7 @@ const SALONES = [
   };
 // ===================== PERSISTENCIA DE VISTA (FIX) =====================
 const VIEW_STORAGE_KEY = "LA_META_CURRENT_VIEW";
-const ALLOWED_VIEWS = ["inicio_alumno","perfil_alumno","overview","local","table","horarios","impresiones","silabos","materiales","listas","reportes"];
+const ALLOWED_VIEWS = ["inicio_alumno","perfil_alumno","overview","local","table","horarios","impresiones","silabos","evaluaciones","materiales","listas","reportes"];
 
 function saveView(v){
   try { localStorage.setItem(VIEW_STORAGE_KEY, v); } catch(e){}
@@ -2016,6 +2083,13 @@ function loadSavedView(){
     imprRows: [],
     imprUpdatedAt: null,
 
+    // EVALUACIONES (nuevo)
+    evalCourses: [],
+    evalEvals: [],           // cache completo (opcional)
+    evalByCourse: new Map(), // course_code -> evals
+    evalSelCourse: null,
+    evalSelEval: null,
+    evalLastResult: null,
     ch_over_estado: null,
     ch_over_modalidad: null,
     ch_over_uni_stack: null,
@@ -2236,6 +2310,7 @@ function loadSavedView(){
     t("nav_horarios", v==="horarios");
     t("nav_impresiones", v==="impresiones");
     t("nav_silabos", v==="silabos");
+    t("nav_evaluaciones", v==="evaluaciones");
     t("nav_materiales", v==="materiales");
     t("nav_listas", v==="listas");
     t("nav_reportes", v==="reportes");
@@ -2253,6 +2328,7 @@ function loadSavedView(){
     s("view_horarios", v==="horarios");
     s("view_impresiones", v==="impresiones");
     s("view_silabos", v==="silabos");
+    s("view_evaluaciones", v==="evaluaciones");
     s("view_materiales", v==="materiales");
     s("view_listas", v==="listas");
     s("view_reportes", v==="reportes");
@@ -2261,7 +2337,7 @@ function loadSavedView(){
     const cm = document.getElementById("controlsMatricula");
     if (cm){
       cm.style.display =
-        (v==="inicio_alumno" || v==="horarios" || v==="impresiones" || v==="silabos" || v==="materiales" || v==="listas" || v==="reportes") ? "none" : "";
+        (v==="inicio_alumno" || v==="horarios" || v==="impresiones" || v==="silabos" || v==="evaluaciones" || v==="materiales" || v==="listas" || v==="reportes") ? "none" : "";
     }
 
     // estado solo visible en ALUMNOS (tabla) y no para rol alumno
@@ -2279,6 +2355,7 @@ function loadSavedView(){
       horarios: ["HORARIOS", "Horarios por local/universidad/salón. Ideal para que el alumno ubique sus clases."],
       impresiones: ["IMPRESIONES", "Registros y control de impresiones por fecha y alumno."],
       silabos: ["SÍLABOS", "Repositorio de sílabos por universidad y curso."],
+      evaluaciones: ["EVALUACIONES", "Evaluaciones por curso (5 preguntas). Envío automático y nota 0–20."],
       materiales: ["MATERIALES", "Accesos a carpetas de materiales por universidad."],
       listas: ["LISTAS", "Listas y exportables por salón."],
       reportes: ["ENVÍO DE REPORTES", "Plantillas y envío de reportes por alumno."]
@@ -2295,13 +2372,13 @@ function loadSavedView(){
     if (v === "local"){
       if (uniSel){ uniSel.value="__ALL__"; uniSel.disabled = true; }
       if (salSel){ salSel.value="__ALL__"; salSel.disabled = true; }
-    } else if (v !== "horarios" && v !== "impresiones" && v !== "silabos"){
+    } else if (v !== "horarios" && v !== "impresiones" && v !== "silabos" && v !== "evaluaciones"){
       if (uniSel) uniSel.disabled = false;
       if (salSel) salSel.disabled = false;
     }
 
     // Recalcular opciones de salón solo en vistas de matrícula
-    if (v !== "horarios" && v !== "impresiones" && v !== "silabos"){
+    if (v !== "horarios" && v !== "impresiones" && v !== "silabos" && v !== "evaluaciones"){
       rebuildSalonOptions();
     }
 
@@ -3334,6 +3411,447 @@ function loadSavedView(){
     if (sTotal) sTotal.textContent = String(totalCourses);
   }
   // ===================== FIN SÍLABOS =====================
+
+  // ===================== EVALUACIONES (NUEVO) =====================
+  // Requiere Google Apps Script (Web App) para:
+  // - Listar cursos y evaluaciones SIN exponer claves antes de rendir
+  // - Recibir respuestas, calcular nota (0–20) y devolver claves tras enviar
+
+  function apiUrlWithParams(baseUrl, params){
+    const u = new URL(baseUrl);
+    Object.entries(params || {}).forEach(([k,v])=>{
+      if (v === undefined || v === null) return;
+      u.searchParams.set(k, String(v));
+    });
+    return u.toString();
+  }
+
+  async function evalApiGet(action, params){
+    if (!EVALS_API_URL){
+      throw new Error("EVALS_API_URL no configurado. Pegue la URL del Apps Script (/exec). ");
+    }
+    const url = apiUrlWithParams(EVALS_API_URL, { action, ...params, _ts: Date.now() });
+    const res = await fetch(url, { cache:"no-store" });
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    const js = await res.json();
+    if (!js || js.ok !== true) throw new Error(js?.error || "Respuesta inválida del API");
+    return js.data;
+  }
+
+  async function evalApiPost(payload){
+    if (!EVALS_API_URL){
+      throw new Error("EVALS_API_URL no configurado. Pegue la URL del Apps Script (/exec). ");
+    }
+    const res = await fetch(EVALS_API_URL, {
+      method:"POST",
+      headers:{ "Content-Type":"application/json" },
+      body: JSON.stringify(payload || {})
+    });
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    const js = await res.json();
+    if (!js || js.ok !== true) throw new Error(js?.error || "Respuesta inválida del API");
+    return js.data;
+  }
+
+  function ensureEvaluacionesLayout(){
+    const el = document.getElementById("view_evaluaciones");
+    if (!el) return;
+    if (el.dataset.ready === "1") return;
+
+    // Solo rol alumno (por diseño)
+    el.innerHTML = `
+      <div class="card panel12 alSection">
+        <div class="alSectionHead">
+          <div>
+            <div class="alSectionTitle">EVALUACIONES</div>
+            <div class="alSectionSub">Elige un curso, luego una evaluación (5 preguntas). Nota 0–20.</div>
+          </div>
+          <div class="alSectionTools">
+            <button class="alBtn alBtnGhost" id="eBackHome">Volver a Inicio</button>
+          </div>
+        </div>
+
+        <div class="evTopRow">
+          <div class="evBox">
+            <div class="evLabel">CURSO</div>
+            <div id="evCourses" class="evCourses"></div>
+          </div>
+          <div class="evBox">
+            <div class="evLabel">EVALUACIONES DEL CURSO</div>
+            <div id="evList" class="evList"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card panel12" id="evWork">
+        <div class="cardtitle">SELECCIONA UNA EVALUACIÓN</div>
+        <div class="evMuted">Primero elige un curso y luego una evaluación.</div>
+      </div>
+    `;
+
+    const b = document.getElementById("eBackHome");
+    if (b) b.addEventListener("click", ()=>setView("inicio_alumno"));
+
+    el.dataset.ready = "1";
+  }
+
+  function fmtFechaES(fechaRaw){
+    // Acepta: dd/mm/yyyy, yyyy-mm-dd, Date string
+    const s = String(fechaRaw||"").trim();
+    if (!s) return "";
+    // dd/mm/yyyy
+    const m1 = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    if (m1){
+      const dd = m1[1].padStart(2,"0");
+      const mm = m1[2].padStart(2,"0");
+      const yy = m1[3];
+      return `${dd}/${mm}/${yy}`;
+    }
+    // yyyy-mm-dd
+    const m2 = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (m2){
+      return `${m2[3]}/${m2[2]}/${m2[1]}`;
+    }
+    return s;
+  }
+
+  async function loadEvalCourses(){
+    if (state.evalCourses && state.evalCourses.length) return state.evalCourses;
+    const data = await evalApiGet("courses");
+    state.evalCourses = Array.isArray(data) ? data : [];
+    return state.evalCourses;
+  }
+
+  async function loadEvalsForCourse(course_code){
+    const key = String(course_code||"").trim();
+    if (!key) return [];
+    if (state.evalByCourse && state.evalByCourse.has(key)){
+      return state.evalByCourse.get(key);
+    }
+    const data = await evalApiGet("evaluations", { course_code: key });
+    const list = Array.isArray(data) ? data : [];
+    if (!state.evalByCourse) state.evalByCourse = new Map();
+    state.evalByCourse.set(key, list);
+    return list;
+  }
+
+  function renderEvalCourses(courses){
+    const wrap = document.getElementById("evCourses");
+    if (!wrap) return;
+
+    const sel = state.evalSelCourse;
+    const items = (courses || []).map(c=>{
+      const code = c.course_code;
+      const name = c.course_name;
+      const on = (sel && sel.course_code === code);
+      return `<button class="evCourseBtn ${on ? "on":""}" data-course="${escapeHtml(code)}" type="button">
+        <div class="evCourseCode">${escapeHtml(code)}</div>
+        <div class="evCourseName">${escapeHtml(name)}</div>
+      </button>`;
+    }).join("");
+
+    wrap.innerHTML = items || `<div class="evMuted">No hay cursos cargados.</div>`;
+
+    wrap.querySelectorAll("button[data-course]").forEach(b=>{
+      b.addEventListener("click", async ()=>{
+        const code = b.getAttribute("data-course");
+        const course = (state.evalCourses||[]).find(x=>x.course_code===code) || { course_code:code, course_name:code };
+        state.evalSelCourse = course;
+        state.evalSelEval = null;
+        state.evalLastResult = null;
+        renderEvaluaciones();
+      });
+    });
+  }
+
+  function renderEvalList(evals){
+    const wrap = document.getElementById("evList");
+    const work = document.getElementById("evWork");
+    if (!wrap) return;
+
+    if (!state.evalSelCourse){
+      wrap.innerHTML = `<div class="evMuted">Selecciona un curso.</div>`;
+      if (work){
+        work.innerHTML = `<div class="cardtitle">SELECCIONA UN CURSO</div><div class="evMuted">Elige uno de los 12 cursos.</div>`;
+      }
+      return;
+    }
+
+    const selId = state.evalSelEval?.eval_id || null;
+
+    const list = (evals || []).slice().sort((a,b)=>{
+      const fa = String(a.fecha||"");
+      const fb = String(b.fecha||"");
+      if (fa !== fb) return fa.localeCompare(fb);
+      return String(a.bloque||"").localeCompare(String(b.bloque||""));
+    });
+
+    const items = list.map(ev=>{
+      const on = (selId && selId === ev.eval_id);
+      const f = fmtFechaES(ev.fecha);
+      const bb = String(ev.bloque||"").toUpperCase();
+      return `<button class="evItem ${on ? "on":""}" data-eval="${escapeHtml(ev.eval_id)}" type="button">
+        <div class="evItemTop">
+          <div class="evItemTitle">${escapeHtml(ev.tema || "Evaluación")}</div>
+          <div class="evItemMeta">${escapeHtml(f)} • Bloque ${escapeHtml(bb)}</div>
+        </div>
+        <div class="evItemId">${escapeHtml(ev.eval_id)}</div>
+      </button>`;
+    }).join("");
+
+    wrap.innerHTML = items || `<div class="evMuted">No hay evaluaciones ACTIVAS para este curso.</div>`;
+
+    wrap.querySelectorAll("button[data-eval]").forEach(b=>{
+      b.addEventListener("click", ()=>{
+        const id = b.getAttribute("data-eval");
+        const ev = (list || []).find(x=>x.eval_id===id);
+        state.evalSelEval = ev || null;
+        state.evalLastResult = null;
+        renderEvaluacionWork();
+      });
+    });
+
+    if (!state.evalSelEval && work){
+      work.innerHTML = `<div class="cardtitle">SELECCIONA UNA EVALUACIÓN</div>
+        <div class="evMuted">Curso: <b>${escapeHtml(state.evalSelCourse.course_name || state.evalSelCourse.course_code)}</b></div>`;
+    }
+  }
+
+  function mkQuestionRow(qi){
+    const n = qi + 1;
+    const name = `q${n}`;
+    const opts = ["A","B","C","D","E"];
+    const radios = opts.map(o=>`
+      <label class="evOpt">
+        <input type="radio" name="${name}" value="${o}">
+        <span>${o}</span>
+      </label>
+    `).join("");
+    const blank = `
+      <label class="evOpt">
+        <input type="radio" name="${name}" value="">
+        <span>BLANCO</span>
+      </label>
+    `;
+    return `
+      <div class="evQRow">
+        <div class="evQName">Pregunta ${n}</div>
+        <div class="evOpts">${radios}${blank}</div>
+      </div>
+    `;
+  }
+
+  function renderEvaluacionWork(){
+    const work = document.getElementById("evWork");
+    if (!work) return;
+
+    const prof = getAlumnoProfile();
+    if (!prof){
+      work.innerHTML = `<div class="cardtitle">SIN PERFIL</div>
+        <div class="evMuted">Cierre sesión y vuelva a ingresar.</div>`;
+      return;
+    }
+
+    if (!state.evalSelCourse || !state.evalSelEval){
+      work.innerHTML = `<div class="cardtitle">SELECCIONA UNA EVALUACIÓN</div>
+        <div class="evMuted">Primero elige un curso y luego una evaluación.</div>`;
+      return;
+    }
+
+    const ev = state.evalSelEval;
+    const f = fmtFechaES(ev.fecha);
+    const bb = String(ev.bloque||"").toUpperCase();
+
+    const showEx = String(ev.mostrar_ejercicios||"").toUpperCase() === "TRUE";
+    const link = String(ev.link_ejercicios||"").trim();
+
+    const qRows = [0,1,2,3,4].map(mkQuestionRow).join("");
+
+    work.innerHTML = `
+      <div class="cardtitle">
+        <span>EVALUACIÓN</span>
+        <span class="panelHint">${escapeHtml(state.evalSelCourse.course_name || state.evalSelCourse.course_code)} • ${escapeHtml(f)} • Bloque ${escapeHtml(bb)}</span>
+      </div>
+
+      <div class="evWorkHead">
+        <div>
+          <div class="evWorkTema">${escapeHtml(ev.tema || "Evaluación")}</div>
+          <div class="evWorkMeta">ID: <b>${escapeHtml(ev.eval_id)}</b> • Alumno: <b>${escapeHtml(prof.nombre || prof.usuario)}</b></div>
+        </div>
+        <div class="evWorkActions">
+          <button class="alBtn alBtnGhost" id="evReload">Recargar</button>
+        </div>
+      </div>
+
+      <div class="evEx">
+        ${showEx && link ? `
+          <a class="evLink" href="${escapeHtml(link)}" target="_blank" rel="noopener noreferrer">ABRIR EJERCICIOS</a>
+          <div class="evMuted">Los ejercicios están habilitados para esta evaluación.</div>
+        ` : `
+          <div class="evMuted"><b>Ejercicios ocultos.</b> Responde sin ver ejercicios (según configuración).</div>
+        `}
+      </div>
+
+      <div class="evForm">
+        ${qRows}
+        <div class="evSubmitRow">
+          <button class="alBtn" id="evSend" type="button">ENVIAR RESPUESTAS</button>
+          <div class="evMuted" id="evSendMsg"></div>
+        </div>
+      </div>
+
+      <div id="evResult"></div>
+    `;
+
+    const rbtn = document.getElementById("evReload");
+    if (rbtn){
+      rbtn.addEventListener("click", async ()=>{
+        const code = state.evalSelCourse?.course_code;
+        if (code && state.evalByCourse) state.evalByCourse.delete(code);
+        await renderEvaluaciones(true);
+      });
+    }
+  }
+
+  function renderEvalResult(out){
+    if (!out) return "";
+    const score = out.score;
+    const max = out.max || 20;
+    const detail = out.detail || [];
+    const keys = out.keys || {};
+
+    const rows = (detail || []).map(d=>{
+      const q = escapeHtml(d.q || "");
+      const ans = (d.ans === "" ? "BLANCO" : escapeHtml(d.ans));
+      const key = escapeHtml(d.key || "");
+      const delta = (d.delta>=0 ? "+"+d.delta : String(d.delta));
+      const ok = d.ok ? "ok" : (d.ans==="" ? "soft" : "warn");
+      const label = d.ok ? "CORRECTO" : (d.ans==="" ? "BLANCO" : "INCORRECTO");
+      return `
+        <div class="evResRow">
+          <div class="evResQ">${q}</div>
+          <div class="evResA"><span class="alChip ${ok}">${ans}</span></div>
+          <div class="evResK">Clave: <b>${key}</b></div>
+          <div class="evResD">${label} (${delta})</div>
+        </div>
+      `;
+    }).join("");
+
+    return `
+      <div class="evResultCard">
+        <div class="evScore">NOTA: <b>${escapeHtml(String(score))}</b> / ${escapeHtml(String(max))}</div>
+        <div class="evMuted">Regla: correcta +4, incorrecta -1, blanco 0. (Acotado 0–20)</div>
+
+        <div class="evKeyLine">
+          <span class="pill">CLAVES:</span>
+          <span class="pill">Q1 <b>${escapeHtml(keys.q1 || "")}</b></span>
+          <span class="pill">Q2 <b>${escapeHtml(keys.q2 || "")}</b></span>
+          <span class="pill">Q3 <b>${escapeHtml(keys.q3 || "")}</b></span>
+          <span class="pill">Q4 <b>${escapeHtml(keys.q4 || "")}</b></span>
+          <span class="pill">Q5 <b>${escapeHtml(keys.q5 || "")}</b></span>
+        </div>
+
+        <div class="evResGrid">
+          ${rows}
+        </div>
+      </div>
+    `;
+  }
+
+  async function renderEvaluaciones(forceReload){
+    ensureEvaluacionesLayout();
+
+    const work = document.getElementById("evWork");
+    const listWrap = document.getElementById("evList");
+    const coursesWrap = document.getElementById("evCourses");
+
+    if (CURRENT_ROLE !== "alumno"){
+      if (work){
+        work.innerHTML = `<div class="cardtitle">NO DISPONIBLE</div><div class="evMuted">Este módulo está habilitado solo para alumnos.</div>`;
+      }
+      if (coursesWrap) coursesWrap.innerHTML = "";
+      if (listWrap) listWrap.innerHTML = "";
+      return;
+    }
+
+    try{
+      if (forceReload){
+        state.evalCourses = [];
+        state.evalByCourse = new Map();
+      }
+      const courses = await loadEvalCourses();
+      renderEvalCourses(courses);
+
+      if (!state.evalSelCourse && courses && courses.length){
+        state.evalSelCourse = courses[0];
+      }
+
+      if (state.evalSelCourse){
+        const evals = await loadEvalsForCourse(state.evalSelCourse.course_code);
+        renderEvalList(evals);
+      } else {
+        renderEvalList([]);
+      }
+
+      if (state.evalSelEval){
+        renderEvaluacionWork();
+      }
+
+      // Bind envío (si hay eval seleccionada y work montado)
+      const sendBtn = document.getElementById("evSend");
+      if (sendBtn){
+        sendBtn.addEventListener("click", async ()=>{
+          const msg = document.getElementById("evSendMsg");
+          const resBox = document.getElementById("evResult");
+          try{
+            if (msg) msg.textContent = "Enviando...";
+            sendBtn.disabled = true;
+
+            const answers = {};
+            for (let i=1;i<=5;i++){
+              const sel = document.querySelector(`#evWork input[name="q${i}"]:checked`);
+              answers[`q${i}`] = sel ? String(sel.value||"") : "";
+            }
+
+            const prof = getAlumnoProfile() || {};
+            const ev = state.evalSelEval || {};
+            const payload = {
+              action:"submit",
+              alumno_id: prof.usuario || "",
+              alumno_nombre: prof.nombre || "",
+              course_code: state.evalSelCourse.course_code,
+              eval_id: ev.eval_id,
+              answers
+            };
+
+            const out = await evalApiPost(payload);
+            state.evalLastResult = out;
+            if (resBox) resBox.innerHTML = renderEvalResult(out);
+            if (msg) msg.textContent = "Enviado.";
+          } catch(err){
+            console.error(err);
+            if (msg) msg.textContent = "Error: " + (err?.message || err);
+            if (resBox) resBox.innerHTML = `<div class="evError">No se pudo enviar. Revise EVALS_API_URL y el deployment del Apps Script.</div>`;
+          } finally {
+            sendBtn.disabled = false;
+          }
+        }, { once:true });
+      }
+
+    } catch(err){
+      console.error(err);
+      if (work){
+        work.innerHTML = `<div class="cardtitle">CONFIGURACIÓN PENDIENTE</div>
+          <div class="evError">${escapeHtml(err?.message || String(err))}</div>
+          <div class="evMuted">Solución: despliega el Apps Script (Web App) y pega su URL en <b>EVALS_API_URL</b>.</div>`;
+      }
+      if (coursesWrap) coursesWrap.innerHTML = `<div class="evMuted">—</div>`;
+      if (listWrap) listWrap.innerHTML = `<div class="evMuted">—</div>`;
+    }
+  }
+
+  // ===================== FIN EVALUACIONES =====================
+
 // ===================== MATERIALES (NUEVO) =====================
 const MATERIALES = [
   { uni:"AGRARIA", url:"https://drive.google.com/drive/folders/1IXvAs551Wzjm2NbU2Ljoa9H4CudSG5he" },
@@ -5052,6 +5570,7 @@ function render(){
     if (state.view==="horarios") renderHorarios();
     if (state.view==="impresiones") renderImpresiones();
     if (state.view==="silabos") renderSilabos();
+    if (state.view==="evaluaciones") renderEvaluaciones();
     if (state.view==="materiales") renderMateriales();
     if (state.view==="listas") renderListas();
     if (state.view==="reportes") renderReportes();
@@ -5205,6 +5724,7 @@ function ensureBoot(){
   bind("nav_horarios", ()=>setView("horarios"));
   bind("nav_impresiones", ()=>setView("impresiones"));
   bind("nav_silabos", ()=>setView("silabos"));
+  bind("nav_evaluaciones", ()=>setView("evaluaciones"));
   bind("nav_materiales", ()=>setView("materiales"));
   bind("nav_listas", ()=>setView("listas"));
   bind("nav_reportes", ()=>setView("reportes"));
