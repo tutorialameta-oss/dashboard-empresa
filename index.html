@@ -1458,7 +1458,7 @@
   // 1) Crea un Google Apps Script (Web App) que exponga el API.
   // 2) Pega aquí la URL del deployment (termina en /exec).
   //    Ejemplo: https://script.google.com/macros/s/XXXX/exec
-  const EVALS_API_URL = "https://script.google.com/macros/s/AKfycbw5gAetJ9ryJSrM9LULkgtLgpJ-uDPYHmekOUv8TxDYk5TpAhHrc3QH2fM677KNJ2Vy/exec";
+  const EVALS_API_URL = "https://script.google.com/macros/s/AKfycbw5gAetJ9ryJSrM9LULkgtLgpJ-uDPYHmekOUv8TxDYk5TpAhHrc3QH2fM677KNJ2Vy/exec"; // URL Apps Script (Web App /exec)
 
   // IDs del Google Sheet de Evaluaciones (solo para referencia / validación)
   const EVALS_SPREADSHEET_ID = "1Q3UGJql1UUP8i4wXtSuZ9Dvb8kQZs8tOsIDL9jznUU0";
@@ -3538,6 +3538,21 @@ function loadSavedView(){
     return list;
   }
 
+  async function loadEvalStatusForSelected(){
+    // Consulta si el alumno ya envió esta evaluación (para bloquear reenvío y mostrar su nota).
+    const prof = getAlumnoProfile() || {};
+    const ev = state.evalSelEval || null;
+    if (!prof.usuario || !ev?.eval_id) { state.evalLastResult = null; return null; }
+    try{
+      const out = await evalApiGet("status", { alumno_id: prof.usuario, eval_id: ev.eval_id });
+      state.evalLastResult = out || null;
+      return state.evalLastResult;
+    } catch(_){
+      state.evalLastResult = null;
+      return null;
+    }
+  }
+
   function renderEvalCourses(courses){
     const wrap = document.getElementById("evCourses");
     if (!wrap) return;
@@ -3582,12 +3597,51 @@ function loadSavedView(){
 
     const selId = state.evalSelEval?.eval_id || null;
 
-    const list = (evals || []).slice().sort((a,b)=>{
-      const fa = String(a.fecha||"");
-      const fb = String(b.fecha||"");
-      if (fa !== fb) return fa.localeCompare(fb);
-      return String(a.bloque||"").localeCompare(String(b.bloque||""));
-    });
+    const raw = (evals || []).slice();
+
+    function dateKey_(x){
+      const s = String(x||"").trim();
+      // dd/mm/yyyy
+      let m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+      if (m){
+        const dd = m[1].padStart(2,"0");
+        const mm = m[2].padStart(2,"0");
+        const yy = m[3];
+        return `${yy}${mm}${dd}`;
+      }
+      // yyyy-mm-dd
+      m = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+      if (m) return `${m[1]}${m[2]}${m[3]}`;
+      // yyyymmdd
+      if (/^\d{8}$/.test(s)) return s;
+      return "";
+    }
+
+    function bloqueOrder_(b){
+      const s = String(b||"").trim().toUpperCase();
+      if (s === "A") return 1;
+      if (s === "B") return 2;
+      if (s === "C") return 3;
+      return 99;
+    }
+
+    // Regla: el alumno verá como máximo 2 evaluaciones del curso.
+    // Seleccionamos la FECHA más reciente y mostramos hasta 2 bloques de esa fecha (A,B,C en orden).
+    const enriched = raw.map(ev=>({ ...ev, _dkey: dateKey_(ev.fecha) }));
+    const maxKey = enriched.reduce((acc, x)=> (x._dkey && x._dkey > acc ? x._dkey : acc), "");
+    let list = enriched.filter(x=> (maxKey ? x._dkey === maxKey : true))
+      .sort((a,b)=>{
+        const oa = bloqueOrder_(a.bloque);
+        const ob = bloqueOrder_(b.bloque);
+        if (oa !== ob) return oa - ob;
+        return String(a.eval_id||"").localeCompare(String(b.eval_id||""));
+      })
+      .slice(0, 2)
+      .map(x=>{
+        const y = { ...x };
+        delete y._dkey;
+        return y;
+      });
 
     const items = list.map(ev=>{
       const on = (selId && selId === ev.eval_id);
@@ -3605,11 +3659,12 @@ function loadSavedView(){
     wrap.innerHTML = items || `<div class="evMuted">No hay evaluaciones ACTIVAS para este curso.</div>`;
 
     wrap.querySelectorAll("button[data-eval]").forEach(b=>{
-      b.addEventListener("click", ()=>{
+      b.addEventListener("click", async ()=>{
         const id = b.getAttribute("data-eval");
         const ev = (list || []).find(x=>x.eval_id===id);
         state.evalSelEval = ev || null;
         state.evalLastResult = null;
+        await loadEvalStatusForSelected();
         renderEvaluacionWork();
       });
     });
@@ -3724,6 +3779,22 @@ function loadSavedView(){
         await renderEvaluaciones(true);
       });
     }
+
+    // Si ya existe envío previo, bloquear y mostrar resultado inmediatamente
+    const prev = state.evalLastResult;
+    if (prev && prev.already_submitted){
+      const sendBtn = document.getElementById("evSend");
+      const msg = document.getElementById("evSendMsg");
+      const resBox = document.getElementById("evResult");
+      if (sendBtn){
+        sendBtn.disabled = true;
+        sendBtn.textContent = "YA ENVIADO";
+      }
+      document.querySelectorAll('#evWork input[type="radio"]').forEach(i=>{ i.disabled = true; });
+      if (msg) msg.innerHTML = `Ya rendiste esta evaluación. Nota: <b>${escapeHtml(String(prev.score))}</b> / 20.`;
+      if (resBox) resBox.innerHTML = renderEvalResult(prev);
+      if (resBox) resBox.scrollIntoView({ behavior:"smooth", block:"start" });
+    }
   }
 
   function renderEvalResult(out){
@@ -3816,6 +3887,12 @@ function loadSavedView(){
         sendBtn.addEventListener("click", async ()=>{
           const msg = document.getElementById("evSendMsg");
           const resBox = document.getElementById("evResult");
+
+          // Evita doble click
+          if (state.evalSubmitting) return;
+          state.evalSubmitting = true;
+
+          let sentOk = false;
           try{
             if (msg) msg.textContent = "Enviando...";
             sendBtn.disabled = true;
@@ -3838,17 +3915,34 @@ function loadSavedView(){
             };
 
             const out = await evalApiPost(payload);
+            sentOk = true;
             state.evalLastResult = out;
-            if (resBox) resBox.innerHTML = renderEvalResult(out);
-            if (msg) msg.textContent = "Enviado.";
+
+            // Mostrar resultado (nota + claves)
+            if (resBox){
+              resBox.innerHTML = renderEvalResult(out);
+              resBox.scrollIntoView({ behavior:"smooth", block:"start" });
+            }
+
+            // Bloquear re-envío
+            document.querySelectorAll('#evWork input[type="radio"]').forEach(i=>{ i.disabled = true; });
+            sendBtn.textContent = "YA ENVIADO";
+            sendBtn.disabled = true;
+
+            const nota = (out && out.score !== undefined) ? out.score : "";
+            if (msg){
+              msg.innerHTML = `${out?.already_submitted ? "Ya rendiste esta evaluación." : "Enviado."} Nota: <b>${escapeHtml(String(nota))}</b> / 20.`;
+            }
           } catch(err){
             console.error(err);
             if (msg) msg.textContent = "Error: " + (err?.message || err);
             if (resBox) resBox.innerHTML = `<div class="evError">No se pudo enviar. Revise EVALS_API_URL y el deployment del Apps Script.</div>`;
-          } finally {
             sendBtn.disabled = false;
+          } finally {
+            state.evalSubmitting = false;
+            if (!sentOk) sendBtn.disabled = false;
           }
-        }, { once:true });
+        });
       }
 
     } catch(err){
