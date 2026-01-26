@@ -3981,6 +3981,80 @@ function mkQuestionRow(qi, draft, disabled){
     }
 
 
+    // Envío (bind aquí para que siempre funcione al seleccionar una evaluación)
+    {
+      const sendBtn = document.getElementById("evSend");
+      const msg = document.getElementById("evSendMsg");
+      const resBox = document.getElementById("evResult");
+
+      if (sendBtn){
+        if (locked){
+          sendBtn.disabled = true;
+          sendBtn.onclick = null;
+        } else {
+          sendBtn.disabled = false;
+          sendBtn.onclick = async ()=>{
+            // Evita doble click
+            if (state.evalSubmitting) return;
+            state.evalSubmitting = true;
+
+            let sentOk = false;
+            try{
+              if (msg) msg.textContent = "Enviando...";
+              sendBtn.disabled = true;
+
+              const answers = {};
+              for (let i=1;i<=5;i++){
+                const sel = document.querySelector(`#evWork input[name="q${i}"]:checked`);
+                answers[`q${i}`] = sel ? String(sel.value||"") : "";
+              }
+
+              const payload = {
+                action: "submit",
+                alumno_id: String(prof.usuario || ""),
+                alumno_nombre: String(prof.nombre || ""),
+                course_code: String(state.evalSelCourse.course_code || ""),
+                eval_id: String(ev.eval_id || ""),
+                answers
+              };
+
+              const out = await evalApiPost(payload);
+              sentOk = true;
+              state.evalLastResult = out;
+              state.evalInProgress = false;
+              clearDraft_(String(prof.usuario||""), String(ev.eval_id||""));
+
+              // Mostrar resultado (nota + claves)
+              if (resBox){
+                resBox.innerHTML = renderEvalResult(out);
+                resBox.scrollIntoView({ behavior:"smooth", block:"start" });
+              }
+
+              // Bloquear re-envío
+              document.querySelectorAll('#evWork input[type="radio"]').forEach(i=>{ i.disabled = true; });
+              sendBtn.textContent = "YA ENVIADO";
+              sendBtn.disabled = true;
+              sendBtn.onclick = null;
+
+              const nota = (out && out.score !== undefined) ? out.score : "";
+              if (msg){
+                msg.innerHTML = `${out?.already_submitted ? "Ya rendiste esta evaluación." : "Enviado."} Nota: <b>${escapeHtml(String(nota))}</b> / 20.`;
+              }
+            } catch(err){
+              console.error(err);
+              if (msg) msg.textContent = "Error: " + (err?.message || err);
+              if (resBox) resBox.innerHTML = `<div class="evError">No se pudo enviar. Revise el Apps Script y permisos del Sheet.</div>`;
+              sendBtn.disabled = false;
+            } finally {
+              state.evalSubmitting = false;
+              if (!sentOk) sendBtn.disabled = false;
+            }
+          };
+        }
+      }
+    }
+
+
     // Si ya existe envío previo, bloquear y mostrar resultado inmediatamente
     if (prev && prev.already_submitted){
       const sendBtn = document.getElementById("evSend");
@@ -4084,72 +4158,6 @@ function mkQuestionRow(qi, draft, disabled){
       // Si es actualización automática mientras el alumno está resolviendo, no tocar el formulario.
       if (softUpdate){
         return;
-      }
-
-      // Bind envío (si hay eval seleccionada y work montado)
-      const sendBtn = document.getElementById("evSend");
-      if (sendBtn){
-        sendBtn.addEventListener("click", async ()=>{
-          const msg = document.getElementById("evSendMsg");
-          const resBox = document.getElementById("evResult");
-
-          // Evita doble click
-          if (state.evalSubmitting) return;
-          state.evalSubmitting = true;
-
-          let sentOk = false;
-          try{
-            if (msg) msg.textContent = "Enviando...";
-            sendBtn.disabled = true;
-
-            const answers = {};
-            for (let i=1;i<=5;i++){
-              const sel = document.querySelector(`#evWork input[name="q${i}"]:checked`);
-              answers[`q${i}`] = sel ? String(sel.value||"") : "";
-            }
-
-            const prof = getAlumnoProfile() || {};
-            const ev = state.evalSelEval || {};
-            const payload = {
-              action:"submit",
-              alumno_id: prof.usuario || "",
-              alumno_nombre: prof.nombre || "",
-              course_code: state.evalSelCourse.course_code,
-              eval_id: ev.eval_id,
-              answers
-            };
-
-            const out = await evalApiPost(payload);
-            sentOk = true;
-            state.evalLastResult = out;
-            state.evalInProgress = false;
-            clearDraft_(String(prof.usuario||""), String(ev.eval_id||""));
-
-            // Mostrar resultado (nota + claves)
-            if (resBox){
-              resBox.innerHTML = renderEvalResult(out);
-              resBox.scrollIntoView({ behavior:"smooth", block:"start" });
-            }
-
-            // Bloquear re-envío
-            document.querySelectorAll('#evWork input[type="radio"]').forEach(i=>{ i.disabled = true; });
-            sendBtn.textContent = "YA ENVIADO";
-            sendBtn.disabled = true;
-
-            const nota = (out && out.score !== undefined) ? out.score : "";
-            if (msg){
-              msg.innerHTML = `${out?.already_submitted ? "Ya rendiste esta evaluación." : "Enviado."} Nota: <b>${escapeHtml(String(nota))}</b> / 20.`;
-            }
-          } catch(err){
-            console.error(err);
-            if (msg) msg.textContent = "Error: " + (err?.message || err);
-            if (resBox) resBox.innerHTML = `<div class="evError">No se pudo enviar. Revise EVALS_API_URL y el deployment del Apps Script.</div>`;
-            sendBtn.disabled = false;
-          } finally {
-            state.evalSubmitting = false;
-            if (!sentOk) sendBtn.disabled = false;
-          }
-        });
       }
 
     } catch(err){
