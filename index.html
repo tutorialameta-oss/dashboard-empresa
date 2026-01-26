@@ -3719,6 +3719,7 @@ function loadSavedView(){
     });
   }
 
+  
   function renderEvalList(evals){
     const wrap = document.getElementById("evList");
     const work = document.getElementById("evWork");
@@ -3766,7 +3767,8 @@ function loadSavedView(){
     // Seleccionamos la FECHA más reciente y mostramos hasta 2 bloques de esa fecha (A,B,C en orden).
     const enriched = raw.map(ev=>({ ...ev, _dkey: dateKey_(ev.fecha) }));
     const maxKey = enriched.reduce((acc, x)=> (x._dkey && x._dkey > acc ? x._dkey : acc), "");
-    let list = enriched.filter(x=> (maxKey ? x._dkey === maxKey : true))
+    const list = enriched
+      .filter(x=> (maxKey ? x._dkey === maxKey : true))
       .sort((a,b)=>{
         const oa = bloqueOrder_(a.bloque);
         const ob = bloqueOrder_(b.bloque);
@@ -3774,13 +3776,12 @@ function loadSavedView(){
         return String(a.eval_id||"").localeCompare(String(b.eval_id||""));
       })
       .slice(0, 2)
-      .map(x=>{
-        const y = { ...x };
-        delete y._dkey;
-        return y;
-      });
+      .map(x=>{ const y = { ...x }; delete y._dkey; return y; });
 
-    const items = list.map(ev=>{
+    // Guardamos la lista visible para que el click funcione aunque haya re-render/auto-refresh
+    state.evalVisibleEvals = list;
+
+    const items = (list || []).map(ev=>{
       const on = (selId && selId === ev.eval_id);
       const f = fmtFechaES(ev.fecha);
       const bb = String(ev.bloque||"").toUpperCase();
@@ -3795,17 +3796,31 @@ function loadSavedView(){
 
     wrap.innerHTML = items || `<div class="evMuted">No hay evaluaciones ACTIVAS para este curso.</div>`;
 
-    wrap.querySelectorAll("button[data-eval]").forEach(b=>{
-      b.addEventListener("click", async ()=>{
-        const id = b.getAttribute("data-eval");
-        const ev = (list || []).find(x=>x.eval_id===id);
-        state.evalSelEval = ev || null;
-        state.evalLastResult = null;
-        await loadEvalStatusForSelected();
-        state.evalInProgress = !(state.evalLastResult && state.evalLastResult.already_submitted);
-        renderEvaluacionWork();
+    // Delegación de eventos (más robusto que listeners por botón)
+    wrap.onclick = async (e)=>{
+      const btn = e.target.closest('button[data-eval]');
+      if (!btn) return;
+
+      const id = String(btn.getAttribute("data-eval") || "");
+      const ev = (state.evalVisibleEvals || []).find(x=>String(x.eval_id)===id) || null;
+
+      state.evalSelEval = ev;
+      state.evalLastResult = null;
+
+      // Marcar seleccionado en la lista
+      wrap.querySelectorAll('button[data-eval]').forEach(b=>{
+        b.classList.toggle("on", String(b.getAttribute("data-eval")||"") === id);
       });
-    });
+
+      await loadEvalStatusForSelected();
+      state.evalInProgress = !(state.evalLastResult && state.evalLastResult.already_submitted);
+
+      renderEvaluacionWork();
+
+      // Llevar al formulario para que el alumno sienta que "abrió" la evaluación
+      const workEl = document.getElementById("evWork");
+      if (workEl) workEl.scrollIntoView({ behavior:"smooth", block:"start" });
+    };
 
     if (!state.evalSelEval && work){
       work.innerHTML = `<div class="cardtitle">SELECCIONA UNA EVALUACIÓN</div>
@@ -3813,7 +3828,7 @@ function loadSavedView(){
     }
   }
 
-  function mkQuestionRow(qi, draft, disabled){
+function mkQuestionRow(qi, draft, disabled){
     const n = qi + 1;
     const name = `q${n}`;
     const opts = ["A","B","C","D","E"];
