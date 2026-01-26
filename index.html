@@ -1320,13 +1320,44 @@
   .evWorkMeta{ color:var(--muted); font-weight:900; font-size:12px; text-transform:uppercase; margin-top:6px; }
   .evEx{ border:1px dashed rgba(0,0,0,.14); border-radius: 16px; padding:12px; background: rgba(0,0,0,.02); margin-bottom:12px; }
   .evLink{ display:inline-flex; align-items:center; gap:8px; text-decoration:none; font-weight:1100; color: var(--accent2); border:1px solid rgba(209,11,11,0.25); background: var(--soft); padding:10px 12px; border-radius: 14px; }
-    .evPdf{ width:100%; height:520px; border:1px solid var(--border); border-radius:14px; margin-top:10px; background:#fff; }
+    .evPdf{ width:100%; height:520px; border:1px solid var(--border); border-radius:14px; margin-top:10px; background:#fff; display:none; }
+  .evPdf.on{ display:block; }
 
   .evLink:hover{ border-color: rgba(209,11,11,0.45); background: rgba(209,11,11,0.10); }
+  /* --- UX PRO (progreso, navegación, sticky) --- */
+  .evProgressWrap{ border:1px solid rgba(0,0,0,.08); border-radius: 18px; padding:12px; background:#fff; margin: 12px 0; }
+  .evProgressTop{ display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:10px; }
+  .evProgressLabel{ font-weight:1100; text-transform:uppercase; font-size:12px; color:#0f172a; }
+  .evAutosave{ font-weight:950; font-size:12px; color:var(--muted); text-transform:uppercase; }
+  .evProgress{ width:100%; height:10px; background: rgba(0,0,0,.06); border-radius: 999px; overflow:hidden; }
+  .evProgressFill{ height:100%; width:0%; background: linear-gradient(90deg, rgba(209,11,11,.95), rgba(250, 94, 94, .95)); border-radius: 999px; transition: width .25s ease; }
+
+  .evNav{ display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; }
+  .evNavBtn{ width:36px; height:36px; border-radius: 14px; border:1px solid rgba(0,0,0,.10); background:#fff; cursor:pointer;
+             font-weight:1100; }
+  .evNavBtn.done{ border-color: rgba(16,185,129,.50); box-shadow: 0 0 0 3px rgba(16,185,129,.12); }
+  .evNavBtn:hover{ border-color: rgba(209,11,11,.35); box-shadow: 0 0 0 3px rgba(209,11,11,.10); }
+
+  .evStickyBar{ position: sticky; bottom: 12px; display:flex; align-items:center; justify-content:space-between; gap:12px;
+                border:1px solid rgba(0,0,0,.10); border-radius: 18px; padding:12px; background: rgba(255,255,255,.92);
+                backdrop-filter: blur(10px); box-shadow: 0 10px 30px rgba(2,6,23,.08); }
+  .evStickyBar .alBtn{ min-width: 210px; }
+
+  .evExRow{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+  .evLinkLite{ border-style: solid; background: #fff; }
+
+  @media (max-width: 760px){
+    .evPdf{ display:none; height: 380px; }
+    .evPdf.on{ display:block; }
+    .evStickyBar{ position: fixed; left: 12px; right: 12px; bottom: 12px; z-index: 40; }
+    .evForm{ padding-bottom: 92px; }
+  }
+
 
   .evForm{ display:flex; flex-direction:column; gap:12px; margin-top:10px; }
   .evQRow{ border:1px solid rgba(0,0,0,.08); border-radius: 16px; padding:12px; background:#fff; }
-  .evQName{ font-weight:1100; text-transform:uppercase; font-size:12px; margin-bottom:10px; color: var(--muted); }
+  .evQName{ font-weight:1100; text-transform:uppercase; font-size:12px; margin-bottom:10px; color: var(--muted); display:flex; justify-content:space-between; gap:10px; flex-wrap:wrap; }
+  .evQNameSub{ font-weight:900; font-size:11px; color: var(--muted); text-transform:none; }
   .evOpts{ display:flex; gap:10px; flex-wrap:wrap; }
   .evOpt{ display:inline-flex; gap:8px; align-items:center; border:1px solid rgba(0,0,0,.10); border-radius: 999px; padding:8px 10px; font-weight:950; font-size:12px; background:#fafafa; cursor:pointer; user-select:none; }
   .evOpt input{ margin:0; }
@@ -2092,6 +2123,7 @@ function loadSavedView(){
     evalSelCourse: null,
     evalSelEval: null,
     evalLastResult: null,
+    evalInProgress: false,
     ch_over_estado: null,
     ch_over_modalidad: null,
     ch_over_uni_stack: null,
@@ -2297,6 +2329,7 @@ function loadSavedView(){
       v = (CURRENT_ROLE === "alumno") ? "inicio_alumno" : "table";
     }
     state.view = v;
+    if (v !== "evaluaciones") state.evalInProgress = false;
     saveView(v);
 
     const t = (id, on)=>{
@@ -3454,7 +3487,110 @@ function loadSavedView(){
     const js = await res.json();
     if (!js || js.ok !== true) throw new Error(js?.error || "Respuesta inválida del API");
     return js.data;
+  
+  // ===================== EVALUACIONES: DRAFT (no borrar marcado) =====================
+  // Guarda respuestas marcadas localmente para que NO se pierdan por refresh/scroll.
+  function draftKey_(alumnoId, evalId){
+    return `metapp_draft__${alumnoId || "anon"}__${evalId || "none"}`;
   }
+  function loadDraft_(alumnoId, evalId){
+    try{
+      const raw = localStorage.getItem(draftKey_(alumnoId, evalId));
+      return raw ? JSON.parse(raw) : { q1:"", q2:"", q3:"", q4:"", q5:"" };
+    }catch(_){
+      return { q1:"", q2:"", q3:"", q4:"", q5:"" };
+    }
+  }
+  function saveDraft_(alumnoId, evalId, draft){
+    try{ localStorage.setItem(draftKey_(alumnoId, evalId), JSON.stringify(draft || {})); }catch(_){}
+  }
+  function clearDraft_(alumnoId, evalId){
+    try{ localStorage.removeItem(draftKey_(alumnoId, evalId)); }catch(_){}
+  }
+  function answeredCount_(draft){
+    let c = 0;
+    for (let i=1;i<=5;i++){
+      const v = String(draft?.["q"+i] || "").trim();
+      if (v) c++;
+    }
+    return c;
+  }
+  function updateEvalProgressUI_(draft){
+    const c = answeredCount_(draft);
+    const pct = Math.round((c/5)*100);
+    const fill = document.getElementById("evProgressFill");
+    const count = document.getElementById("evAnsweredCount");
+    if (fill) fill.style.width = pct + "%";
+    if (count) count.textContent = String(c);
+
+    // marcar navegación
+    const nav = document.getElementById("evNav");
+    if (nav){
+      nav.querySelectorAll(".evNavBtn").forEach(btn=>{
+        const q = Number(btn.getAttribute("data-q") || "0");
+        const v = String(draft?.["q"+q] || "").trim();
+        btn.classList.toggle("done", !!v);
+      });
+    }
+  }
+  function wireDraftAutosave_(alumnoId, evalId){
+    const draft = loadDraft_(alumnoId, evalId);
+    updateEvalProgressUI_(draft);
+
+    const hint = document.getElementById("evAutosave");
+    function stamp(){
+      if (!hint) return;
+      const t = new Date();
+      const hh = String(t.getHours()).padStart(2,"0");
+      const mm = String(t.getMinutes()).padStart(2,"0");
+      hint.textContent = "Guardado " + hh + ":" + mm;
+    }
+
+    for (let i=1;i<=5;i++){
+      const q = "q"+i;
+      document.querySelectorAll(`#evWork input[name="${q}"]`).forEach(inp=>{
+        inp.addEventListener("change", ()=>{
+          const sel = document.querySelector(`#evWork input[name="${q}"]:checked`);
+          draft[q] = sel ? String(sel.value||"") : "";
+          saveDraft_(alumnoId, evalId, draft);
+          updateEvalProgressUI_(draft);
+          stamp();
+        }, { passive:true });
+      });
+    }
+
+    // navegación 1..5
+    const nav = document.getElementById("evNav");
+    if (nav){
+      nav.querySelectorAll(".evNavBtn").forEach(btn=>{
+        btn.addEventListener("click", ()=>{
+          const q = Number(btn.getAttribute("data-q") || "0");
+          const row = document.getElementById("evQ"+q);
+          if (row) row.scrollIntoView({ behavior:"smooth", block:"start" });
+        });
+      });
+    }
+
+    // toggle PDF
+    const tbtn = document.getElementById("evTogglePdf");
+    const iframe = document.getElementById("evPdfFrame");
+    if (tbtn && iframe){
+      // En móvil, ocultar por defecto para no incomodar; en laptop, mostrar.
+      if (window.innerWidth <= 760){
+        iframe.classList.remove("on");
+        tbtn.textContent = "VER PDF";
+      } else {
+        iframe.classList.add("on");
+        tbtn.textContent = "OCULTAR PDF";
+      }
+
+      tbtn.addEventListener("click", ()=>{
+        iframe.classList.toggle("on");
+        tbtn.textContent = iframe.classList.contains("on") ? "OCULTAR PDF" : "VER PDF";
+      });
+    }
+  }
+}
 
   function ensureEvaluacionesLayout(){
     const el = document.getElementById("view_evaluaciones");
@@ -3577,6 +3713,7 @@ function loadSavedView(){
         state.evalSelCourse = course;
         state.evalSelEval = null;
         state.evalLastResult = null;
+        state.evalInProgress = false;
         renderEvaluaciones();
       });
     });
@@ -3665,6 +3802,7 @@ function loadSavedView(){
         state.evalSelEval = ev || null;
         state.evalLastResult = null;
         await loadEvalStatusForSelected();
+        state.evalInProgress = !(state.evalLastResult && state.evalLastResult.already_submitted);
         renderEvaluacionWork();
       });
     });
@@ -3675,20 +3813,30 @@ function loadSavedView(){
     }
   }
 
-  function mkQuestionRow(qi){
+  function mkQuestionRow(qi, draft, disabled){
     const n = qi + 1;
     const name = `q${n}`;
     const opts = ["A","B","C","D","E"];
-    const radios = opts.map(o=>`
-      <label class="evOpt">
-        <input type="radio" name="${name}" value="${o}">
-        <span>${o}</span>
-      </label>
-    `).join("");
+    const cur = String(draft?.[name] || "").trim().toUpperCase();
+
+    const radios = opts.map(o=>{
+      const chk = (cur === o) ? "checked" : "";
+      const dis = disabled ? "disabled" : "";
+      return `
+        <label class="evOpt">
+          <input type="radio" name="${name}" value="${o}" ${chk} ${dis}>
+          <span>${o}</span>
+        </label>
+      `;
+    }).join("");
+
     // Si el alumno no marca nada, se considera "en blanco" automáticamente (sin mostrar opción extra).
     return `
-      <div class="evQRow">
-        <div class="evQName">Pregunta ${n}</div>
+      <div class="evQRow" id="evQ${n}">
+        <div class="evQName">
+          <span>Pregunta ${n}</span>
+          <span class="evQNameSub">Marca A–E (si no respondes, queda en blanco)</span>
+        </div>
         <div class="evOpts">${radios}</div>
       </div>
     `;
@@ -3712,6 +3860,13 @@ function loadSavedView(){
     }
 
     const ev = state.evalSelEval;
+    const prev = state.evalLastResult || null;
+    const locked = !!(prev && prev.already_submitted);
+    const alumnoId = String(prof.usuario || prof.dni || prof.codigo || prof.nombre || "anon").trim() || "anon";
+
+    // Draft: restaura lo marcado si hay refresh
+    const draft = loadDraft_(alumnoId, ev.eval_id);
+    const qRows = [0,1,2,3,4].map(i=>mkQuestionRow(i, draft, locked)).join("");
     const f = fmtFechaES(ev.fecha);
     const bb = String(ev.bloque||"").toUpperCase();
 
@@ -3731,9 +3886,8 @@ function loadSavedView(){
 
     const previewUrl = toDrivePreviewUrl(link);
 
-    const qRows = [0,1,2,3,4].map(mkQuestionRow).join("");
 
-    work.innerHTML = `
+        work.innerHTML = `
       <div class="cardtitle">
         <span>EVALUACIÓN</span>
         <span class="panelHint">${escapeHtml(state.evalSelCourse.course_name || state.evalSelCourse.course_code)} • ${escapeHtml(f)} • Bloque ${escapeHtml(bb)}</span>
@@ -3749,10 +3903,28 @@ function loadSavedView(){
         </div>
       </div>
 
+      <div class="evProgressWrap">
+        <div class="evProgressTop">
+          <div class="evProgressLabel"><b><span id="evAnsweredCount">0</span></b>/5 respondidas</div>
+          <div class="evAutosave" id="evAutosave">Guardado</div>
+        </div>
+        <div class="evProgress"><div class="evProgressFill" id="evProgressFill"></div></div>
+        <div class="evNav" id="evNav">
+          <button type="button" class="evNavBtn" data-q="1">1</button>
+          <button type="button" class="evNavBtn" data-q="2">2</button>
+          <button type="button" class="evNavBtn" data-q="3">3</button>
+          <button type="button" class="evNavBtn" data-q="4">4</button>
+          <button type="button" class="evNavBtn" data-q="5">5</button>
+        </div>
+      </div>
+
       <div class="evEx">
         ${showEx && link ? `
-          <a class="evLink" href="${escapeHtml(link)}" target="_blank" rel="noopener noreferrer">ABRIR EJERCICIOS</a>
-          ${previewUrl ? `<iframe class="evPdf" src="${escapeHtml(previewUrl)}" loading="lazy"></iframe>` : ``}
+          <div class="evExRow">
+            <a class="evLink" href="${escapeHtml(link)}" target="_blank" rel="noopener noreferrer">ABRIR EJERCICIOS</a>
+            ${previewUrl ? `<button class="evLink evLinkLite" id="evTogglePdf" type="button">VER PDF</button>` : ``}
+          </div>
+          ${previewUrl ? `<iframe class="evPdf on" id="evPdfFrame" src="${escapeHtml(previewUrl)}" loading="lazy"></iframe>` : ``}
           <div class="evMuted">Si no marcas una pregunta, se considera en blanco.</div>
         ` : `
           <div class="evMuted"><b>Ejercicios ocultos.</b> Responde sin ver ejercicios.</div>
@@ -3762,10 +3934,11 @@ function loadSavedView(){
 
       <div class="evForm">
         ${qRows}
-        <div class="evSubmitRow">
-          <button class="alBtn" id="evSend" type="button">ENVIAR RESPUESTAS</button>
-          <div class="evMuted" id="evSendMsg"></div>
-        </div>
+      </div>
+
+      <div class="evStickyBar">
+        <button class="alBtn" id="evSend" type="button">${locked ? "YA ENVIADO" : "ENVIAR RESPUESTAS"}</button>
+        <div class="evMuted" id="evSendMsg"></div>
       </div>
 
       <div id="evResult"></div>
@@ -3780,8 +3953,20 @@ function loadSavedView(){
       });
     }
 
+
+    // Draft autosave + progreso (evita pérdida de marcado por auto-refresh)
+    if (!locked){
+      state.evalInProgress = true;
+      wireDraftAutosave_(alumnoId, ev.eval_id);
+    } else {
+      state.evalInProgress = false;
+      updateEvalProgressUI_(draft);
+      const sb = document.getElementById("evSend");
+      if (sb) sb.disabled = true;
+    }
+
+
     // Si ya existe envío previo, bloquear y mostrar resultado inmediatamente
-    const prev = state.evalLastResult;
     if (prev && prev.already_submitted){
       const sendBtn = document.getElementById("evSend");
       const msg = document.getElementById("evSendMsg");
@@ -3842,7 +4027,7 @@ function loadSavedView(){
     `;
   }
 
-  async function renderEvaluaciones(forceReload){
+  async function renderEvaluaciones(forceReload, softUpdate){
     ensureEvaluacionesLayout();
 
     const work = document.getElementById("evWork");
@@ -3877,8 +4062,13 @@ function loadSavedView(){
         renderEvalList([]);
       }
 
-      if (state.evalSelEval){
+      if (state.evalSelEval && !softUpdate){
         renderEvaluacionWork();
+      }
+
+      // Si es actualización automática mientras el alumno está resolviendo, no tocar el formulario.
+      if (softUpdate){
+        return;
       }
 
       // Bind envío (si hay eval seleccionada y work montado)
@@ -3917,6 +4107,8 @@ function loadSavedView(){
             const out = await evalApiPost(payload);
             sentOk = true;
             state.evalLastResult = out;
+            state.evalInProgress = false;
+            clearDraft_(String(prof.usuario||""), String(ev.eval_id||""));
 
             // Mostrar resultado (nota + claves)
             if (resBox){
@@ -5668,7 +5860,7 @@ function renderInicioAlumno(){
   }
 
 
-function render(){
+function render(opts = {}){
     if (state.view==="inicio_alumno") renderInicioAlumno();
     if (state.view==="perfil_alumno") renderPerfilAlumno();
     if (state.view==="overview") renderOverview();
@@ -5677,7 +5869,10 @@ function render(){
     if (state.view==="horarios") renderHorarios();
     if (state.view==="impresiones") renderImpresiones();
     if (state.view==="silabos") renderSilabos();
-    if (state.view==="evaluaciones") renderEvaluaciones();
+    if (state.view==="evaluaciones"){
+      const soft = (opts && opts.fromAutoRefresh === true && CURRENT_ROLE==="alumno" && state.evalInProgress === true);
+      renderEvaluaciones(false, soft);
+    }
     if (state.view==="materiales") renderMateriales();
     if (state.view==="listas") renderListas();
     if (state.view==="reportes") renderReportes();
@@ -5849,7 +6044,7 @@ function ensureBoot(){
     if (!el) return;
     el.addEventListener("change", ()=>{
       rebuildSalonOptions();
-      render();
+      render({ fromAutoRefresh:true });
     });
   });
 
@@ -5901,7 +6096,7 @@ async function loadAll(){
 
     // Importante: initFilters puede rearmar selects; se ejecuta aquí para mantener data al día
     initFilters();
-    render();
+    render({ fromAutoRefresh:true });
 
   } catch(e){
     console.error("loadAll:", e);
