@@ -632,6 +632,39 @@
       border-color: rgba(209,11,11,0.35);
       background: rgba(209,11,11,0.08);
     }
+
+    .syBtns{
+      display:flex;
+      gap:8px;
+      align-items:center;
+      flex-wrap:wrap;
+      justify-content:flex-end;
+    }
+    .syBtn{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap:8px;
+      padding:8px 12px;
+      border-radius: 999px;
+      border:1px solid rgba(15,23,42,0.12);
+      background:#f8fafc;
+      font-weight:950;
+      font-size:12px;
+      white-space:nowrap;
+      color: var(--accent2);
+      text-decoration:none;
+      cursor:pointer;
+    }
+    .syBtn:hover{
+      border-color: rgba(209,11,11,0.35);
+      background: rgba(209,11,11,0.06);
+    }
+    .syBtn.disabled{
+      opacity:.65;
+      pointer-events:none;
+      cursor:default;
+    }
     .syLocalHead{
       display:flex;
       align-items:center;
@@ -1431,7 +1464,7 @@
         <button id="nav_evaluaciones">EVALUACIONES</button>
         <button id="nav_materiales">MATERIALES</button>
         <button id="nav_listas">LISTAS</button>
-        <button id="nav_reportes">ENVÍO DE REPORTES</button>
+        <button id="nav_reportes">REPORTES</button>
 
       </div>
 
@@ -1812,6 +1845,7 @@
 const SALONES = [
     { local:"LA MOLINA", ciclo:"AGRARIA",  salon:"AGRARIA LM 1", gid:818929525 },
     { local:"LA MOLINA", ciclo:"AGRARIA",  salon:"AGRARIA LM 2", gid:1576159193 },
+    { local:"LA MOLINA", ciclo:"AGRARIA",  salon:"AGRARIA ESCOLAR", gid:938671284 },
     { local:"LA MOLINA", ciclo:"PUCP",     salon:"PUCP LM",     gid:1037962332 },
     { local:"LA MOLINA", ciclo:"U.LIMA",   salon:"U.LIMA LM",   gid:877886853 },
     { local:"LA MOLINA", ciclo:"ADELANTO", salon:"ADELANTO LM", gid:1271606284 },
@@ -2393,7 +2427,7 @@ function loadSavedView(){
       evaluaciones: ["EVALUACIONES", "Evaluaciones por curso (5 preguntas). Envío automático y nota 0–20."],
       materiales: ["MATERIALES", "Accesos a carpetas de materiales por universidad."],
       listas: ["LISTAS", "Listas y exportables por salón."],
-      reportes: ["ENVÍO DE REPORTES", "Plantillas y envío de reportes por alumno."]
+      reportes: ["REPORTES", "Envío y acceso a carpeta de acumulación de reportes por salón."]
     };
     const title = document.getElementById("viewTitle");
     const desc = document.getElementById("viewDesc");
@@ -2691,6 +2725,8 @@ function loadSavedView(){
 
     const theadAdmin = `
       <tr>
+        <th>NOMBRES</th>
+        <th>APELLIDOS</th>
         <th>NOMBRES COMPLETOS</th>
         <th>LOCAL</th>
         <th>UNIVERSIDAD</th>
@@ -2701,13 +2737,26 @@ function loadSavedView(){
         <th>CORREO</th>
         <th>DNI</th>
         <th>CELULAR</th>
+        <th>EDAD</th>
+        <th>PROVINCIA</th>
+        <th>DISTRITO</th>
+        <th>COLEGIO</th>
+        <th>DISTRITO DE COLEGIO</th>
+
         <th>ACADEMIA</th>
+        <th>PREPARACIÓN</th>
+        <th>¿CÓMO SE ENTERÓ?</th>
         <th>CARRERA</th>
 
-        <th>APODERADO</th>
+        <th>FECHA INSCRIPCIÓN</th>
+        <th>FECHA INICIO</th>
+        <th>FECHA RETIRO</th>
+        <th>OBSERVACIONES</th>
+
+        <th>PADRE/APODERADO</th>
         <th>CEL APODERADO</th>
-        <th>DNI APODERADO</th>
         <th>CORREO APODERADO</th>
+        <th>DNI APODERADO</th>
 
         <th>USUARIO</th>
         <th>CONTRASEÑA</th>
@@ -2910,12 +2959,16 @@ function loadSavedView(){
       return;
     }
 
-    // ADMIN: mostrar datos ampliados
-    tbody.innerHTML = rows.slice(0,1200).map(r=>`
+        // ADMIN: mostrar estructura nueva (si falta un campo, queda vacío)
+    tbody.innerHTML = rows.slice(0,1200).map(r=>{
+      const uni = r.uni_sheet || uniGroupFromCiclo(r.ciclo);
+      return `
       <tr>
-        <td>${escapeHtml(r.nombre)}</td>
+        <td>${escapeHtml(r.nombres || "")}</td>
+        <td>${escapeHtml(r.apellidos || "")}</td>
+        <td>${escapeHtml(r.nombres_completos || r.nombre || "")}</td>
         <td>${escapeHtml(r.local)}</td>
-        <td>${escapeHtml(uniGroupFromCiclo(r.ciclo))}</td>
+        <td>${escapeHtml(uni)}</td>
         <td>${escapeHtml(r.salon)}</td>
         <td>${escapeHtml(r.modalidad)}</td>
         <td>${escapeHtml(r.estado)}</td>
@@ -2923,18 +2976,32 @@ function loadSavedView(){
         <td>${escapeHtml(r.correo_al || "")}</td>
         <td>${escapeHtml(r.dni_al || "")}</td>
         <td>${escapeHtml(r.celular_al || "")}</td>
+        <td>${escapeHtml(r.edad || "")}</td>
+        <td>${escapeHtml(r.provincia || "")}</td>
+        <td>${escapeHtml(r.distrito || "")}</td>
+        <td>${escapeHtml(r.colegio || "")}</td>
+        <td>${escapeHtml(r.distrito_colegio || "")}</td>
+
         <td>${escapeHtml(r.academia || "")}</td>
+        <td>${escapeHtml(r.preparacion || "")}</td>
+        <td>${escapeHtml(r.como_entero || "")}</td>
         <td>${escapeHtml(r.carrera || "")}</td>
+
+        <td>${escapeHtml(r.fecha_inscripcion || "")}</td>
+        <td>${escapeHtml(r.fecha_inicio || "")}</td>
+        <td>${escapeHtml(r.fecha_retiro || "")}</td>
+        <td>${escapeHtml(r.observaciones || "")}</td>
 
         <td>${escapeHtml(r.nombre_apo || "")}</td>
         <td>${escapeHtml(r.cel_apo || "")}</td>
-        <td>${escapeHtml(r.dni_apo || "")}</td>
         <td>${escapeHtml(r.correo_apo || "")}</td>
+        <td>${escapeHtml(r.dni_apo || "")}</td>
 
         <td>${escapeHtml(r.usuario || "")}</td>
         <td>${escapeHtml(r.contrasena || "")}</td>
       </tr>
-    `).join("");
+      `;
+    }).join("");
   }
 
   // ===================== IMPRESIONES (NUEVO) =====================
@@ -4228,6 +4295,7 @@ const LISTAS = [
   // ================= LA MOLINA =================
   { local:"LA MOLINA", name:"AGRARIA 1", url:"https://docs.google.com/spreadsheets/d/1DaCwdvXjHWK5u24aObF9YFBaO2M65_ANj2XOgc2hJxg/edit?usp=drive_link" },
   { local:"LA MOLINA", name:"AGRARIA 2", url:"https://docs.google.com/spreadsheets/d/12Ti_WVsDCYC9HM4K58l0fFpbK3bAs4ffXQUPpQ0-nOA/edit?usp=drive_link" },
+  { local:"LA MOLINA", name:"AGRARIA ESCOLAR", url:"" },
   { local:"LA MOLINA", name:"PUCP",      url:"https://docs.google.com/spreadsheets/d/11ccHJmPBzkCuWgMWfUKwRfOUgyWG4_8a2rM8Ur_BYq0/edit" },
   { local:"LA MOLINA", name:"U.LIMA",    url:"https://docs.google.com/spreadsheets/d/1y3hfwo3NYmrShRNBOdwLCwM9AUd9Aj2YoJtfgvlZrOY/edit?usp=drive_web&ouid=109996193497961946614" },
   { local:"LA MOLINA", name:"PARALELO",  url:"https://docs.google.com/spreadsheets/d/1uqJMpS3_QY6DmvnDjatf8tWcArf8kCtyYjIt7mSpJXU/edit?usp=drive_web&ouid=109996193497961946614" },
@@ -4417,35 +4485,36 @@ const items = list.map(it=>{
 }
 // ===================== FIN LISTAS =====================
 
-// ===================== ENVÍO DE REPORTES (NUEVO) =====================
-// ✅ Pega tus enlaces en el campo url (deja "" si aún no tienes el link).
+// ===================== REPORTES (NUEVO) =====================
+// ✅ Pega tus enlaces en el campo reporte y carpeta (deja "" si aún no tienes el link).
 // ✅ Se mantiene el mismo ORDEN y COLORES que en LISTAS (AGRARIA verde, PUCP azul, U.LIMA/ESCOLAR naranja, ADELANTO/PARALELO rojo).
 const REPORTES = [
   // ================= LA MOLINA =================
-  { local:"LA MOLINA", name:"AGRARIA LM 1",      url:"https://colab.research.google.com/drive/1VTKBuf26KoDD_qum3r1r-bQnbZTRkXdg" },
-  { local:"LA MOLINA", name:"AGRARIA LM 2",      url:"https://colab.research.google.com/drive/17sCgiKn2UdrE-gOuO9f5ouAxf4gPOqvy" },
-  { local:"LA MOLINA", name:"PUCP LM",           url:"https://colab.research.google.com/drive/1Edgesw6yJC1vD7J44Sq7ZMqouXImuINU" },
-  { local:"LA MOLINA", name:"U.LIMA LM",         url:"https://colab.research.google.com/drive/1TU7HoBroIBo7XONr4hifgd0r3gzKQbd1" },
-  { local:"LA MOLINA", name:"ADELANTO LM",       url:"https://colab.research.google.com/drive/1GmBZNfVlXi7z6DUTg3hnVMiW0DlONKJ-" },
+  { local:"LA MOLINA", name:"AGRARIA LM 1",      reporte:"https://colab.research.google.com/drive/1VTKBuf26KoDD_qum3r1r-bQnbZTRkXdg" , carpeta:"" },
+  { local:"LA MOLINA", name:"AGRARIA LM 2",      reporte:"https://colab.research.google.com/drive/17sCgiKn2UdrE-gOuO9f5ouAxf4gPOqvy" , carpeta:"" },
+  { local:"LA MOLINA", name:"AGRARIA ESCOLAR",  reporte:"", carpeta:"" },
+  { local:"LA MOLINA", name:"PUCP LM",           reporte:"https://colab.research.google.com/drive/1Edgesw6yJC1vD7J44Sq7ZMqouXImuINU" , carpeta:"" },
+  { local:"LA MOLINA", name:"U.LIMA LM",         reporte:"https://colab.research.google.com/drive/1TU7HoBroIBo7XONr4hifgd0r3gzKQbd1" , carpeta:"" },
+  { local:"LA MOLINA", name:"ADELANTO LM",       reporte:"https://colab.research.google.com/drive/1GmBZNfVlXi7z6DUTg3hnVMiW0DlONKJ-" , carpeta:"" },
 
   // ================= SAN MIGUEL =================
-  { local:"SAN MIGUEL", name:"AGRARIA SM",       url:"https://colab.research.google.com/drive/1OZWR5Z1HaAVgmWx2ofS4d0nj-Arl9sMs" },
-  { local:"SAN MIGUEL", name:"PUCP SM",          url:"https://colab.research.google.com/drive/1roEJq2NiU4pQB8rsbhDKvR_g8wjCKgoi" },
-  { local:"SAN MIGUEL", name:"U.LIMA SM 1",      url:"https://colab.research.google.com/drive/1wLAf1p8LmF4dI-qLVjTv8Ax0XmJH2vHr" },
-  { local:"SAN MIGUEL", name:"U.LIMA SM 2",      url:"https://colab.research.google.com/drive/1AKoWoQ4LzXg7DCJNF_Vaqw9kmUXxuuWu" },
-  { local:"SAN MIGUEL", name:"ADELANTO SM",      url:"https://colab.research.google.com/drive/1K_LFFycdNc6KS_LMCb5-2groejZlvBXI" },
+  { local:"SAN MIGUEL", name:"AGRARIA SM",       reporte:"https://colab.research.google.com/drive/1OZWR5Z1HaAVgmWx2ofS4d0nj-Arl9sMs" , carpeta:"" },
+  { local:"SAN MIGUEL", name:"PUCP SM",          reporte:"https://colab.research.google.com/drive/1roEJq2NiU4pQB8rsbhDKvR_g8wjCKgoi" , carpeta:"" },
+  { local:"SAN MIGUEL", name:"U.LIMA SM 1",      reporte:"https://colab.research.google.com/drive/1wLAf1p8LmF4dI-qLVjTv8Ax0XmJH2vHr" , carpeta:"" },
+  { local:"SAN MIGUEL", name:"U.LIMA SM 2",      reporte:"https://colab.research.google.com/drive/1AKoWoQ4LzXg7DCJNF_Vaqw9kmUXxuuWu" , carpeta:"" },
+  { local:"SAN MIGUEL", name:"ADELANTO SM",      reporte:"https://colab.research.google.com/drive/1K_LFFycdNc6KS_LMCb5-2groejZlvBXI" , carpeta:"" },
 
   // ================= SAN BORJA =================
-  { local:"SAN BORJA",  name:"AGRARIA SB",       url:"https://colab.research.google.com/drive/14r9W48Q1pvH9ANFB15c7sbk7pYoWOf-_" },
-  { local:"SAN BORJA",  name:"PUCP SB",          url:"https://colab.research.google.com/drive/1czyfJSMFAMdDkjXvI8t3UPNO9KfzGtIC" },
-  { local:"SAN BORJA",  name:"U.LIMA SB 1",      url:"https://colab.research.google.com/drive/1mElja6XYJ25gG10y-UneEgjUFEDK-i-M" },
-  { local:"SAN BORJA",  name:"U.LIMA SB 2",      url:"https://colab.research.google.com/drive/19KkIWlb1oNy4VoRCflfv6GWXPlQNO6-u" },
+  { local:"SAN BORJA",  name:"AGRARIA SB",       reporte:"https://colab.research.google.com/drive/14r9W48Q1pvH9ANFB15c7sbk7pYoWOf-_" , carpeta:"" },
+  { local:"SAN BORJA",  name:"PUCP SB",          reporte:"https://colab.research.google.com/drive/1czyfJSMFAMdDkjXvI8t3UPNO9KfzGtIC" , carpeta:"" },
+  { local:"SAN BORJA",  name:"U.LIMA SB 1",      reporte:"https://colab.research.google.com/drive/1mElja6XYJ25gG10y-UneEgjUFEDK-i-M" , carpeta:"" },
+  { local:"SAN BORJA",  name:"U.LIMA SB 2",      reporte:"https://colab.research.google.com/drive/19KkIWlb1oNy4VoRCflfv6GWXPlQNO6-u" , carpeta:"" },
 
   // ================= VIRTUAL =================
-  { local:"VIRTUAL",    name:"AGRARIA VIRTUAL",  url:"https://colab.research.google.com/drive/1jmxIzW1yB3h_k4J3Y9cbcqS8t3QwUW6P" },
-  { local:"VIRTUAL",    name:"U.LIMA VIRTUAL 1",   url:"https://colab.research.google.com/drive/1-AOKPLGxlb2OWCoMDrAA0kXCZRj3hrNI" },
-  { local:"VIRTUAL",    name:"U.LIMA VIRTUAL 2",   url:"https://colab.research.google.com/drive/1tX_yYM7H1s_dHACnLoPJo4kTePWVc8jJ" },
-  { local:"VIRTUAL",    name:"U.LIMA ESCOLAR",   url:"https://colab.research.google.com/drive/1Wmj0Py2AdOihL_hXZCT-kfbj2ezqvbDe" },
+  { local:"VIRTUAL",    name:"AGRARIA VIRTUAL",  reporte:"https://colab.research.google.com/drive/1jmxIzW1yB3h_k4J3Y9cbcqS8t3QwUW6P" , carpeta:"" },
+  { local:"VIRTUAL",    name:"U.LIMA VIRTUAL 1",   reporte:"https://colab.research.google.com/drive/1-AOKPLGxlb2OWCoMDrAA0kXCZRj3hrNI" , carpeta:"" },
+  { local:"VIRTUAL",    name:"U.LIMA VIRTUAL 2",   reporte:"https://colab.research.google.com/drive/1tX_yYM7H1s_dHACnLoPJo4kTePWVc8jJ" , carpeta:"" },
+  { local:"VIRTUAL",    name:"U.LIMA ESCOLAR",   reporte:"https://colab.research.google.com/drive/1Wmj0Py2AdOihL_hXZCT-kfbj2ezqvbDe" , carpeta:"" },
 ];
 
 function ensureReportesLayout(){
@@ -4457,7 +4526,7 @@ function ensureReportesLayout(){
       <div class="cardtitle">FILTROS</div>
       <div class="controls" style="justify-content:flex-start;">
         <select id="rLocal"></select>
-        <input id="rQ" type="text" placeholder="Buscar (ej: agraria, pucp, u.lima, paralelo, adelanto, virtual)"/>
+        <input id="rQ" type="text" placeholder="Buscar (ej: agraria, escolar, pucp, u.lima, paralelo, adelanto, virtual)"/>
         <button id="rReset">VER TODO</button>
       </div>
     </div>
@@ -4526,25 +4595,20 @@ function renderReportes(){
 
     const items = list.map(it=>{
       const meta = listaMetaFromName(it.name);
-      const hasUrl = !!(it.url && String(it.url).trim().length>0);
 
-      if (!hasUrl){
-        return `
-          <div class="syItem" style="opacity:.70; cursor:default;">
-            <div class="syLeft">
-              <div class="syCourse">${escapeHtml(it.name)}</div>
-              <div class="syMeta">
-                <span class="dot" style="background:${meta.dot};"></span>
-                <span>${escapeHtml(loc)}</span>
-              </div>
-            </div>
-            <div class="syOpen">PENDIENTE</div>
-          </div>
-        `;
-      }
+      const rep = (it.reporte && String(it.reporte).trim()) ? String(it.reporte).trim() : "";
+      const car = (it.carpeta && String(it.carpeta).trim()) ? String(it.carpeta).trim() : "";
+
+      const repBtn = rep
+        ? `<a class="syBtn" href="${escapeHtml(rep)}" target="_blank" rel="noopener noreferrer">REPORTE</a>`
+        : `<span class="syBtn disabled">REPORTE</span>`;
+
+      const carBtn = car
+        ? `<a class="syBtn" href="${escapeHtml(car)}" target="_blank" rel="noopener noreferrer">CARPETA</a>`
+        : `<span class="syBtn disabled">CARPETA</span>`;
 
       return `
-        <a class="syItem" href="${escapeHtml(it.url)}" target="_blank" rel="noopener noreferrer">
+        <div class="syItem">
           <div class="syLeft">
             <div class="syCourse">${escapeHtml(it.name)}</div>
             <div class="syMeta">
@@ -4552,8 +4616,11 @@ function renderReportes(){
               <span>${escapeHtml(loc)}</span>
             </div>
           </div>
-          <div class="syOpen">ENVIAR REPORTE</div>
-        </a>
+          <div class="syBtns">
+            ${repBtn}
+            ${carBtn}
+          </div>
+        </div>
       `;
     }).join("");
 
@@ -4584,7 +4651,7 @@ function renderReportes(){
     </div>
   `;
 }
-// ===================== FIN ENVÍO DE REPORTES =====================
+// ===================== FIN REPORTES =====================
 
   // ===================== HORARIOS =====================
   const DAYS = ["LUNES","MARTES","MIÉRCOLES","JUEVES","VIERNES","SÁBADO"];
@@ -4919,6 +4986,14 @@ function renderReportes(){
         { day:"JUEVES",    start:"15:00", end:"17:00", course:"ÁLG 2", teacher:"UCANCIAL" },
         { day:"VIERNES",   start:"15:00", end:"17:00", course:"FÍS 2", teacher:"RUBEN" },
       ]
+    },
+
+    {
+      id:"AGR_ESC_LM",
+      local:"LA MOLINA",
+      uni:"AGRARIA",
+      salon:"AGRARIA ESCOLAR",
+      blocks:[]
     },
 
     {
@@ -5887,16 +5962,26 @@ function render(opts = {}){
     const res = await fetch(url, { cache:"no-store" });
     if (!res.ok) throw new Error(`HTTP ${res.status} (${salon.local} / ${salon.ciclo} / ${salon.salon})`);
 
-    const text = await res.text();
-    const lines = text.split(/\r?\n/).filter(l=>l.trim().length>0);
+    const raw = await res.text();
+    const lines = raw.split(/\r?\n/).filter(l=>l.trim().length>0);
+
+    // Normalización fuerte de encabezados (sin tildes / sin signos)
+    const headKey = (s)=> String(s||"")
+      .toUpperCase()
+      .normalize("NFD").replace(/[\u0300-\u036f]/g,"")
+      .replace(/[¿?]/g,"")
+      .replace(/[\._-]/g," ")
+      .replace(/\s+/g," ")
+      .trim();
 
     let headerIdx = -1;
     let header = null;
 
-    for (let i=0;i<Math.min(lines.length, 200);i++){
+    for (let i=0;i<Math.min(lines.length, 250);i++){
       const cells = parseCSVLine(lines[i]).map(norm);
-      const hasName = cells.includes(HEAD.NOMBRES_A) || cells.includes(HEAD.NOMBRES_B) || cells.includes(HEAD.NOMBRES_C);
-      const hasEst = cells.includes(HEAD.ESTADO);
+      const keys  = cells.map(headKey);
+      const hasName = keys.includes(headKey(HEAD.NOMBRES_A)) || keys.includes(headKey(HEAD.NOMBRES_B)) || keys.includes(headKey(HEAD.NOMBRES_C)) || keys.includes("NOMBRES");
+      const hasEst  = keys.includes("ESTADO");
       if (hasName && hasEst){ headerIdx = i; header = cells; break; }
     }
 
@@ -5904,106 +5989,154 @@ function render(opts = {}){
       return { salon, rows: [], error: "No se encontró encabezado con NOMBRES y ESTADO." };
     }
 
-    const idx = (name) => header.findIndex(h => norm(h) === name);
-    const iNombreA = idx(HEAD.NOMBRES_A);
-    const iNombreB = idx(HEAD.NOMBRES_B);
-    const iNombreC = idx(HEAD.NOMBRES_C);
-    const iNombre = (iNombreA>=0) ? iNombreA : (iNombreB>=0 ? iNombreB : iNombreC);
+    // Mapear encabezados -> índices (permite duplicados)
+    const keyToIdxs = new Map();
+    for (let i=0;i<header.length;i++){
+      const k = headKey(header[i]);
+      if (!k) continue;
+      if (!keyToIdxs.has(k)) keyToIdxs.set(k, []);
+      keyToIdxs.get(k).push(i);
+    }
 
-    const iMod = idx(HEAD.MODALIDAD);
-    const iEst = idx(HEAD.ESTADO);
-
-    const idxAll = (label) => {
-      const L = String(label||"").toUpperCase();
-      const arr = [];
-      for (let i=0;i<header.length;i++){
-        if (String(header[i]||"").toUpperCase() === L) arr.push(i);
+    const idxs = (k)=> keyToIdxs.get(headKey(k)) || [];
+    const pickFirst = (ks)=> {
+      for (const k of (ks||[])){
+        const a = idxs(k);
+        if (a.length) return a[0];
       }
-      return arr;
+      return -1;
     };
 
-    const pickLast = (labels) => {
-      let out = -1;
-      for (const lb of (labels || [])){
-        const arr = idxAll(lb);
-        if (arr.length) out = arr[arr.length-1];
-      }
-      return out;
-    };
+    // Duplicados: CORREO/DNI/CELULAR (alumno primero, apoderado último)
+    const correoIdxs = idxs("CORREO");
+    const dniIdxs    = idxs("DNI");
+    const celIdxs    = idxs("CELULAR");
 
+    const iCorreoAl = correoIdxs[0] ?? -1;
+    const iDniAl    = dniIdxs[0] ?? -1;
+    const iCelAl    = celIdxs[0] ?? -1;
 
-    // ✅ Columnas del sheet (estructura 26.0)
-    // Alumno
-    const iCorreoAl = idxAll("CORREO")[0] ?? -1;
-    const dniIdxs = idxAll("DNI");
-    const iDniAl = dniIdxs[0] ?? -1;
-    const iCelAl = idxAll("CELULAR")[0] ?? -1;
-    const iUniAl = idxAll("UNIVERSIDAD")[0] ?? -1;
-    const iAcademia = idxAll("ACADEMIA")[0] ?? -1;
-    const iCarrera = idxAll("CARRERA")[0] ?? -1;
+    const iCorreoApo = (correoIdxs.length>1) ? correoIdxs[correoIdxs.length-1] : -1;
+    const iDniApo2   = (dniIdxs.length>1) ? dniIdxs[dniIdxs.length-1] : -1;
+    const iCelApo    = (celIdxs.length>1) ? celIdxs[celIdxs.length-1] : -1;
 
-    // Apoderado
-    // Apoderado (compatibilidad: formatos antiguos y nueva matriz)
-    const iNombreApo = pickLast(["PADRE O APODERADO","APODERADO","NOMBRE DEL APODERADO","NOMBRE COMPLETO"]);
-    const celIdxs = idxAll("CELULAR");
-    let iCelApo = (celIdxs.length > 1) ? celIdxs[celIdxs.length-1] : -1; // si hay 2 "CELULAR", el último suele ser apoderado
-    if (iCelApo < 0) iCelApo = idxAll("CEL").slice(-1)[0] ?? -1; // legacy: "CEL"
-    const correoIdxs = idxAll("CORREO");
-    const iCorreoApo = correoIdxs.length > 1 ? correoIdxs[correoIdxs.length-1] : -1;
+    // Campos alumno (nueva matriz)
+    const iNombres   = pickFirst(["NOMBRES"]);
+    const iApellidos = pickFirst(["APELLIDOS"]);
+    const iNomComp   = pickFirst(["NOMBRES COMPLETOS","NOMBRE COMPLETO"]);
+    const iEdad      = pickFirst(["EDAD"]);
+    const iProvincia = pickFirst(["PROVINCIA"]);
+    const iDistrito  = pickFirst(["DISTRITO"]);
+    const iColegio   = pickFirst(["COLEGIO"]);
+    const iDistCol   = pickFirst(["DISTRITO DE COLEGIO","DISTRITO COLEGIO","DISTRITO DEL COLEGIO"]);
+    const iAcademia  = pickFirst(["ACADEMIA"]);
+    const iPrep      = pickFirst(["PREPARACION","PREPARACION ","PREPARACION.","PREPARACION:","PREPARACIÓN"]);
+    const iComo      = pickFirst(["COMO SE ENTERO DE LA META","CÓMO SE ENTERÓ DE LA META"]);
+    const iCarrera   = pickFirst(["CARRERA"]);
+    const iUniAl     = pickFirst(["UNIVERSIDAD"]);
 
     // Accesos
-    const iUsuario = idxAll("USUARIO")[0] ?? -1;
-    let iPass = idxAll("CONTRASEÑA")[0] ?? -1;
-    if (iPass < 0) iPass = idxAll("CONTRASENA")[0] ?? -1;
+    const iUsuario   = pickFirst(["USUARIO"]);
+    let iPass        = pickFirst(["CONTRASEÑA","CONTRASENA"]);
 
-    // Ajuste: si DNI solo aparece una vez, no hay DNI apoderado
-    const iDniApo2 = dniIdxs.length > 1 ? dniIdxs[dniIdxs.length-1] : -1;
+    // Fechas / obs
+    const iFIns      = pickFirst(["FECHA DE INSCRIPCION","FECHA DE INSCRIPCIÓN","FECHA INSCRIPCION"]);
+    const iFIni      = pickFirst(["FECHA DE INICIO","FECHA INICIO"]);
+    const iFRet      = pickFirst(["FECHA DE RETIRO","FECHA RETIRO"]);
+    const iObs       = pickFirst(["OBSERVACIONES","OBSERVACION"]);
+
+    // Modalidad / Estado (compat)
+    const iMod = pickFirst(["MODALIDAD"]);
+    const iEst = pickFirst(["ESTADO"]);
+
+    // Apoderado (solo si existe su encabezado)
+    const iNombreApo = pickFirst(["PADRE O APODERADO","APODERADO","NOMBRE DEL APODERADO","PADRE/APODERADO"]);
 
     const out = [];
     for (let i=headerIdx+1; i<lines.length; i++){
       const cells = parseCSVLine(lines[i]);
       if (!cells.some(v=>norm(v).length>0)) continue;
 
-      const nombre = norm(cells[iNombre]);
+      const nombres = (iNombres>=0) ? norm(cells[iNombres]||"") : "";
+      const apellidos = (iApellidos>=0) ? norm(cells[iApellidos]||"") : "";
+      const nombres_completos = (iNomComp>=0) ? norm(cells[iNomComp]||"") : "";
+
+      let nombre = nombres_completos || [nombres, apellidos].filter(Boolean).join(" ").trim();
+
+      // fallback legacy (si solo existe NOMBRES COMPLETOS / NOMBRE COMPLETO / NOMBRES)
+      if (!nombre){
+        const iNombreA = pickFirst([HEAD.NOMBRES_A]);
+        const iNombreB = pickFirst([HEAD.NOMBRES_B]);
+        const iNombreC = pickFirst([HEAD.NOMBRES_C]);
+        const iNombre  = (iNombreA>=0) ? iNombreA : (iNombreB>=0 ? iNombreB : iNombreC);
+        if (iNombre>=0) nombre = norm(cells[iNombre]||"");
+      }
+
       if (!nombre) continue;
 
       const modalidadCell = (iMod>=0) ? cells[iMod] : "";
       const modalidad = normalizeModalidad(modalidadCell, salon.local);
+      const estado = normalizeEstado((iEst>=0) ? cells[iEst] : "");
 
-      const estado = normalizeEstado(cells[iEst]);
+      const correo_al  = (iCorreoAl>=0) ? norm(cells[iCorreoAl]||"") : "";
+      const dni_al     = (iDniAl>=0) ? norm(cells[iDniAl]||"") : "";
+      const celular_al = (iCelAl>=0) ? norm(cells[iCelAl]||"") : "";
 
-      // ✅ Extraer datos por columnas (si no existe, queda vacío)
-      const correo_al = (iCorreoAl>=0) ? norm(cells[iCorreoAl] || "") : "";
-      const dni_al = (iDniAl>=0) ? norm(cells[iDniAl] || "") : "";
-      const celular_al = (iCelAl>=0) ? norm(cells[iCelAl] || "") : "";
-      const uni_sheet = (iUniAl>=0) ? norm(cells[iUniAl] || "") : "";
-      const academia = (iAcademia>=0) ? norm(cells[iAcademia] || "") : "";
-      const carrera = (iCarrera>=0) ? norm(cells[iCarrera] || "") : "";
+      const edad = (iEdad>=0) ? norm(cells[iEdad]||"") : "";
+      const provincia = (iProvincia>=0) ? norm(cells[iProvincia]||"") : "";
+      const distrito = (iDistrito>=0) ? norm(cells[iDistrito]||"") : "";
+      const colegio = (iColegio>=0) ? norm(cells[iColegio]||"") : "";
+      const distrito_colegio = (iDistCol>=0) ? norm(cells[iDistCol]||"") : "";
 
-      const nombre_apo = (iNombreApo>=0) ? norm(cells[iNombreApo] || "") : "";
-      const cel_apo = (iCelApo>=0) ? norm(cells[iCelApo] || "") : "";
-      const dni_apo = (iDniApo2>=0) ? norm(cells[iDniApo2] || "") : "";
-      const correo_apo = (iCorreoApo>=0) ? norm(cells[iCorreoApo] || "") : "";
+      const academia = (iAcademia>=0) ? norm(cells[iAcademia]||"") : "";
+      const preparacion = (iPrep>=0) ? norm(cells[iPrep]||"") : "";
+      const como_entero = (iComo>=0) ? norm(cells[iComo]||"") : "";
+      const carrera = (iCarrera>=0) ? norm(cells[iCarrera]||"") : "";
 
-      const usuario = (iUsuario>=0) ? norm(cells[iUsuario] || "") : "";
-      const contrasena = (iPass>=0) ? norm(cells[iPass] || "") : "";
+      const uni_sheet = (iUniAl>=0) ? norm(cells[iUniAl]||"") : "";
+
+      const usuario = (iUsuario>=0) ? norm(cells[iUsuario]||"") : "";
+      const contrasena = (iPass>=0) ? norm(cells[iPass]||"") : "";
+
+      const fecha_inscripcion = (iFIns>=0) ? norm(cells[iFIns]||"") : "";
+      const fecha_inicio = (iFIni>=0) ? norm(cells[iFIni]||"") : "";
+      const fecha_retiro = (iFRet>=0) ? norm(cells[iFRet]||"") : "";
+      const observaciones = (iObs>=0) ? norm(cells[iObs]||"") : "";
+
+      const nombre_apo = (iNombreApo>=0) ? norm(cells[iNombreApo]||"") : "";
+      const cel_apo    = (iCelApo>=0) ? norm(cells[iCelApo]||"") : "";
+      const dni_apo    = (iDniApo2>=0) ? norm(cells[iDniApo2]||"") : "";
+      const correo_apo = (iCorreoApo>=0) ? norm(cells[iCorreoApo]||"") : "";
 
       out.push({
+        // claves generales
         nombre,
+        nombres,
+        apellidos,
+        nombres_completos: nombres_completos || nombre,
+
         modalidad,
         estado,
+
         local: salon.local,
         ciclo: salon.ciclo,
         salon: salon.salon,
         gid: salon.gid,
 
-        // alumno
+        // alumno (compat + nuevo)
         correo_al,
         dni_al,
         celular_al,
-        uni_sheet,
+        edad,
+        provincia,
+        distrito,
+        colegio,
+        distrito_colegio,
         academia,
+        preparacion,
+        como_entero,
         carrera,
+        uni_sheet,
 
         // apoderado
         nombre_apo,
@@ -6013,7 +6146,13 @@ function render(opts = {}){
 
         // accesos
         usuario,
-        contrasena
+        contrasena,
+
+        // fechas / obs
+        fecha_inscripcion,
+        fecha_inicio,
+        fecha_retiro,
+        observaciones
       });
     }
 
