@@ -5957,7 +5957,7 @@ function render(opts = {}){
   }
 
   // ===================== LOAD DATA MATRÍCULA =====================
-  async function loadOneSalon(salon){
+    async function loadOneSalon(salon){
     const url = csvUrl(salon.gid) + "&v=" + Date.now();
     const res = await fetch(url, { cache:"no-store" });
     if (!res.ok) throw new Error(`HTTP ${res.status} (${salon.local} / ${salon.ciclo} / ${salon.salon})`);
@@ -5965,7 +5965,7 @@ function render(opts = {}){
     const raw = await res.text();
     const lines = raw.split(/\r?\n/).filter(l=>l.trim().length>0);
 
-    // Normalización fuerte de encabezados (sin tildes / sin signos)
+    // Normalización fuerte de encabezados (tildes/espacios/signos)
     const headKey = (s)=> String(s||"")
       .toUpperCase()
       .normalize("NFD").replace(/[\u0300-\u036f]/g,"")
@@ -5974,22 +5974,52 @@ function render(opts = {}){
       .replace(/\s+/g," ")
       .trim();
 
-    let headerIdx = -1;
-    let header = null;
+    const hasAny = (keys, list)=> (list||[]).some(k => keys.includes(headKey(k)));
 
-    for (let i=0;i<Math.min(lines.length, 250);i++){
+    // 1) Detectar la FILA real de encabezados (evitar falsos positivos)
+    const NAME_KEYS = [HEAD.NOMBRES_A, HEAD.NOMBRES_B, HEAD.NOMBRES_C, "NOMBRES", "APELLIDOS"];
+    let bestIdx = -1;
+    let bestScore = -1;
+    let bestHeader = null;
+
+    const scanMax = Math.min(lines.length, 260);
+    for (let i=0;i<scanMax;i++){
       const cells = parseCSVLine(lines[i]).map(norm);
-      const keys  = cells.map(headKey);
-      const hasName = keys.includes(headKey(HEAD.NOMBRES_A)) || keys.includes(headKey(HEAD.NOMBRES_B)) || keys.includes(headKey(HEAD.NOMBRES_C)) || keys.includes("NOMBRES");
-      const hasEst  = keys.includes("ESTADO");
-      if (hasName && hasEst){ headerIdx = i; header = cells; break; }
+      const keysAll = cells.map(headKey);
+      const keys = keysAll.filter(Boolean);
+
+      // Debe tener alguna columna de nombre + ESTADO
+      if (!hasAny(keys, NAME_KEYS)) continue;
+      if (!keys.includes("ESTADO")) continue;
+
+      let score = 0;
+      if (hasAny(keys, [HEAD.NOMBRES_A, HEAD.NOMBRES_B, HEAD.NOMBRES_C, "NOMBRES"])) score += 5;
+      if (keys.includes("APELLIDOS")) score += 2;
+      if (keys.includes("MODALIDAD")) score += 3;
+      if (keys.includes("DNI")) score += 2;
+      if (keys.includes("CORREO")) score += 2;
+      if (keys.includes("USUARIO")) score += 2;
+      if (keys.includes("CONTRASEÑA") || keys.includes("CONTRASENA")) score += 2;
+      if (keys.includes("UNIVERSIDAD")) score += 1;
+      if (keys.includes("CELULAR")) score += 1;
+      if (keys.includes("PADRE O APODERADO")) score += 1;
+
+      // Mantener el mejor candidato
+      if (score > bestScore){
+        bestScore = score;
+        bestIdx = i;
+        bestHeader = cells;
+      }
     }
 
-    if (headerIdx === -1){
-      return { salon, rows: [], error: "No se encontró encabezado con NOMBRES y ESTADO." };
+    if (bestIdx === -1 || bestScore < 6){
+      return { salon, rows: [], error: "No se encontró un encabezado válido (NOMBRES/ESTADO/MODALIDAD/DNI/CORREO...)."}; 
     }
 
-    // Mapear encabezados -> índices (permite duplicados)
+    const headerIdx = bestIdx;
+    const header = bestHeader;
+
+    // 2) Mapear encabezados -> índices (permite duplicados)
     const keyToIdxs = new Map();
     for (let i=0;i<header.length;i++){
       const k = headKey(header[i]);
@@ -6006,21 +6036,28 @@ function render(opts = {}){
       }
       return -1;
     };
+    const pickLast = (ks)=> {
+      for (const k of (ks||[])){
+        const a = idxs(k);
+        if (a.length) return a[a.length-1];
+      }
+      return -1;
+    };
 
-    // Duplicados: CORREO/DNI/CELULAR (alumno primero, apoderado último)
+    // Duplicados típicos (ALUMNO primero, APODERADO al final)
     const correoIdxs = idxs("CORREO");
     const dniIdxs    = idxs("DNI");
     const celIdxs    = idxs("CELULAR");
 
-    const iCorreoAl = correoIdxs[0] ?? -1;
-    const iDniAl    = dniIdxs[0] ?? -1;
-    const iCelAl    = celIdxs[0] ?? -1;
+    const iCorreoAl = (correoIdxs.length ? correoIdxs[0] : -1);
+    const iDniAl    = (dniIdxs.length ? dniIdxs[0] : -1);
+    const iCelAl    = (celIdxs.length ? celIdxs[0] : -1);
 
-    const iCorreoApo = (correoIdxs.length>1) ? correoIdxs[correoIdxs.length-1] : -1;
-    const iDniApo2   = (dniIdxs.length>1) ? dniIdxs[dniIdxs.length-1] : -1;
-    const iCelApo    = (celIdxs.length>1) ? celIdxs[celIdxs.length-1] : -1;
+    const iCorreoApo = (correoIdxs.length>1) ? correoIdxs[correoIdxs.length-1] : pickFirst(["CORREO APODERADO","CORREO DEL APODERADO"]);
+    const iDniApo2   = (dniIdxs.length>1) ? dniIdxs[dniIdxs.length-1] : pickFirst(["DNI APODERADO","DNI DEL APODERADO"]);
+    const iCelApoDup = (celIdxs.length>1) ? celIdxs[celIdxs.length-1] : -1;
 
-    // Campos alumno (nueva matriz)
+    // Campos alumno (nuevo formato)
     const iNombres   = pickFirst(["NOMBRES"]);
     const iApellidos = pickFirst(["APELLIDOS"]);
     const iNomComp   = pickFirst(["NOMBRES COMPLETOS","NOMBRE COMPLETO"]);
@@ -6030,8 +6067,8 @@ function render(opts = {}){
     const iColegio   = pickFirst(["COLEGIO"]);
     const iDistCol   = pickFirst(["DISTRITO DE COLEGIO","DISTRITO COLEGIO","DISTRITO DEL COLEGIO"]);
     const iAcademia  = pickFirst(["ACADEMIA"]);
-    const iPrep      = pickFirst(["PREPARACION","PREPARACION ","PREPARACION.","PREPARACION:","PREPARACIÓN"]);
-    const iComo      = pickFirst(["COMO SE ENTERO DE LA META","CÓMO SE ENTERÓ DE LA META"]);
+    const iPrep      = pickFirst(["PREPARACION","PREPARACIÓN"]);
+    const iComo      = pickFirst(["¿CÓMO SE ENTERÓ DE LA META?","COMO SE ENTERO DE LA META","CÓMO SE ENTERÓ DE LA META"]);
     const iCarrera   = pickFirst(["CARRERA"]);
     const iUniAl     = pickFirst(["UNIVERSIDAD"]);
 
@@ -6040,73 +6077,92 @@ function render(opts = {}){
     let iPass        = pickFirst(["CONTRASEÑA","CONTRASENA"]);
 
     // Fechas / obs
-    const iFIns      = pickFirst(["FECHA DE INSCRIPCION","FECHA DE INSCRIPCIÓN","FECHA INSCRIPCION"]);
+    const iFIns      = pickFirst(["FECHA DE INSCRIPCIÓN","FECHA DE INSCRIPCION","FECHA INSCRIPCIÓN","FECHA INSCRIPCION"]);
     const iFIni      = pickFirst(["FECHA DE INICIO","FECHA INICIO"]);
     const iFRet      = pickFirst(["FECHA DE RETIRO","FECHA RETIRO"]);
     const iObs       = pickFirst(["OBSERVACIONES","OBSERVACION"]);
 
-    // Modalidad / Estado (compat)
+    // Modalidad / Estado
     const iMod = pickFirst(["MODALIDAD"]);
     const iEst = pickFirst(["ESTADO"]);
 
-    // Apoderado (solo si existe su encabezado)
-    const iNombreApo = pickFirst(["PADRE O APODERADO","APODERADO","NOMBRE DEL APODERADO","PADRE/APODERADO"]);
+    // Apoderado
+    let iNombreApo = pickFirst(["PADRE O APODERADO","PADRE/APODERADO","APODERADO","NOMBRE DEL APODERADO"]);
+    if (iNombreApo < 0){
+      // fallback legacy: si hay varios "NOMBRE COMPLETO", el último suele ser apoderado
+      const nc = idxs("NOMBRE COMPLETO");
+      if (nc.length > 1) iNombreApo = nc[nc.length-1];
+    }
+
+    // Cel apoderado: preferir duplicado de CELULAR; si no, buscar CEL / CEL APODERADO
+    let iCelApo = iCelApoDup;
+    if (iCelApo < 0){
+      const cels = idxs("CEL");
+      if (cels.length) iCelApo = cels[cels.length-1];
+      else iCelApo = pickFirst(["CEL APODERADO","CELULAR APODERADO"]);
+    }
+
+    const get = (cells, idx)=> (idx>=0 ? norm(cells[idx]||"") : "");
+
+    const onlyDigits = (s)=> String(s||"").replace(/\D/g,"");
+    const looksDni = (s)=> onlyDigits(s).length === 8;
+    const looksEmail = (s)=> String(s||"").includes("@");
 
     const out = [];
     for (let i=headerIdx+1; i<lines.length; i++){
       const cells = parseCSVLine(lines[i]);
       if (!cells.some(v=>norm(v).length>0)) continue;
 
-      const nombres = (iNombres>=0) ? norm(cells[iNombres]||"") : "";
-      const apellidos = (iApellidos>=0) ? norm(cells[iApellidos]||"") : "";
-      const nombres_completos = (iNomComp>=0) ? norm(cells[iNomComp]||"") : "";
-
+      // Nombre (preferencia: nombres_completos -> nombres+apellidos -> legacy)
+      const nombres = get(cells, iNombres);
+      const apellidos = get(cells, iApellidos);
+      const nombres_completos = get(cells, iNomComp);
       let nombre = nombres_completos || [nombres, apellidos].filter(Boolean).join(" ").trim();
 
-      // fallback legacy (si solo existe NOMBRES COMPLETOS / NOMBRE COMPLETO / NOMBRES)
       if (!nombre){
-        const iNombreA = pickFirst([HEAD.NOMBRES_A]);
-        const iNombreB = pickFirst([HEAD.NOMBRES_B]);
-        const iNombreC = pickFirst([HEAD.NOMBRES_C]);
-        const iNombre  = (iNombreA>=0) ? iNombreA : (iNombreB>=0 ? iNombreB : iNombreC);
-        if (iNombre>=0) nombre = norm(cells[iNombre]||"");
+        const iNombreLegacy = pickFirst([HEAD.NOMBRES_A, HEAD.NOMBRES_B, HEAD.NOMBRES_C, "NOMBRE"]);
+        nombre = get(cells, iNombreLegacy);
       }
-
       if (!nombre) continue;
 
-      const modalidadCell = (iMod>=0) ? cells[iMod] : "";
-      const modalidad = normalizeModalidad(modalidadCell, salon.local);
-      const estado = normalizeEstado((iEst>=0) ? cells[iEst] : "");
+      const modalidad = normalizeModalidad(get(cells, iMod), salon.local);
+      const estado = normalizeEstado(get(cells, iEst));
 
-      const correo_al  = (iCorreoAl>=0) ? norm(cells[iCorreoAl]||"") : "";
-      const dni_al     = (iDniAl>=0) ? norm(cells[iDniAl]||"") : "";
-      const celular_al = (iCelAl>=0) ? norm(cells[iCelAl]||"") : "";
+      // Filtro anti-basura: solo filas con estado reconocido o con identidad (DNI/correo/usuario)
+      const correo_al  = get(cells, iCorreoAl);
+      const dni_al     = get(cells, iDniAl);
+      const usuario    = get(cells, iUsuario);
 
-      const edad = (iEdad>=0) ? norm(cells[iEdad]||"") : "";
-      const provincia = (iProvincia>=0) ? norm(cells[iProvincia]||"") : "";
-      const distrito = (iDistrito>=0) ? norm(cells[iDistrito]||"") : "";
-      const colegio = (iColegio>=0) ? norm(cells[iColegio]||"") : "";
-      const distrito_colegio = (iDistCol>=0) ? norm(cells[iDistCol]||"") : "";
+      const okEstado = (estado === "ACTIVO" || estado === "RETIRO" || estado === "CAMBIO");
+      const hasIdentity = looksDni(dni_al) || looksEmail(correo_al) || looksEmail(usuario) || norm(usuario).length >= 6;
 
-      const academia = (iAcademia>=0) ? norm(cells[iAcademia]||"") : "";
-      const preparacion = (iPrep>=0) ? norm(cells[iPrep]||"") : "";
-      const como_entero = (iComo>=0) ? norm(cells[iComo]||"") : "";
-      const carrera = (iCarrera>=0) ? norm(cells[iCarrera]||"") : "";
+      if (!okEstado && !hasIdentity) continue;
 
-      const uni_sheet = (iUniAl>=0) ? norm(cells[iUniAl]||"") : "";
+      const celular_al = get(cells, iCelAl);
+      const edad = get(cells, iEdad);
+      const provincia = get(cells, iProvincia);
+      const distrito = get(cells, iDistrito);
+      const colegio = get(cells, iColegio);
+      const distrito_colegio = get(cells, iDistCol);
 
-      const usuario = (iUsuario>=0) ? norm(cells[iUsuario]||"") : "";
-      const contrasena = (iPass>=0) ? norm(cells[iPass]||"") : "";
+      const academia = get(cells, iAcademia);
+      const preparacion = get(cells, iPrep);
+      const como_entero = get(cells, iComo);
+      const carrera = get(cells, iCarrera);
 
-      const fecha_inscripcion = (iFIns>=0) ? norm(cells[iFIns]||"") : "";
-      const fecha_inicio = (iFIni>=0) ? norm(cells[iFIni]||"") : "";
-      const fecha_retiro = (iFRet>=0) ? norm(cells[iFRet]||"") : "";
-      const observaciones = (iObs>=0) ? norm(cells[iObs]||"") : "";
+      const uni_sheet = get(cells, iUniAl);
 
-      const nombre_apo = (iNombreApo>=0) ? norm(cells[iNombreApo]||"") : "";
-      const cel_apo    = (iCelApo>=0) ? norm(cells[iCelApo]||"") : "";
-      const dni_apo    = (iDniApo2>=0) ? norm(cells[iDniApo2]||"") : "";
-      const correo_apo = (iCorreoApo>=0) ? norm(cells[iCorreoApo]||"") : "";
+      const contrasena = get(cells, iPass);
+
+      const fecha_inscripcion = get(cells, iFIns);
+      const fecha_inicio = get(cells, iFIni);
+      const fecha_retiro = get(cells, iFRet);
+      const observaciones = get(cells, iObs);
+
+      const nombre_apo = get(cells, iNombreApo);
+      const cel_apo    = get(cells, iCelApo);
+      const dni_apo    = get(cells, iDniApo2);
+      const correo_apo = get(cells, iCorreoApo);
 
       out.push({
         // claves generales
@@ -6123,7 +6179,7 @@ function render(opts = {}){
         salon: salon.salon,
         gid: salon.gid,
 
-        // alumno (compat + nuevo)
+        // alumno
         correo_al,
         dni_al,
         celular_al,
