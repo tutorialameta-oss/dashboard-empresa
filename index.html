@@ -6108,6 +6108,25 @@ function render(opts = {}){
     const looksDni = (s)=> onlyDigits(s).length === 8;
     const looksEmail = (s)=> String(s||"").includes("@");
 
+    const looksPhone = (s)=> onlyDigits(s).length >= 8;
+
+    const looksPersonName = (s)=>{
+      const t = norm(s);
+      if (!t) return false;
+      const cleaned = t
+        .replace(/[^A-Za-zÁÉÍÓÚÜÑáéíóúüñ\s'’\-]/g," ")
+        .replace(/\s+/g," ")
+        .trim();
+      if (!cleaned) return false;
+      const words = cleaned.split(" ").filter(Boolean);
+      if (words.length < 1 || words.length > 8) return false;
+      // Heurística: nombres suelen empezar con mayúscula o estar en MAYÚSCULAS
+      const first = cleaned[0];
+      const isUpperStart = /^[A-ZÁÉÍÓÚÜÑ]$/.test(first) || cleaned === cleaned.toUpperCase();
+      if (!isUpperStart) return false;
+      return true;
+    };
+
     const out = [];
     for (let i=headerIdx+1; i<lines.length; i++){
       const cells = parseCSVLine(lines[i]);
@@ -6133,13 +6152,20 @@ function render(opts = {}){
       const dni_al     = get(cells, iDniAl);
       const usuario    = get(cells, iUsuario);
 
+            const celular_al = get(cells, iCelAl);
+
       const okEstado = (estado === "ACTIVO" || estado === "RETIRO" || estado === "CAMBIO");
-      const hasIdentity = looksDni(dni_al) || looksEmail(correo_al) || looksEmail(usuario) || norm(usuario).length >= 6;
 
-      if (!okEstado && !hasIdentity) continue;
+      // Identidad mínima para considerar "fila de alumno" (evita textos sueltos del Sheet)
+      const hasStrongId = looksDni(dni_al) || looksEmail(correo_al) || looksEmail(usuario);
+      const hasIdentity = hasStrongId || looksPhone(celular_al);
 
-      const celular_al = get(cells, iCelAl);
-      const edad = get(cells, iEdad);
+      // ✅ Regla dura: si no hay identidad, NO es alumno
+      if (!hasIdentity) continue;
+
+      // ✅ Regla adicional: si el "nombre" parece texto (frases largas) y no hay DNI/correo, descartarlo
+      if (!looksPersonName(nombre) && !hasStrongId) continue;
+const edad = get(cells, iEdad);
       const provincia = get(cells, iProvincia);
       const distrito = get(cells, iDistrito);
       const colegio = get(cells, iColegio);
