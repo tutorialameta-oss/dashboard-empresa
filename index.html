@@ -1810,26 +1810,26 @@
   }
 
 const SALONES = [
-    { local:"LA MOLINA", ciclo:"AGRARIA",  salon:"AGRARIA LM 1", gid:115906280 },
+    { local:"LA MOLINA", ciclo:"AGRARIA",  salon:"AGRARIA LM 1", gid:818929525 },
     { local:"LA MOLINA", ciclo:"AGRARIA",  salon:"AGRARIA LM 2", gid:1576159193 },
     { local:"LA MOLINA", ciclo:"PUCP",     salon:"PUCP LM",     gid:1037962332 },
     { local:"LA MOLINA", ciclo:"U.LIMA",   salon:"U.LIMA LM",   gid:877886853 },
     { local:"LA MOLINA", ciclo:"ADELANTO", salon:"ADELANTO LM", gid:1271606284 },
     { local:"LA MOLINA", ciclo:"PARALELO", salon:"PARALELO LM", gid:1863430245 },
 
-    { local:"SAN BORJA", ciclo:"AGRARIA", salon:"AGRARIA SB",  gid:538377241 },
+    { local:"SAN BORJA", ciclo:"AGRARIA", salon:"AGRARIA SB",  gid:1870866968 },
     { local:"SAN BORJA", ciclo:"PUCP",    salon:"PUCP SB",     gid:998068235 },
     { local:"SAN BORJA", ciclo:"U.LIMA",  salon:"U.LIMA SB 1", gid:670800187 },
     { local:"SAN BORJA", ciclo:"U.LIMA",  salon:"U.LIMA SB 2", gid:1856014712 },
 
-    { local:"SAN MIGUEL", ciclo:"AGRARIA",  salon:"AGRARIA SM",  gid:513074883 },
+    { local:"SAN MIGUEL", ciclo:"AGRARIA",  salon:"AGRARIA SM",  gid:511460041 },
     { local:"SAN MIGUEL", ciclo:"PUCP",     salon:"PUCP SM",     gid:1531300183 },
     { local:"SAN MIGUEL", ciclo:"U.LIMA",   salon:"U.LIMA SM 1", gid:1080962628 },
     { local:"SAN MIGUEL", ciclo:"U.LIMA",   salon:"U.LIMA SM 2", gid:679583464 },
     { local:"SAN MIGUEL", ciclo:"ADELANTO", salon:"ADELANTO SM", gid:2120250792 },
     { local:"SAN MIGUEL", ciclo:"PARALELO", salon:"PARALELO SM", gid:721468852 },
 
-    { local:"VIRTUAL", ciclo:"AGRARIA",     salon:"AGRARIA VIRTUAL", gid:709062846 },
+    { local:"VIRTUAL", ciclo:"AGRARIA",     salon:"AGRARIA VIRTUAL", gid:1850115978 },
     { local:"VIRTUAL", ciclo:"ESC. U.LIMA", salon:"U.LIMA ESCOLAR",  gid:315999969 },
     { local:"VIRTUAL", ciclo:"U.LIMA",      salon:"U.LIMA VIRTUAL 1",  gid:1667430860 },
     { local:"VIRTUAL", ciclo:"U.LIMA",      salon:"U.LIMA VIRTUAL 2",  gid:951960453 },
@@ -5922,6 +5922,16 @@ function render(opts = {}){
       return arr;
     };
 
+    const pickLast = (labels) => {
+      let out = -1;
+      for (const lb of (labels || [])){
+        const arr = idxAll(lb);
+        if (arr.length) out = arr[arr.length-1];
+      }
+      return out;
+    };
+
+
     // ✅ Columnas del sheet (estructura 26.0)
     // Alumno
     const iCorreoAl = idxAll("CORREO")[0] ?? -1;
@@ -5933,8 +5943,11 @@ function render(opts = {}){
     const iCarrera = idxAll("CARRERA")[0] ?? -1;
 
     // Apoderado
-    const iNombreApo = idxAll("NOMBRE COMPLETO").slice(-1)[0] ?? -1;
-    const iCelApo = idxAll("CEL")[0] ?? -1;
+    // Apoderado (compatibilidad: formatos antiguos y nueva matriz)
+    const iNombreApo = pickLast(["PADRE O APODERADO","APODERADO","NOMBRE DEL APODERADO","NOMBRE COMPLETO"]);
+    const celIdxs = idxAll("CELULAR");
+    let iCelApo = (celIdxs.length > 1) ? celIdxs[celIdxs.length-1] : -1; // si hay 2 "CELULAR", el último suele ser apoderado
+    if (iCelApo < 0) iCelApo = idxAll("CEL").slice(-1)[0] ?? -1; // legacy: "CEL"
     const correoIdxs = idxAll("CORREO");
     const iCorreoApo = correoIdxs.length > 1 ? correoIdxs[correoIdxs.length-1] : -1;
 
