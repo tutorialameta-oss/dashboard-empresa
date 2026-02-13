@@ -312,6 +312,9 @@
       border:1px solid var(--border);
       border-radius: 18px;
       background:#fff;
+
+      /* Zoom por defecto (más “alejado” para ver más contenido) */
+      --mxZoom: .85;
       box-shadow: var(--shadow);
 
       /* Más espacio visible para la matriz */
@@ -332,11 +335,11 @@
     }
 
     /* Horarios: filtros más compactos para ganar área de matriz */
-    .horariosFiltersCard{ padding: 10px 12px; }
-    .horariosFiltersCard .cardtitle{ margin-bottom:6px; }
-    .horariosFiltersCard .controls{ gap:8px; }
+    .horariosFiltersCard{ padding: 8px 10px; }
+    .horariosFiltersCard .cardtitle{ margin-bottom:4px; font-size:12px; }
+    .horariosFiltersCard .controls{ gap:6px; }
     .horariosFiltersCard select,
-    .horariosFiltersCard button{ padding: 9px 10px; }
+    .horariosFiltersCard button{ padding: 7px 9px; font-size:12px; }
     .schMatrix{
       display:grid;
       /* Columna de locales más angosta (porque el texto va vertical) */
@@ -390,12 +393,18 @@
       white-space:nowrap;
     }
     .mxCell{
-      padding: 10px;
+      padding: 6px;
       border-right:1px solid var(--border);
       border-bottom:1px solid var(--border);
       background:#fff;
     }
-    .mxCell .schCard{ margin-bottom: 14px; }
+
+    /* En matriz: reducir tamaño de los horarios para ver más contenido */
+    .schMatrixWrap .mxCell .schCard{
+      zoom: var(--mxZoom, .85);
+    }
+
+    .mxCell .schCard{ margin-bottom: 10px; }
     .mxCell .schCard:last-child{ margin-bottom: 0; }
     .mxEmpty{
       color: var(--muted);
@@ -5666,6 +5675,17 @@ function renderReportes(){
   }
 
 
+
+  function applyHorariosZoom(){
+    const mx = document.getElementById("schMatrix");
+    const sel = document.getElementById("hZoom");
+    if (!mx || !sel) return;
+    const v = Number(sel.value || 100);
+    const z = Math.max(70, Math.min(100, v));
+    mx.style.setProperty("--mxZoom", String(z/100));
+    try{ fitHorariosMatrixHeight(); }catch(e){}
+  }
+
 function ensureHorariosLayout(){
     const el = document.getElementById("view_horarios");
     if (el.dataset.ready === "1") return;
@@ -5707,6 +5727,14 @@ function ensureHorariosLayout(){
             <option value="list">VISTA: LISTA</option>
           </select>
 
+          <select id="hZoom">
+            <option value="100">ZOOM: 100%</option>
+            <option value="95">ZOOM: 95%</option>
+            <option value="90">ZOOM: 90%</option>
+            <option value="85">ZOOM: 85%</option>
+            <option value="80">ZOOM: 80%</option>
+          </select>
+
           <select id="hLocal"></select>
           <select id="hUni"></select>
           <select id="hSalon"></select>
@@ -5740,6 +5768,13 @@ function ensureHorariosLayout(){
     const vm = (localStorage.getItem(VM_KEY) || "matrix");
     document.getElementById("hViewMode").value = (vm === "list" ? "list" : "matrix");
 
+    // zoom por defecto (matriz): persistente
+    const Z_KEY = "LM_HORARIOS_ZOOM_v1";
+    const z0 = (localStorage.getItem(Z_KEY) || "85");
+    if (document.getElementById("hZoom")){
+      document.getElementById("hZoom").value = (["100","95","90","85","80"].includes(z0) ? z0 : "85");
+    }
+
     rebuildHorariosSalonOptions();
     document.getElementById("hSalon").value = "__ALL__";
 
@@ -5749,6 +5784,13 @@ function ensureHorariosLayout(){
       try{ localStorage.setItem(VM_KEY, document.getElementById("hViewMode").value); }catch(e){}
       rer();
     });
+
+    if (document.getElementById("hZoom")){
+      document.getElementById("hZoom").addEventListener("change", ()=>{
+        try{ localStorage.setItem("LM_HORARIOS_ZOOM_v1", document.getElementById("hZoom").value); }catch(e){}
+        applyHorariosZoom();
+      });
+    }
 
     document.getElementById("hLocal").addEventListener("change", ()=>{
       rebuildHorariosSalonOptions();
@@ -5933,6 +5975,7 @@ el.dataset.ready = "1";
           ${rows}
         </div>
       `;
+      try{ applyHorariosZoom(); }catch(e){}
       try{ requestAnimationFrame(()=>fitHorariosMatrixHeight()); }catch(e){}
     }
   }
@@ -5957,6 +6000,12 @@ el.dataset.ready = "1";
     const prevBody = document.body.classList.contains("exportMode");
     document.body.classList.add("exportMode");
 
+    // Neutralizar zoom/transform (matriz) para exportar nítido
+    const prevZoom = card.style.zoom;
+    const prevTransform = card.style.transform;
+    card.style.zoom = "1";
+    card.style.transform = "none";
+
     // ocultar botón para que no salga en la imagen
     const btn = card.querySelector(".schDl");
     const prevBtnDisplay = btn ? btn.style.display : "";
@@ -5972,6 +6021,10 @@ el.dataset.ready = "1";
       scale: 2,
       useCORS: true
     });
+
+    // restaurar zoom/transform
+    card.style.zoom = prevZoom;
+    card.style.transform = prevTransform;
 
     if (btn) btn.style.display = prevBtnDisplay;
     if (!prevBody) document.body.classList.remove("exportMode");
