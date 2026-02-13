@@ -5731,7 +5731,7 @@ function ensureHorariosLayout(){
             <option value="95">ZOOM: 95%</option>
             <option value="90">ZOOM: 90%</option>
             <option value="85">ZOOM: 85%</option>
-            <option value="80">ZOOM: 80%</option>
+            <option value="80">ZOOM: 75%</option>
           </select>
 
           <select id="hLocal"></select>
@@ -5769,9 +5769,9 @@ function ensureHorariosLayout(){
 
     // zoom por defecto (matriz): persistente
     const Z_KEY = "LM_HORARIOS_ZOOM_v1";
-    const z0 = (localStorage.getItem(Z_KEY) || "85");
+    const z0 = (localStorage.getItem(Z_KEY) || "75");
     if (document.getElementById("hZoom")){
-      document.getElementById("hZoom").value = (["100","95","90","85","80"].includes(z0) ? z0 : "85");
+      document.getElementById("hZoom").value = (["100","95","90","85","75"].includes(z0) ? z0 : "75");
     }
 
     rebuildHorariosSalonOptions();
