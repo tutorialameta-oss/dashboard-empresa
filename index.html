@@ -314,13 +314,15 @@
       background:#fff;
       box-shadow: var(--shadow);
 
-      /* UX: que la barra horizontal siempre sea accesible (sin tener que bajar hasta el final de la página) */
-      max-height: calc(100vh - 290px);
-      scrollbar-gutter: stable both-edges;
+      /* Más espacio visible para la matriz */
+      max-height: calc(100vh - 230px);
+
+      /* Evita “gutter” izquierdo (rendijas) */
+      scrollbar-gutter: stable;
       overscroll-behavior: contain;
 
-      /* un poco más de aire visual */
-      padding: 14px;
+      /* Grid pegada a bordes */
+      padding: 0;
 
       /* navegación tipo “mano” (drag-to-scroll) */
       cursor: grab;
@@ -328,10 +330,19 @@
     .schMatrixWrap.dragging{
       cursor: grabbing;
     }
+
+    /* Horarios: filtros más compactos para ganar área de matriz */
+    .horariosFiltersCard{ padding: 10px 12px; }
+    .horariosFiltersCard .cardtitle{ margin-bottom:6px; }
+    .horariosFiltersCard .controls{ gap:8px; }
+    .horariosFiltersCard select,
+    .horariosFiltersCard button{ padding: 9px 10px; }
     .schMatrix{
       display:grid;
-      grid-template-columns: 170px repeat(6, minmax(520px, 1fr));
-      min-width: calc(170px + 6*520px);
+      /* Columna de locales más angosta (porque el texto va vertical) */
+      grid-template-columns: 72px repeat(6, minmax(520px, 1fr));
+      min-width: calc(72px + 6*520px);
+      background:#fff;
     }
     .mxCorner{
       position:sticky;
@@ -346,7 +357,7 @@
       top:0;
       z-index:5;
       background:#fff;
-      padding: 12px;
+      padding: 8px 6px;
       text-align:center;
       font-weight:950;
       color: var(--muted);
@@ -360,16 +371,26 @@
       left:0;
       z-index:4;
       background:#fff;
-      padding: 12px;
+      border-right:1px solid var(--border);
+      border-bottom:1px solid var(--border);
+
+      /* Vertical para ahorrar espacio */
+      writing-mode: vertical-rl;
+      text-orientation: mixed;
+      transform: rotate(180deg);
+
       font-weight:950;
       color: var(--muted);
       text-transform: uppercase;
-      border-right:1px solid var(--border);
-      border-bottom:1px solid var(--border);
+      letter-spacing:.2px;
+
+      display:grid;
+      place-items:center;
+      padding: 8px 0;
       white-space:nowrap;
     }
     .mxCell{
-      padding: 12px;
+      padding: 10px;
       border-right:1px solid var(--border);
       border-bottom:1px solid var(--border);
       background:#fff;
@@ -5678,7 +5699,7 @@ function ensureHorariosLayout(){
 
     // Admin/Tutor: vista MATRIZ + filtros (lista opcional)
     el.innerHTML = `
-      <div class="card panel12">
+      <div class="card panel12 horariosFiltersCard">
         <div class="cardtitle">VISTA Y FILTROS</div>
         <div class="controls" style="justify-content:flex-start;">
           <select id="hViewMode">
