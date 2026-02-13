@@ -1537,7 +1537,7 @@
   <div id="authOverlay" class="authOverlay">
     <div class="authCard">
       <p class="authTitle">ACCESO AL PANEL</p>
-      <p class="authSub">Seleccione su tipo de acceso. Si es alumno, use su USUARIO y CONTRASEÑA de matrícula.</p>
+      <p class="authSub">Seleccione su o de acceso. Si es alumno, use su USUARIO y CONTRASEÑA de matrícula.</p>
 
       <div class="roleRow">
         <button id="roleAdmin" class="roleBtn" type="button">ADMIN</button>
@@ -2318,7 +2318,7 @@ function loadSavedView(){
         layout:{ padding:{ top: 20, right: 56, bottom: 20, left: 56 } },
         plugins:{
           legend:{ position:"bottom", labels:{ color:TICK, font:{ weight:"900" } } },
-          tooltip:{ enabled:true },
+          tool:{ enabled:true },
           datalabels:{
             color:"#111827",
             textStrokeColor:"#ffffff",
@@ -2364,7 +2364,7 @@ function loadSavedView(){
         layout:{ padding:{ top: 26, right: 10, left: 10, bottom: 10 } },
         plugins:{
           legend:{ display:false },
-          tooltip:{ enabled:true },
+          tool:{ enabled:true },
           datalabels:{
             color:"#111827",
             textStrokeColor:"#ffffff",
@@ -2445,7 +2445,7 @@ function loadSavedView(){
         layout:{ padding:{ top: 30, right: 10, left: 10, bottom: 10 } },
         plugins:{
           legend:{ position:"bottom", labels:{ color:TICK, font:{ weight:"900" } } },
-          tooltip:{ enabled:true },
+          tool:{ enabled:true },
           datalabels:{
             color:"#111827",
             textStrokeColor:"#ffffff",
@@ -2543,14 +2543,14 @@ const s = (id, on)=>{
       inicio_alumno: ["INICIO", "Acceso rápido para alumnos: perfil, horarios y sílabos."],
       perfil_alumno: ["MI PERFIL", "Datos del alumno registrados en su matrícula."],
       overview: ["RESUMEN GENERAL", "Panel estructurado para control de alumnos en todos los locales y salones."],
-      local: ["CONTROL DE SEDES", "Monitoreo por sede: resumen, salones, docentes y estado del grupo."],
+      local: ["CONTROL DE SEDES", "Monitoreo por sede: resumen, salones y estado del grupo."],
       table: ["ALUMNOS", "Listado completo con filtros por local, universidad, salón, modalidad y estado."],
-      horarios: ["HORARIOS", "Horarios por local/universidad/salón. Ideal para que el alumno ubique sus clases."],
+      horarios: ["HORARIOS", "Horarios por local/universidad/salón."],
       impresiones: ["IMPRESIONES", "Registros y control de impresiones por fecha y alumno."],
       silabos: ["SÍLABOS", "Repositorio de sílabos por universidad y curso."],
       evaluaciones: ["EVALUACIONES", "Evaluaciones por curso (5 preguntas). Envío automático y nota 0–20."],
       materiales: ["MATERIALES", "Accesos a carpetas de materiales por universidad."],
-      listas: ["LISTAS", "Listas y exportables por salón."],
+      listas: ["LISTAS", "Listas por salón."],
       reportes: ["REPORTES", "Envío y acceso a carpeta de acumulación de reportes por salón."],
       notas: ["NOTAS GENERALES", "Accesos rápidos a notas generales por universidad."]
     };
@@ -3480,7 +3480,6 @@ const s = (id, on)=>{
           <span class="pill"><span class="dot ulima"></span>U.LIMA</span>
         </div>
         <div class="panelHint" style="margin-top:8px; color:var(--muted);">
-          Tip: en <b>MATRIZ</b> puedes desplazarte con la barra inferior o <b>arrastrando</b> dentro del cuadro.
         </div>
       </div>
 
@@ -4396,7 +4395,7 @@ function ensureNotasLayout(){
     <div class="card panel12">
       <div class="cardtitle">NOTAS GENERALES</div>
       <div style="color:var(--muted); font-weight:900; margin-bottom:12px;">
-        Accesos directos para administrar apuntes generales por universidad.
+        Accesos directos para imprimir notas generales en sus respectivos locales.
       </div>
       <div class="iGrid" id="notasGrid"></div>
     </div>
@@ -4691,30 +4690,30 @@ const items = list.map(it=>{
 const REPORTES = [
   // ================= LA MOLINA =================
   { local:"LA MOLINA", name:"AGRARIA LM 1",      reporte:"https://colab.research.google.com/drive/1VTKBuf26KoDD_qum3r1r-bQnbZTRkXdg" , carpeta:"" },
-  { local:"LA MOLINA", name:"AGRARIA LM 2",      reporte:"https://colab.research.google.com/drive/17sCgiKn2UdrE-gOuO9f5ouAxf4gPOqvy" , carpeta:"" },
+  { local:"LA MOLINA", name:"AGRARIA LM 2",      reporte:"https://colab.research.google.com/drive/17sCgiKn2UdrE-gOuO9f5ouAxf4gPOqvy" , carpeta:"https://drive.google.com/drive/folders/1IrYwFVCr-wnM_F_1R_t6WR1l710Hmt5l?usp=drive_link" },
   { local:"LA MOLINA", name:"AGRARIA ESCOLAR",  reporte:"", carpeta:"" },
-  { local:"LA MOLINA", name:"PUCP LM",           reporte:"https://colab.research.google.com/drive/1Edgesw6yJC1vD7J44Sq7ZMqouXImuINU" , carpeta:"" },
-  { local:"LA MOLINA", name:"U.LIMA LM",         reporte:"https://colab.research.google.com/drive/1TU7HoBroIBo7XONr4hifgd0r3gzKQbd1" , carpeta:"" },
-  { local:"LA MOLINA", name:"ADELANTO LM",       reporte:"https://colab.research.google.com/drive/1GmBZNfVlXi7z6DUTg3hnVMiW0DlONKJ-" , carpeta:"" },
+  { local:"LA MOLINA", name:"PUCP LM",           reporte:"https://colab.research.google.com/drive/1Edgesw6yJC1vD7J44Sq7ZMqouXImuINU" , carpeta:"https://drive.google.com/drive/folders/1L-q9DsaMC-1CGOzTgvsfq3ynpp1rT0aB?usp=drive_link" },
+  { local:"LA MOLINA", name:"U.LIMA LM",         reporte:"https://colab.research.google.com/drive/1TU7HoBroIBo7XONr4hifgd0r3gzKQbd1" , carpeta:"https://drive.google.com/drive/folders/1qm3hOeoaVThu8CHL6TdJvgKuhhm89Iu_?usp=drive_link" },
+  { local:"LA MOLINA", name:"ADELANTO LM",       reporte:"https://colab.research.google.com/drive/1GmBZNfVlXi7z6DUTg3hnVMiW0DlONKJ-" , carpeta:"https://drive.google.com/drive/folders/1_pfkbWLqGj7xBXn4_u967d7qYQzNFicF?usp=drive_link" },
 
   // ================= SAN MIGUEL =================
   { local:"SAN MIGUEL", name:"AGRARIA SM",       reporte:"https://colab.research.google.com/drive/1OZWR5Z1HaAVgmWx2ofS4d0nj-Arl9sMs" , carpeta:"" },
-  { local:"SAN MIGUEL", name:"PUCP SM",          reporte:"https://colab.research.google.com/drive/1roEJq2NiU4pQB8rsbhDKvR_g8wjCKgoi" , carpeta:"" },
-  { local:"SAN MIGUEL", name:"U.LIMA SM 1",      reporte:"https://colab.research.google.com/drive/1wLAf1p8LmF4dI-qLVjTv8Ax0XmJH2vHr" , carpeta:"" },
-  { local:"SAN MIGUEL", name:"U.LIMA SM 2",      reporte:"https://colab.research.google.com/drive/1AKoWoQ4LzXg7DCJNF_Vaqw9kmUXxuuWu" , carpeta:"" },
-  { local:"SAN MIGUEL", name:"ADELANTO SM",      reporte:"https://colab.research.google.com/drive/1K_LFFycdNc6KS_LMCb5-2groejZlvBXI" , carpeta:"" },
+  { local:"SAN MIGUEL", name:"PUCP SM",          reporte:"https://colab.research.google.com/drive/1roEJq2NiU4pQB8rsbhDKvR_g8wjCKgoi" , carpeta:"https://drive.google.com/drive/folders/1te_o0tJvqNoT_hRdcww1-COq6_AQ1DjE?usp=drive_link" },
+  { local:"SAN MIGUEL", name:"U.LIMA SM 1",      reporte:"https://colab.research.google.com/drive/1wLAf1p8LmF4dI-qLVjTv8Ax0XmJH2vHr" , carpeta:"https://drive.google.com/drive/folders/1-gdGNSuaG0MVx-zgX87QT2VZipdO7VZ3?usp=drive_link" },
+  { local:"SAN MIGUEL", name:"U.LIMA SM 2",      reporte:"https://colab.research.google.com/drive/1AKoWoQ4LzXg7DCJNF_Vaqw9kmUXxuuWu" , carpeta:"https://drive.google.com/drive/folders/1tx-fLVA6MXtqah0yQbXXPNfjUrxUE7Kd?usp=drive_link" },
+  { local:"SAN MIGUEL", name:"ADELANTO SM",      reporte:"https://colab.research.google.com/drive/1K_LFFycdNc6KS_LMCb5-2groejZlvBXI" , carpeta:"https://drive.google.com/drive/folders/1D5j3HXKQW1vz5Ybz3Wh0yZsf_jz4XZ6x?usp=drive_link" },
 
   // ================= SAN BORJA =================
   { local:"SAN BORJA",  name:"AGRARIA SB",       reporte:"https://colab.research.google.com/drive/14r9W48Q1pvH9ANFB15c7sbk7pYoWOf-_" , carpeta:"" },
-  { local:"SAN BORJA",  name:"PUCP SB",          reporte:"https://colab.research.google.com/drive/1czyfJSMFAMdDkjXvI8t3UPNO9KfzGtIC" , carpeta:"" },
-  { local:"SAN BORJA",  name:"U.LIMA SB 1",      reporte:"https://colab.research.google.com/drive/1mElja6XYJ25gG10y-UneEgjUFEDK-i-M" , carpeta:"" },
-  { local:"SAN BORJA",  name:"U.LIMA SB 2",      reporte:"https://colab.research.google.com/drive/19KkIWlb1oNy4VoRCflfv6GWXPlQNO6-u" , carpeta:"" },
+  { local:"SAN BORJA",  name:"PUCP SB",          reporte:"https://colab.research.google.com/drive/1czyfJSMFAMdDkjXvI8t3UPNO9KfzGtIC" , carpeta:"https://drive.google.com/drive/folders/1QpADvW35TgiQuDIsKUUY0fRrVAYEhjgh?usp=drive_link" },
+  { local:"SAN BORJA",  name:"U.LIMA SB 1",      reporte:"https://colab.research.google.com/drive/1mElja6XYJ25gG10y-UneEgjUFEDK-i-M" , carpeta:"https://drive.google.com/drive/folders/1R_GbiotTzataJiPhLV9ZbOs3NJ4ibE_0?usp=drive_link" },
+  { local:"SAN BORJA",  name:"U.LIMA SB 2",      reporte:"https://colab.research.google.com/drive/19KkIWlb1oNy4VoRCflfv6GWXPlQNO6-u" , carpeta:"https://drive.google.com/drive/folders/1gKBqvM2nxMPi8DQUqLis8nTl2LV25P0M?usp=drive_link" },
 
   // ================= VIRTUAL =================
   { local:"VIRTUAL",    name:"AGRARIA VIRTUAL",  reporte:"https://colab.research.google.com/drive/1jmxIzW1yB3h_k4J3Y9cbcqS8t3QwUW6P" , carpeta:"" },
-  { local:"VIRTUAL",    name:"U.LIMA VIRTUAL 1",   reporte:"https://colab.research.google.com/drive/1-AOKPLGxlb2OWCoMDrAA0kXCZRj3hrNI" , carpeta:"" },
-  { local:"VIRTUAL",    name:"U.LIMA VIRTUAL 2",   reporte:"https://colab.research.google.com/drive/1tX_yYM7H1s_dHACnLoPJo4kTePWVc8jJ" , carpeta:"" },
-  { local:"VIRTUAL",    name:"U.LIMA ESCOLAR",   reporte:"https://colab.research.google.com/drive/1Wmj0Py2AdOihL_hXZCT-kfbj2ezqvbDe" , carpeta:"" },
+  { local:"VIRTUAL",    name:"U.LIMA VIRTUAL 1",   reporte:"https://colab.research.google.com/drive/1-AOKPLGxlb2OWCoMDrAA0kXCZRj3hrNI" , carpeta:"https://drive.google.com/drive/folders/131teXY1AltFA4PGYY1msEOeeeVp9WWsl?usp=drive_link" },
+  { local:"VIRTUAL",    name:"U.LIMA VIRTUAL 2",   reporte:"https://colab.research.google.com/drive/1tX_yYM7H1s_dHACnLoPJo4kTePWVc8jJ" , carpeta:"https://drive.google.com/drive/folders/1fYQyxhYac63WuQDkbIZoR0wGfyaxguPP?usp=drive_link" },
+  { local:"VIRTUAL",    name:"U.LIMA ESCOLAR",   reporte:"https://colab.research.google.com/drive/1Wmj0Py2AdOihL_hXZCT-kfbj2ezqvbDe" , carpeta:"https://drive.google.com/drive/folders/19kY1ivbtRcFLSXlox_2mlnsoCjxKlHp4?usp=drive_link" },
 ];
 
 function ensureReportesLayout(){
@@ -5265,13 +5264,13 @@ function renderReportes(){
         { day:"MARTES",    start:"08:00", end:"09:50", course:"BIO",   teacher:"ZERILLO" },
         { day:"MIÉRCOLES", start:"08:00", end:"09:50", course:"HIS",   teacher:"RIOJA H." },
         { day:"JUEVES",    start:"08:00", end:"09:50", course:"QUÍ 1", teacher:"COSTA" },
-        { day:"VIERNES",   start:"08:00", end:"09:50", course:"FÍS 1", teacher:"RUBEN" },
+        { day:"VIERNES",   start:"08:00", end:"09:50", course:"RV 1", teacher:"TABER" },
 
-        { day:"LUNES",     start:"10:00", end:"11:50", course:"GEO",   teacher:"TORRES" },
+        { day:"LUNES",     start:"10:00", end:"11:50", course:"GEO",   teacher:"JULCA" },
         { day:"MARTES",    start:"10:00", end:"11:50", course:"TRI",   teacher:"JULCA" },
         { day:"MIÉRCOLES", start:"10:00", end:"11:50", course:"GGF",   teacher:"RIOJA" },
         { day:"JUEVES",    start:"10:00", end:"11:50", course:"QUÍ 2", teacher:"COSTA" },
-        { day:"VIERNES",   start:"10:00", end:"11:50", course:"FÍS 2", teacher:"RUBEN" },
+        { day:"VIERNES",   start:"10:00", end:"11:50", course:"REF. MATES", teacher:"MARCELA" },
 
         { day:"LUNES",     start:"12:00", end:"13:50", course:"TUT",  teacher:"ALLYSON" },
         { day:"VIERNES",   start:"12:00", end:"13:50", course:"RV 2", teacher:"TABER" },
