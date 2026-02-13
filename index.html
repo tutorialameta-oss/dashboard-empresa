@@ -313,6 +313,20 @@
       border-radius: 18px;
       background:#fff;
       box-shadow: var(--shadow);
+
+      /* UX: que la barra horizontal siempre sea accesible (sin tener que bajar hasta el final de la página) */
+      max-height: calc(100vh - 290px);
+      scrollbar-gutter: stable both-edges;
+      overscroll-behavior: contain;
+
+      /* un poco más de aire visual */
+      padding: 14px;
+
+      /* navegación tipo “mano” (drag-to-scroll) */
+      cursor: grab;
+    }
+    .schMatrixWrap.dragging{
+      cursor: grabbing;
     }
     .schMatrix{
       display:grid;
@@ -3435,6 +3449,9 @@ const s = (id, on)=>{
           <span class="pill"><span class="dot pucp"></span>PUCP</span>
           <span class="pill"><span class="dot ulima"></span>U.LIMA</span>
         </div>
+        <div class="panelHint" style="margin-top:8px; color:var(--muted);">
+          Tip: en <b>MATRIZ</b> puedes desplazarte con la barra inferior o <b>arrastrando</b> dentro del cuadro.
+        </div>
       </div>
 
       <div class="card panel12">
@@ -5562,7 +5579,73 @@ function renderReportes(){
     },
   ]);
 
-  function ensureHorariosLayout(){
+  
+  // ===================== HORARIOS (UX) =====================
+  // Ajusta altura del contenedor de matriz para que el scroll horizontal sea visible siempre,
+  // y habilita navegación “arrastrando” (drag-to-scroll).
+  function fitHorariosMatrixHeight(){
+    const mx = document.getElementById("schMatrix");
+    if (!mx) return;
+    // Si está oculto, no calcular
+    if (mx.style.display === "none") return;
+
+    const r = mx.getBoundingClientRect();
+    // deja un margen inferior para que no quede pegado al borde
+    const avail = window.innerHeight - r.top - 18;
+    if (avail > 280){
+      mx.style.maxHeight = avail + "px";
+    }
+  }
+
+  function enableHorariosDragScroll(){
+    const mx = document.getElementById("schMatrix");
+    if (!mx) return;
+    if (mx.dataset.dragReady === "1") return;
+    mx.dataset.dragReady = "1";
+
+    let down = false;
+    let startX = 0, startY = 0;
+    let sl = 0, st = 0;
+
+    mx.addEventListener("mousedown", (e)=>{
+      // No activar arrastre si el usuario está clickeando un control (botones, selects, etc.)
+      const t = e.target;
+      if (t && (t.closest("button") || t.closest("select") || t.closest("a") || t.closest("input") || t.closest("textarea"))) return;
+      if (e.button !== 0) return; // solo click izquierdo
+      down = true;
+      mx.classList.add("dragging");
+      startX = e.pageX;
+      startY = e.pageY;
+      sl = mx.scrollLeft;
+      st = mx.scrollTop;
+    });
+
+    window.addEventListener("mouseup", ()=>{
+      if (!down) return;
+      down = false;
+      mx.classList.remove("dragging");
+    });
+
+    mx.addEventListener("mousemove", (e)=>{
+      if (!down) return;
+      e.preventDefault();
+      const dx = e.pageX - startX;
+      const dy = e.pageY - startY;
+      mx.scrollLeft = sl - dx;
+      mx.scrollTop  = st - dy;
+    });
+  }
+
+  // one-time resize hook
+  if (!window.__LM_HORARIOS_RESIZE){
+    window.__LM_HORARIOS_RESIZE = true;
+    window.addEventListener("resize", ()=>{
+      try{ fitHorariosMatrixHeight(); }catch(e){}
+    });
+  }
+
+
+function ensureHorariosLayout(){
     const el = document.getElementById("view_horarios");
     if (el.dataset.ready === "1") return;
 
@@ -5666,7 +5749,16 @@ function renderReportes(){
       rer();
     });
 
-    el.dataset.ready = "1";
+    
+    // UX: ajustar altura y habilitar drag-to-scroll en matriz
+    try{
+      // se ejecuta después de que el DOM ya esté armado
+      setTimeout(()=>{ 
+        enableHorariosDragScroll();
+        fitHorariosMatrixHeight();
+      }, 0);
+    }catch(e){}
+el.dataset.ready = "1";
   }
 
   function sortByLocalOrder(values){
@@ -5820,6 +5912,7 @@ function renderReportes(){
           ${rows}
         </div>
       `;
+      try{ requestAnimationFrame(()=>fitHorariosMatrixHeight()); }catch(e){}
     }
   }
 
