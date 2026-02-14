@@ -7405,6 +7405,52 @@ function renderReportes(){
     });
   }
 
+  // ===================== GENERIC DRAG-TO-SCROLL =====================
+  // Uso: enableDragScroll(elScrollable)
+  // Importante: NO debe bloquear inputs/botones/selects.
+  function enableDragScroll(el){
+    if (!el) return;
+    if (el.dataset && el.dataset.dragReady === "1") return;
+    if (el.dataset) el.dataset.dragReady = "1";
+
+    let down = false;
+    let startX = 0, startY = 0;
+    let sl = 0, st = 0;
+
+    const isInteractive = (t)=>{
+      if (!t) return false;
+      return !!(t.closest && (t.closest("button") || t.closest("a") || t.closest("select") || t.closest("input") || t.closest("textarea") || t.closest("label") || t.closest("summary")));
+    };
+
+    el.addEventListener("mousedown", (e)=>{
+      if (e.button !== 0) return;
+      if (isInteractive(e.target)) return;
+      // Solo activar si hay algo que desplazar
+      if (el.scrollWidth <= el.clientWidth && el.scrollHeight <= el.clientHeight) return;
+      down = true;
+      el.classList.add("dragging");
+      startX = e.pageX;
+      startY = e.pageY;
+      sl = el.scrollLeft;
+      st = el.scrollTop;
+    });
+
+    window.addEventListener("mouseup", ()=>{
+      if (!down) return;
+      down = false;
+      el.classList.remove("dragging");
+    });
+
+    el.addEventListener("mousemove", (e)=>{
+      if (!down) return;
+      e.preventDefault();
+      const dx = e.pageX - startX;
+      const dy = e.pageY - startY;
+      el.scrollLeft = sl - dx;
+      el.scrollTop  = st - dy;
+    });
+  }
+
   // one-time resize hook
   if (!window.__LM_HORARIOS_RESIZE){
     window.__LM_HORARIOS_RESIZE = true;
