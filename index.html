@@ -1308,6 +1308,46 @@
       padding: 0 6px;
     }
 
+.pgTop .miniRow{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+  align-items:flex-end;
+}
+input[type="color"].pgColor{
+  width:48px;
+  height:38px;
+  padding:0;
+  border-radius: 12px;
+  border:1px solid var(--border);
+  background:#fff;
+  cursor:pointer;
+}
+input[type="color"].pgColor::-webkit-color-swatch-wrapper{ padding:0; }
+input[type="color"].pgColor::-webkit-color-swatch{ border:none; border-radius:12px; }
+
+.toast{
+  position: fixed;
+  bottom: 18px;
+  right: 18px;
+  z-index: 9999;
+  background: #0f172a;
+  color:#fff;
+  padding:10px 12px;
+  border-radius: 12px;
+  box-shadow: 0 14px 34px rgba(15,23,42,0.18);
+  font-weight: 950;
+  letter-spacing: .2px;
+  opacity: 0;
+  transform: translateY(6px);
+  transition: opacity .18s ease, transform .18s ease;
+  pointer-events:none;
+  text-transform: uppercase;
+  font-size: 12px;
+  max-width: 360px;
+}
+.toast.show{ opacity: 1; transform: translateY(0); }
+
     @media (max-width: 980px){
       .alHeroInner{ grid-template-columns: 1fr; }
       .alProfileWrap{ grid-template-columns: 1fr; }
@@ -1621,9 +1661,9 @@
       font-weight: 1200;
       color:#0b1324;
     }
-    .pgPhaseNiv{ background: rgba(34,197,94,0.22); }   /* verde */
-    .pgPhaseAv{  background: rgba(59,130,246,0.18); }  /* azul */
-    .pgPhaseRep{ background: rgba(245,158,11,0.18); }  /* naranja */
+    .pgPhaseNiv{ background: var(--pgNivBg, rgba(34,197,94,0.22)); }   /* verde */
+    .pgPhaseAv{  background: var(--pgAvBg,  rgba(59,130,246,0.18)); }  /* azul */
+    .pgPhaseRep{ background: var(--pgRepBg, rgba(245,158,11,0.18)); }  /* naranja */
 
     .pgRowAlt td{ background: rgba(15,23,42,0.03); }
     .pgMat{ background: rgba(15,23,42,0.04); font-weight: 1100; }
@@ -1635,11 +1675,11 @@
       right: 6px;
       padding: 4px 6px;
       border-radius: 10px;
-      background: rgba(168,85,247,0.18);
-      border: 1px solid rgba(168,85,247,0.28);
+      background: var(--pgEvtBg, rgba(168,85,247,0.18));
+      border: 1px solid var(--pgEvtBorder, rgba(168,85,247,0.28));
       font-size: 10px;
       font-weight: 1100;
-      color:#4c1d95;
+      color: var(--pgEvtText, #4c1d95);
       text-transform: uppercase;
     }
     .pgLegend{
@@ -1651,9 +1691,9 @@
     }
     .pgLegend .pill{ padding:6px 10px; border-radius:999px; border:1px solid var(--border); background:#fff; font-weight:1000; font-size:12px; }
     .pgLegend .dot{ width:10px; height:10px; border-radius:999px; display:inline-block; margin-right:6px; vertical-align:middle; }
-    .pgLegend .dNiv{ background: rgba(34,197,94,0.85); }
-    .pgLegend .dAv{ background: rgba(59,130,246,0.85); }
-    .pgLegend .dRep{ background: rgba(245,158,11,0.85); }
+    .pgLegend .dNiv{ background: var(--pgNivDot, rgba(34,197,94,0.85)); }
+    .pgLegend .dAv{ background: var(--pgAvDot, rgba(59,130,246,0.85)); }
+    .pgLegend .dRep{ background: var(--pgRepDot, rgba(245,158,11,0.85)); }
 
     details.pgAdv{ margin-top:10px; }
     details.pgAdv summary{
@@ -3444,179 +3484,309 @@ const s = (id, on)=>{
 
   
 
+  
   // ===================== PROGRAMA (GANTT) =====================
-  const PROGRAMA_TEMPLATES = [
-    { id:"PROG_AGR_REPASO",   uni:"AGRARIA", title:"AGRARIA | REPASO",   color:"agraria" },
-    { id:"PROG_AGR_SEM",      uni:"AGRARIA", title:"AGRARIA | SEMESTRAL", color:"agraria" },
-    { id:"PROG_PUCP_SEM",     uni:"PUCP",    title:"PUCP | SEMESTRAL",    color:"pucp"    },
-    { id:"PROG_ULIMA",        uni:"U.LIMA",  title:"U.LIMA | CICLO",      color:"ulima"   },
-    { id:"PROG_TALENTO",      uni:"U.LIMA",  title:"TALENTO | CICLO",     color:"ulima"   },
-    { id:"PROG_CUSTOM",       uni:"",        title:"(PERSONALIZADO)",     color:"custom"  },
-  ];
+  // ✅ OBJETIVO
+  // - Admin: crea/edita múltiples programas, define semanas por fase, filas (semana/simulacro/materiales/...), eventos y colores.
+  // - Tutor/Alumno: solo lectura (ver exactamente lo que guardó el Admin) + exportar PNG + zoom local.
+  //
+  // ⚠️ IMPORTANTE: Esta versión guarda los programas en localStorage del navegador.
+  // Si quieres sincronización entre PCs/celulares, luego lo conectamos a Apps Script (backend) sin cambiar la UI.
 
-  const PROGRAMA_LS_PREFIX = "LAMETA_PROGRAMA__";
+  const PROG_STORE_KEY = "LAMETA_PROGRAM_STORE_V2";
+  const PROG_ACTIVE_KEY = "LAMETA_PROGRAM_ACTIVE_V2";
 
-  function pgDefaultConfig(templateId){
-    const tpl = PROGRAMA_TEMPLATES.find(t=>t.id===templateId) || PROGRAMA_TEMPLATES[0];
-    const today = new Date();
-    const iso = (d)=> {
-      const z = new Date(d.getFullYear(), d.getMonth(), d.getDate());
-      const mm = String(z.getMonth()+1).padStart(2,"0");
-      const dd = String(z.getDate()).padStart(2,"0");
-      return `${z.getFullYear()}-${mm}-${dd}`;
-    };
-
-    // Defaults (puedes cambiar en UI)
-    const base = {
-      id: tpl.id,
-      title: tpl.title,
-      uni: tpl.uni,
-      startDate: iso(today),
-      phases: { niv: 4, av: 8, rep: 2 }, // semanas
-      zoom: 1,
-      rows: {
-        semana_code: {
-          enabled: true,
-          label: "Semana",
-          type: "seq",
-          cfg: {
-            niv: { prefix:"SEN", start:0, pad:0 },
-            av:  { prefix:"SE",  start:1, pad:2 },
-            rep: { prefix:"SR",  start:1, pad:2 },
-          }
-        },
-        simulacro: {
-          enabled: true,
-          label: "Simulacro",
-          type: "seq",
-          cfg: {
-            niv: { prefix:"SN", start:1, pad:2 },
-            av:  { prefix:"S",  start:1, pad:2 },
-            rep: { prefix:"SR", start:1, pad:2 },
-          }
-        },
-        materiales: {
-          enabled: true,
-          label: "Materiales",
-          type: "phaseLabel",
-          cfg: { niv:"SEPARATAS", av:"LIBRO 1", rep:"REPASO" }
-        },
-        reportes: {
-          enabled: true,
-          label: "Reportes",
-          type: "seq",
-          cfg: {
-            niv: { prefix:"RN", start:0, pad:0 },
-            av:  { prefix:"R",  start:1, pad:0 },
-            rep: { prefix:"R",  start:1, pad:0 },
-          }
-        },
-        tutoria: {
-          enabled: false,
-          label: "Tutoría",
-          type: "seq",
-          cfg: {
-            niv: { prefix:"T", start:1, pad:0 },
-            av:  { prefix:"T", start:1, pad:0 },
-            rep: { prefix:"T", start:1, pad:0 },
-          }
-        },
-        seminario: {
-          enabled: false,
-          label: "Seminario",
-          type: "seq",
-          cfg: {
-            niv: { prefix:"SEM", start:1, pad:0 },
-            av:  { prefix:"SEM", start:1, pad:0 },
-            rep: { prefix:"SEM", start:1, pad:0 },
-          }
-        },
-        reuniones: {
-          enabled: false,
-          label: "Reuniones",
-          type: "seq",
-          cfg: {
-            niv: { prefix:"REU", start:1, pad:0 },
-            av:  { prefix:"REU", start:1, pad:0 },
-            rep: { prefix:"REU", start:1, pad:0 },
-          }
-        },
-        eventos: {
-          enabled: true,
-          label: "Eventos",
-          type: "events"
-        }
-      },
-      milestones: [
-        // { week: 6, text: "ADMISIÓN" }
-      ],
-    };
-
-    // Ajustes por plantilla (solo defaults; igual puedes modificar)
-    if (tpl.id === "PROG_AGR_REPASO"){
-      base.phases = { niv: 4, av: 9, rep: 0 };
-      base.rows.materiales.cfg = { niv:"SEPARATAS", av:"LIBRO 1", rep:"" };
-    }
-    if (tpl.id === "PROG_AGR_SEM"){
-      base.phases = { niv: 4, av: 6, rep: 0 };
-      base.rows.materiales.cfg = { niv:"SEPARATAS", av:"BOLETÍN 1 / 2", rep:"" };
-    }
-    if (tpl.id === "PROG_PUCP_SEM"){
-      base.phases = { niv: 3, av: 7, rep: 0 };
-      base.rows.semana_code.cfg.niv = { prefix:"SEN", start:1, pad:0 };
-      base.rows.semana_code.cfg.av  = { prefix:"SE",  start:1, pad:2 };
-    }
-    if (tpl.id === "PROG_ULIMA"){
-      base.phases = { niv: 2, av: 8, rep: 1 };
-      base.rows.materiales.cfg = { niv:"SEPARATAS", av:"LIBRO 1", rep:"REPASO" };
-    }
-    if (tpl.id === "PROG_TALENTO"){
-      base.phases = { niv: 3, av: 6, rep: 1 };
-      base.rows.semana_code.cfg.niv = { prefix:"SEN", start:1, pad:0 };
-      base.rows.reportes.enabled = true;
-      base.rows.reportes.cfg.niv = { prefix:"R", start:1, pad:0 };
-    }
-    if (tpl.id === "PROG_CUSTOM"){
-      base.title = "PROGRAMA PERSONALIZADO";
-      base.uni = "";
-      base.phases = { niv: 4, av: 8, rep: 2 };
-    }
-
-    return base;
-  }
-
-  function pgLoadConfig(templateId){
-    const key = PROGRAMA_LS_PREFIX + templateId;
+  function toast(msg){
     try{
-      const raw = localStorage.getItem(key);
-      if (!raw) return pgDefaultConfig(templateId);
-      const cfg = JSON.parse(raw);
-      // Sanitiza mínimamente (evita NaN)
-      cfg.phases = cfg.phases || {niv:4,av:8,rep:2};
-      ["niv","av","rep"].forEach(k=>{
-        const v = Number(cfg.phases[k] ?? 0);
-        cfg.phases[k] = (Number.isFinite(v) && v>=0) ? Math.floor(v) : 0;
-      });
-      cfg.rows = cfg.rows || pgDefaultConfig(templateId).rows;
-      cfg.milestones = Array.isArray(cfg.milestones) ? cfg.milestones : [];
-      cfg.zoom = Number(cfg.zoom || 1);
-      return cfg;
-    }catch(e){
-      return pgDefaultConfig(templateId);
+      let t = document.querySelector(".toast");
+      if (!t){
+        t = document.createElement("div");
+        t.className = "toast";
+        document.body.appendChild(t);
+      }
+      t.textContent = String(msg || "");
+      t.classList.add("show");
+      clearTimeout(toast._tm);
+      toast._tm = setTimeout(()=>t.classList.remove("show"), 1600);
+    } catch(e){
+      // fallback silencioso
+      console.log("TOAST:", msg);
     }
   }
 
-  function pgSaveConfig(templateId, cfg){
-    const key = PROGRAMA_LS_PREFIX + templateId;
-    try{ localStorage.setItem(key, JSON.stringify(cfg)); }catch(e){}
+  function pgDeepClone(x){
+    try { return JSON.parse(JSON.stringify(x)); } catch(e){ return x; }
   }
 
-  function pgPickDefaultTemplateForAlumno(){
-    const prof = getAlumnoProfile() || {};
-    const uni = String(prof.uni || "").trim();
-    if (!uni) return PROGRAMA_TEMPLATES[0].id;
-    const t = PROGRAMA_TEMPLATES.find(x=>x.uni===uni && x.id!=="PROG_CUSTOM");
-    return (t ? t.id : PROGRAMA_TEMPLATES[0].id);
+  function pgISO(d){
+    const y = d.getFullYear();
+    const m = String(d.getMonth()+1).padStart(2,"0");
+    const da = String(d.getDate()).padStart(2,"0");
+    return `${y}-${m}-${da}`;
+  }
+
+  function pgNewId(){
+    return "P_" + Math.random().toString(36).slice(2,10) + "_" + Date.now().toString(36);
+  }
+
+  function pgDefaultRows(){
+    // "seq" => genera códigos por semana; "phaseLabel" => un texto por fase (colspan)
+    return {
+      semana_code: { type:"seq", label:"SEMANA", enabled:true, cfg:{ niv:{prefix:"SEN",start:1,pad:2}, av:{prefix:"SE",start:1,pad:2}, rep:{prefix:"SR",start:1,pad:2} } },
+      simulacro:   { type:"seq", label:"SIMULACRO", enabled:true, cfg:{ niv:{prefix:"SN", start:1,pad:2}, av:{prefix:"S", start:1,pad:2}, rep:{prefix:"SR",start:1,pad:2} } },
+      materiales:  { type:"phaseLabel", label:"MATERIALES", enabled:true, cfg:{ niv:"SEPARATAS", av:"LIBRO 1", rep:"REPASO" } },
+
+      tutoria:     { type:"seq", label:"TUTORÍA", enabled:false, cfg:{ niv:{prefix:"T",start:1,pad:0}, av:{prefix:"T",start:1,pad:0}, rep:{prefix:"T",start:1,pad:0} } },
+      reportes:    { type:"seq", label:"REPORTES", enabled:true,  cfg:{ niv:{prefix:"RN",start:1,pad:0}, av:{prefix:"R",start:1,pad:0}, rep:{prefix:"R",start:1,pad:0} } },
+      seminario:   { type:"seq", label:"SEMINARIO", enabled:false, cfg:{ niv:{prefix:"SEM",start:1,pad:0}, av:{prefix:"SEM",start:1,pad:0}, rep:{prefix:"SEM",start:1,pad:0} } },
+      reuniones:   { type:"seq", label:"REUNIONES", enabled:false, cfg:{ niv:{prefix:"REU",start:1,pad:0}, av:{prefix:"REU",start:1,pad:0}, rep:{prefix:"REU",start:1,pad:0} } },
+
+      eventos:     { type:"events", label:"EVENTOS", enabled:true }
+    };
+  }
+
+  function pgDefaultConfig(){
+    const today = new Date();
+    return {
+      startDate: pgISO(today),
+      phases: { niv: 2, av: 8, rep: 2 },
+      zoomDefault: 0.9,              // zoom guardado por programa (admin)
+      colors: {                      // colores editables por programa (admin)
+        niv: "#22c55e",
+        av:  "#3b82f6",
+        rep: "#f59e0b",
+        evt: "#a855f7"
+      },
+      rows: pgDefaultRows(),
+      milestones: []                 // {week:number, text:string}
+    };
+  }
+
+  function pgLoadStoreRaw(){
+    try{
+      const raw = localStorage.getItem(PROG_STORE_KEY);
+      if (!raw) return null;
+      return JSON.parse(raw);
+    }catch(e){
+      return null;
+    }
+  }
+
+  function pgSaveStoreRaw(store){
+    try{
+      localStorage.setItem(PROG_STORE_KEY, JSON.stringify(store));
+      return true;
+    }catch(e){
+      return false;
+    }
+  }
+
+  function pgEnsureStore(){
+    let st = pgLoadStoreRaw();
+    const bad = !st || st.version !== 2 || !Array.isArray(st.programs) || typeof st.configs !== "object";
+    if (bad){
+      st = { version:2, programs:[], configs:{} };
+    }
+
+    // Garantiza al menos 1 programa
+    if (!st.programs.length){
+      const id = pgNewId();
+      st.programs.push({
+        id,
+        name: "PROGRAMA GENERAL",
+        scopeUni: "ALL", // ALL | AGRARIA | PUCP | U.LIMA
+        updatedAt: Date.now()
+      });
+      st.configs[id] = pgDefaultConfig();
+    }
+
+    // saneo
+    const seen = new Set();
+    st.programs = st.programs.filter(p=>{
+      if (!p || !p.id) return false;
+      if (seen.has(p.id)) return false;
+      seen.add(p.id);
+      return true;
+    });
+
+    for (const p of st.programs){
+      if (!st.configs[p.id]) st.configs[p.id] = pgDefaultConfig();
+      if (!p.name) p.name = "PROGRAMA";
+      if (!p.scopeUni) p.scopeUni = "ALL";
+      if (!p.updatedAt) p.updatedAt = Date.now();
+    }
+
+    pgSaveStoreRaw(st);
+    return st;
+  }
+
+  function pgSaveStore(st){
+    st.version = 2;
+    return pgSaveStoreRaw(st);
+  }
+
+  function pgGetProgramsForRole(){
+    const st = pgEnsureStore();
+    const isAlumno = (CURRENT_ROLE === "alumno");
+    const prof = isAlumno ? (getAlumnoProfile() || {}) : null;
+    const uni = String(prof?.uni || "").trim().toUpperCase();
+
+    let list = st.programs.slice();
+
+    if (isAlumno){
+      list = list.filter(p => (p.scopeUni === "ALL" || String(p.scopeUni||"").toUpperCase() === uni));
+    }
+    // Tutor ve todo, pero solo lectura.
+    list.sort((a,b)=>String(a.name||"").localeCompare(String(b.name||""),"es"));
+    return list;
+  }
+
+  function pgGetActiveProgramId(){
+    try{
+      const id = String(localStorage.getItem(PROG_ACTIVE_KEY) || "");
+      if (!id) return null;
+      const st = pgEnsureStore();
+      return st.programs.some(p=>p.id===id) ? id : null;
+    }catch(e){
+      return null;
+    }
+  }
+
+  function pgSetActiveProgramId(id){
+    try{ localStorage.setItem(PROG_ACTIVE_KEY, String(id||"")); }catch(e){}
+  }
+
+  function pgGetProgramMeta(id){
+    const st = pgEnsureStore();
+    return st.programs.find(p=>p.id===id) || null;
+  }
+
+  function pgUpdateProgramMeta(id, patch){
+    const st = pgEnsureStore();
+    const p = st.programs.find(x=>x.id===id);
+    if (!p) return;
+    Object.assign(p, patch || {});
+    p.updatedAt = Date.now();
+    pgSaveStore(st);
+  }
+
+  function pgGetConfig(id){
+    const st = pgEnsureStore();
+    return pgDeepClone(st.configs[id] || pgDefaultConfig());
+  }
+
+  function pgSetConfig(id, cfg){
+    const st = pgEnsureStore();
+    st.configs[id] = pgDeepClone(cfg);
+    const p = st.programs.find(x=>x.id===id);
+    if (p) p.updatedAt = Date.now();
+    pgSaveStore(st);
+  }
+
+  function pgCreateProgram(name, scopeUni){
+    const st = pgEnsureStore();
+    const id = pgNewId();
+    st.programs.push({
+      id,
+      name: String(name||"PROGRAMA").trim().toUpperCase(),
+      scopeUni: scopeUni || "ALL",
+      updatedAt: Date.now()
+    });
+    st.configs[id] = pgDefaultConfig();
+    pgSaveStore(st);
+    return id;
+  }
+
+  function pgDeleteProgram(id){
+    const st = pgEnsureStore();
+    if (st.programs.length <= 1){ toast("Debe quedar al menos 1 programa."); return false; }
+    st.programs = st.programs.filter(p=>p.id!==id);
+    delete st.configs[id];
+    pgSaveStore(st);
+    return true;
+  }
+
+  function pgDuplicateProgram(id){
+    const st = pgEnsureStore();
+    const baseMeta = st.programs.find(p=>p.id===id);
+    const baseCfg  = st.configs[id];
+    if (!baseMeta || !baseCfg) return null;
+
+    const newId = pgNewId();
+    st.programs.push({
+      id: newId,
+      name: (String(baseMeta.name||"PROGRAMA") + " (COPIA)").toUpperCase(),
+      scopeUni: baseMeta.scopeUni || "ALL",
+      updatedAt: Date.now()
+    });
+    st.configs[newId] = pgDeepClone(baseCfg);
+    pgSaveStore(st);
+    return newId;
+  }
+
+  // Estado de edición en UI
+  let PG_ACTIVE_ID = null;
+  let PG_DRAFT = null;      // solo para admin (cambios sin guardar)
+  let PG_DIRTY = false;
+
+  function pgSetDirty(v){
+    PG_DIRTY = !!v;
+    const st = document.getElementById("pgSaveState");
+    if (!st) return;
+    st.textContent = PG_DIRTY ? "CAMBIOS SIN GUARDAR" : "GUARDADO";
+    st.style.color = PG_DIRTY ? "#b45309" : "var(--muted)";
+  }
+
+  function pgCanEdit(){
+    return CURRENT_ROLE === "admin";
+  }
+
+  function hexToRgb(hex){
+    const h = String(hex||"").trim().replace("#","");
+    if (!h) return null;
+    const hh = (h.length===3) ? (h[0]+h[0]+h[1]+h[1]+h[2]+h[2]) : h;
+    if (hh.length !== 6) return null;
+    const r = parseInt(hh.slice(0,2),16);
+    const g = parseInt(hh.slice(2,4),16);
+    const b = parseInt(hh.slice(4,6),16);
+    if (![r,g,b].every(n=>Number.isFinite(n))) return null;
+    return {r,g,b};
+  }
+
+  function rgba(hex, a){
+    const c = hexToRgb(hex);
+    if (!c) return "";
+    const aa = (Number.isFinite(a) ? a : 1);
+    return `rgba(${c.r},${c.g},${c.b},${aa})`;
+  }
+
+  function lum(hex){
+    const c = hexToRgb(hex);
+    if (!c) return 1;
+    // relativa (aprox)
+    return (0.2126*c.r + 0.7152*c.g + 0.0722*c.b)/255;
+  }
+
+  function pgApplyColors(cfg){
+    const canvas = document.getElementById("pgCanvas");
+    if (!canvas) return;
+
+    const cn = String(cfg?.colors?.niv || "#22c55e");
+    const ca = String(cfg?.colors?.av  || "#3b82f6");
+    const cr = String(cfg?.colors?.rep || "#f59e0b");
+    const ce = String(cfg?.colors?.evt || "#a855f7");
+
+    canvas.style.setProperty("--pgNivBg",  rgba(cn, 0.22) || "rgba(34,197,94,0.22)");
+    canvas.style.setProperty("--pgAvBg",   rgba(ca, 0.18) || "rgba(59,130,246,0.18)");
+    canvas.style.setProperty("--pgRepBg",  rgba(cr, 0.18) || "rgba(245,158,11,0.18)");
+
+    canvas.style.setProperty("--pgNivDot", rgba(cn, 0.85) || "rgba(34,197,94,0.85)");
+    canvas.style.setProperty("--pgAvDot",  rgba(ca, 0.85) || "rgba(59,130,246,0.85)");
+    canvas.style.setProperty("--pgRepDot", rgba(cr, 0.85) || "rgba(245,158,11,0.85)");
+
+    canvas.style.setProperty("--pgEvtBg",     rgba(ce, 0.16) || "rgba(168,85,247,0.18)");
+    canvas.style.setProperty("--pgEvtBorder", rgba(ce, 0.28) || "rgba(168,85,247,0.28)");
+    canvas.style.setProperty("--pgEvtText",   (lum(ce) < 0.55 ? "#ffffff" : "#4c1d95"));
   }
 
   function ensureProgramaLayout(){
@@ -3625,6 +3795,8 @@ const s = (id, on)=>{
     if (el.dataset.ready === "1") return;
 
     const isAlumno = (CURRENT_ROLE === "alumno");
+    const isTutor  = (CURRENT_ROLE === "tutor");
+    const canEdit  = pgCanEdit();
     const prof = isAlumno ? (getAlumnoProfile() || {}) : null;
 
     el.innerHTML = `
@@ -3632,42 +3804,65 @@ const s = (id, on)=>{
         <div class="head">
           <div>
             <div class="title">PROGRAMA</div>
-            <div class="sub">Diagrama de Gantt configurable por semanas (nivelación, avance y repaso). Exportable a PNG.</div>
+            <div class="sub" id="pgSaveState" style="color:var(--muted); font-weight:900;">${canEdit ? "GUARDADO" : "SOLO LECTURA"}</div>
           </div>
           <div class="tools">
             <button class="btn ghost" id="pgBtnPNG">Descargar PNG</button>
-            ${isAlumno ? `<button class="btn ghost" id="pgBackHome">Volver a Inicio</button>` : `<button class="btn" id="pgBtnSave">Guardar</button>`}
+            ${isAlumno ? `<button class="btn ghost" id="pgBackHome">Volver a Inicio</button>` : ``}
+            ${canEdit ? `<button class="btn" id="pgBtnSave">Guardar</button>` : ``}
           </div>
         </div>
 
         <div class="pgTop">
-          <div class="controls">
+          <div class="controls" style="min-width:260px;">
             <label>Programa</label>
-            <select id="pgTemplate"></select>
+            <select id="pgProgram"></select>
+          </div>
+
+          ${canEdit ? `
+          <div class="controls" style="min-width:280px;">
+            <label>Gestión</label>
+            <div class="miniRow">
+              <button class="btn" id="pgBtnNew">+ Nuevo</button>
+              <button class="btn ghost" id="pgBtnRename">Renombrar</button>
+              <button class="btn ghost" id="pgBtnDup">Duplicar</button>
+              <button class="btn ghost" id="pgBtnDel">Eliminar</button>
+            </div>
+          </div>
+          ` : ``}
+
+          <div class="controls" style="min-width:190px;">
+            <label>Visible para</label>
+            <select id="pgScope" ${canEdit ? "" : "disabled"}>
+              <option value="ALL">TODOS</option>
+              <option value="AGRARIA">AGRARIA</option>
+              <option value="PUCP">PUCP</option>
+              <option value="U.LIMA">U.LIMA</option>
+            </select>
           </div>
 
           <div class="controls">
             <label>Inicio (semana 1)</label>
-            <input id="pgStart" type="date"/>
+            <input id="pgStart" type="date" ${canEdit ? "" : "disabled"}/>
           </div>
 
           <div class="controls">
             <label>Nivelación (sem)</label>
-            <input id="pgNiv" type="number" min="0" step="1"/>
+            <input id="pgNiv" type="number" min="0" step="1" ${canEdit ? "" : "disabled"}/>
           </div>
 
           <div class="controls">
             <label>Avance (sem)</label>
-            <input id="pgAv" type="number" min="0" step="1"/>
+            <input id="pgAv" type="number" min="0" step="1" ${canEdit ? "" : "disabled"}/>
           </div>
 
           <div class="controls">
             <label>Repaso (sem)</label>
-            <input id="pgRep" type="number" min="0" step="1"/>
+            <input id="pgRep" type="number" min="0" step="1" ${canEdit ? "" : "disabled"}/>
           </div>
 
           <div class="controls">
-            <label>Zoom</label>
+            <label>Zoom (solo vista)</label>
             <select id="pgZoom">
               <option value="1">100%</option>
               <option value="0.95">95%</option>
@@ -3680,16 +3875,40 @@ const s = (id, on)=>{
           </div>
         </div>
 
-        <div class="pgHint">${isAlumno ? `Vista de lectura para: <b>${(prof?.nombre||"ALUMNO")}</b> · <b>${(prof?.uni||"-")}</b> · <b>${(prof?.local||"-")}</b> · <b>${(prof?.salon||"-")}</b>` : `Edita semanas por fase y, si quieres, activa la configuración avanzada para códigos (SEN/SE/SN/RN...) y materiales.`}</div>
+        <div class="pgHint">
+          ${isAlumno ? `Vista de lectura para: <b>${escapeHtml(prof?.nombre||"ALUMNO")}</b> · <b>${escapeHtml(prof?.uni||"-")}</b> · <b>${escapeHtml(prof?.local||"-")}</b> · <b>${escapeHtml(prof?.salon||"-")}</b>`
+            : (canEdit ? `Crea tus propios programas. Define semanas por fase, códigos/filas, materiales, eventos y colores.`
+                        : `Vista de solo lectura. Para editar, ingresa con rol ADMIN.`)}
+        </div>
 
-        ${isAlumno ? "" : `
+        ${canEdit ? `
           <details class="pgAdv">
-            <summary>Configuración avanzada (códigos, materiales y eventos)</summary>
+            <summary>Configuración avanzada (filas, códigos, materiales, eventos y colores)</summary>
             <div class="pgAdvBox">
-              <div class="pgSmall">Puedes activar/desactivar filas y definir prefijos/contador por fase. Se guarda por programa.</div>
+              <div class="pgSmall">Activa/desactiva filas, edita nombres, prefijos y contador (inicio y ceros). Las semanas empiezan en 1.</div>
               <div id="pgAdvanced"></div>
 
-              <div class="pgSmall" style="margin-top:10px;">Eventos (ej.: “ADMISIÓN 08 DE MARZO”) por semana:</div>
+              <div class="pgSmall" style="margin-top:12px;">Colores del programa:</div>
+              <div class="row" style="gap:10px; flex-wrap:wrap; margin-top:8px; align-items:flex-end;">
+                <div class="controls" style="min-width:170px;">
+                  <label>Nivelación</label>
+                  <input id="pgColNiv" class="pgColor" type="color"/>
+                </div>
+                <div class="controls" style="min-width:170px;">
+                  <label>Avance</label>
+                  <input id="pgColAv" class="pgColor" type="color"/>
+                </div>
+                <div class="controls" style="min-width:170px;">
+                  <label>Repaso</label>
+                  <input id="pgColRep" class="pgColor" type="color"/>
+                </div>
+                <div class="controls" style="min-width:170px;">
+                  <label>Eventos</label>
+                  <input id="pgColEvt" class="pgColor" type="color"/>
+                </div>
+              </div>
+
+              <div class="pgSmall" style="margin-top:12px;">Eventos (ej.: “ADMISIÓN 08 DE MARZO”) por semana:</div>
               <div class="row" style="gap:10px; flex-wrap:wrap; margin-top:8px;">
                 <div class="controls" style="min-width:180px;">
                   <label>Semana</label>
@@ -3705,7 +3924,7 @@ const s = (id, on)=>{
               <div id="pgEvtList" class="pgSmall"></div>
             </div>
           </details>
-        `}
+        ` : ``}
 
         <div class="pgLegend">
           <span class="pill"><span class="dot dNiv"></span>Nivelación</span>
@@ -3721,21 +3940,6 @@ const s = (id, on)=>{
       </div>
     `;
 
-    // Template options
-    const sel = document.getElementById("pgTemplate");
-    if (sel){
-      const options = PROGRAMA_TEMPLATES
-        .filter(t=> isAlumno ? (t.id!=="PROG_CUSTOM" && (t.uni===String(prof?.uni||"").trim() || t.uni==="")) : true)
-        .map(t=> `<option value="${t.id}">${t.title}</option>`)
-        .join("");
-      sel.innerHTML = options;
-    }
-
-    // Default selection
-    const defaultId = isAlumno ? pgPickDefaultTemplateForAlumno() : (PROGRAMA_TEMPLATES[0].id);
-    if (sel) sel.value = defaultId;
-
-    // Hook events
     const back = document.getElementById("pgBackHome");
     if (back) back.addEventListener("click", ()=>setView("inicio_alumno"));
 
@@ -3745,169 +3949,306 @@ const s = (id, on)=>{
     const scroller = document.getElementById("pgScroller");
     if (scroller) enableDragScroll(scroller);
 
-    // Admin-only controls
-    if (!isAlumno){
-      const btnSave = document.getElementById("pgBtnSave");
-      if (btnSave) btnSave.addEventListener("click", ()=>{
-        const id = String(document.getElementById("pgTemplate")?.value || PROGRAMA_TEMPLATES[0].id);
-        const cfg = pgReadUIToConfig(id);
-        pgSaveConfig(id, cfg);
-        toast("Programa guardado.");
-        renderPrograma();
-      });
+    // Select programs
+    pgFillProgramSelect();
 
-      const add = document.getElementById("pgEvtAdd");
-      const clr = document.getElementById("pgEvtClear");
-      if (add) add.addEventListener("click", ()=>{
-        const id = String(document.getElementById("pgTemplate")?.value || "");
-        const cfg = pgReadUIToConfig(id);
-        const wk = Math.floor(Number(document.getElementById("pgEvtWeek")?.value || 0));
-        const tx = String(document.getElementById("pgEvtText")?.value || "").trim();
-        if (!wk || wk<1 || !tx){ toast("Completa semana y texto."); return; }
-        cfg.milestones = cfg.milestones || [];
-        cfg.milestones.push({ week:wk, text: tx.toUpperCase() });
-        cfg.milestones = cfg.milestones.slice(0, 12);
-        pgSaveConfig(id, cfg);
-        renderPrograma();
-        document.getElementById("pgEvtWeek").value="";
-        document.getElementById("pgEvtText").value="";
-      });
-      if (clr) clr.addEventListener("click", ()=>{
-        const id = String(document.getElementById("pgTemplate")?.value || "");
-        const cfg = pgReadUIToConfig(id);
-        cfg.milestones = [];
-        pgSaveConfig(id, cfg);
-        renderPrograma();
+    // Controls listeners
+    const sel = document.getElementById("pgProgram");
+    if (sel){
+      sel.addEventListener("change", ()=>{
+        const id = String(sel.value || "");
+        pgSetActiveProgramId(id);
+        pgLoadProgramIntoUI(id);
       });
     }
 
-    // General UI changes
-    ["pgTemplate","pgStart","pgNiv","pgAv","pgRep","pgZoom"].forEach(id=>{
-      const inp = document.getElementById(id);
-      if (!inp) return;
-      inp.addEventListener("change", ()=>{
-        renderPrograma();
+    // View-only zoom
+    const zoomSel = document.getElementById("pgZoom");
+    if (zoomSel){
+      zoomSel.addEventListener("change", ()=>pgRenderTableFromUI());
+    }
+
+    // Admin management + edits
+    if (canEdit){
+      document.getElementById("pgBtnNew").addEventListener("click", ()=>{
+        const name = prompt("Nombre del nuevo programa (ej.: AGRARIA REPASO):", "NUEVO PROGRAMA");
+        if (!name) return;
+        const scope = prompt("Visible para (ALL/AGRARIA/PUCP/U.LIMA):", "ALL") || "ALL";
+        const id = pgCreateProgram(name, String(scope||"ALL").toUpperCase());
+        pgFillProgramSelect(id);
+        pgSetActiveProgramId(id);
+        pgLoadProgramIntoUI(id);
+        toast("Programa creado.");
       });
-      inp.addEventListener("input", ()=>{
-        renderPrograma();
+
+      document.getElementById("pgBtnRename").addEventListener("click", ()=>{
+        const id = String(document.getElementById("pgProgram").value || "");
+        const meta = pgGetProgramMeta(id);
+        const name = prompt("Nuevo nombre del programa:", String(meta?.name || ""));
+        if (!name) return;
+        pgUpdateProgramMeta(id, { name: String(name).trim().toUpperCase() });
+        pgFillProgramSelect(id);
+        toast("Nombre actualizado.");
       });
-    });
+
+      document.getElementById("pgBtnDup").addEventListener("click", ()=>{
+        const id = String(document.getElementById("pgProgram").value || "");
+        const newId = pgDuplicateProgram(id);
+        if (!newId) return;
+        pgFillProgramSelect(newId);
+        pgSetActiveProgramId(newId);
+        pgLoadProgramIntoUI(newId);
+        toast("Programa duplicado.");
+      });
+
+      document.getElementById("pgBtnDel").addEventListener("click", ()=>{
+        const id = String(document.getElementById("pgProgram").value || "");
+        const meta = pgGetProgramMeta(id);
+        const ok = confirm(`¿Eliminar el programa "${meta?.name||""}"?\n\nEsta acción no se puede deshacer.`);
+        if (!ok) return;
+        const done = pgDeleteProgram(id);
+        if (!done) return;
+        const list = pgGetProgramsForRole();
+        const next = list[0]?.id;
+        pgFillProgramSelect(next);
+        pgSetActiveProgramId(next);
+        pgLoadProgramIntoUI(next);
+        toast("Programa eliminado.");
+      });
+
+      document.getElementById("pgBtnSave").addEventListener("click", ()=>{
+        if (!PG_ACTIVE_ID || !PG_DRAFT) return;
+        // Lee UI -> draft
+        pgUpdateDraftFromUI();
+        // Guarda
+        pgSetConfig(PG_ACTIVE_ID, PG_DRAFT);
+        // meta
+        const scope = String(document.getElementById("pgScope").value || "ALL");
+        pgUpdateProgramMeta(PG_ACTIVE_ID, { scopeUni: scope });
+        pgSetDirty(false);
+        toast("Programa guardado.");
+      });
+
+      // Top fields
+      ["pgScope","pgStart","pgNiv","pgAv","pgRep"].forEach(id=>{
+        const inp = document.getElementById(id);
+        if (!inp) return;
+        inp.addEventListener("change", ()=>{
+          pgSetDirty(true);
+          pgRenderTableFromUI(true);
+        });
+        inp.addEventListener("input", ()=>{
+          pgSetDirty(true);
+          pgRenderTableFromUI(true);
+        });
+      });
+    }
 
     el.dataset.ready = "1";
   }
 
-  function enableDragScroll(el){
-    let isDown=false, startX=0, startY=0, scrollLeft=0, scrollTop=0;
-    el.addEventListener("mousedown",(e)=>{
-      isDown=true;
-      el.classList.add("dragging");
-      startX=e.pageX - el.offsetLeft;
-      startY=e.pageY - el.offsetTop;
-      scrollLeft=el.scrollLeft;
-      scrollTop=el.scrollTop;
-    });
-    window.addEventListener("mouseup",()=>{
-      isDown=false;
-      el.classList.remove("dragging");
-    });
-    el.addEventListener("mouseleave",()=>{
-      isDown=false;
-      el.classList.remove("dragging");
-    });
-    el.addEventListener("mousemove",(e)=>{
-      if(!isDown) return;
-      e.preventDefault();
-      const x = e.pageX - el.offsetLeft;
-      const y = e.pageY - el.offsetTop;
-      const walkX = (x-startX);
-      const walkY = (y-startY);
-      el.scrollLeft = scrollLeft - walkX;
-      el.scrollTop  = scrollTop  - walkY;
-    });
+  function pgFillProgramSelect(forceId){
+    const sel = document.getElementById("pgProgram");
+    if (!sel) return;
+
+    const list = pgGetProgramsForRole();
+    sel.innerHTML = list.map(p=>`<option value="${p.id}">${escapeHtml(p.name || "PROGRAMA")}</option>`).join("");
+
+    const active = forceId || pgGetActiveProgramId() || list[0]?.id;
+    if (active) sel.value = active;
   }
 
-  function pgReadUIToConfig(templateId){
-    const cfg = pgLoadConfig(templateId);
+  function pgLoadProgramIntoUI(id){
+    ensureProgramaLayout();
+    const canEdit = pgCanEdit();
 
-    const start = String(document.getElementById("pgStart")?.value || cfg.startDate || "");
-    if (start) cfg.startDate = start;
+    const list = pgGetProgramsForRole();
+    if (!list.length) return;
 
-    const nN = Math.floor(Number(document.getElementById("pgNiv")?.value || cfg.phases.niv || 0));
-    const nA = Math.floor(Number(document.getElementById("pgAv")?.value  || cfg.phases.av  || 0));
-    const nR = Math.floor(Number(document.getElementById("pgRep")?.value || cfg.phases.rep || 0));
-    cfg.phases = { niv: Math.max(0,nN), av: Math.max(0,nA), rep: Math.max(0,nR) };
+    const safeId = list.some(p=>p.id===id) ? id : list[0].id;
+    PG_ACTIVE_ID = safeId;
 
-    const z = Number(document.getElementById("pgZoom")?.value || cfg.zoom || 1);
-    cfg.zoom = (Number.isFinite(z) ? z : 1);
+    const meta = pgGetProgramMeta(safeId);
+    const cfgSaved = pgGetConfig(safeId);
 
-    // Advanced: only if exists
-    const adv = document.getElementById("pgAdvanced");
-    if (adv){
-      // For each row key that has seq or phaseLabel
-      Object.keys(cfg.rows || {}).forEach(k=>{
-        const row = cfg.rows[k];
-        if (!row) return;
+    // draft
+    PG_DRAFT = canEdit ? pgDeepClone(cfgSaved) : null;
+    pgSetDirty(false);
 
-        const chk = document.getElementById(`pgRow_${k}`);
-        if (chk) row.enabled = !!chk.checked;
+    // inputs
+    const startInp = document.getElementById("pgStart");
+    const nivInp = document.getElementById("pgNiv");
+    const avInp  = document.getElementById("pgAv");
+    const repInp = document.getElementById("pgRep");
+    const scopeSel = document.getElementById("pgScope");
+    const zoomSel = document.getElementById("pgZoom");
 
-        if (row.type === "seq"){
-          ["niv","av","rep"].forEach(ph=>{
-            const p = document.getElementById(`pg_${k}_${ph}_prefix`);
-            const s = document.getElementById(`pg_${k}_${ph}_start`);
-            const d = document.getElementById(`pg_${k}_${ph}_pad`);
-            if (!row.cfg) row.cfg = {niv:{},av:{},rep:{}};
-            if (!row.cfg[ph]) row.cfg[ph] = {};
-            if (p) row.cfg[ph].prefix = String(p.value || "").toUpperCase();
-            if (s) row.cfg[ph].start  = Number(s.value || 0);
-            if (d) row.cfg[ph].pad    = Number(d.value || 0);
-          });
-        }
-        if (row.type === "phaseLabel"){
-          ["niv","av","rep"].forEach(ph=>{
-            const v = document.getElementById(`pg_${k}_${ph}_label`);
-            if (!row.cfg) row.cfg = {niv:"",av:"",rep:""};
-            if (v) row.cfg[ph] = String(v.value || "").toUpperCase();
-          });
-        }
-      });
+    if (scopeSel) scopeSel.value = String(meta?.scopeUni || "ALL");
+
+    const cfg = canEdit ? PG_DRAFT : cfgSaved;
+
+    if (startInp) startInp.value = cfg.startDate || "";
+    if (nivInp)   nivInp.value = (cfg.phases?.niv ?? 0);
+    if (avInp)    avInp.value  = (cfg.phases?.av  ?? 0);
+    if (repInp)   repInp.value = (cfg.phases?.rep ?? 0);
+
+    if (zoomSel){
+      // Tutor/Alumno: usa zoom guardado como base, pero la selección es solo vista
+      const z = Number(cfg.zoomDefault || 1);
+      zoomSel.value = String([1,0.95,0.9,0.85,0.8,0.75,0.7].includes(z) ? z : 0.9);
     }
 
-    return cfg;
+    // Advanced (admin): construir una sola vez por carga de programa
+    if (canEdit){
+      pgBuildAdvancedUI(cfg);
+      pgBindAdvancedHandlers();
+      // colores
+      const cN = document.getElementById("pgColNiv");
+      const cA = document.getElementById("pgColAv");
+      const cR = document.getElementById("pgColRep");
+      const cE = document.getElementById("pgColEvt");
+      if (cN) cN.value = String(cfg.colors?.niv || "#22c55e");
+      if (cA) cA.value = String(cfg.colors?.av  || "#3b82f6");
+      if (cR) cR.value = String(cfg.colors?.rep || "#f59e0b");
+      if (cE) cE.value = String(cfg.colors?.evt || "#a855f7");
+
+      ["pgColNiv","pgColAv","pgColRep","pgColEvt"].forEach(cid=>{
+        const el = document.getElementById(cid);
+        if (!el) return;
+        el.addEventListener("input", ()=>{
+          pgSetDirty(true);
+          pgRenderTableFromUI(true);
+        });
+      });
+
+      // eventos
+      const add = document.getElementById("pgEvtAdd");
+      const clr = document.getElementById("pgEvtClear");
+      if (add){
+        add.addEventListener("click", ()=>{
+          pgUpdateDraftFromUI();
+          const wk = Math.floor(Number(document.getElementById("pgEvtWeek")?.value || 0));
+          const tx = String(document.getElementById("pgEvtText")?.value || "").trim();
+          if (!wk || wk<1 || !tx){ toast("Completa semana y texto."); return; }
+          PG_DRAFT.milestones = PG_DRAFT.milestones || [];
+          PG_DRAFT.milestones.push({ week:wk, text: tx.toUpperCase() });
+          PG_DRAFT.milestones = PG_DRAFT.milestones.slice(0, 24);
+          pgSetDirty(true);
+          pgRenderTableFromUI(true);
+
+          document.getElementById("pgEvtWeek").value="";
+          document.getElementById("pgEvtText").value="";
+          toast("Evento añadido (pendiente de guardar).");
+        });
+      }
+      if (clr){
+        clr.addEventListener("click", ()=>{
+          if (!PG_DRAFT) return;
+          PG_DRAFT.milestones = [];
+          pgSetDirty(true);
+          pgRenderTableFromUI(true);
+          toast("Eventos limpiados (pendiente de guardar).");
+        });
+      }
+    }
+
+    // render
+    pgRenderTableFromUI(false);
   }
 
-  function pgRenderAdvancedUI(cfg){
+  function pgUpdateDraftFromUI(){
+    if (!pgCanEdit() || !PG_DRAFT) return;
+
+    const start = String(document.getElementById("pgStart")?.value || PG_DRAFT.startDate || "");
+    if (start) PG_DRAFT.startDate = start;
+
+    const nN = Math.max(0, Math.floor(Number(document.getElementById("pgNiv")?.value || 0)));
+    const nA = Math.max(0, Math.floor(Number(document.getElementById("pgAv")?.value  || 0)));
+    const nR = Math.max(0, Math.floor(Number(document.getElementById("pgRep")?.value || 0)));
+    PG_DRAFT.phases = { niv:nN, av:nA, rep:nR };
+
+    // colors
+    PG_DRAFT.colors = PG_DRAFT.colors || {};
+    const cN = document.getElementById("pgColNiv")?.value;
+    const cA = document.getElementById("pgColAv")?.value;
+    const cR = document.getElementById("pgColRep")?.value;
+    const cE = document.getElementById("pgColEvt")?.value;
+    if (cN) PG_DRAFT.colors.niv = String(cN);
+    if (cA) PG_DRAFT.colors.av  = String(cA);
+    if (cR) PG_DRAFT.colors.rep = String(cR);
+    if (cE) PG_DRAFT.colors.evt = String(cE);
+
+    // advanced rows
+    const rows = PG_DRAFT.rows || {};
+    Object.keys(rows).forEach(k=>{
+      const row = rows[k];
+      if (!row || k==="eventos") return;
+
+      const chk = document.getElementById(`pgRow_${k}`);
+      if (chk) row.enabled = !!chk.checked;
+
+      const lbl = document.getElementById(`pgRowLbl_${k}`);
+      if (lbl) row.label = String(lbl.value || row.label || "").toUpperCase();
+
+      if (row.type === "seq"){
+        ["niv","av","rep"].forEach(ph=>{
+          const p = document.getElementById(`pg_${k}_${ph}_prefix`);
+          const st = document.getElementById(`pg_${k}_${ph}_start`);
+          const pd = document.getElementById(`pg_${k}_${ph}_pad`);
+          row.cfg = row.cfg || {niv:{},av:{},rep:{}};
+          row.cfg[ph] = row.cfg[ph] || {};
+          if (p)  row.cfg[ph].prefix = String(p.value || "").toUpperCase();
+          if (st) row.cfg[ph].start  = Math.floor(Number(st.value || 0));
+          if (pd) row.cfg[ph].pad    = Math.max(0, Math.floor(Number(pd.value || 0)));
+        });
+      } else if (row.type === "phaseLabel"){
+        ["niv","av","rep"].forEach(ph=>{
+          const v = document.getElementById(`pg_${k}_${ph}_label`);
+          row.cfg = row.cfg || {niv:"",av:"",rep:""};
+          if (v) row.cfg[ph] = String(v.value || "").toUpperCase();
+        });
+      }
+    });
+
+    // zoom guardado (admin) = zoomDefault
+    const z = Number(document.getElementById("pgZoom")?.value || PG_DRAFT.zoomDefault || 1);
+    PG_DRAFT.zoomDefault = (Number.isFinite(z) ? z : 0.9);
+  }
+
+  function pgBuildAdvancedUI(cfg){
     const host = document.getElementById("pgAdvanced");
     if (!host) return;
 
-    const rowOrder = ["semana_code","simulacro","materiales","tutoria","reportes","seminario","reuniones","eventos"];
+    const rowOrder = ["semana_code","simulacro","materiales","tutoria","reportes","seminario","reuniones"];
     const rows = cfg.rows || {};
     const parts = [];
 
     rowOrder.forEach(k=>{
       const row = rows[k];
-      if (!row || k==="eventos") return;
+      if (!row) return;
 
       const enabled = row.enabled ? "checked" : "";
+      const label = String(row.label || "").toUpperCase();
+
       if (row.type === "seq"){
         parts.push(`
           <div class="pgGrid">
             <div class="pgLbl">
               <label style="display:flex; gap:10px; align-items:center;">
                 <input type="checkbox" id="pgRow_${k}" ${enabled}/>
-                <span>${row.label}</span>
+                <input id="pgRowLbl_${k}" type="text" value="${escapeHtml(label)}" style="width:140px; text-transform:uppercase; font-weight:1000;"/>
               </label>
             </div>
             <div class="pgRowCfg">
               ${["niv","av","rep"].map(ph=>{
-                const c = row.cfg?.[ph] || {prefix:"",start:0,pad:0};
+                const c = row.cfg?.[ph] || {prefix:"",start:1,pad:2};
                 const phName = (ph==="niv"?"NIVELACIÓN":(ph==="av"?"AVANCE":"REPASO"));
                 return `
                   <div class="mini">
                     <div class="t">${phName}</div>
                     <div class="r">
-                      <input id="pg_${k}_${ph}_prefix" type="text" value="${String(c.prefix||"")}" placeholder="Prefijo"/>
-                      <input id="pg_${k}_${ph}_start" type="number" value="${Number(c.start||0)}" step="1"/>
+                      <input id="pg_${k}_${ph}_prefix" type="text" value="${escapeHtml(String(c.prefix||""))}" placeholder="Prefijo"/>
+                      <input id="pg_${k}_${ph}_start" type="number" value="${Number.isFinite(+c.start)?+c.start:1}" step="1"/>
                       <select id="pg_${k}_${ph}_pad">
                         ${[0,1,2,3].map(p=>`<option value="${p}" ${Number(c.pad||0)===p?"selected":""}>0${p}</option>`).join("")}
                       </select>
@@ -3924,7 +4265,7 @@ const s = (id, on)=>{
             <div class="pgLbl">
               <label style="display:flex; gap:10px; align-items:center;">
                 <input type="checkbox" id="pgRow_${k}" ${enabled}/>
-                <span>${row.label}</span>
+                <input id="pgRowLbl_${k}" type="text" value="${escapeHtml(label)}" style="width:140px; text-transform:uppercase; font-weight:1000;"/>
               </label>
             </div>
             <div class="pgRowCfg">
@@ -3935,7 +4276,7 @@ const s = (id, on)=>{
                   <div class="mini">
                     <div class="t">${phName}</div>
                     <div class="r" style="grid-template-columns:1fr;">
-                      <input id="pg_${k}_${ph}_label" type="text" value="${v}" placeholder="Texto (p.ej. LIBRO 1)"/>
+                      <input id="pg_${k}_${ph}_label" type="text" value="${escapeHtml(v)}" placeholder="Texto (p.ej. LIBRO 1)"/>
                     </div>
                   </div>
                 `;
@@ -3948,24 +4289,78 @@ const s = (id, on)=>{
 
     host.innerHTML = parts.join("");
 
-    // Event list render
+    // lista de eventos
     const list = document.getElementById("pgEvtList");
     if (list){
       const ms = (cfg.milestones || []).slice().sort((a,b)=>(a.week||0)-(b.week||0));
       list.innerHTML = ms.length
-        ? ("Eventos: " + ms.map(x=>`[Semana ${x.week}] ${x.text}`).join(" · "))
+        ? ("Eventos: " + ms.map(x=>`[Semana ${x.week}] ${escapeHtml(x.text)}`).join(" · "))
         : "Eventos: (ninguno)";
     }
+  }
 
-    // Re-render on changes inside advanced
+  function pgBindAdvancedHandlers(){
+    const host = document.getElementById("pgAdvanced");
+    if (!host) return;
+
     host.querySelectorAll("input,select").forEach(el=>{
-      el.addEventListener("change", ()=>renderPrograma());
-      el.addEventListener("input",  ()=>renderPrograma());
+      el.addEventListener("input", ()=>{
+        pgSetDirty(true);
+        pgRenderTableFromUI(true);
+      });
+      el.addEventListener("change", ()=>{
+        pgSetDirty(true);
+        pgRenderTableFromUI(true);
+      });
     });
   }
 
+  function pgRenderTableFromUI(updateDraft){
+    ensureProgramaLayout();
+    const canvas = document.getElementById("pgCanvas");
+    const sc = document.getElementById("pgScroller");
+    if (!canvas || !sc) return;
+
+    const canEdit = pgCanEdit();
+    const progId = String(document.getElementById("pgProgram")?.value || PG_ACTIVE_ID || "");
+    if (!progId) return;
+
+    // base cfg: draft (admin) o saved (tutor/alumno)
+    let cfg = null;
+    if (canEdit){
+      if (!PG_DRAFT || PG_ACTIVE_ID !== progId){
+        PG_ACTIVE_ID = progId;
+        PG_DRAFT = pgGetConfig(progId);
+      }
+      if (updateDraft) pgUpdateDraftFromUI();
+      cfg = PG_DRAFT;
+    }else{
+      cfg = pgGetConfig(progId);
+    }
+
+    // Zoom de vista: en tutor/alumno NO se guarda, pero sí se aplica al render
+    const z = Number(document.getElementById("pgZoom")?.value || cfg.zoomDefault || 1);
+    const zoom = (Number.isFinite(z) ? z : (cfg.zoomDefault || 0.9));
+    sc.style.setProperty("--pgZoom", String(zoom));
+    canvas.style.setProperty("--pgZoom", String(zoom));
+
+    // Colores dinámicos
+    pgApplyColors(cfg);
+
+    // Render tabla
+    canvas.innerHTML = pgRenderTableHTML(cfg);
+
+    // refrescar lista de eventos si existe
+    const list = document.getElementById("pgEvtList");
+    if (list && pgCanEdit() && PG_DRAFT){
+      const ms = (PG_DRAFT.milestones || []).slice().sort((a,b)=>(a.week||0)-(b.week||0));
+      list.innerHTML = ms.length
+        ? ("Eventos: " + ms.map(x=>`[Semana ${x.week}] ${escapeHtml(x.text)}`).join(" · "))
+        : "Eventos: (ninguno)";
+    }
+  }
+
   function pgBuildWeeks(startISO, totalWeeks){
-    // startISO: YYYY-MM-DD
     const parts = String(startISO||"").split("-");
     const y = Number(parts[0]||0), m = Number(parts[1]||1)-1, d = Number(parts[2]||1);
     const start = new Date(y, m, d);
@@ -3996,7 +4391,7 @@ const s = (id, on)=>{
   }
 
   function pgSeqCell(cfgRow, ph, offset){
-    const c = cfgRow?.cfg?.[ph] || {prefix:"",start:0,pad:0};
+    const c = cfgRow?.cfg?.[ph] || {prefix:"",start:1,pad:0};
     const val = Number(c.start||0) + Number(offset||0);
     const num = pgPad(val, Number(c.pad||0));
     const pref = String(c.prefix||"").toUpperCase();
@@ -4013,68 +4408,13 @@ const s = (id, on)=>{
     return "av";
   }
 
-  function renderPrograma(){
-    ensureProgramaLayout();
-    const el = document.getElementById("view_programa");
-    if (!el || el.style.display==="none") return;
-
-    const isAlumno = (CURRENT_ROLE === "alumno");
-
-    const sel = document.getElementById("pgTemplate");
-    let templateId = String(sel?.value || PROGRAMA_TEMPLATES[0].id);
-
-    // Alumno: fija template por su uni (si aparece)
-    if (isAlumno){
-      templateId = pgPickDefaultTemplateForAlumno();
-      if (sel) sel.value = templateId;
-    }
-
-    // Load and set UI values
-    const cfg = pgLoadConfig(templateId);
-
-    // Si cambiaste de plantilla, sincroniza inputs con el programa cargado
-    const lastKey = "data-last-template";
-    const last = sel ? sel.getAttribute(lastKey) : "";
-    const changedTpl = (last !== templateId);
-    if (sel) sel.setAttribute(lastKey, templateId);
-
-    const startInp = document.getElementById("pgStart");
-    const nivInp = document.getElementById("pgNiv");
-    const avInp  = document.getElementById("pgAv");
-    const repInp = document.getElementById("pgRep");
-    const zoomSel = document.getElementById("pgZoom");
-
-    if (startInp && (changedTpl || !startInp.value)) startInp.value = cfg.startDate || "";
-    if (nivInp && (changedTpl || (String(nivInp.value)===""))) nivInp.value = cfg.phases?.niv ?? 0;
-    if (avInp  && (changedTpl || (String(avInp.value)==="")))  avInp.value  = cfg.phases?.av  ?? 0;
-    if (repInp && (changedTpl || (String(repInp.value)===""))) repInp.value = cfg.phases?.rep ?? 0;
-    if (zoomSel && (changedTpl || !zoomSel.value)) zoomSel.value = String(cfg.zoom || 1);
-
-    // If user changed template, ensure UI updates (overwrite current with loaded)
-    if (startInp && startInp.value !== cfg.startDate) cfg.startDate = startInp.value;
-    cfg.phases.niv = Math.max(0, Math.floor(Number(nivInp?.value || cfg.phases.niv || 0)));
-    cfg.phases.av  = Math.max(0, Math.floor(Number(avInp?.value  || cfg.phases.av  || 0)));
-    cfg.phases.rep = Math.max(0, Math.floor(Number(repInp?.value || cfg.phases.rep || 0)));
-    cfg.zoom = Number(zoomSel?.value || cfg.zoom || 1);
-
-    // Advanced UI (admin)
-    if (!isAlumno) pgRenderAdvancedUI(cfg);
-
-    // Apply scale
-    const sc = document.getElementById("pgScroller");
-    const canvas = document.getElementById("pgCanvas");
-    if (canvas && sc){
-      sc.style.setProperty("--pgZoom", String(cfg.zoom || 1));
-      canvas.style.setProperty("--pgZoom", String(cfg.zoom || 1));
-    }
-
-    // Build table
-    const total = Number(cfg.phases.niv||0) + Number(cfg.phases.av||0) + Number(cfg.phases.rep||0);
+  function pgRenderTableHTML(cfg){
+    const total = Number(cfg.phases?.niv||0) + Number(cfg.phases?.av||0) + Number(cfg.phases?.rep||0);
     const totalWeeks = Math.max(1, total);
 
     const weeks = pgBuildWeeks(cfg.startDate, totalWeeks);
 
-    // Month groups
+    // grupos por mes
     const months = [];
     let cur = null;
     weeks.forEach(w=>{
@@ -4089,36 +4429,36 @@ const s = (id, on)=>{
 
     const milestones = (cfg.milestones || []).filter(x=>x && x.week && x.text);
 
-    const left = (t)=> `<td class="pgLeft">${t}</td>`;
-    const thLeft = (t)=> `<th class="pgLeft pgKicker">${t}</th>`;
+    const left = (t)=> `<td class="pgLeft">${escapeHtml(t)}</td>`;
+    const thLeft = (t)=> `<th class="pgLeft pgKicker">${escapeHtml(t)}</th>`;
 
     let html = `<table class="pgTable">`;
 
-    // Row: Months
+    // Meses
     html += `<tr>${thLeft("PROGRAMACIÓN")}`;
     months.forEach(mg=>{
-      html += `<th class="pgMonth" colspan="${mg.span}">${mg.name}</th>`;
+      html += `<th class="pgMonth" colspan="${mg.span}">${escapeHtml(mg.name)}</th>`;
     });
     html += `</tr>`;
 
-    // Row: Week start dates
+    // Fechas inicio semana
     html += `<tr>${left("")}`;
     weeks.forEach(w=>{
       html += `<td class="pgDate">${w.day}/${w.mon}</td>`;
     });
     html += `</tr>`;
 
-    // Row: Week numbers
+    // N°
     html += `<tr>${left("N°")}`;
     weeks.forEach(w=>{
       html += `<td class="pgWeekNo">${w.i}</td>`;
     });
     html += `</tr>`;
 
-    // Row: Phase labels
-    const nN = Number(cfg.phases.niv||0);
-    const nA = Number(cfg.phases.av||0);
-    const nR = Number(cfg.phases.rep||0);
+    // Etapa
+    const nN = Number(cfg.phases?.niv||0);
+    const nA = Number(cfg.phases?.av||0);
+    const nR = Number(cfg.phases?.rep||0);
 
     html += `<tr>${left("ETAPA")}`;
     if (nN>0) html += `<td class="pgPhase pgPhaseNiv" colspan="${nN}">NIVELACIÓN</td>`;
@@ -4126,31 +4466,30 @@ const s = (id, on)=>{
     if (nR>0) html += `<td class="pgPhase pgPhaseRep" colspan="${nR}">REPASO</td>`;
     html += `</tr>`;
 
-    // Helper to print a sequence row across weeks
     function seqRow(rowKey, alt){
       const row = cfg.rows?.[rowKey];
       if (!row || !row.enabled) return "";
-      let r = `<tr${alt?' class="pgRowAlt"':''}>${left(row.label)}`;
+      let r = `<tr${alt?' class="pgRowAlt"':''}>${left(row.label || "")}`;
       for (let wk=1; wk<=totalWeeks; wk++){
         const ph = pgPhaseByWeek(cfg, wk);
         const offset = (ph==="niv" ? (wk-1) : (ph==="av" ? (wk-1-nN) : (wk-1-nN-nA)));
-        r += `<td>${pgSeqCell(row, ph, offset)}</td>`;
+        r += `<td>${escapeHtml(pgSeqCell(row, ph, offset))}</td>`;
       }
       r += `</tr>`;
       return r;
     }
 
-    // Sequence rows
+    // filas principales
     html += seqRow("semana_code", true);
     html += seqRow("simulacro", false);
 
-    // Materiales (phase label)
+    // materiales por fase
     const mat = cfg.rows?.materiales;
     if (mat && mat.enabled){
-      html += `<tr class="pgRowAlt">${left(mat.label)}`;
-      if (nN>0) html += `<td class="pgMat" colspan="${nN}">${String(mat.cfg?.niv||"")}</td>`;
-      if (nA>0) html += `<td class="pgMat" colspan="${nA}">${String(mat.cfg?.av||"")}</td>`;
-      if (nR>0) html += `<td class="pgMat" colspan="${nR}">${String(mat.cfg?.rep||"")}</td>`;
+      html += `<tr class="pgRowAlt">${left(mat.label || "MATERIALES")}`;
+      if (nN>0) html += `<td class="pgMat" colspan="${nN}">${escapeHtml(String(mat.cfg?.niv||""))}</td>`;
+      if (nA>0) html += `<td class="pgMat" colspan="${nA}">${escapeHtml(String(mat.cfg?.av||""))}</td>`;
+      if (nR>0) html += `<td class="pgMat" colspan="${nR}">${escapeHtml(String(mat.cfg?.rep||""))}</td>`;
       html += `</tr>`;
     }
 
@@ -4159,14 +4498,14 @@ const s = (id, on)=>{
     html += seqRow("seminario", false);
     html += seqRow("reuniones", true);
 
-    // Eventos
+    // eventos (badges)
     const evtRow = cfg.rows?.eventos;
     if (evtRow && evtRow.enabled){
-      html += `<tr>${left(evtRow.label)}`;
+      html += `<tr>${left(evtRow.label || "EVENTOS")}`;
       for (let wk=1; wk<=totalWeeks; wk++){
         const ev = milestones.find(x=>Number(x.week)===wk);
         if (ev){
-          html += `<td class="pgEvtCell"><div class="pgEvtBadge">${String(ev.text||"")}</div></td>`;
+          html += `<td class="pgEvtCell"><div class="pgEvtBadge">${escapeHtml(String(ev.text||""))}</div></td>`;
         }else{
           html += `<td class="pgEvtCell"></td>`;
         }
@@ -4175,21 +4514,7 @@ const s = (id, on)=>{
     }
 
     html += `</table>`;
-
-    if (canvas) canvas.innerHTML = html;
-
-    // Save (admin): keep UI responsive; don't spam LS on every keystroke
-    if (!isAlumno){
-      const id = String(document.getElementById("pgTemplate")?.value || templateId);
-      // auto-sync events list
-      const list = document.getElementById("pgEvtList");
-      if (list){
-        const ms = (cfg.milestones || []).slice().sort((a,b)=>(a.week||0)-(b.week||0));
-        list.innerHTML = ms.length
-          ? ("Eventos: " + ms.map(x=>`[Semana ${x.week}] ${x.text}`).join(" · "))
-          : "Eventos: (ninguno)";
-      }
-    }
+    return html;
   }
 
   async function downloadProgramaPNG(){
@@ -4198,7 +4523,7 @@ const s = (id, on)=>{
     if (!canvas || !sc){ toast("No hay programa para exportar."); return; }
 
     // Captura completa (no solo lo visible)
-    const prev = sc.style.getPropertyValue("--pgZoom");
+    const prev = sc.style.getPropertyValue("--pgZoom") || "1";
     sc.style.setProperty("--pgZoom", "1");
     canvas.style.setProperty("--pgZoom","1");
 
@@ -4216,9 +4541,26 @@ const s = (id, on)=>{
       console.error(e);
       toast("No se pudo exportar PNG.");
     }finally{
-      sc.style.setProperty("--pgZoom", prev || "1");
-      canvas.style.setProperty("--pgZoom", prev || "1");
+      sc.style.setProperty("--pgZoom", prev);
+      canvas.style.setProperty("--pgZoom", prev);
+      // re-aplica zoom real
+      pgRenderTableFromUI(false);
     }
+  }
+
+
+  function renderPrograma(){
+    ensureProgramaLayout();
+
+    // Garantiza lista y selección
+    const list = pgGetProgramsForRole();
+    if (!list.length) return;
+
+    const forceId = pgGetActiveProgramId() || list[0].id;
+    pgFillProgramSelect(forceId);
+    if (forceId) pgSetActiveProgramId(forceId);
+
+    pgLoadProgramIntoUI(forceId);
   }
 
 
