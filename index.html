@@ -3867,8 +3867,14 @@ function loadSavedView(){
     ch_loc_retiros_salon: null,
     booted: false
   };
-
-  Chart.register(ChartDataLabels, donutOutsideLabels);
+  // ✅ Safe chart plugin registration (no bloquear AUTH si CDN falla)
+  try{
+    if (window.Chart){
+      if (window.ChartDataLabels) window.Chart.register(window.ChartDataLabels);
+      // plugin propio
+      window.Chart.register(donutOutsideLabels);
+    }
+  } catch(e){ console.warn('Charts init (non-fatal):', e); }
 
   const GRID = "rgba(15,23,42,0.10)";
   const TICK = "#64748b";
@@ -3876,6 +3882,9 @@ function loadSavedView(){
   function mkDoughnutWithLabels(canvasId, labels, values, colors, outsideOpts){
     const canvas = document.getElementById(canvasId);
     if (!canvas) return null;
+
+
+    if (!window.Chart) return null;
 
     return new Chart(canvas, {
       type: "doughnut",
@@ -3921,6 +3930,9 @@ function loadSavedView(){
   function mkBarReadable(canvasId, titleLabel){
     const canvas = document.getElementById(canvasId);
     if (!canvas) return null;
+
+
+    if (!window.Chart) return null;
 
     return new Chart(canvas, {
       type:"bar",
@@ -3991,6 +4003,9 @@ function loadSavedView(){
   function mkStackedUni(canvasId){
     const canvas = document.getElementById(canvasId);
     if (!canvas) return null;
+
+
+    if (!window.Chart) return null;
 
     return new Chart(canvas, {
       type:"bar",
