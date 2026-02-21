@@ -1658,7 +1658,128 @@
 
     .pgEmpty{ padding:14px; color:var(--muted); font-weight:900; }
 
-  </style>
+  
+
+  /* ===================== PROGRAMA (HOJA) v1 ===================== */
+  .pxSheetWrap{ width:100%; }
+  .pxSheetScroll{
+    width:100%;
+    overflow:auto;
+    border:1px solid rgba(15,23,42,0.12);
+    border-radius:16px;
+    background:#fff;
+    max-height: calc(100vh - 300px);
+    cursor:grab;
+  }
+  .pxSheetScroll.dragging{ cursor:grabbing; }
+
+  .pxSheet{
+    border-collapse: collapse;
+    width:max-content;
+    min-width: 980px;
+    background:#fff;
+  }
+  .pxSheet th, .pxSheet td{
+    border:1px solid rgba(15,23,42,0.18);
+    padding:6px 8px;
+    text-align:center;
+    vertical-align:middle;
+    font-weight:900;
+    white-space:nowrap;
+  }
+  .pxCorner{
+    background:#e5e7eb;
+    font-weight:1100;
+    text-transform:uppercase;
+    letter-spacing:.02em;
+    min-width: 220px;
+  }
+  .pxMonth{
+    background:#e5e7eb;
+    font-weight:1100;
+    text-transform:uppercase;
+    letter-spacing:.02em;
+  }
+  .pxDate{
+    background:#f1f5f9;
+    font-weight:1100;
+  }
+  .pxMonthEnd{
+    border-right:3px solid rgba(15,23,42,0.55) !important;
+  }
+
+  .pxProg{
+    position:sticky;
+    left:0;
+    z-index:4;
+    color:#fff;
+    min-width: 44px;
+    width:44px;
+    padding:0;
+  }
+  .pxProgV{
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+    font-weight:1100;
+    letter-spacing:.08em;
+    text-transform:uppercase;
+    padding:10px 0;
+  }
+
+  .pxRowHead{
+    position:sticky;
+    left:44px; /* ancho de la columna de programa */
+    z-index:3;
+    background:#fff;
+    text-align:left;
+    padding-left:10px;
+    min-width: 150px;
+    width:150px;
+    font-weight:1100;
+    text-transform:uppercase;
+    letter-spacing:.02em;
+  }
+
+  .pxActHead{
+    text-align:center;
+    font-weight:1100;
+  }
+
+  .pxW{
+    min-width: 62px;
+    width:62px;
+  }
+
+  .pxCell{ background:#fff; }
+  .pxCellIn{ min-width: 62px; width: 62px; }
+  .pxEditable{ cursor:pointer; }
+  .pxEditable:hover{ outline:3px solid rgba(209,11,11,0.18); outline-offset:-3px; }
+
+  .pxEtapaCell{ background: rgba(2,6,23,0.04); font-weight:1100; }
+  .pxGap td{ border:none !important; height:14px; background:transparent; }
+
+  @media (max-width: 900px){
+    .pxSheetScroll{ max-height: calc(100vh - 240px); }
+  }
+
+
+  /* ===================== MATERIALES CRUDOS (avance) ===================== */
+  .mrTop{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; justify-content:space-between; }
+  .mrSelRow{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+  .mrKpi{ display:inline-flex; gap:8px; align-items:center; border:1px solid rgba(0,0,0,.10); border-radius:999px; padding:8px 10px; background:#fff; font-weight:1000; }
+  .mrProg{ width:220px; height:10px; background:rgba(0,0,0,.08); border-radius:999px; overflow:hidden; }
+  .mrProgFill{ height:100%; width:0%; background:linear-gradient(90deg, rgba(22,163,74,.95), rgba(34,197,94,.75)); }
+  .mrTable{ width:100%; border-collapse:collapse; margin-top:10px; }
+  .mrTable th, .mrTable td{ border:1px solid rgba(0,0,0,.08); padding:8px 10px; text-align:left; }
+  .mrTable th{ background:#f8fafc; font-weight:1100; text-transform:uppercase; font-size:12px; }
+  .mrDone{ color: var(--ok); font-weight:1100; }
+  .mrTodo{ color: var(--muted); font-weight:1100; }
+  .mrBtn{ border:1px solid rgba(0,0,0,.10); background:#fff; border-radius:12px; padding:8px 10px; font-weight:1000; cursor:pointer; }
+  .mrBtn:hover{ border-color: rgba(209,11,11,.35); box-shadow: 0 0 0 3px rgba(209,11,11,.10); }
+  .mrLink{ font-weight:1000; text-decoration:none; }
+  .mrLink.disabled{ pointer-events:none; opacity:.45; }
+
+</style>
 </head>
 
 <body>
@@ -2130,928 +2251,63 @@ const SALONES = [
 
   
 
-  // ===================== PROGRAMA (GANTT) v3 =====================
-  // ✅ FIXES PRINCIPALES
-  // - Controles SIEMPRE editables (Admin) y robustos ante localStorage corrupto
-  // - Gestión de Programas: crear/renombrar/duplicar/eliminar (sin plantillas fijas)
-  // - Control por fila (Semana, Simulacro, Materiales, Tutoría, Reportes, etc.) con tipo CODE/TEXT
-  // - Colores por fase + eventos por semana
-  // - Tutor/Alumno: solo lectura (no edita nada)
-
-  const PG_STORE_KEY  = "LM_PROGRAM_STORE_V3";
-  const PG_ACTIVE_KEY = "LM_PROGRAM_ACTIVE_V3";
-  const PG_OLD_STORE_KEY  = "LAMETA_PROGRAM_STORE_V2";
-  const PG_OLD_ACTIVE_KEY = "LAMETA_PROGRAM_ACTIVE_V2";
-
-  const PG_VIEWMODE_KEY = "LM_PROGRAM_VIEWMODE_V3";
-
-  function pgGetViewMode(){
-    const raw = String(localStorage.getItem(PG_VIEWMODE_KEY) || "").toUpperCase();
-    if (raw === "ALL" || raw === "ONE") return raw;
-    // default: Admin/Tutor = ALL, Alumno = ONE
-    const r = String(CURRENT_ROLE||"").toLowerCase();
-    return (r === "admin" || r === "tutor") ? "ALL" : "ONE";
-  }
-  function pgSetViewMode(mode){
-    const m = String(mode||"").toUpperCase();
-    if (m !== "ALL" && m !== "ONE") return;
-    localStorage.setItem(PG_VIEWMODE_KEY, m);
-  }
-
-  // Toast (mensajes rápidos)
-  function toast(msg){
-    try{
-      let t = document.getElementById("toast");
-      if (!t){
-        t = document.createElement("div");
-        t.id = "toast";
-        t.className = "toast";
-        document.body.appendChild(t);
-      }
-      t.textContent = String(msg||"");
-      t.classList.add("show");
-      if (t._lmTimer) clearTimeout(t._lmTimer);
-      t._lmTimer = setTimeout(()=>t.classList.remove("show"), 2300);
-    }catch(e){
-      console.log(msg);
-    }
-  }
-
-
-  function pgCanEdit(){
-    return String(CURRENT_ROLE||"").toLowerCase() === "admin";
-  }
-
-  function pgNowISO(){
-    try { return new Date().toISOString(); } catch(e){ return ""; }
-  }
-
-  function pgSafeParse(json, fallback){
-    try{
-      const v = JSON.parse(json);
-      return (v===null || v===undefined) ? fallback : v;
-    }catch(e){
-      return fallback;
-    }
-  }
-
-  function pgLoadStore(){
-    const raw = localStorage.getItem(PG_STORE_KEY);
-    const store = pgSafeParse(raw, null);
-    if (!store || typeof store !== "object" || !store.programs || !store.order){
-      return { programs: {}, order: [] };
-    }
-    if (typeof store.programs !== "object" || !Array.isArray(store.order)){
-      return { programs: {}, order: [] };
-    }
-    return store;
-  }
-
-  function pgSaveStore(store){
-    try{
-      localStorage.setItem(PG_STORE_KEY, JSON.stringify(store));
-      return true;
-    }catch(e){
-      console.warn("PG store save failed:", e);
-      return false;
-    }
-  }
-
-  function pgResetStore(){
-    localStorage.removeItem(PG_STORE_KEY);
-    localStorage.removeItem(PG_ACTIVE_KEY);
-  }
-
-  function pgGetActiveProgramId(){
-    return String(localStorage.getItem(PG_ACTIVE_KEY) || "");
-  }
-  function pgSetActiveProgramId(id){
-    localStorage.setItem(PG_ACTIVE_KEY, String(id||""));
-  }
-
-  function pgUuid(){
-    return "pg_" + Math.random().toString(16).slice(2) + "_" + Date.now().toString(16);
-  }
-
-  function pgDefaultProgram(name="PROGRAMA", scope="ALL"){
-    const id = pgUuid();
-    const lanes = [
-      { id: "lane_stage", enabled:true, name:"Etapa",   kind:"stage" },
-      { id: "lane_week",  enabled:true, name:"Semana",  kind:"week"  },
-
-      { id: pgUuid(), enabled:true, name:"Simulacro", kind:"code",
-        phases:{
-          niv:{enabled:true, prefix:"SEN", start:1, pad:2},
-          av :{enabled:true, prefix:"SE",  start:1, pad:2},
-          rep:{enabled:true, prefix:"SR",  start:1, pad:2}
-        }
-      },
-
-      { id: pgUuid(), enabled:true, name:"Materiales", kind:"text",
-        phases:{
-          niv:{enabled:true, text:"SEPARATAS"},
-          av :{enabled:true, text:"LIBRO 1"},
-          rep:{enabled:true, text:"REPASO"}
-        }
-      },
-
-      { id: pgUuid(), enabled:true, name:"Tutoría", kind:"code",
-        phases:{
-          niv:{enabled:true, prefix:"RN", start:1, pad:1},
-          av :{enabled:true, prefix:"R",  start:1, pad:1},
-          rep:{enabled:true, prefix:"R",  start:1, pad:1}
-        }
-      },
-
-      { id: pgUuid(), enabled:true, name:"Reportes", kind:"code",
-        phases:{
-          niv:{enabled:false, prefix:"", start:1, pad:1},
-          av :{enabled:true,  prefix:"R", start:1, pad:1},
-          rep:{enabled:false, prefix:"", start:1, pad:1}
-        }
-      },
-
-      { id: pgUuid(), enabled:false, name:"Seminario", kind:"text",
-        phases:{
-          niv:{enabled:true, text:""},
-          av :{enabled:true, text:""},
-          rep:{enabled:true, text:""}
-        }
-      },
-
-      { id: pgUuid(), enabled:false, name:"Reuniones", kind:"text",
-        phases:{
-          niv:{enabled:true, text:""},
-          av :{enabled:true, text:""},
-          rep:{enabled:true, text:""}
-        }
-      }
-    ];
-
-    return {
-      id,
-      meta:{
-        name: String(name||"PROGRAMA").trim().toUpperCase(),
-        scope: String(scope||"ALL").trim().toUpperCase(),
-        createdAt: pgNowISO(),
-        updatedAt: pgNowISO()
-      },
-      config:{
-        startDate: "",
-        weeks:{ niv:3, av:10, rep:3 },
-        colors:{
-          niv:"#6bbf59",
-          av:"#5b8def",
-          rep:"#f6a227",
-          evt:"#d10b0b"
-        },
-        lanes,
-        events:[]
-      }
-    };
-  }
-
-  function pgGetProgramsForRole(){
-    const store = pgLoadStore();
-    const scopeRole = String(CURRENT_ROLE||"").toLowerCase();
-    const uni = (scopeRole === "alumno") ? String((getAlumnoProfile()||{}).uni||"") : "";
-
-    const list = [];
-    for (const id of store.order){
-      const p = store.programs[id];
-      if (!p) continue;
-
-      // Admin ve TODO
-      if (pgCanEdit()){
-        list.push(p); continue;
-      }
-
-      // Tutor / Alumno: filtra por scope (ALL o universidad)
-      const sc = String(p.meta?.scope||"ALL").toUpperCase();
-      if (sc === "ALL"){
-        list.push(p); continue;
-      }
-      if (scopeRole === "alumno"){
-        if (String(uni||"").toUpperCase() === sc) list.push(p);
-      }else{
-        // tutor: puede ver todos, o (si luego quieres) podríamos filtrar por selección
-        list.push(p);
-      }
-    }
-    return list;
-  }
-
-  function pgGetProgramById(id){
-    const store = pgLoadStore();
-    return store.programs[String(id||"")] || null;
-  }
-
-  function pgUpsertProgram(program){
-    const store = pgLoadStore();
-    const id = String(program.id);
-    if (!store.programs[id]) store.order.push(id);
-    store.programs[id] = program;
-    pgSaveStore(store);
-  }
-
-  function pgDeleteProgram(id){
-    const store = pgLoadStore();
-    const sid = String(id||"");
-    delete store.programs[sid];
-    store.order = store.order.filter(x=>x!==sid);
-    pgSaveStore(store);
-    const active = pgGetActiveProgramId();
-    if (active === sid) pgSetActiveProgramId(store.order[0] || "");
-  }
-
-  function pgRenameProgram(id, newName){
-    const p = pgGetProgramById(id);
-    if (!p) return;
-    p.meta.name = String(newName||"").trim().toUpperCase();
-    p.meta.updatedAt = pgNowISO();
-    pgUpsertProgram(p);
-  }
-
-  function pgDuplicateProgram(id){
-    const p = pgGetProgramById(id);
-    if (!p) return null;
-    const copy = structuredClone(p);
-    copy.id = pgUuid();
-    copy.meta = {...copy.meta, name: (String(copy.meta?.name||"PROGRAMA") + " (COPIA)").toUpperCase(), createdAt: pgNowISO(), updatedAt: pgNowISO() };
-    // lane ids nuevos excepto stage/week
-    copy.config.lanes = (copy.config.lanes||[]).map(l=>{
-      if (l.kind==="stage" || l.kind==="week") return l;
-      return {...l, id: pgUuid()};
-    });
-    pgUpsertProgram(copy);
-    return copy.id;
-  }
-
-  // --------- UI draft ---------
-  let PG_DRAFT = null;    // { programId, data, dirty }
-  function pgSetDirty(on){
-    if (!PG_DRAFT) return;
-    PG_DRAFT.dirty = !!on;
-    const el = document.getElementById("pgSaveState");
-    if (el) el.textContent = PG_DRAFT.dirty ? "CAMBIOS SIN GUARDAR" : "GUARDADO";
-    if (el) el.style.color = PG_DRAFT.dirty ? "var(--danger)" : "var(--muted)";
-  }
-
-  function pgGetDraft(){
-    return PG_DRAFT;
-  }
-
   
-  function pgEnsureFirstTime(){
-    // 1) si store V3 está corrupto => reset
-    let store;
+  // ===================== PROGRAMA (HOJA) v1 =====================
+  // Objetivo: imitar/optimizar la tabla estilo Excel (PROGRAMACIÓN / FECHA / semanas),
+  // con:
+  // - Ver UNO / TODOS
+  // - Encabezado global por meses + fechas (una sola vez en TODOS)
+  // - Bloques por programa con etiqueta vertical (AGRARIA / U.LIMA / PUCP / etc.)
+  // - Edición (Admin): click para editar celdas; Edición fina (por semana) / normal (merge por texto)
+  // - Export PNG
+
+  const PGX_STORE_KEY   = "LM_PROGRAMA_SHEET_V1_STORE";
+  const PGX_ACTIVE_KEY  = "LM_PROGRAMA_SHEET_V1_ACTIVE";
+  const PGX_MODE_KEY    = "LM_PROGRAMA_SHEET_V1_MODE";
+  const PGX_ZOOM_KEY    = "LM_PROGRAMA_SHEET_V1_ZOOM";
+  const PGX_EDIT_KEY    = "LM_PROGRAMA_SHEET_V1_EDIT";
+  const PGX_FINE_KEY    = "LM_PROGRAMA_SHEET_V1_FINE";
+
+  // Toast (mensaje corto)
+  function toast(msg){
+    const m = String(msg||"").trim();
+    if (!m) return;
+    let el = document.getElementById("lmToast");
+    if (!el){
+      el = document.createElement("div");
+      el.id = "lmToast";
+      el.className = "toast";
+      document.body.appendChild(el);
+    }
+    el.textContent = m;
+    el.classList.add("show");
+    try{ clearTimeout(el._t); }catch(e){}
+    el._t = setTimeout(()=>{ try{ el.classList.remove("show"); }catch(e){} }, 1800);
+  }
+
+  function pgxNowISO(){ return new Date().toISOString(); }
+  function pgxUuid(){ return "pgx_" + Math.random().toString(16).slice(2) + "_" + Date.now().toString(16); }
+
+  function pgxCanEdit(){ return CURRENT_ROLE === "admin"; } // edición total solo Admin (tutor: lectura)
+
+  function pgxLoadJSON(key, fallback){
     try{
-      store = pgLoadStore();
-      if (!store || typeof store !== "object") throw new Error("bad store");
-    }catch(e){
-      pgResetStore();
-      store = { programs:{}, order:[] };
-    }
-
-    // 2) MIGRACIÓN DESDE V2 (si existe y V3 está vacío)
-    if (!store.order.length){
-      const rawOld = localStorage.getItem(PG_OLD_STORE_KEY);
-      const old = pgSafeParse(rawOld, null);
-      if (old && old.version === 2 && Array.isArray(old.programs) && typeof old.configs === "object"){
-        const migrated = { programs:{}, order:[] };
-
-        for (const op of old.programs){
-          if (!op || !op.id) continue;
-          const ocfg = old.configs[op.id] || {};
-          const weeks = ocfg.phases || {niv:0,av:0,rep:0};
-          const colors = ocfg.colors || {};
-
-          // lanes: siempre agregamos Etapa y Semana
-          const lanes = [
-            { id:"lane_stage", enabled:true, name:"Etapa", kind:"stage" },
-            { id:"lane_week",  enabled:true, name:"Semana", kind:"week" }
-          ];
-
-          const rows = ocfg.rows || {};
-          for (const k of Object.keys(rows)){
-            const r = rows[k];
-            if (!r || r.type==="events") continue;
-            if (r.type==="seq"){
-              const cfg = r.cfg || {};
-              lanes.push({
-                id: pgUuid(),
-                enabled: !!r.enabled,
-                name: String(r.label||k),
-                kind: "code",
-                phases:{
-                  niv:{enabled:true, prefix:String(cfg.niv?.prefix||""), start:+cfg.niv?.start||1, pad:+cfg.niv?.pad||0},
-                  av :{enabled:true, prefix:String(cfg.av ?.prefix||""), start:+cfg.av ?.start||1, pad:+cfg.av ?.pad||0},
-                  rep:{enabled:true, prefix:String(cfg.rep?.prefix||""), start:+cfg.rep?.start||1, pad:+cfg.rep?.pad||0}
-                }
-              });
-            }else if (r.type==="phaseLabel"){
-              lanes.push({
-                id: pgUuid(),
-                enabled: !!r.enabled,
-                name: String(r.label||k),
-                kind: "text",
-                phases:{
-                  niv:{enabled:true, text:String((r.cfg && r.cfg.niv) || "")},
-                  av :{enabled:true, text:String((r.cfg && r.cfg.av ) || "")},
-                  rep:{enabled:true, text:String((r.cfg && r.cfg.rep) || "")}
-                }
-              });
-            }
-          }
-
-          const milestones = Array.isArray(ocfg.milestones) ? ocfg.milestones : [];
-          const events = milestones
-            .filter(e=>e && +e.week>0 && String(e.text||"").trim()!=="")
-            .map(e=>({week:+e.week, text:String(e.text||"").trim()}));
-
-          const np = {
-            id: String(op.id),
-            meta:{
-              name: String(op.name||"PROGRAMA").trim().toUpperCase(),
-              scope: String(op.scopeUni||"ALL").trim().toUpperCase(),
-              createdAt: pgNowISO(),
-              updatedAt: pgNowISO()
-            },
-            config:{
-              startDate: String(ocfg.startDate||""),
-              weeks:{ niv:+weeks.niv||0, av:+weeks.av||0, rep:+weeks.rep||0 },
-              colors:{
-                niv: colors.niv || "#6bbf59",
-                av:  colors.av  || "#5b8def",
-                rep: colors.rep || "#f6a227",
-                evt: colors.evt || "#d10b0b"
-              },
-              lanes,
-              events
-            }
-          };
-
-          migrated.programs[np.id] = np;
-          migrated.order.push(np.id);
-        }
-
-        if (migrated.order.length){
-          pgSaveStore(migrated);
-          const oldActive = String(localStorage.getItem(PG_OLD_ACTIVE_KEY) || "");
-          pgSetActiveProgramId(oldActive && migrated.programs[oldActive] ? oldActive : migrated.order[0]);
-          return;
-        }
-      }
-    }
-
-    // 3) Si sigue vacío y es admin, crea “PROGRAMA 1” para que no quede la vista muerta
-    if (!store.order.length && pgCanEdit()){
-      const p = pgDefaultProgram("PROGRAMA 1", "ALL");
-      store.programs[p.id] = p;
-      store.order.push(p.id);
-      pgSaveStore(store);
-      pgSetActiveProgramId(p.id);
-    }
+      const raw = localStorage.getItem(key);
+      if (!raw) return fallback;
+      return JSON.parse(raw);
+    }catch(e){ return fallback; }
+  }
+  function pgxSaveJSON(key, obj){
+    try{ localStorage.setItem(key, JSON.stringify(obj)); }catch(e){}
+  }
+  function pgxLoadStr(key, fallback){
+    try{ return String(localStorage.getItem(key) || fallback || ""); }catch(e){ return String(fallback||""); }
+  }
+  function pgxSaveStr(key, val){
+    try{ localStorage.setItem(key, String(val||"")); }catch(e){}
   }
 
-  function pgFillProgramSelect(forceId){
-    const sel = document.getElementById("pgProgram");
-    if (!sel) return;
-
-    const list = pgGetProgramsForRole();
-    const active = forceId || pgGetActiveProgramId() || (list[0]?.id || "");
-    sel.innerHTML = "";
-
-    if (!list.length){
-      const opt = document.createElement("option");
-      opt.value = "";
-      opt.textContent = "— Sin programas —";
-      sel.appendChild(opt);
-      sel.value = "";
-      return;
-    }
-
-    for (const p of list){
-      const opt = document.createElement("option");
-      opt.value = p.id;
-      opt.textContent = `${p.meta?.name || "PROGRAMA"}${p.meta?.scope && p.meta.scope!=="ALL" ? " · " + p.meta.scope : ""}`;
-      sel.appendChild(opt);
-    }
-    sel.value = active;
-  }
-
-  // Modal simple (evita prompt bloqueado)
-  function pgModal(title, fields, onOk){
-    // fields: [{id,label,type,placeholder,value,options?}]
-    const old = document.getElementById("pgModal");
-    if (old) old.remove();
-
-    const wrap = document.createElement("div");
-    wrap.id = "pgModal";
-    wrap.style.position = "fixed";
-    wrap.style.inset = "0";
-    wrap.style.background = "rgba(0,0,0,.35)";
-    wrap.style.zIndex = "9999";
-    wrap.style.display = "flex";
-    wrap.style.alignItems = "center";
-    wrap.style.justifyContent = "center";
-    wrap.style.padding = "18px";
-
-    wrap.innerHTML = `
-      <div class="card" style="width:min(700px,96vw);">
-        <div class="head" style="margin-bottom:10px;">
-          <div>
-            <div class="title">${escapeHtml(title||"")}</div>
-            <div class="sub" style="color:var(--muted); font-weight:800;">Completa y confirma.</div>
-          </div>
-          <div class="tools">
-            <button class="btn ghost" id="pgMCancel">Cancelar</button>
-            <button class="btn" id="pgMOk">Aceptar</button>
-          </div>
-        </div>
-        <div class="row" style="gap:12px; flex-wrap:wrap;">
-          ${fields.map(f=>{
-            if (f.type === "select"){
-              return `
-                <div class="controls" style="min-width:220px; flex:1;">
-                  <label>${escapeHtml(f.label||"")}</label>
-                  <select id="${escapeHtml(f.id)}">
-                    ${(f.options||[]).map(o=>`<option value="${escapeHtml(o.value)}">${escapeHtml(o.label)}</option>`).join("")}
-                  </select>
-                </div>
-              `;
-            }
-            return `
-              <div class="controls" style="min-width:220px; flex:1;">
-                <label>${escapeHtml(f.label||"")}</label>
-                <input id="${escapeHtml(f.id)}" type="${escapeHtml(f.type||"text")}" placeholder="${escapeHtml(f.placeholder||"")}" value="${escapeHtml(f.value||"")}"/>
-              </div>
-            `;
-          }).join("")}
-        </div>
-      </div>
-    `;
-
-    document.body.appendChild(wrap);
-
-    // set defaults
-    for (const f of fields){
-      const el = document.getElementById(f.id);
-      if (!el) continue;
-      if (f.type === "select") el.value = f.value ?? (f.options?.[0]?.value ?? "");
-    }
-
-    const close = ()=>wrap.remove();
-
-    document.getElementById("pgMCancel").addEventListener("click", close);
-    wrap.addEventListener("click", (e)=>{ if (e.target === wrap) close(); });
-    document.getElementById("pgMOk").addEventListener("click", ()=>{
-      const out = {};
-      for (const f of fields){
-        const el = document.getElementById(f.id);
-        if (!el) continue;
-        out[f.id] = String(el.value||"").trim();
-      }
-      close();
-      onOk(out);
-    });
-  }
-
-  function pgLoadProgramIntoUI(id){
-    const p = pgGetProgramById(id);
-    if (!p) return;
-
-    // Draft clone
-    PG_DRAFT = {
-      programId: p.id,
-      data: structuredClone(p),
-      dirty: false
-    };
-    pgSetDirty(false);
-
-    // Fill simple controls
-    const d = PG_DRAFT.data;
-    const cfg = d.config || {};
-    const weeks = cfg.weeks || {niv:0,av:0,rep:0};
-
-    const scope = document.getElementById("pgScope");
-    const start = document.getElementById("pgStart");
-    const niv = document.getElementById("pgNiv");
-    const av  = document.getElementById("pgAv");
-    const rep = document.getElementById("pgRep");
-    const zoom = document.getElementById("pgZoom");
-
-    if (scope) scope.value = String(d.meta?.scope || "ALL");
-    if (start) start.value = String(cfg.startDate || "");
-    if (niv) niv.value = String(weeks.niv ?? 0);
-    if (av)  av.value  = String(weeks.av  ?? 0);
-    if (rep) rep.value = String(weeks.rep ?? 0);
-    if (zoom && !zoom.value) zoom.value = "1";
-
-    // Colors
-    const colN = document.getElementById("pgColNiv");
-    const colA = document.getElementById("pgColAv");
-    const colR = document.getElementById("pgColRep");
-    const colE = document.getElementById("pgColEvt");
-    if (colN) colN.value = String(cfg.colors?.niv || "#6bbf59");
-    if (colA) colA.value = String(cfg.colors?.av  || "#5b8def");
-    if (colR) colR.value = String(cfg.colors?.rep || "#f6a227");
-    if (colE) colE.value = String(cfg.colors?.evt || "#d10b0b");
-
-    pgRenderAdvanced();
-    pgRenderEventsList();
-    pgRenderTableFromUI(true);
-  }
-
-  function pgRenderEventsList(){
-    const box = document.getElementById("pgEvtList");
-    if (!box) return;
-    const d = pgGetDraft();
-    if (!d) { box.innerHTML = ""; return; }
-    const evts = d.data.config?.events || [];
-    if (!evts.length){
-      box.innerHTML = `<span style="color:var(--muted); font-weight:800;">(Sin eventos)</span>`;
-      return;
-    }
-    box.innerHTML = `
-      <div class="row" style="gap:8px; flex-wrap:wrap;">
-        ${evts.map((e, i)=>`
-          <span class="pill" style="border-color: rgba(209,11,11,.25);">
-            <span class="dot" style="background:${escapeHtml(d.data.config?.colors?.evt||"#d10b0b")}"></span>
-            <b>W${escapeHtml(String(e.week))}:</b> ${escapeHtml(e.text||"")}
-            ${pgCanEdit() ? `<button class="btn ghost" style="padding:4px 8px; margin-left:6px;" data-pgevtdel="${i}">✕</button>` : ``}
-          </span>
-        `).join("")}
-      </div>
-    `;
-
-    if (pgCanEdit()){
-      box.querySelectorAll("[data-pgevtdel]").forEach(btn=>{
-        btn.addEventListener("click", ()=>{
-          const idx = +btn.getAttribute("data-pgevtdel");
-          const dd = pgGetDraft();
-          if (!dd) return;
-          dd.data.config.events.splice(idx, 1);
-          pgSetDirty(true);
-          pgRenderEventsList();
-          pgRenderTableFromUI(true);
-        });
-      });
-    }
-  }
-
-  function pgAddEventFromUI(){
-    const dd = pgGetDraft(); if (!dd) return;
-    const w = +String(document.getElementById("pgEvtWeek")?.value||"");
-    const t = String(document.getElementById("pgEvtText")?.value||"").trim();
-    if (!w || w<1 || !t) { toast("Completa semana y texto."); return; }
-    dd.data.config.events = dd.data.config.events || [];
-    dd.data.config.events.push({ week: w, text: t });
-    dd.data.config.events.sort((a,b)=>a.week-b.week);
-    document.getElementById("pgEvtWeek").value = "";
-    document.getElementById("pgEvtText").value = "";
-    pgSetDirty(true);
-    pgRenderEventsList();
-    pgRenderTableFromUI(true);
-  }
-
-  function pgClearEvents(){
-    const dd = pgGetDraft(); if (!dd) return;
-    dd.data.config.events = [];
-    pgSetDirty(true);
-    pgRenderEventsList();
-    pgRenderTableFromUI(true);
-  }
-
-  function pgRenderAdvanced(){
-    const host = document.getElementById("pgAdvanced");
-    if (!host) return;
-    const dd = pgGetDraft();
-    if (!dd) { host.innerHTML = ""; return; }
-
-    const lanes = dd.data.config?.lanes || [];
-    const isAdmin = pgCanEdit();
-
-    const laneRow = (lane, idx)=>{
-      const kind = lane.kind || "code";
-      const enabled = !!lane.enabled;
-
-      const kindOptions = [
-        {v:"code", t:"CÓDIGOS"},
-        {v:"text", t:"TEXTO"},
-        {v:"stage",t:"ETAPA"},
-        {v:"week", t:"SEMANA"}
-      ];
-
-      const selKind = `
-        <select data-pgk="${lane.id}" ${(!isAdmin || kind==="stage" || kind==="week") ? "disabled" : ""}>
-          ${kindOptions.map(o=>`<option value="${o.v}" ${o.v===kind?"selected":""}>${o.t}</option>`).join("")}
-        </select>
-      `;
-
-      const nameInput = `
-        <input data-pgn="${lane.id}" type="text" value="${escapeHtml(lane.name||"")}" ${(!isAdmin || kind==="stage" || kind==="week") ? "disabled" : ""}/>
-      `;
-
-      const enChk = `
-        <input data-pge="${lane.id}" type="checkbox" ${enabled?"checked":""} ${(!isAdmin || kind==="stage" || kind==="week") ? "disabled" : ""}/>
-      `;
-
-      const perPhaseUI = (phaseKey, label)=>{
-        const ph = (lane.phases && lane.phases[phaseKey]) ? lane.phases[phaseKey] : {};
-        if (kind === "code"){
-          const pe = !!ph.enabled;
-          const prefix = ph.prefix ?? "";
-          const start = ph.start ?? 1;
-          const pad   = ph.pad   ?? 2;
-          return `
-            <div class="pgPhBox">
-              <div class="pgPhHead">${label}</div>
-              <div class="row" style="gap:8px; flex-wrap:wrap;">
-                <label class="pill" style="padding:6px 10px;">
-                  <input data-pgpe="${lane.id}|${phaseKey}" type="checkbox" ${pe?"checked":""} ${!isAdmin?"disabled":""}/> activar
-                </label>
-                <div class="controls" style="min-width:110px;">
-                  <label>Prefijo</label>
-                  <input data-pgpp="${lane.id}|${phaseKey}" type="text" value="${escapeHtml(prefix)}" ${!isAdmin?"disabled":""}/>
-                </div>
-                <div class="controls" style="min-width:110px;">
-                  <label>Inicio</label>
-                  <input data-pgps="${lane.id}|${phaseKey}" type="number" min="1" step="1" value="${escapeHtml(String(start))}" ${!isAdmin?"disabled":""}/>
-                </div>
-                <div class="controls" style="min-width:110px;">
-                  <label>Ceros</label>
-                  <select data-pgpd="${lane.id}|${phaseKey}" ${!isAdmin?"disabled":""}>
-                    <option value="0" ${String(pad)==="0"?"selected":""}>0</option>
-                    <option value="2" ${String(pad)==="2"?"selected":""}>02</option>
-                    <option value="3" ${String(pad)==="3"?"selected":""}>003</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-          `;
-        }
-        if (kind === "text"){
-          const pe = !!ph.enabled;
-          const text = ph.text ?? "";
-          return `
-            <div class="pgPhBox">
-              <div class="pgPhHead">${label}</div>
-              <div class="row" style="gap:8px; flex-wrap:wrap;">
-                <label class="pill" style="padding:6px 10px;">
-                  <input data-pgpe="${lane.id}|${phaseKey}" type="checkbox" ${pe?"checked":""} ${!isAdmin?"disabled":""}/> mostrar
-                </label>
-                <div class="controls" style="min-width:280px; flex:1;">
-                  <label>Texto</label>
-                  <input data-pgpt="${lane.id}|${phaseKey}" type="text" value="${escapeHtml(text)}" ${!isAdmin?"disabled":""}/>
-                </div>
-              </div>
-            </div>
-          `;
-        }
-        // stage/week: no per-phase
-        return `
-          <div class="pgPhBox">
-            <div class="pgPhHead">${label}</div>
-            <div class="pgSmall" style="color:var(--muted);">Fila especial.</div>
-          </div>
-        `;
-      };
-
-      const delBtn = (isAdmin && kind!=="stage" && kind!=="week")
-        ? `<button class="btn ghost" data-pgdel="${lane.id}">Eliminar</button>` : ``;
-
-      return `
-        <div class="pgLaneCard">
-          <div class="row" style="gap:10px; flex-wrap:wrap; align-items:flex-end;">
-            <div class="controls" style="min-width:70px;">
-              <label>On</label>
-              <div style="display:flex; justify-content:center; padding:8px 0;">${enChk}</div>
-            </div>
-            <div class="controls" style="min-width:240px; flex:1;">
-              <label>Fila</label>
-              ${nameInput}
-            </div>
-            <div class="controls" style="min-width:170px;">
-              <label>Tipo</label>
-              ${selKind}
-            </div>
-            ${delBtn ? `<div class="controls" style="min-width:120px;"><label>&nbsp;</label>${delBtn}</div>` : ``}
-          </div>
-
-          <div class="pgPhGrid">
-            ${perPhaseUI("niv","Nivelación")}
-            ${perPhaseUI("av","Avance")}
-            ${perPhaseUI("rep","Repaso")}
-          </div>
-        </div>
-      `;
-    };
-
-    host.innerHTML = `
-      <div class="row" style="justify-content:space-between; align-items:center; margin:6px 0 10px;">
-        <div class="pgSmall">Filas del programa (activa, renombra y define si son CÓDIGOS o TEXTO).</div>
-        ${isAdmin ? `<button class="btn" id="pgLaneAdd">+ Añadir fila</button>` : ``}
-      </div>
-      <div class="pgLaneList">
-        ${lanes.map(laneRow).join("")}
-      </div>
-    `;
-
-    if (isAdmin){
-      const btnAdd = document.getElementById("pgLaneAdd");
-      if (btnAdd){
-        btnAdd.addEventListener("click", ()=>{
-          const dd = pgGetDraft(); if (!dd) return;
-          dd.data.config.lanes = dd.data.config.lanes || [];
-          dd.data.config.lanes.push({
-            id: pgUuid(),
-            enabled: true,
-            name: "NUEVA FILA",
-            kind: "code",
-            phases:{
-              niv:{enabled:true, prefix:"X", start:1, pad:2},
-              av :{enabled:true, prefix:"X", start:1, pad:2},
-              rep:{enabled:true, prefix:"X", start:1, pad:2}
-            }
-          });
-          pgSetDirty(true);
-          pgRenderAdvanced();
-          pgRenderTableFromUI(true);
-        });
-      }
-
-      host.querySelectorAll("[data-pgdel]").forEach(btn=>{
-        btn.addEventListener("click", ()=>{
-          const id = btn.getAttribute("data-pgdel");
-          const dd = pgGetDraft(); if (!dd) return;
-          dd.data.config.lanes = (dd.data.config.lanes||[]).filter(l=>l.id!==id);
-          pgSetDirty(true);
-          pgRenderAdvanced();
-          pgRenderTableFromUI(true);
-        });
-      });
-
-      host.querySelectorAll("[data-pge]").forEach(chk=>{
-        chk.addEventListener("change", ()=>{
-          const id = chk.getAttribute("data-pge");
-          const dd = pgGetDraft(); if (!dd) return;
-          const lane = (dd.data.config.lanes||[]).find(l=>l.id===id);
-          if (!lane) return;
-          lane.enabled = !!chk.checked;
-          pgSetDirty(true);
-          pgRenderTableFromUI(true);
-        });
-      });
-
-      host.querySelectorAll("[data-pgn]").forEach(inp=>{
-        inp.addEventListener("input", ()=>{
-          const id = inp.getAttribute("data-pgn");
-          const dd = pgGetDraft(); if (!dd) return;
-          const lane = (dd.data.config.lanes||[]).find(l=>l.id===id);
-          if (!lane) return;
-          lane.name = String(inp.value||"");
-          pgSetDirty(true);
-          // NO re-render completo para no “pelear” con el input
-          pgRenderTableFromUI(true);
-        });
-      });
-
-      host.querySelectorAll("[data-pgk]").forEach(sel=>{
-        sel.addEventListener("change", ()=>{
-          const id = sel.getAttribute("data-pgk");
-          const dd = pgGetDraft(); if (!dd) return;
-          const lane = (dd.data.config.lanes||[]).find(l=>l.id===id);
-          if (!lane) return;
-          lane.kind = String(sel.value||"code");
-          if (lane.kind==="text"){
-            lane.phases = lane.phases || {};
-            for (const k of ["niv","av","rep"]){
-              lane.phases[k] = lane.phases[k] || {};
-              if (lane.phases[k].text === undefined) lane.phases[k].text = "";
-              if (lane.phases[k].enabled === undefined) lane.phases[k].enabled = true;
-            }
-          }
-          if (lane.kind==="code"){
-            lane.phases = lane.phases || {};
-            for (const k of ["niv","av","rep"]){
-              lane.phases[k] = lane.phases[k] || {};
-              if (lane.phases[k].prefix === undefined) lane.phases[k].prefix = "X";
-              if (lane.phases[k].start === undefined)  lane.phases[k].start  = 1;
-              if (lane.phases[k].pad === undefined)    lane.phases[k].pad    = 2;
-              if (lane.phases[k].enabled === undefined) lane.phases[k].enabled = true;
-            }
-          }
-          pgSetDirty(true);
-          pgRenderAdvanced();
-          pgRenderTableFromUI(true);
-        });
-      });
-
-      host.querySelectorAll("[data-pgpe]").forEach(inp=>{
-        inp.addEventListener("change", ()=>{
-          const [lid, ph] = String(inp.getAttribute("data-pgpe")||"").split("|");
-          const dd = pgGetDraft(); if (!dd) return;
-          const lane = (dd.data.config.lanes||[]).find(l=>l.id===lid);
-          if (!lane) return;
-          lane.phases = lane.phases || {};
-          lane.phases[ph] = lane.phases[ph] || {};
-          lane.phases[ph].enabled = !!inp.checked;
-          pgSetDirty(true);
-          pgRenderTableFromUI(true);
-        });
-      });
-
-      host.querySelectorAll("[data-pgpp]").forEach(inp=>{
-        inp.addEventListener("input", ()=>{
-          const [lid, ph] = String(inp.getAttribute("data-pgpp")||"").split("|");
-          const dd = pgGetDraft(); if (!dd) return;
-          const lane = (dd.data.config.lanes||[]).find(l=>l.id===lid);
-          if (!lane) return;
-          lane.phases = lane.phases || {};
-          lane.phases[ph] = lane.phases[ph] || {};
-          lane.phases[ph].prefix = String(inp.value||"");
-          pgSetDirty(true);
-          pgRenderTableFromUI(true);
-        });
-      });
-
-      host.querySelectorAll("[data-pgps]").forEach(inp=>{
-        inp.addEventListener("input", ()=>{
-          const [lid, ph] = String(inp.getAttribute("data-pgps")||"").split("|");
-          const dd = pgGetDraft(); if (!dd) return;
-          const lane = (dd.data.config.lanes||[]).find(l=>l.id===lid);
-          if (!lane) return;
-          lane.phases = lane.phases || {};
-          lane.phases[ph] = lane.phases[ph] || {};
-          lane.phases[ph].start = Math.max(1, +String(inp.value||"1"));
-          pgSetDirty(true);
-          pgRenderTableFromUI(true);
-        });
-      });
-
-      host.querySelectorAll("[data-pgpd]").forEach(sel=>{
-        sel.addEventListener("change", ()=>{
-          const [lid, ph] = String(sel.getAttribute("data-pgpd")||"").split("|");
-          const dd = pgGetDraft(); if (!dd) return;
-          const lane = (dd.data.config.lanes||[]).find(l=>l.id===lid);
-          if (!lane) return;
-          lane.phases = lane.phases || {};
-          lane.phases[ph] = lane.phases[ph] || {};
-          lane.phases[ph].pad = +String(sel.value||"2");
-          pgSetDirty(true);
-          pgRenderTableFromUI(true);
-        });
-      });
-
-      host.querySelectorAll("[data-pgpt]").forEach(inp=>{
-        inp.addEventListener("input", ()=>{
-          const [lid, ph] = String(inp.getAttribute("data-pgpt")||"").split("|");
-          const dd = pgGetDraft(); if (!dd) return;
-          const lane = (dd.data.config.lanes||[]).find(l=>l.id===lid);
-          if (!lane) return;
-          lane.phases = lane.phases || {};
-          lane.phases[ph] = lane.phases[ph] || {};
-          lane.phases[ph].text = String(inp.value||"");
-          pgSetDirty(true);
-          pgRenderTableFromUI(true);
-        });
-      });
-    }
-  }
-
-  function pgFormatCode(prefix, n, pad){
-    const num = String(Math.max(0, +n||0));
-    const p = +pad||0;
-    const z = p>0 ? num.padStart(p,"0") : num;
-    return `${prefix||""}${z}`;
-  }
-
-  function pgBuildWeeksMap(dd){
-    const w = dd.data.config.weeks || {niv:0,av:0,rep:0};
-    const niv = Math.max(0, +w.niv||0);
-    const av  = Math.max(0, +w.av||0);
-    const rep = Math.max(0, +w.rep||0);
-
-    const total = niv+av+rep;
-    const phaseOf = (i)=>{
-      // i: 1..total
-      if (i<=niv) return "niv";
-      if (i<=niv+av) return "av";
-      return "rep";
-    };
-    return { total, niv, av, rep, phaseOf };
-  }
-
-
-
-  // ====== PROGRAMA (GANTT) - Fechas por semana ======
-  const PG_MONTHS_ES = [
-    "ENERO","FEBRERO","MARZO","ABRIL","MAYO","JUNIO",
-    "JULIO","AGOSTO","SEPTIEMBRE","OCTUBRE","NOVIEMBRE","DICIEMBRE"
-  ];
-
-  function pgParseDateYMD(ymd){
+  function pgxParseDateYMD(ymd){
     const s = String(ymd||"").trim();
     const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s);
     if (!m) return null;
@@ -3059,979 +2315,829 @@ const SALONES = [
     if (Number.isNaN(d.getTime())) return null;
     return d;
   }
-
-  function pgAddDays(d, days){
+  function pgxAddDays(d, days){
     const x = new Date(d.getTime());
     x.setDate(x.getDate() + (+days||0));
     return x;
   }
-
-  function pgFmtDDMM(d){
+  function pgxFmtDDMM(d){
     const dd = String(d.getDate()).padStart(2,'0');
     const mm = String(d.getMonth()+1).padStart(2,'0');
     return `${dd}/${mm}`;
   }
+  const PGX_MONTHS_ES = ["ENERO","FEBRERO","MARZO","ABRIL","MAYO","JUNIO","JULIO","AGOSTO","SEPTIEMBRE","OCTUBRE","NOVIEMBRE","DICIEMBRE"];
+  function pgxMonthNameES(d){ return PGX_MONTHS_ES[d.getMonth()] || ""; }
 
-  function pgMonthNameES(d){
-    return PG_MONTHS_ES[d.getMonth()] || "";
+  function pgxThemeColors(theme){
+    const t = String(theme||"").toUpperCase();
+    if (t === "AGRARIA") return {bar:getCss("--schHead_AGR"), cell:getCss("--schCell_AGR")};
+    if (t === "PUCP")    return {bar:getCss("--schHead_PUCP"), cell:getCss("--schCell_PUCP")};
+    if (t === "U.LIMA" || t === "ULIMA") return {bar:getCss("--schHead_UL"), cell:getCss("--schCell_UL")};
+    // default
+    return {bar:"#64748b", cell:"#f1f5f9"};
   }
 
-  function pgRenderTableFromUI(skipValidate){
-    const canvas = document.getElementById("pgCanvas");
-    if (!canvas) return;
+  function pgxDefaultProgram(name, scope, theme){
+    const id = pgxUuid();
+    const totalWeeks = 16;
 
-    const dd = pgGetDraft();
-    if (!dd){
-      canvas.innerHTML = `<div class="pgEmpty">Crea o selecciona un programa.</div>`;
-      return;
-    }
+    // helper
+    const empty = Array.from({length: totalWeeks}, ()=>"");
 
-    const cfg = dd.data.config || {};
-    const lanes = (cfg.lanes||[]).filter(l=>!!l.enabled);
-    const colors = cfg.colors || {};
-    const z = +(document.getElementById("pgZoom")?.value || "1") || 1;
+    const semana = empty.slice();
+    // plantilla base similar a tu imagen (editable luego)
+    // 3 semanas SEN + 13 semanas SE
+    const mk = (p,i,pad)=> p + String(i).padStart(pad,"0");
+    for (let i=0;i<3;i++) semana[i] = mk("SEN", i+1, 1);
+    for (let i=0;i<13;i++) semana[3+i] = mk("SE", i+1, 2);
 
-    const { total, niv, av, rep, phaseOf } = pgBuildWeeksMap(dd);
+    const reportes = empty.slice();
+    for (let i=0;i<3;i++) reportes[i] = mk("RN", i+1, 1);
+    for (let i=0;i<13;i++) reportes[3+i] = mk("R", i+1, 1);
 
-    if (!total){
-      canvas.innerHTML = `<div class="pgEmpty">Define semanas (Nivelación / Avance / Repaso) para ver el programa.</div>`;
-      return;
-    }
+    const materiales = empty.slice();
+    // ejemplo visual (puedes editar a mano)
+    for (let i=0;i<3;i++) materiales[i] = "SEPARATAS";
+    for (let i=3;i<8;i++) materiales[i] = "BOLETÍN 1";
+    materiales[8] = "SEPARATA";
+    for (let i=9;i<12;i++) materiales[i] = "BOLETÍN 2";
+    for (let i=12;i<15;i++) materiales[i] = "SEPARATA";
+    materiales[15] = "";
 
-    const weekWidth = 72; // px por semana (se escala por zoom)
-    const labelWidth = 170;
+    const etapaSegments = [
+      { text:"NIVELACIÓN", span:3 },
+      { text:"AVANCE TEÓRICO", span:10 },
+      { text:"REPASO", span:3 }
+    ];
 
-
-    // Month/Date headers (basado en Inicio semana 1)
-    const startDate = pgParseDateYMD(String(cfg.startDate||""));
-    const weekDates = startDate ? Array.from({length: total}, (_,i)=>pgAddDays(startDate, i*7)) : null;
-
-    const monthEnds = new Set();
-    if (weekDates){
-      for (let i=0; i<weekDates.length; i++){
-        const a = weekDates[i];
-        const b = weekDates[i+1];
-        if (i===weekDates.length-1 || a.getMonth()!==b.getMonth() || a.getFullYear()!==b.getFullYear()){
-          monthEnds.add(i);
-        }
+    return {
+      id,
+      meta:{
+        name: String(name||"PROGRAMA").trim().toUpperCase(),
+        scope: String(scope||"ALL").trim().toUpperCase(), // ALL / AGRARIA / PUCP / U.LIMA
+        theme: String(theme||"AGRARIA").trim().toUpperCase(),
+        createdAt: pgxNowISO(),
+        updatedAt: pgxNowISO()
+      },
+      config:{
+        etapaSegments,
+        lanes:[
+          { key:"etapa", label:"Etapa", type:"segments", segments: etapaSegments },
+          { key:"semana", label:"Semana", type:"cells", values: semana },
+          { key:"simulacro", label:"Simulacro", type:"cells", values: empty.slice() },
+          { key:"materiales", label:"Materiales", type:"cells", values: materiales },
+          { key:"tutoria", label:"Tutoría", type:"cells", values: empty.slice() },
+          { key:"reportes", label:"Reportes", type:"cells", values: reportes },
+          { key:"seminario", label:"Seminario", type:"cells", values: empty.slice() },
+          { key:"reuniones", label:"Reuniones", type:"cells", values: empty.slice() }
+        ]
       }
-    }
-
-    let monthRow = "";
-    let dateRow  = "";
-
-    if (weekDates){
-      const runs = [];
-      let curKey = "";
-      let curLabel = "";
-      let curSpan = 0;
-
-      for (let i=0; i<weekDates.length; i++){
-        const d = weekDates[i];
-        const key = `${d.getFullYear()}-${d.getMonth()}`;
-        const lab = pgMonthNameES(d);
-        if (key !== curKey){
-          if (curSpan>0) runs.push({label: curLabel, span: curSpan});
-          curKey = key; curLabel = lab; curSpan = 1;
-        } else {
-          curSpan++;
-        }
-      }
-      if (curSpan>0) runs.push({label: curLabel, span: curSpan});
-
-      monthRow = `
-        <div class="pgLabelCell pgMonthHead"><b>ACTIVIDAD</b></div>
-        ${runs.map((r,idx)=>{
-          const sep = (idx<runs.length-1) ? 'border-right:2px solid rgba(15,23,42,.55);' : '';
-          return `<div class="pgMonthCell" style="grid-column: span ${r.span}; ${sep}">${escapeHtml(r.label)}</div>`;
-        }).join('')}
-      `;
-
-      dateRow = `
-        <div class="pgLabelCell pgDateHead"><b>FECHA</b></div>
-        ${weekDates.map((d,i)=>{
-          const sep = (monthEnds.has(i) && i<weekDates.length-1) ? 'border-right:2px solid rgba(15,23,42,.55);' : '';
-          return `<div class="pgDateCell" style="${sep}">${escapeHtml(pgFmtDDMM(d))}</div>`;
-        }).join('')}
-      `;
-
-    } else {
-      monthRow = `
-        <div class="pgLabelCell pgMonthHead"><b>ACTIVIDAD</b></div>
-        <div class="pgMonthCell" style="grid-column: span ${total};">—</div>
-      `;
-
-      dateRow = `
-        <div class="pgLabelCell pgDateHead"><b>FECHA</b></div>
-        ${Array.from({length: total}, ()=>`<div class="pgDateCell">—</div>`).join('')}
-      `;
-    }
-
-    // Header bars
-    const mkBar = (label, span, bg)=>{
-      return `<div class="pgBar" style="grid-column: span ${span}; background:${bg};">${escapeHtml(label)}</div>`;
     };
+  }
 
-    const headBars = `
-      <div class="pgLabelHead"></div>
-      ${niv? mkBar("NIVELACIÓN", niv, colors.niv||"#6bbf59"):""}
-      ${av?  mkBar("AVANCE",    av,  colors.av ||"#5b8def"):""}
-      ${rep? mkBar("REPASO",    rep, colors.rep||"#f6a227"):""}
+  function pgxDefaultStore(){
+    // Por defecto: cronograma como tu imagen (Lunes 09/02/2026)
+    return {
+      timeline: { startDate:"2026-02-09", weeks:16 },
+      programs: {},
+      order: []
+    };
+  }
+
+  function pgxLoadStore(){
+    const st = pgxLoadJSON(PGX_STORE_KEY, null);
+    if (st && st.timeline && st.programs && st.order) return st;
+    return pgxDefaultStore();
+  }
+
+  function pgxSaveStore(store){
+    pgxSaveJSON(PGX_STORE_KEY, store);
+  }
+
+  function pgxEnsure(){
+    const store = pgxLoadStore();
+    if (!store.order.length && pgxCanEdit()){
+      const p1 = pgxDefaultProgram("AG REGULAR 1", "AGRARIA", "AGRARIA");
+      const p2 = pgxDefaultProgram("U.LIMA", "U.LIMA", "U.LIMA");
+      // U.LIMA: deja en blanco semanas 1-7 y 12-16 para que imite el bloque corto (editable)
+      try{
+        const seg = [{text:"", span:7},{text:"REPASO", span:4},{text:"", span:5}];
+        p2.config.lanes.find(x=>x.key==="etapa").segments = seg;
+        p2.config.etapaSegments = seg;
+        // semana: ejemplo SE05-SE07 y SER (editable)
+        const s = p2.config.lanes.find(x=>x.key==="semana").values;
+        for (let i=0;i<s.length;i++) s[i]="";
+        s[7]="SE05"; s[8]="SE06"; s[9]="SE07"; s[10]="SER";
+        const sim = p2.config.lanes.find(x=>x.key==="simulacro").values;
+        for (let i=0;i<sim.length;i++) sim[i]="";
+        sim[7]="S05"; sim[8]="S06"; sim[9]="S07"; sim[10]="SR";
+        const rep = p2.config.lanes.find(x=>x.key==="reportes").values;
+        for (let i=0;i<rep.length;i++) rep[i]="";
+        rep[7]="R05"; rep[8]="R06"; rep[9]="R07"; rep[10]="R08";
+        const mat = p2.config.lanes.find(x=>x.key==="materiales").values;
+        for (let i=0;i<mat.length;i++) mat[i]="";
+      }catch(e){}
+
+      const p3 = pgxDefaultProgram("TALENTO", "PUCP", "PUCP");
+      // TALENTO: plantilla base vacía (editar luego)
+      try{
+        const seg3 = [{text:"REPASO", span:1},{text:"", span:15}];
+        p3.config.lanes.find(x=>x.key==="etapa").segments = seg3;
+        p3.config.etapaSegments = seg3;
+        // limpiar todo
+        p3.config.lanes.forEach(l=>{
+          if (l.type==="cells") l.values = Array.from({length: store.timeline.weeks}, ()=>"");
+        });
+      }catch(e){}
+
+      store.programs[p1.id]=p1;
+      store.programs[p2.id]=p2;
+      store.programs[p3.id]=p3;
+      store.order=[p1.id,p2.id,p3.id];
+      pgxSaveStore(store);
+      pgxSaveStr(PGX_ACTIVE_KEY, p1.id);
+      pgxSaveStr(PGX_MODE_KEY, "ALL");
+      pgxSaveStr(PGX_ZOOM_KEY, "0.85");
+      pgxSaveStr(PGX_EDIT_KEY, "0");
+      pgxSaveStr(PGX_FINE_KEY, "0");
+    }
+  }
+
+  function pgxGetMode(){
+    const m = pgxLoadStr(PGX_MODE_KEY, "ALL").toUpperCase();
+    return (m==="ONE" || m==="ALL") ? m : "ALL";
+  }
+  function pgxSetMode(m){ pgxSaveStr(PGX_MODE_KEY, String(m||"ALL").toUpperCase()); }
+
+  function pgxGetActiveId(){
+    return pgxLoadStr(PGX_ACTIVE_KEY, "");
+  }
+  function pgxSetActiveId(id){ pgxSaveStr(PGX_ACTIVE_KEY, String(id||"")); }
+
+  function pgxGetZoom(){
+    const z = parseFloat(pgxLoadStr(PGX_ZOOM_KEY, "0.85"));
+    if (!Number.isFinite(z)) return 0.85;
+    return Math.max(0.55, Math.min(1.25, z));
+  }
+  function pgxSetZoom(z){ pgxSaveStr(PGX_ZOOM_KEY, String(z)); }
+
+  function pgxGetEditOn(){ return pgxLoadStr(PGX_EDIT_KEY, "0") === "1"; }
+  function pgxSetEditOn(on){ pgxSaveStr(PGX_EDIT_KEY, on ? "1":"0"); }
+
+  function pgxGetFineOn(){ return pgxLoadStr(PGX_FINE_KEY, "0") === "1"; }
+  function pgxSetFineOn(on){ pgxSaveStr(PGX_FINE_KEY, on ? "1":"0"); }
+
+  function pgxProgramsForRole(){
+    const store = pgxLoadStore();
+    const role = String(CURRENT_ROLE||"").toLowerCase();
+    const uni = (role==="alumno") ? String((getAlumnoProfile()||{}).uni||"").toUpperCase() : "";
+
+    const out = [];
+    for (const id of store.order){
+      const p = store.programs[id];
+      if (!p) continue;
+
+      if (pgxCanEdit()){ out.push(p); continue; }
+
+      const sc = String(p.meta?.scope||"ALL").toUpperCase();
+      if (sc==="ALL") { out.push(p); continue; }
+      if (role==="alumno"){
+        if (uni && uni===sc) out.push(p);
+      }else{
+        // tutor: ver todos
+        out.push(p);
+      }
+    }
+    return out;
+  }
+
+  function pgxTotalWeeks(){
+    const store = pgxLoadStore();
+    const w = +store.timeline?.weeks || 16;
+    return Math.max(1, Math.min(60, w));
+  }
+
+  function pgxTimelineDates(){
+    const store = pgxLoadStore();
+    const total = pgxTotalWeeks();
+    const start = pgxParseDateYMD(String(store.timeline?.startDate||""));
+    if (!start) return null;
+    return Array.from({length: total}, (_,i)=>pgxAddDays(start, i*7));
+  }
+
+  function pgxMonthRuns(dates){
+    if (!dates || !dates.length) return [];
+    const runs = [];
+    let curKey="", curLab="", curSpan=0;
+    for (let i=0;i<dates.length;i++){
+      const d = dates[i];
+      const key = `${d.getFullYear()}-${d.getMonth()}`;
+      const lab = pgxMonthNameES(d);
+      if (key !== curKey){
+        if (curSpan>0) runs.push({label:curLab, span:curSpan});
+        curKey=key; curLab=lab; curSpan=1;
+      }else curSpan++;
+    }
+    if (curSpan>0) runs.push({label:curLab, span:curSpan});
+    return runs;
+  }
+
+  function pgxMonthEnds(dates){
+    const ends = new Set();
+    if (!dates) return ends;
+    for (let i=0;i<dates.length;i++){
+      const a = dates[i], b = dates[i+1];
+      if (i===dates.length-1 || a.getMonth()!==b.getMonth() || a.getFullYear()!==b.getFullYear()){
+        ends.add(i+1); // week number 1-based
+      }
+    }
+    return ends;
+  }
+
+  function pgxGroupValues(values, fine){
+    // values: array length weeks
+    const out = [];
+    const n = values.length;
+    if (fine){
+      for (let i=0;i<n;i++) out.push({text:String(values[i]||""), start:i+1, span:1});
+      return out;
+    }
+    let i=0;
+    while (i<n){
+      const t = String(values[i]||"");
+      let j=i+1;
+      while (j<n && String(values[j]||"")===t) j++;
+      out.push({text:t, start:i+1, span:(j-i)});
+      i=j;
+    }
+    return out;
+  }
+
+  function pgxRenderSheet(programs, mode){
+    const store = pgxLoadStore();
+    const totalWeeks = pgxTotalWeeks();
+    const dates = pgxTimelineDates();
+    const monthRuns = dates ? pgxMonthRuns(dates) : [];
+    const monthEnds = pgxMonthEnds(dates);
+
+    const colCount = 2 + totalWeeks; // 2 fijas + semanas
+    const z = pgxGetZoom();
+
+    // Header
+    const headMonths = monthRuns.length
+      ? monthRuns.map((r,idx)=>{
+          const cls = "pxMonth";
+          return `<th class="${cls}" colspan="${r.span}">${escapeHtml(r.label)}</th>`;
+        }).join("")
+      : `<th class="pxMonth" colspan="${totalWeeks}">—</th>`;
+
+    const headDates = dates
+      ? dates.map((d,i)=>{
+          const wk = i+1;
+          const cls = monthEnds.has(wk) ? "pxDate pxMonthEnd" : "pxDate";
+          return `<th class="${cls}">${escapeHtml(pgxFmtDDMM(d))}</th>`;
+        }).join("")
+      : Array.from({length: totalWeeks}, (_,i)=>`<th class="pxDate">${i+1}</th>`).join("");
+
+    const thead = `
+      <thead>
+        <tr>
+          <th class="pxCorner" colspan="2" rowspan="2">PROGRAMACIÓN</th>
+          ${headMonths}
+        </tr>
+        <tr>
+          ${headDates}
+        </tr>
+      </thead>
     `;
 
-    // Week numbers row
-    const weekNums = `
-      <div class="pgLabelCell"><b>Semana</b></div>
-      ${Array.from({length: total}, (_,i)=>`<div class="pgWeekCell">${i+1}</div>`).join("")}
-    `;
+    const fine = pgxGetFineOn();
+    const edit = pgxCanEdit() && pgxGetEditOn();
 
-    const laneRows = lanes.map(lane=>{
-      const kind = lane.kind || "code";
-      const label = escapeHtml(lane.name || "");
+    const tbodyRows = programs.map(p=>{
+      const name = String(p.meta?.name||"PROGRAMA").toUpperCase();
+      const theme = String(p.meta?.theme||"").toUpperCase();
+      const colors = pgxThemeColors(theme);
 
-      if (kind === "stage"){
-        // Stage row: merged labels per phase
-        return `
-          <div class="pgLabelCell"><b>${label||"Etapa"}</b></div>
-          ${niv? `<div class="pgMergeCell" style="grid-column: span ${niv};">NIVELACIÓN</div>`:""}
-          ${av?  `<div class="pgMergeCell" style="grid-column: span ${av};">AVANCE</div>`:""}
-          ${rep? `<div class="pgMergeCell" style="grid-column: span ${rep};">REPASO</div>`:""}
-        `;
-      }
+      const lanes = (p.config?.lanes||[]).slice();
+      const laneRows = lanes.filter(l=>l && l.key && l.label);
 
-      if (kind === "week"){
-        return weekNums;
-      }
-
-      if (kind === "text"){
-        const ph = lane.phases || {};
-        const tn = ph.niv?.enabled ? String(ph.niv?.text||"") : "";
-        const ta = ph.av ?.enabled ? String(ph.av ?.text||"") : "";
-        const tr = ph.rep?.enabled ? String(ph.rep?.text||"") : "";
-        return `
-          <div class="pgLabelCell"><b>${label}</b></div>
-          ${niv? `<div class="pgMergeCell" style="grid-column: span ${niv};">${escapeHtml(tn)}</div>`:""}
-          ${av?  `<div class="pgMergeCell" style="grid-column: span ${av};">${escapeHtml(ta)}</div>`:""}
-          ${rep? `<div class="pgMergeCell" style="grid-column: span ${rep};">${escapeHtml(tr)}</div>`:""}
-        `;
-      }
-
-      // code kind
-      const ph = lane.phases || {};
-      const sN = +ph.niv?.start||1, sA = +ph.av?.start||1, sR = +ph.rep?.start||1;
-      const pN = String(ph.niv?.prefix||""), pA = String(ph.av?.prefix||""), pR = String(ph.rep?.prefix||"");
-      const dN = +ph.niv?.pad||0, dA = +ph.av?.pad||0, dR = +ph.rep?.pad||0;
-      const eN = !!ph.niv?.enabled, eA = !!ph.av?.enabled, eR = !!ph.rep?.enabled;
-
-      // Counters
-      let cN = sN, cA = sA, cR = sR;
-      const cells = [];
-      for (let i=1; i<=total; i++){
-        const phase = phaseOf(i);
-        let txt = "";
-        if (phase==="niv" && eN){
-          txt = pgFormatCode(pN, cN, dN); cN++;
+      // asegura longitud
+      laneRows.forEach(l=>{
+        if (l.type==="cells"){
+          const v = Array.isArray(l.values) ? l.values : [];
+          if (v.length !== totalWeeks){
+            const nv = Array.from({length: totalWeeks}, (_,i)=> String(v[i]||""));
+            l.values = nv;
+          }
         }
-        if (phase==="av" && eA){
-          txt = pgFormatCode(pA, cA, dA); cA++;
+        if (l.type==="segments"){
+          // normalizar spans para que sumen totalWeeks
+          const seg = Array.isArray(l.segments) ? l.segments : [];
+          let sum = seg.reduce((a,s)=>a+(+s.span||0),0);
+          if (sum < totalWeeks){
+            seg.push({text:"", span:(totalWeeks-sum)});
+          } else if (sum > totalWeeks){
+            // recorta
+            let acc=0; const out=[];
+            for (const s of seg){
+              const sp = +s.span||0;
+              if (!sp) continue;
+              if (acc + sp <= totalWeeks){ out.push(s); acc += sp; }
+              else{
+                const rem = totalWeeks - acc;
+                if (rem>0) out.push({text:s.text, span:rem});
+                acc = totalWeeks;
+                break;
+              }
+            }
+            l.segments = out;
+          } else {
+            l.segments = seg;
+          }
         }
-        if (phase==="rep" && eR){
-          txt = pgFormatCode(pR, cR, dR); cR++;
-        }
-        cells.push(`<div class="pgCell">${escapeHtml(txt)}</div>`);
-      }
+      });
 
-      return `
-        <div class="pgLabelCell"><b>${label}</b></div>
-        ${cells.join("")}
+      // rowspan: actividad + lanes count
+      const rowSpan = 1 + laneRows.length;
+
+      const progCell = `
+        <th class="pxProg" rowspan="${rowSpan}" style="background:${colors.bar};">
+          <div class="pxProgV">${escapeHtml(name)}</div>
+        </th>
       `;
+
+      // ACTIVIDAD row (week numbers)
+      const actCells = Array.from({length: totalWeeks}, (_,i)=>{
+        const wk = i+1;
+        const cls = monthEnds.has(wk) ? "pxW pxMonthEnd" : "pxW";
+        return `<td class="${cls}" style="background:${colors.cell}; font-weight:1000;">${wk}</td>`;
+      }).join("");
+
+      const actRow = `
+        <tr class="pxActRow">
+          ${progCell}
+          <th class="pxRowHead pxActHead" style="background:${colors.bar}; color:#fff;">ACTIVIDAD</th>
+          ${actCells}
+        </tr>
+      `;
+
+      const laneHtml = laneRows.map(l=>{
+        const label = String(l.label||"").trim();
+        if (l.type==="segments"){
+          const seg = Array.isArray(l.segments) ? l.segments : [];
+          const tds = seg.map(s=>{
+            const sp = +s.span||1;
+            const txt = String(s.text||"");
+            // estilo por etapa
+            const isEtapa = (l.key==="etapa");
+            const cls = isEtapa ? "pxSeg pxEtapaCell" : "pxSeg";
+            return `<td class="${cls}" colspan="${sp}">${escapeHtml(txt)}</td>`;
+          }).join("");
+          return `
+            <tr>
+              <th class="pxRowHead">${escapeHtml(label)}</th>
+              ${tds}
+            </tr>
+          `;
+        }
+
+        // cells
+        const groups = pgxGroupValues(l.values||[], fine);
+        const tds = groups.map(g=>{
+          const data = `data-pgid="${escapeHtml(p.id)}" data-lane="${escapeHtml(l.key)}" data-start="${g.start}" data-span="${g.span}"`;
+          const cls = "pxCell" + (edit ? " pxEditable" : "");
+          const content = escapeHtml(g.text||"");
+          return `<td class="${cls}" colspan="${g.span}" ${data}><div class="pxCellIn">${content || "&nbsp;"}</div></td>`;
+        }).join("");
+
+        return `
+          <tr>
+            <th class="pxRowHead">${escapeHtml(label)}</th>
+            ${tds}
+          </tr>
+        `;
+      }).join("");
+
+      return actRow + laneHtml + `<tr class="pxGap"><td colspan="${colCount}" aria-hidden="true"></td></tr>`;
     }).join("");
 
-    // Events overlay row (badge)
-    const evts = (cfg.events||[]).slice().filter(e=>e && +e.week>0 && +e.week<=total);
-    const evtColor = colors.evt || "#d10b0b";
-    const eventsRow = `
-      <div class="pgLabelCell"><b>Eventos</b></div>
-      ${Array.from({length: total}, (_,i)=>{
-        const w = i+1;
-        const items = evts.filter(e=>+e.week===w);
-        if (!items.length) return `<div class="pgCell pgEvtCell"></div>`;
-        return `<div class="pgCell pgEvtCell">${items.map(e=>`<span class="pgEvt" style="border-color:${evtColor}; color:${evtColor};">${escapeHtml(e.text||"")}</span>`).join("")}</div>`;
-      }).join("")}
-    `;
+    const tbody = `<tbody>${tbodyRows}</tbody>`;
 
-    canvas.style.zoom = String(z);
-    canvas.style.transform = "";
-    canvas.style.transformOrigin = "";
-
-    // Build grid
-    canvas.innerHTML = `
-      <div class="pgGrid" style="grid-template-columns:${labelWidth}px repeat(${total}, ${weekWidth}px);">
-        ${monthRow}
-        ${dateRow}
-        ${headBars}
-        ${laneRows}
-        ${eventsRow}
+    const html = `
+      <div class="pxSheetWrap">
+        <div class="pxSheetScroll" id="pgxScroll" style="zoom:${z};">
+          <table class="pxSheet">
+            ${thead}
+            ${tbody}
+          </table>
+        </div>
       </div>
     `;
-
-    // Legend dots update
-    const dn = document.querySelector(".dot.dNiv"); if (dn) dn.style.background = colors.niv||"#6bbf59";
-    const da = document.querySelector(".dot.dAv");  if (da) da.style.background = colors.av ||"#5b8def";
-    const dr = document.querySelector(".dot.dRep"); if (dr) dr.style.background = colors.rep||"#f6a227";
+    return html;
   }
 
-  function pgWireUIOnce(){
-    // Se llama desde ensureProgramaLayout (una sola vez)
-    const canEdit = pgCanEdit();
+  function pgxFillProgramSelect(programs){
+    const sel = document.getElementById("pgxProgram");
+    if (!sel) return;
+    const active = pgxGetActiveId() || (programs[0]?.id||"");
+    sel.innerHTML = programs.map(p=>{
+      const nm = String(p.meta?.name||"PROGRAMA").toUpperCase();
+      const sc = String(p.meta?.scope||"ALL").toUpperCase();
+      return `<option value="${escapeHtml(p.id)}">${escapeHtml(nm)}${sc && sc!=="ALL" ? " · " + escapeHtml(sc) : ""}</option>`;
+    }).join("");
+    sel.value = active;
+  }
 
-    // Program select
-    const sel = document.getElementById("pgProgram");
+  function pgxApplyHeaderUI(){
+    const store = pgxLoadStore();
+
+    const start = document.getElementById("pgxStart");
+    const weeks = document.getElementById("pgxWeeks");
+    const zoom  = document.getElementById("pgxZoom");
+    const mode  = document.getElementById("pgxMode");
+    const edit  = document.getElementById("pgxEdit");
+    const fine  = document.getElementById("pgxFine");
+
+    if (start) start.value = String(store.timeline?.startDate||"");
+    if (weeks) weeks.value = String(pgxTotalWeeks());
+    if (zoom)  zoom.value  = String(pgxGetZoom());
+    if (mode)  mode.value  = pgxGetMode();
+    if (edit){
+      edit.style.display = pgxCanEdit() ? "" : "none";
+      edit.textContent = (pgxGetEditOn() ? "EDITANDO" : "EDITAR");
+      edit.classList.toggle("primary", pgxGetEditOn());
+    }
+    if (fine){
+      fine.textContent = (pgxGetFineOn() ? "EDICIÓN FINA: ON" : "EDICIÓN FINA: OFF");
+      fine.classList.toggle("primary", pgxGetFineOn());
+    }
+
+    const sel = document.getElementById("pgxProgram");
     if (sel){
-      sel.addEventListener("change", ()=>{
-        const id = String(sel.value||"");
-        pgSetActiveProgramId(id);
-        pgLoadProgramIntoUI(id);
-      });
+      sel.style.display = (pgxGetMode()==="ONE") ? "" : "none";
     }
 
-    // Base controls
-    // Modo: UNO / TODOS
-    const modeSel = document.getElementById("pgMode");
-    if (modeSel){
-      modeSel.addEventListener("change", ()=>{
-        pgSetViewMode(modeSel.value);
-        renderPrograma();
-      });
-    }
-
-    // Base controls
-    const bindInput = (id, fn)=>{
-      const el = document.getElementById(id);
-      if (!el) return;
-      el.addEventListener("input", fn);
-      el.addEventListener("change", fn);
-    };
-
-    bindInput("pgScope", ()=>{
-      const dd = pgGetDraft(); if (!dd) return;
-      dd.data.meta.scope = String(document.getElementById("pgScope").value||"ALL");
-      pgSetDirty(true);
-      pgRenderTableFromUI(true);
-      // refresh select label
-      pgUpsertProgram(dd.data); // no cambia config, pero actualiza meta si guarda luego; aquí solo reflejamos en selector
-      // NO guardamos permanente automáticamente; solo actualiza en draft
-    });
-
-    bindInput("pgStart", ()=>{
-      const dd = pgGetDraft(); if (!dd) return;
-      dd.data.config.startDate = String(document.getElementById("pgStart").value||"");
-      pgSetDirty(true);
-      pgRenderTableFromUI(true);
-    });
-
-    bindInput("pgNiv", ()=>{
-      const dd = pgGetDraft(); if (!dd) return;
-      dd.data.config.weeks.niv = Math.max(0, +String(document.getElementById("pgNiv").value||"0"));
-      pgSetDirty(true);
-      pgRenderAdvanced(); // por si eventos/lanes dependen
-      pgRenderEventsList();
-      pgRenderTableFromUI(true);
-    });
-
-    bindInput("pgAv", ()=>{
-      const dd = pgGetDraft(); if (!dd) return;
-      dd.data.config.weeks.av = Math.max(0, +String(document.getElementById("pgAv").value||"0"));
-      pgSetDirty(true);
-      pgRenderAdvanced();
-      pgRenderEventsList();
-      pgRenderTableFromUI(true);
-    });
-
-    bindInput("pgRep", ()=>{
-      const dd = pgGetDraft(); if (!dd) return;
-      dd.data.config.weeks.rep = Math.max(0, +String(document.getElementById("pgRep").value||"0"));
-      pgSetDirty(true);
-      pgRenderAdvanced();
-      pgRenderEventsList();
-      pgRenderTableFromUI(true);
-    });
-
-    // Colors
-    ["pgColNiv","pgColAv","pgColRep","pgColEvt"].forEach((cid)=>{
-      const el = document.getElementById(cid);
-      if (!el) return;
-      el.addEventListener("input", ()=>{
-        const dd = pgGetDraft(); if (!dd) return;
-        dd.data.config.colors = dd.data.config.colors || {};
-        if (cid==="pgColNiv") dd.data.config.colors.niv = el.value;
-        if (cid==="pgColAv")  dd.data.config.colors.av  = el.value;
-        if (cid==="pgColRep") dd.data.config.colors.rep = el.value;
-        if (cid==="pgColEvt") dd.data.config.colors.evt = el.value;
-        pgSetDirty(true);
-        pgRenderTableFromUI(true);
-        pgRenderEventsList();
-      });
-    });
-
-    // Events
-    const add = document.getElementById("pgEvtAdd");
-    if (add) add.addEventListener("click", pgAddEventFromUI);
-    const clr = document.getElementById("pgEvtClear");
-    if (clr) clr.addEventListener("click", pgClearEvents);
-
-    // Save
-    const btnSave = document.getElementById("pgBtnSave");
-    if (btnSave){
-      btnSave.addEventListener("click", ()=>{
-        if (!pgCanEdit()) return;
-        const dd = pgGetDraft();
-        if (!dd) return;
-        dd.data.meta.updatedAt = pgNowISO();
-        pgUpsertProgram(dd.data);
-        pgSetDirty(false);
-        toast("Programa guardado.");
-        pgFillProgramSelect(dd.programId);
-      });
-    }
-
-    // PNG
-    const btnPNG = document.getElementById("pgBtnPNG");
-    if (btnPNG) btnPNG.addEventListener("click", ()=>downloadProgramaPNG());
-
-    // Gestión (solo admin)
-    if (canEdit){
-      const btnNew = document.getElementById("pgBtnNew");
-      if (btnNew){
-        btnNew.addEventListener("click", ()=>{
-          pgModal("Crear nuevo programa", [
-            {id:"mName", label:"Nombre", type:"text", placeholder:"Ej.: AGRARIA 2026", value:"NUEVO PROGRAMA"},
-            {id:"mScope", label:"Visible para", type:"select", value:"ALL", options:[
-              {value:"ALL", label:"TODOS"},
-              {value:"AGRARIA", label:"AGRARIA"},
-              {value:"PUCP", label:"PUCP"},
-              {value:"U.LIMA", label:"U.LIMA"},
-            ]}
-          ], (out)=>{
-            const name = out.mName || "NUEVO PROGRAMA";
-            const scope = out.mScope || "ALL";
-            const p = pgDefaultProgram(name, scope);
-            pgUpsertProgram(p);
-            pgFillProgramSelect(p.id);
-            pgSetActiveProgramId(p.id);
-            pgLoadProgramIntoUI(p.id);
-            toast("Programa creado.");
-          });
-        });
-      }
-
-      const btnRen = document.getElementById("pgBtnRename");
-      if (btnRen){
-        btnRen.addEventListener("click", ()=>{
-          const id = String(document.getElementById("pgProgram")?.value||"");
-          const p = pgGetProgramById(id);
-          if (!p) return toast("No hay programa seleccionado.");
-          pgModal("Renombrar programa", [
-            {id:"mName", label:"Nuevo nombre", type:"text", value: String(p.meta?.name||"PROGRAMA")}
-          ], (out)=>{
-            pgRenameProgram(id, out.mName||"PROGRAMA");
-            pgFillProgramSelect(id);
-            // mantener draft
-            const dd = pgGetDraft();
-            if (dd && dd.programId===id){
-              dd.data.meta.name = String(out.mName||"PROGRAMA").trim().toUpperCase();
-              pgSetDirty(true);
-            }
-            toast("Nombre actualizado.");
-          });
-        });
-      }
-
-      const btnDup = document.getElementById("pgBtnDup");
-      if (btnDup){
-        btnDup.addEventListener("click", ()=>{
-          const id = String(document.getElementById("pgProgram")?.value||"");
-          if (!id) return toast("Selecciona un programa.");
-          const newId = pgDuplicateProgram(id);
-          if (!newId) return;
-          pgFillProgramSelect(newId);
-          pgSetActiveProgramId(newId);
-          pgLoadProgramIntoUI(newId);
-          toast("Programa duplicado.");
-        });
-      }
-
-      const btnDel = document.getElementById("pgBtnDel");
-      if (btnDel){
-        btnDel.addEventListener("click", ()=>{
-          const id = String(document.getElementById("pgProgram")?.value||"");
-          if (!id) return toast("Selecciona un programa.");
-          pgModal("Eliminar programa", [
-            {id:"mOk", label:"Escribe ELIMINAR para confirmar", type:"text", placeholder:"ELIMINAR", value:""}
-          ], (out)=>{
-            if (String(out.mOk||"").toUpperCase() !== "ELIMINAR"){
-              toast("Cancelado.");
-              return;
-            }
-            pgDeleteProgram(id);
-            pgFillProgramSelect();
-            const next = pgGetActiveProgramId() || (pgGetProgramsForRole()[0]?.id||"");
-            if (next) pgLoadProgramIntoUI(next);
-            else{
-              PG_DRAFT = null;
-              pgRenderTableFromUI(true);
-              pgRenderAdvanced();
-              pgRenderEventsList();
-            }
-            toast("Programa eliminado.");
-          });
-        });
-      }
-    }
+    const btnNew = document.getElementById("pgxNew");
+    const btnDel = document.getElementById("pgxDel");
+    const btnJson = document.getElementById("pgxJson");
+    if (btnNew) btnNew.style.display = pgxCanEdit() ? "" : "none";
+    if (btnDel) btnDel.style.display = pgxCanEdit() ? "" : "none";
+    if (btnJson) btnJson.style.display = pgxCanEdit() ? "" : "none";
   }
 
-  function ensureProgramaLayout(){
+  function pgxEnsureProgramaLayout(){
     const el = document.getElementById("view_programa");
-    if (!el) return;
-    if (el.dataset.ready === "1") return;
-
-    const isAlumno = (String(CURRENT_ROLE||"").toLowerCase() === "alumno");
-    const canEdit  = pgCanEdit();
-    const prof = isAlumno ? (getAlumnoProfile() || {}) : null;
+    if (!el || el.dataset.ready==="1") return;
 
     el.innerHTML = `
       <div class="card panel12">
-        <div class="head">
-          <div>
-            <div class="title">PROGRAMA</div>
-            <div class="sub" id="pgSaveState" style="color:var(--muted); font-weight:900;">${canEdit ? "GUARDADO" : "SOLO LECTURA"}</div>
-          </div>
-          <div class="tools">
-            <button class="btn ghost" id="pgBtnPNG">Descargar PNG</button>
-            ${isAlumno ? `<button class="btn ghost" id="pgBackHome">Volver a Inicio</button>` : ``}
-            ${canEdit ? `<button class="btn" id="pgBtnSave">Guardar</button>` : ``}
-          </div>
+        <div class="cardtitle">PROGRAMA</div>
+        <div style="color:var(--muted); font-weight:900; margin-bottom:10px;">
+          Programación estilo Excel (meses/fechas/semanas). En <b>EDITAR</b> (Admin) puedes hacer click en celdas para modificar.
         </div>
 
-        <div class="pgTop">
-          <div class="controls" style="min-width:170px;">
-            <label>Ver</label>
-            <select id="pgMode">
-              <option value="ONE">UNO</option>
-              <option value="ALL">TODOS</option>
-            </select>
-          </div>
+        <div class="controls" style="justify-content:flex-start; gap:10px; flex-wrap:wrap;">
+          <select id="pgxMode">
+            <option value="ALL">VER: TODOS</option>
+            <option value="ONE">VER: UNO</option>
+          </select>
 
-          <div class="controls" style="min-width:260px;">
-            <label>Programa</label>
-            <select id="pgProgram"></select>
-          </div>
+          <select id="pgxProgram"></select>
 
-          ${canEdit ? `
-          <div class="controls" style="min-width:280px;">
-            <label>Gestión</label>
-            <div class="miniRow">
-              <button class="btn" id="pgBtnNew">+ Nuevo</button>
-              <button class="btn ghost" id="pgBtnRename">Renombrar</button>
-              <button class="btn ghost" id="pgBtnDup">Duplicar</button>
-              <button class="btn ghost" id="pgBtnDel">Eliminar</button>
-            </div>
-          </div>
-          ` : ``}
+          <select id="pgxZoom">
+            <option value="1">ZOOM: 100%</option>
+            <option value="0.95">ZOOM: 95%</option>
+            <option value="0.90">ZOOM: 90%</option>
+            <option value="0.85">ZOOM: 85%</option>
+            <option value="0.80">ZOOM: 80%</option>
+            <option value="0.75">ZOOM: 75%</option>
+            <option value="0.70">ZOOM: 70%</option>
+          </select>
 
-          <div class="controls" style="min-width:190px;">
-            <label>Visible para</label>
-            <select id="pgScope" ${canEdit ? "" : "disabled"}>
-              <option value="ALL">TODOS</option>
-              <option value="AGRARIA">AGRARIA</option>
-              <option value="PUCP">PUCP</option>
-              <option value="U.LIMA">U.LIMA</option>
-            </select>
-          </div>
+          <button id="pgxEdit" class="btn ghost" type="button">EDITAR</button>
+          <button id="pgxFine" class="btn ghost" type="button">EDICIÓN FINA: OFF</button>
 
-          <div class="controls">
-            <label>Inicio (semana 1)</label>
-            <input id="pgStart" type="date" ${canEdit ? "" : "disabled"}/>
-          </div>
+          <input id="pgxStart" type="date" style="min-width:160px;" />
+          <input id="pgxWeeks" type="number" min="1" max="60" step="1" style="width:110px;" />
+          <button id="pgxApply" class="btn ghost" type="button">APLICAR</button>
 
-          <div class="controls">
-            <label>Nivelación (sem)</label>
-            <input id="pgNiv" type="number" min="0" step="1" ${canEdit ? "" : "disabled"}/>
-          </div>
+          <button id="pgxNew" class="btn ghost" type="button">+ NUEVO</button>
+          <button id="pgxDel" class="btn ghost" type="button">ELIMINAR</button>
+          <button id="pgxJson" class="btn ghost" type="button">EDITOR JSON</button>
 
-          <div class="controls">
-            <label>Avance (sem)</label>
-            <input id="pgAv" type="number" min="0" step="1" ${canEdit ? "" : "disabled"}/>
-          </div>
-
-          <div class="controls">
-            <label>Repaso (sem)</label>
-            <input id="pgRep" type="number" min="0" step="1" ${canEdit ? "" : "disabled"}/>
-          </div>
-
-          <div class="controls">
-            <label>Zoom (solo vista)</label>
-            <select id="pgZoom">
-              <option value="1">100%</option>
-              <option value="0.95">95%</option>
-              <option value="0.9">90%</option>
-              <option value="0.85">85%</option>
-              <option value="0.8">80%</option>
-              <option value="0.75">75%</option>
-              <option value="0.7">70%</option>
-            </select>
-          </div>
+          <button id="pgxPng" class="btn ghost" type="button">DESCARGAR PNG</button>
         </div>
 
-        <div class="pgHint">
-          ${isAlumno ? `Vista de lectura para: <b>${escapeHtml(prof?.nombre||"ALUMNO")}</b> · <b>${escapeHtml(prof?.uni||"-")}</b> · <b>${escapeHtml(prof?.local||"-")}</b> · <b>${escapeHtml(prof?.salon||"-")}</b>`
-            : (canEdit ? `Crea tus propios programas. Define semanas, filas (Semana/Simulacro/Materiales/...) y colores.`
-                        : `Vista de solo lectura. Para editar, ingresa con rol ADMIN.`)}
+        <div class="pgHint" id="pgxHint" style="margin-top:8px;">
+          Consejo: usa el scroll interno. Si activas <b>EDICIÓN FINA</b>, cada semana queda editable por separado.
         </div>
+      </div>
 
-        ${canEdit ? `
-          <details class="pgAdv">
-            <summary>Configuración avanzada (filas, códigos, textos, eventos y colores)</summary>
-            <div class="pgAdvBox">
-              <div class="pgSmall">Control total por fila: activa, renombra, elige tipo (CÓDIGOS o TEXTO) y define prefijos/inicio/ceros. Las semanas empiezan en 1.</div>
-              <div id="pgAdvanced"></div>
-
-              <div class="pgSmall" style="margin-top:12px;">Colores del programa:</div>
-              <div class="row" style="gap:10px; flex-wrap:wrap; margin-top:8px; align-items:flex-end;">
-                <div class="controls" style="min-width:170px;">
-                  <label>Nivelación</label>
-                  <input id="pgColNiv" class="pgColor" type="color"/>
-                </div>
-                <div class="controls" style="min-width:170px;">
-                  <label>Avance</label>
-                  <input id="pgColAv" class="pgColor" type="color"/>
-                </div>
-                <div class="controls" style="min-width:170px;">
-                  <label>Repaso</label>
-                  <input id="pgColRep" class="pgColor" type="color"/>
-                </div>
-                <div class="controls" style="min-width:170px;">
-                  <label>Eventos</label>
-                  <input id="pgColEvt" class="pgColor" type="color"/>
-                </div>
-              </div>
-
-              <div class="pgSmall" style="margin-top:12px;">Eventos (ej.: “ADMISIÓN 08 DE MARZO”) por semana:</div>
-              <div class="row" style="gap:10px; flex-wrap:wrap; margin-top:8px;">
-                <div class="controls" style="min-width:180px;">
-                  <label>Semana</label>
-                  <input id="pgEvtWeek" type="number" min="1" step="1" placeholder="Ej.: 6"/>
-                </div>
-                <div class="controls" style="min-width:320px; flex:1;">
-                  <label>Texto</label>
-                  <input id="pgEvtText" type="text" placeholder="Ej.: ADMISIÓN 08 DE MARZO"/>
-                </div>
-                <button class="btn" id="pgEvtAdd">Añadir</button>
-                <button class="btn ghost" id="pgEvtClear">Limpiar eventos</button>
-              </div>
-              <div id="pgEvtList" class="pgSmall"></div>
-            </div>
-          </details>
-        ` : ``}
-
-        <div class="pgLegend">
-          <span class="pill"><span class="dot dNiv"></span>Nivelación</span>
-          <span class="pill"><span class="dot dAv"></span>Avance</span>
-          <span class="pill"><span class="dot dRep"></span>Repaso</span>
-        </div>
-
-        <div class="pgCard" style="margin-top:12px;">
-          <div class="pgScroller" id="pgScroller">
-            <div class="pgCanvas" id="pgCanvas"></div>
-          </div>
-        </div>
+      <div class="card panel12">
+        <div id="pgxCanvas"></div>
       </div>
     `;
 
-    const back = document.getElementById("pgBackHome");
-    if (back) back.addEventListener("click", ()=>setView("inicio_alumno"));
+    // Events
+    const mode = document.getElementById("pgxMode");
+    const prog = document.getElementById("pgxProgram");
+    const zoom = document.getElementById("pgxZoom");
+    const edit = document.getElementById("pgxEdit");
+    const fine = document.getElementById("pgxFine");
+    const btnApply = document.getElementById("pgxApply");
+    const btnNew = document.getElementById("pgxNew");
+    const btnDel = document.getElementById("pgxDel");
+    const btnJson = document.getElementById("pgxJson");
+    const btnPng = document.getElementById("pgxPng");
 
-    const scroller = document.getElementById("pgScroller");
-    if (scroller) enableDragScroll(scroller);
-
-    // ⚠️ IMPORTANTE: robustez ante storage corrupto
-    pgEnsureFirstTime();
-
-    // Rellena selector y cablea listeners (una sola vez)
-    pgFillProgramSelect();
-    pgWireUIOnce();
-
-    el.dataset.ready = "1";
-  }
-
-  
-  function pgApplyProgramaModeUI(mode){
-    const m = String(mode||"ONE").toUpperCase();
-    const isAll = (m === "ALL");
-    const canEdit = pgCanEdit();
-
-    const modeSel = document.getElementById("pgMode");
-    if (modeSel) modeSel.value = isAll ? "ALL" : "ONE";
-
-    const btnSave = document.getElementById("pgBtnSave");
-    if (btnSave) btnSave.style.display = (canEdit && !isAll) ? "" : "none";
-
-    // En modo TODOS: cada programa tiene su propio PNG; ocultamos el botón global
-    const btnPNG = document.getElementById("pgBtnPNG");
-    if (btnPNG) btnPNG.style.display = isAll ? "none" : "";
-
-    // Gestión y config avanzada: solo en UNO (para evitar confusión)
-    ["pgBtnNew","pgBtnRename","pgBtnDup","pgBtnDel"].forEach(id=>{
-      const b = document.getElementById(id);
-      if (b) b.style.display = (canEdit && !isAll) ? "" : "none";
-    });
-
-    const adv = document.querySelector("#view_programa details.pgAdv");
-    if (adv) adv.style.display = (canEdit && !isAll) ? "" : "none";
-
-    // Deshabilitar inputs de configuración en TODOS (salvo Zoom y selector de programa)
-    ["pgScope","pgStart","pgNiv","pgAv","pgRep"].forEach(id=>{
-      const el = document.getElementById(id);
-      if (!el) return;
-      if (isAll) el.disabled = true;
-      else el.disabled = !canEdit; // respeta solo lectura
-    });
-
-    const st = document.getElementById("pgSaveState");
-    if (st){
-      if (isAll){
-        st.textContent = "VISTA: TODOS";
-        st.style.color = "var(--muted)";
-      } else {
-        // el estado real (GUARDADO / CAMBIOS) lo gestiona pgSetDirty()
-        if (!canEdit) {
-          st.textContent = "SOLO LECTURA";
-          st.style.color = "var(--muted)";
-        }
-      }
-    }
-  }
-
-  function pgBuildGridHTMLForProgram(program){
-    const cfg = (program && program.config) ? program.config : {};
-    const dd = { data:{ config: cfg } };
-
-    const lanesAll = Array.isArray(cfg.lanes) ? cfg.lanes : [];
-    const lanes = lanesAll.filter(l=>{
-      if (!l) return false;
-      if (l.kind === "stage" || l.kind === "week") return true; // siempre visibles
-      return !!l.enabled;
-    });
-
-    const { total, phaseOf } = pgBuildWeeksMap(dd);
-    if (!total){
-      return `<div class="pgEmpty">Define semanas (Nivelación / Avance / Repaso).</div>`;
-    }
-
-    const weekWidth = 72;
-    const labelWidth = 170;
-
-    // Headers (mes/fecha)
-    const startDate = pgParseDateYMD(String(cfg.startDate||""));
-    const weekDates = startDate ? Array.from({length: total}, (_,i)=>pgAddDays(startDate, i*7)) : null;
-
-    const monthEnds = new Set();
-    if (weekDates){
-      for (let i=0; i<weekDates.length; i++){
-        const a = weekDates[i];
-        const b = weekDates[i+1];
-        if (i===weekDates.length-1 || a.getMonth()!==b.getMonth() || a.getFullYear()!==b.getFullYear()){
-          monthEnds.add(i);
-        }
-      }
-    }
-
-    let monthRow = "";
-    let dateRow  = "";
-
-    if (weekDates){
-      const runs = [];
-      let curKey = "";
-      let curLabel = "";
-      let curSpan = 0;
-
-      for (let i=0; i<weekDates.length; i++){
-        const d = weekDates[i];
-        const key = `${d.getFullYear()}-${d.getMonth()}`;
-        const lab = pgMonthNameES(d);
-        if (key !== curKey){
-          if (curSpan>0) runs.push({label: curLabel, span: curSpan});
-          curKey = key; curLabel = lab; curSpan = 1;
-        } else {
-          curSpan++;
-        }
-      }
-      if (curSpan>0) runs.push({label: curLabel, span: curSpan});
-
-      monthRow = `
-        <div class="pgLabelCell pgMonthHead"><b>ACTIVIDAD</b></div>
-        ${runs.map((r,idx)=>{
-          const sep = (idx<runs.length-1) ? 'border-right:2px solid rgba(15,23,42,.55);' : '';
-          return `<div class="pgMonthCell" style="grid-column: span ${r.span}; ${sep}">${escapeHtml(r.label)}</div>`;
-        }).join('')}
-      `;
-
-      dateRow = `
-        <div class="pgLabelCell pgDateHead"><b>FECHA</b></div>
-        ${weekDates.map((d,i)=>{
-          const sep = (monthEnds.has(i) && i<weekDates.length-1) ? 'border-right:2px solid rgba(15,23,42,.55);' : '';
-          return `<div class="pgDateCell" style="${sep}">${pgFmtDateES(d)}</div>`;
-        }).join('')}
-      `;
-    } else {
-      monthRow = `
-        <div class="pgLabelCell pgMonthHead"><b>ACTIVIDAD</b></div>
-        <div class="pgMonthCell" style="grid-column: span ${total};">—</div>
-      `;
-      dateRow = `
-        <div class="pgLabelCell pgDateHead"><b>FECHA</b></div>
-        ${Array.from({length: total}, ()=>`<div class="pgDateCell">—</div>`).join('')}
-      `;
-    }
-
-    const laneRows = lanes.map(l=>{
-      const label = String(l.name||"").trim();
-      if (l.kind === "stage"){
-        // Merge phases segments
-        const w = (cfg.weeks||{});
-        const parts = [];
-        let col = 1;
-
-        const push = (txt, span, cls)=>{
-          if (span<=0) return;
-          parts.push(`<div class="pgMergeCell ${cls}" style="grid-column:${col+1} / span ${span};">${escapeHtml(txt)}</div>`);
-          col += span;
-        };
-
-        push("NIVELACIÓN", +(w.niv||0), "pNiv");
-        push("AVANCE",     +(w.av||0),  "pAv");
-        push("REPASO",     +(w.rep||0), "pRep");
-
-        return `
-          <div class="pgLabelCell"><b>${escapeHtml(label || "ETAPA")}</b></div>
-          ${parts.join("")}
-        `;
-      }
-
-      if (l.kind === "week"){
-        return `
-          <div class="pgLabelCell"><b>${escapeHtml(label || "SEMANA")}</b></div>
-          ${Array.from({length: total}, (_,i)=>`<div class="pgWeekCell ${phaseOf(i+1)}">S${String(i+1).padStart(2,'0')}</div>`).join('')}
-        `;
-      }
-
-      const kind = String(l.kind||"code");
-      const phases = l.phases || {};
-      const codeCell = (phKey, wnum)=>{
-        const ph = phases[phKey] || {};
-        if (!ph.enabled) return "";
-        const n = (wnum - (ph.start||1) + 1);
-        if (n < 1) return "";
-        const pad = Math.max(0, +(ph.pad||0));
-        const txt = String(ph.prefix||"") + String(n).padStart(pad, "0");
-        return txt;
-      };
-      const textCell = (phKey)=>{
-        const ph = phases[phKey] || {};
-        return ph.enabled ? String(ph.text||"") : "";
-      };
-
-      const rowCells = Array.from({length: total}, (_,i)=>{
-        const wnum = i+1;
-        const phKey = phaseOf(wnum);
-        let val = "";
-        if (kind === "text") val = textCell(phKey);
-        else val = codeCell(phKey, wnum);
-
-        return `<div class="pgCell ${phKey}">${escapeHtml(val)}</div>`;
-      }).join("");
-
-      return `
-        <div class="pgLabelCell"><b>${escapeHtml(label)}</b></div>
-        ${rowCells}
-      `;
-    }).join("");
-
-    // Eventos
-    const events = Array.isArray(cfg.events) ? cfg.events : [];
-    const evtCells = Array.from({length: total}, (_,i)=>{
-      const wnum = i+1;
-      const ev = events.filter(e=>e && +e.week===wnum).map(e=>String(e.text||"").trim()).filter(Boolean);
-      const txt = ev.join(" • ");
-      const phKey = phaseOf(wnum);
-      return `<div class="pgEvt ${phKey}">${escapeHtml(txt)}</div>`;
-    }).join("");
-
-    const evtRow = `
-      <div class="pgLabelCell"><b>EVENTOS</b></div>
-      ${evtCells}
-    `;
-
-    return `
-      <div class="pgGrid" style="grid-template-columns:${labelWidth}px repeat(${total}, ${weekWidth}px);">
-        ${monthRow}
-        ${dateRow}
-        ${laneRows}
-        ${evtRow}
-      </div>
-    `;
-  }
-
-  function pgRenderAllPrograms(list){
-    const canvas = document.getElementById("pgCanvas");
-    if (!canvas) return;
-
-    const z = +(document.getElementById("pgZoom")?.value || "1") || 1;
-
-    canvas.style.zoom = "1"; // en ALL, el zoom se aplica por bloque
-    canvas.style.transform = "";
-    canvas.style.transformOrigin = "";
-
-    const blocks = list.map(p=>{
-      const name  = String(p.meta?.name || "PROGRAMA").trim().toUpperCase();
-      const scope = String(p.meta?.scope || "ALL").trim().toUpperCase();
-      const title = `${name}${scope && scope!=="ALL" ? " · " + scope : ""}`;
-      const safeId = String(p.id||"").replace(/[^a-zA-Z0-9_\\-]/g,"_");
-      const wrapId = `pgAll_${safeId}`;
-
-      return `
-        <div class="pgAllBlock" id="${wrapId}">
-          <div class="pgAllHeader">
-            <div class="pgAllTitle">${escapeHtml(title)}</div>
-            <div class="pgAllBtns">
-              <button class="btn ghost" data-pgopen="${escapeHtml(p.id)}">VER UNO</button>
-              <button class="btn ghost" data-pgpng="${escapeHtml(wrapId)}" data-pgname="${escapeHtml(name)}">DESCARGAR PNG</button>
-            </div>
-          </div>
-
-          <div class="pgAllBody" style="zoom:${z};">
-            ${pgBuildGridHTMLForProgram(p)}
-          </div>
-        </div>
-      `;
-    }).join("");
-
-    canvas.innerHTML = `<div class="pgAllWrap">${blocks}</div>`;
-
-    // Handlers
-    canvas.querySelectorAll("[data-pgopen]").forEach(btn=>{
-      btn.addEventListener("click", ()=>{
-        const id = String(btn.getAttribute("data-pgopen")||"");
-        if (!id) return;
-        pgSetViewMode("ONE");
-        pgSetActiveProgramId(id);
+    if (mode){
+      mode.addEventListener("change", ()=>{
+        pgxSetMode(mode.value);
         renderPrograma();
-        // Scroll arriba para ver el selector
-        try{ window.scrollTo({top:0, behavior:"smooth"}); }catch(e){}
       });
-    });
+    }
+    if (prog){
+      prog.addEventListener("change", ()=>{
+        pgxSetActiveId(prog.value);
+        renderPrograma();
+      });
+    }
+    if (zoom){
+      zoom.addEventListener("change", ()=>{
+        pgxSetZoom(zoom.value);
+        renderPrograma();
+      });
+    }
+    if (edit){
+      edit.addEventListener("click", ()=>{
+        if (!pgxCanEdit()) return;
+        pgxSetEditOn(!pgxGetEditOn());
+        renderPrograma();
+      });
+    }
+    if (fine){
+      fine.addEventListener("click", ()=>{
+        pgxSetFineOn(!pgxGetFineOn());
+        renderPrograma();
+      });
+    }
 
-    canvas.querySelectorAll("[data-pgpng]").forEach(btn=>{
-      btn.addEventListener("click", ()=>{
-        const wrapId = String(btn.getAttribute("data-pgpng")||"");
-        const nm = String(btn.getAttribute("data-pgname")||"PROGRAMA").replace(/\s+/g,"_").toLowerCase();
-        downloadProgramaPNG(wrapId, `programa_${nm}_${(new Date()).toISOString().slice(0,10)}.png`);
+    if (btnApply){
+      btnApply.addEventListener("click", ()=>{
+        const store = pgxLoadStore();
+        const s = String(document.getElementById("pgxStart")?.value||"").trim();
+        const w = Math.max(1, Math.min(60, +document.getElementById("pgxWeeks")?.value||16));
+        if (s) store.timeline.startDate = s;
+        store.timeline.weeks = w;
+
+        // reajustar arrays de programas a la nueva longitud
+        for (const id of store.order){
+          const p = store.programs[id];
+          if (!p) continue;
+          (p.config?.lanes||[]).forEach(l=>{
+            if (l.type==="cells"){
+              const old = Array.isArray(l.values)? l.values:[];
+              l.values = Array.from({length:w}, (_,i)=>String(old[i]||""));
+            }
+            if (l.type==="segments"){
+              const seg = Array.isArray(l.segments)? l.segments:[];
+              let sum = seg.reduce((a,s)=>a+(+s.span||0),0);
+              if (sum < w) seg.push({text:"", span:(w-sum)});
+              if (sum > w){
+                let acc=0; const out=[];
+                for (const s2 of seg){
+                  const sp=+s2.span||0;
+                  if (!sp) continue;
+                  if (acc+sp<=w){ out.push(s2); acc+=sp; }
+                  else{
+                    const rem = w-acc;
+                    if (rem>0) out.push({text:s2.text, span:rem});
+                    acc=w; break;
+                  }
+                }
+                l.segments = out;
+              } else {
+                l.segments = seg;
+              }
+            }
+          });
+          p.meta.updatedAt = pgxNowISO();
+        }
+
+        pgxSaveStore(store);
+        renderPrograma();
+        toast("Timeline actualizado.");
       });
-    });
+    }
+
+    if (btnNew){
+      btnNew.addEventListener("click", ()=>{
+        if (!pgxCanEdit()) return;
+        const name = prompt("Nombre del nuevo programa:", "NUEVO PROGRAMA");
+        if (!name) return;
+
+        const scope = prompt("Scope (ALL / AGRARIA / PUCP / U.LIMA):", "ALL") || "ALL";
+        const theme = prompt("Tema (AGRARIA / PUCP / U.LIMA):", "AGRARIA") || "AGRARIA";
+
+        const store = pgxLoadStore();
+        const p = pgxDefaultProgram(name, scope, theme);
+        // ajusta longitud al timeline actual
+        const w = pgxTotalWeeks();
+        p.config.lanes.forEach(l=>{
+          if (l.type==="cells") l.values = Array.from({length:w}, (_,i)=> String(l.values?.[i]||""));
+          if (l.type==="segments"){
+            // normaliza
+            const seg = Array.isArray(l.segments)? l.segments:[];
+            let sum=seg.reduce((a,s)=>a+(+s.span||0),0);
+            if (sum < w) seg.push({text:"", span:(w-sum)});
+            if (sum > w){
+              let acc=0; const out=[];
+              for (const s2 of seg){
+                const sp=+s2.span||0;
+                if (!sp) continue;
+                if (acc+sp<=w){ out.push(s2); acc+=sp; }
+                else{
+                  const rem = w-acc;
+                  if (rem>0) out.push({text:s2.text, span:rem});
+                  acc=w; break;
+                }
+              }
+              l.segments = out;
+            } else l.segments = seg;
+          }
+        });
+
+        store.programs[p.id]=p;
+        store.order.push(p.id);
+        pgxSaveStore(store);
+        pgxSetActiveId(p.id);
+        pgxSetMode("ONE");
+        renderPrograma();
+        toast("Programa creado.");
+      });
+    }
+
+    if (btnDel){
+      btnDel.addEventListener("click", ()=>{
+        if (!pgxCanEdit()) return;
+        const id = pgxGetActiveId();
+        if (!id) return;
+        if (!confirm("¿Eliminar este programa?")) return;
+
+        const store = pgxLoadStore();
+        delete store.programs[id];
+        store.order = store.order.filter(x=>x!==id);
+        pgxSaveStore(store);
+        pgxSetActiveId(store.order[0] || "");
+        renderPrograma();
+        toast("Programa eliminado.");
+      });
+    }
+
+    if (btnJson){
+      btnJson.addEventListener("click", ()=>{
+        if (!pgxCanEdit()) return;
+        const id = pgxGetActiveId();
+        const store = pgxLoadStore();
+        const p = store.programs[id];
+        if (!p) return;
+
+        const raw = prompt("Editor JSON (pega JSON válido). Sugerencia: copia primero para respaldo.", JSON.stringify(p, null, 2));
+        if (!raw) return;
+        try{
+          const obj = JSON.parse(raw);
+          if (!obj || !obj.id) throw new Error("JSON inválido");
+          obj.meta = obj.meta || {};
+          obj.meta.updatedAt = pgxNowISO();
+          store.programs[obj.id] = obj;
+          if (!store.order.includes(obj.id)) store.order.push(obj.id);
+          pgxSaveStore(store);
+          pgxSetActiveId(obj.id);
+          renderPrograma();
+          toast("JSON guardado.");
+        }catch(e){
+          alert("JSON inválido. No se guardó.");
+        }
+      });
+    }
+
+    if (btnPng){
+      btnPng.addEventListener("click", ()=>{
+        const wrap = document.getElementById("pgxCanvas");
+        if (!wrap) return;
+        html2canvas(wrap, {backgroundColor:"#ffffff", scale:2}).then(canvas=>{
+          const a = document.createElement("a");
+          a.href = canvas.toDataURL("image/png");
+          a.download = `programa_${(new Date()).toISOString().slice(0,10)}.png`;
+          a.click();
+        }).catch(e=>{
+          console.error(e);
+          toast("No se pudo exportar PNG.");
+        });
+      });
+    }
+
+    el.dataset.ready="1";
   }
 
+  function pgxWireCellEditing(){
+    const canvas = document.getElementById("pgxCanvas");
+    if (!canvas) return;
+    if (canvas.dataset.editWired==="1") return;
+    canvas.dataset.editWired="1";
+
+    canvas.addEventListener("click", (e)=>{
+      const td = e.target?.closest ? e.target.closest("td.pxEditable") : null;
+      if (!td) return;
+      if (!pgxCanEdit() || !pgxGetEditOn()) return;
+
+      const pgid = String(td.getAttribute("data-pgid")||"");
+      const lane = String(td.getAttribute("data-lane")||"");
+      const start = +td.getAttribute("data-start")||1;
+      const span  = +td.getAttribute("data-span")||1;
+      if (!pgid || !lane) return;
+
+      const store = pgxLoadStore();
+      const p = store.programs[pgid];
+      if (!p) return;
+      const l = (p.config?.lanes||[]).find(x=>x.key===lane);
+      if (!l || l.type!=="cells") return;
+
+      const cur = String((l.values||[])[start-1] || "");
+      const nv = prompt(`Editar ${l.label} (semanas ${start}-${start+span-1})`, cur);
+      if (nv===null) return;
+
+      const arr = Array.isArray(l.values) ? l.values : [];
+      for (let i=start-1;i<start-1+span;i++){
+        if (i>=0 && i<arr.length) arr[i] = String(nv||"");
+      }
+      l.values = arr;
+      p.meta.updatedAt = pgxNowISO();
+      store.programs[pgid]=p;
+      pgxSaveStore(store);
+
+      renderPrograma();
+    });
+  }
 
   function renderPrograma(){
-    ensureProgramaLayout();
+    pgxEnsure();
+    pgxEnsureProgramaLayout();
 
-    // Robustez storage (y crea programa por defecto si admin)
-    pgEnsureFirstTime();
-
-    const mode = pgGetViewMode();
-    pgApplyProgramaModeUI(mode);
-
-    const list = pgGetProgramsForRole();
-    const canvas = document.getElementById("pgCanvas");
-
-    if (!list.length){
-      if (canvas){
-        canvas.innerHTML = `<div class="pgEmpty">No hay programas todavía. ${pgCanEdit() ? 'Pulsa <b>+ Nuevo</b> para crear uno.' : ''}</div>`;
-      }
+    const mode = pgxGetMode();
+    const programs = pgxProgramsForRole();
+    if (!programs.length){
+      const canvas = document.getElementById("pgxCanvas");
+      if (canvas) canvas.innerHTML = `<div class="pgEmpty">No hay programas configurados.</div>`;
       return;
     }
 
-    const active = pgGetActiveProgramId() || list[0].id;
-    pgFillProgramSelect(active);
+    // Active
+    const active = pgxGetActiveId() || programs[0].id;
+    if (!pgxGetActiveId()) pgxSetActiveId(active);
 
-    if (mode === "ALL"){
-      // En TODOS no se carga draft (evita confusión); se muestra un tablero con todos los programas visibles para el rol.
-      pgRenderAllPrograms(list);
-      return;
+    pgxFillProgramSelect(programs);
+    pgxApplyHeaderUI();
+
+    const canvas = document.getElementById("pgxCanvas");
+    if (!canvas) return;
+
+    if (mode === "ONE"){
+      const p = programs.find(x=>x.id===active) || programs[0];
+      canvas.innerHTML = pgxRenderSheet([p], "ONE");
+    } else {
+      canvas.innerHTML = pgxRenderSheet(programs, "ALL");
     }
 
-    // UNO
-    pgSetActiveProgramId(active);
-    pgLoadProgramIntoUI(active);
+    // scroll interno + drag
+    const sc = document.getElementById("pgxScroll");
+    if (sc){
+      // Drag scroll
+      // Reutiliza la función enableDragScroll existente si está, o usa una local.
+      try{
+        if (typeof enableDragScroll === "function") enableDragScroll(sc);
+        else {
+          // fallback ligero
+          let down=false,sx=0,sy=0,sl=0,st=0;
+          sc.addEventListener("mousedown",(ev)=>{
+            if (ev.button!==0) return;
+            down=true; sc.classList.add("dragging"); sx=ev.pageX; sy=ev.pageY; sl=sc.scrollLeft; st=sc.scrollTop;
+          });
+          window.addEventListener("mouseup",()=>{down=false; sc.classList.remove("dragging");});
+          sc.addEventListener("mousemove",(ev)=>{
+            if(!down) return;
+            ev.preventDefault();
+            sc.scrollLeft = sl - (ev.pageX - sx);
+            sc.scrollTop  = st - (ev.pageY - sy);
+          });
+        }
+      }catch(e){}
+    }
+
+    pgxWireCellEditing();
   }
 
-
-  // PNG export del canvas completo (ya existe html2canvas en el proyecto)
-  function downloadProgramaPNG(targetId, filename){
-    const wrap = document.getElementById(targetId || "pgCanvas");
-    if (!wrap) return;
-    html2canvas(wrap, { backgroundColor: "#ffffff", scale: 2 }).then(canvas=>{
-      const a = document.createElement("a");
-      a.href = canvas.toDataURL("image/png");
-      a.download = String(filename || `programa_${(new Date()).toISOString().slice(0,10)}.png`);
-      a.click();
-    }).catch(e=>{
-      console.error(e);
-      toast("No se pudo exportar PNG.");
-    });
-  }
-
-  function enableDragScroll(el){
-    if (!el) return;
-    if (el.dataset && el.dataset.dragReady === "1") return;
-    if (el.dataset) el.dataset.dragReady = "1";
-
-    let down = false;
-    let startX = 0, startY = 0;
-    let sl = 0, st = 0;
-
-    const isInteractive = (t)=>{
-      if (!t) return false;
-      return !!(t.closest && (t.closest("button") || t.closest("a") || t.closest("select") || t.closest("input") || t.closest("textarea") || t.closest("label") || t.closest("summary")));
-    };
-
-    el.addEventListener("mousedown", (e)=>{
-      if (e.button !== 0) return;
-      if (isInteractive(e.target)) return;
-      // Solo activar si hay algo que desplazar
-      if (el.scrollWidth <= el.clientWidth && el.scrollHeight <= el.clientHeight) return;
-      down = true;
-      el.classList.add("dragging");
-      startX = e.pageX;
-      startY = e.pageY;
-      sl = el.scrollLeft;
-      st = el.scrollTop;
-    });
-
-    window.addEventListener("mouseup", ()=>{
-      if (!down) return;
-      down = false;
-      el.classList.remove("dragging");
-    });
-
-    el.addEventListener("mousemove", (e)=>{
-      if (!down) return;
-      e.preventDefault();
-      const dx = e.pageX - startX;
-      const dy = e.pageY - startY;
-      el.scrollLeft = sl - dx;
-      el.scrollTop  = st - dy;
-    });
-  }
 
 // ===================== IMPRESIONES (NUEVO) =====================
   const IMPRESIONES_GID = 281158959; // hoja "IMPRESIONES"
@@ -6491,6 +5597,7 @@ function renderNotasGenerales(){
 }
 
 
+
 function ensureMaterialesLayout(){
   const el = document.getElementById("view_materiales");
   if (el.dataset.ready === "1") return;
@@ -6499,18 +5606,117 @@ function ensureMaterialesLayout(){
     <div class="card panel12">
       <div class="cardtitle">MATERIALES</div>
       <div style="color:var(--muted); font-weight:900; margin-bottom:12px;">
-        Acceso directo a carpetas por universidad.
+        Acceso directo a carpetas por universidad (materiales listos / trabajados).
       </div>
-
       <div class="iGrid" id="matGrid"></div>
     </div>
+
+    <div class="card panel12" id="matCrudoCard">
+      <div class="cardtitle">MATERIALES CRUDOS · AVANCE</div>
+      <div style="color:var(--muted); font-weight:900; margin-bottom:10px;">
+        Vinculado al <b>PROGRAMA</b>: se listan las semanas (códigos de la fila <b>Semana</b>) para marcar avance.
+        El enlace de AGRARIA puede quedar vacío hasta que exista.
+      </div>
+
+      <div class="mrTop">
+        <div class="mrSelRow">
+          <select id="mrProgram"></select>
+          <input id="mrFolder" type="text" placeholder="Link carpeta MATERIAL CRUDO (Drive) para este programa" style="min-width:360px;"/>
+          <button id="mrSaveFolder" class="mrBtn" type="button">GUARDAR</button>
+          <a id="mrOpenFolder" class="mrBtn" target="_blank" rel="noopener" style="text-decoration:none; display:inline-flex; align-items:center;">ABRIR</a>
+        </div>
+
+        <div class="mrSelRow">
+          <button id="mrAll" class="mrBtn" type="button">MARCAR TODO</button>
+          <button id="mrClear" class="mrBtn" type="button">LIMPIAR</button>
+          <span class="mrKpi">AVANCE: <b id="mrPct">0%</b> (<span id="mrDone">0</span>/<span id="mrTotal">0</span>)</span>
+          <div class="mrProg"><div id="mrFill" class="mrProgFill"></div></div>
+        </div>
+      </div>
+
+      <div id="mrTableWrap"></div>
+    </div>
   `;
+
+  // events
+  document.getElementById("mrProgram").addEventListener("change", renderMateriales);
+  document.getElementById("mrSaveFolder").addEventListener("click", ()=>{
+    const pid = document.getElementById("mrProgram").value || "__ALL__";
+    if (pid === "__ALL__") return toast("Selecciona un programa.");
+    const url = String(document.getElementById("mrFolder").value||"").trim();
+    const st = mrLoadStore();
+    if (!st.folders) st.folders = {};
+    st.folders[pid] = url;
+    mrSaveStore(st);
+    toast("Carpeta guardada.");
+    renderMateriales();
+  });
+  document.getElementById("mrAll").addEventListener("click", ()=>{
+    const pid = document.getElementById("mrProgram").value || "__ALL__";
+    if (pid === "__ALL__") return toast("Selecciona un programa.");
+    const codes = mrWeekCodesForProgram(pid);
+    if (!codes.length) return toast("No hay semanas (códigos) para marcar.");
+    const st = mrLoadStore();
+    if (!st.done) st.done = {};
+    if (!st.done[pid]) st.done[pid] = {};
+    codes.forEach(c=> st.done[pid][c] = true);
+    mrSaveStore(st);
+    renderMateriales();
+  });
+  document.getElementById("mrClear").addEventListener("click", ()=>{
+    const pid = document.getElementById("mrProgram").value || "__ALL__";
+    if (pid === "__ALL__") return toast("Selecciona un programa.");
+    const st = mrLoadStore();
+    if (st.done && st.done[pid]) st.done[pid] = {};
+    mrSaveStore(st);
+    renderMateriales();
+  });
+
   el.dataset.ready = "1";
+}
+
+// --- Material crudo: storage
+const MR_STORE_KEY = "LM_MATERIAL_CRUDO_V1";
+function mrLoadStore(){
+  try{ return JSON.parse(localStorage.getItem(MR_STORE_KEY) || '{"done":{},"folders":{},"links":{}}'); }
+  catch(e){ return {done:{}, folders:{}, links:{}}; }
+}
+function mrSaveStore(st){
+  try{ localStorage.setItem(MR_STORE_KEY, JSON.stringify(st||{done:{},folders:{},links:{}})); }catch(e){}
+}
+
+function mrWeekCodesForProgram(programId){
+  const list = (typeof pgxProgramsForRole === "function") ? pgxProgramsForRole() : [];
+  const p = list.find(x=>x.id===programId);
+  if (!p) return [];
+  const lane = (p.config?.lanes||[]).find(l=>String(l.key||"").toLowerCase()==="semana");
+  const vals = Array.isArray(lane?.values) ? lane.values : [];
+  const out = [];
+  const seen = new Set();
+  for (const v of vals){
+    const s = String(v||"").trim();
+    if (!s) continue;
+    if (seen.has(s)) continue;
+    seen.add(s);
+    out.push(s);
+  }
+  return out;
+}
+
+function mrProgress(programId){
+  const codes = mrWeekCodesForProgram(programId);
+  const st = mrLoadStore();
+  const doneMap = (st.done && st.done[programId]) ? st.done[programId] : {};
+  const done = codes.filter(c=> !!doneMap[c]).length;
+  const total = codes.length;
+  const pct = total ? Math.round((done/total)*100) : 0;
+  return {done,total,pct,codes,doneMap,st};
 }
 
 function renderMateriales(){
   ensureMaterialesLayout();
 
+  // ===== parte 1: carpetas de materiales listos (tal cual antes) =====
   const grid = document.getElementById("matGrid");
   grid.innerHTML = MATERIALES.map(x => {
     const dot =
@@ -6532,7 +5738,172 @@ function renderMateriales(){
       </a>
     `;
   }).join("");
+
+  // ===== parte 2: materiales crudos + avance (solo Admin/Tutor) =====
+  const card = document.getElementById("matCrudoCard");
+  if (!card) return;
+  if (CURRENT_ROLE === "alumno"){ card.style.display = "none"; return; }
+  card.style.display = "";
+
+  const programs = (typeof pgxProgramsForRole === "function") ? pgxProgramsForRole() : [];
+  const sel = document.getElementById("mrProgram");
+  const prev = sel.value || "__ALL__";
+
+  sel.innerHTML = `<option value="__ALL__">PROGRAMA: TODOS</option>` + programs.map(p=>{
+    const nm = String(p.meta?.name||"PROGRAMA").toUpperCase();
+    const sc = String(p.meta?.scope||"ALL").toUpperCase();
+    return `<option value="${escapeHtml(p.id)}">${escapeHtml(nm)}${sc && sc!=="ALL" ? " · " + escapeHtml(sc) : ""}</option>`;
+  }).join("");
+
+  // mantener selección
+  const exists = Array.from(sel.options).some(o=>o.value===prev);
+  sel.value = exists ? prev : "__ALL__";
+
+  const st = mrLoadStore();
+
+  const folderInput = document.getElementById("mrFolder");
+  const openA = document.getElementById("mrOpenFolder");
+  const wrap = document.getElementById("mrTableWrap");
+
+  // Vista TODOS: resumen por programa
+  if (sel.value === "__ALL__"){
+    folderInput.value = "";
+    folderInput.disabled = true;
+    openA.href = "#";
+    openA.classList.add("disabled");
+    openA.textContent = "ABRIR";
+
+    document.getElementById("mrPct").textContent = "—";
+    document.getElementById("mrDone").textContent = "—";
+    document.getElementById("mrTotal").textContent = "—";
+    document.getElementById("mrFill").style.width = "0%";
+
+    const rows = programs.map(p=>{
+      const pid = p.id;
+      const nm = String(p.meta?.name||"PROGRAMA").toUpperCase();
+      const pr = mrProgress(pid);
+      const folder = String((st.folders||{})[pid]||"").trim();
+      const pct = pr.total ? pr.pct : 0;
+      return `
+        <div class="card" style="border:1px solid rgba(0,0,0,.08); border-radius:16px; padding:12px; margin-top:10px; box-shadow:none;">
+          <div class="mrTop" style="margin:0;">
+            <div class="mrKpi">${escapeHtml(nm)} · <b>${pct}%</b> (${pr.done}/${pr.total})</div>
+            <div class="mrSelRow">
+              <a class="mrBtn" href="#" onclick="(function(){ try{ localStorage.setItem('${PGX_MODE_KEY}','ONE'); localStorage.setItem('${PGX_ACTIVE_KEY}','${pid}'); }catch(e){}; setView('programa'); })(); return false;">VER PROGRAMA</a>
+              <a class="mrBtn ${folder ? '' : 'disabled'}" href="${escapeHtml(folder||'#')}" target="_blank" rel="noopener">ABRIR CRUDO</a>
+            </div>
+          </div>
+          <div class="mrProg" style="width:100%; margin-top:10px;"><div class="mrProgFill" style="width:${pct}%;"></div></div>
+        </div>
+      `;
+    }).join("");
+
+    wrap.innerHTML = rows || `<div class="pgEmpty">No hay programas para mostrar.</div>`;
+    return;
+  }
+
+  // Vista UNO: checklist por semana
+  folderInput.disabled = false;
+  const pid = sel.value;
+  const folder = String((st.folders||{})[pid]||"").trim();
+  folderInput.value = folder;
+
+  if (folder){
+    openA.href = folder;
+    openA.classList.remove("disabled");
+  }else{
+    openA.href = "#";
+    openA.classList.add("disabled");
+  }
+  openA.textContent = folder ? "ABRIR" : "ABRIR (PENDIENTE)";
+
+  const pr = mrProgress(pid);
+  document.getElementById("mrPct").textContent = pr.pct + "%";
+  document.getElementById("mrDone").textContent = String(pr.done);
+  document.getElementById("mrTotal").textContent = String(pr.total);
+  document.getElementById("mrFill").style.width = pr.pct + "%";
+
+  if (!pr.codes.length){
+    wrap.innerHTML = `<div class="pgEmpty">Este programa no tiene semanas (códigos) en la fila <b>Semana</b>. Completa esa fila en PROGRAMA para habilitar el avance.</div>`;
+    return;
+  }
+
+  const isAdmin = (CURRENT_ROLE === "admin");
+  const links = (st.links && st.links[pid]) ? st.links[pid] : {};
+
+  const rows = pr.codes.map(code=>{
+    const done = !!pr.doneMap[code];
+    const link = String(links[code]||"").trim();
+    const open = link || folder || "";
+    const openCls = open ? "" : "disabled";
+    const openHref = open || "#";
+
+    const linkEdit = isAdmin ? `
+      <input data-linkcode="${escapeHtml(code)}" type="text" value="${escapeHtml(link)}" placeholder="Link específico (opcional)"/>
+    ` : `<span style="color:var(--muted); font-weight:900;">${link ? "Link definido" : "—"}</span>`;
+
+    return `
+      <tr>
+        <td><b>${escapeHtml(code)}</b></td>
+        <td>
+          <label style="display:flex; gap:8px; align-items:center; font-weight:1000;">
+            <input type="checkbox" data-code="${escapeHtml(code)}" ${done ? "checked":""}/>
+            <span class="${done ? "mrDone":"mrTodo"}">${done ? "HECHO":"PENDIENTE"}</span>
+          </label>
+        </td>
+        <td>
+          <a class="mrLink ${openCls}" href="${escapeHtml(openHref)}" target="_blank" rel="noopener">ABRIR</a>
+        </td>
+        <td>${linkEdit}</td>
+      </tr>
+    `;
+  }).join("");
+
+  wrap.innerHTML = `
+    <table class="mrTable">
+      <thead>
+        <tr>
+          <th>SEMANA</th>
+          <th>AVANCE</th>
+          <th>CARPETA</th>
+          <th>${isAdmin ? "LINK POR SEMANA (OPCIONAL)" : "LINK"}</th>
+        </tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>
+    ${isAdmin ? `<div style="margin-top:10px; color:var(--muted); font-weight:900;">
+      Tip Admin: puedes definir links por semana (por ejemplo carpeta SE03) y quedarán guardados.
+    </div>`:""}
+  `;
+
+  // wire checkboxes + link inputs
+  wrap.querySelectorAll("input[type=checkbox][data-code]").forEach(ch=>{
+    ch.addEventListener("change", ()=>{
+      const code = String(ch.getAttribute("data-code")||"");
+      const st2 = mrLoadStore();
+      if (!st2.done) st2.done = {};
+      if (!st2.done[pid]) st2.done[pid] = {};
+      st2.done[pid][code] = !!ch.checked;
+      mrSaveStore(st2);
+      renderMateriales();
+    });
+  });
+
+  if (isAdmin){
+    wrap.querySelectorAll("input[data-linkcode]").forEach(inp=>{
+      inp.addEventListener("change", ()=>{
+        const code = String(inp.getAttribute("data-linkcode")||"");
+        const url = String(inp.value||"").trim();
+        const st2 = mrLoadStore();
+        if (!st2.links) st2.links = {};
+        if (!st2.links[pid]) st2.links[pid] = {};
+        st2.links[pid][code] = url;
+        mrSaveStore(st2);
+      });
+    });
+  }
 }
+
 // ===================== LISTAS (NUEVO) =====================
 const LISTAS = [
   // ================= LA MOLINA =================
