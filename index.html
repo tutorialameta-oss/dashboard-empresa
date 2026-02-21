@@ -1658,6 +1658,51 @@
 
     .pgEmpty{ padding:14px; color:var(--muted); font-weight:900; }
 
+    .pgxSettings{
+      margin-top:12px;
+      border:1px dashed rgba(15,23,42,0.22);
+      border-radius:16px;
+      padding:12px;
+      background:#fff;
+    }
+    .pgxSetTitle{ font-weight:1100; letter-spacing:.02em; text-transform:uppercase; margin-bottom:10px; }
+    .pgxSetGrid{
+      display:grid;
+      grid-template-columns: repeat(6, minmax(140px, 1fr));
+      gap:10px;
+      align-items:end;
+    }
+    .pgxSetGrid label{ display:flex; flex-direction:column; gap:6px; font-weight:1000; color:var(--muted); font-size:12px; }
+    .pgxSetGrid input[type="text"], .pgxSetGrid input[type="number"], .pgxSetGrid select{
+      padding:10px 10px; border-radius:14px; border:1px solid var(--border); font-weight:950; color:var(--text);
+    }
+    .pgxSetGrid input[type="color"]{
+      width:100%; height:42px; border-radius:14px; border:1px solid var(--border); padding:4px;
+      background:#fff;
+    }
+    .pgxSetRow{
+      display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-top:10px;
+    }
+    .pgxLaneWrap{
+      margin-top:10px;
+      display:grid;
+      grid-template-columns: repeat(4, minmax(160px, 1fr));
+      gap:10px;
+    }
+    .pgxLaneItem{
+      border:1px solid rgba(0,0,0,.08);
+      border-radius:14px;
+      padding:10px;
+      background:#fff;
+    }
+    .pgxLaneItem .k{ font-weight:1100; text-transform:uppercase; letter-spacing:.02em; font-size:12px; color:var(--muted); }
+    .pgxLaneItem input{ width:100%; min-width:0; }
+    @media (max-width: 980px){
+      .pgxSetGrid{ grid-template-columns: repeat(2, minmax(140px, 1fr)); }
+      .pgxLaneWrap{ grid-template-columns: repeat(2, minmax(160px, 1fr)); }
+    }
+
+
   
 
   /* ===================== PROGRAMA (HOJA) v1 ===================== */
@@ -1749,6 +1794,8 @@
     min-width: 62px;
     width:62px;
   }
+
+  .pxWOff{ background:#fff !important; color: transparent; }
 
   .pxCell{ background:#fff; }
   .pxCellIn{ min-width: 62px; width: 62px; }
@@ -2268,6 +2315,8 @@ const SALONES = [
   const PGX_EDIT_KEY    = "LM_PROGRAMA_SHEET_V1_EDIT";
   const PGX_FINE_KEY    = "LM_PROGRAMA_SHEET_V1_FINE";
 
+  const PGX_SETTINGS_KEY = "LM_PROGRAMA_SHEET_V1_SETTINGS"; // panel Personalizar (Admin)
+
   // Toast (mensaje corto)
   function toast(msg){
     const m = String(msg||"").trim();
@@ -2335,6 +2384,75 @@ const SALONES = [
     if (t === "U.LIMA" || t === "ULIMA") return {bar:getCss("--schHead_UL"), cell:getCss("--schCell_UL")};
     // default
     return {bar:"#64748b", cell:"#f1f5f9"};
+  }
+
+
+  // Colores por programa (permite override en meta.colors)
+  function pgxProgramColors(p){
+    const theme = String(p?.meta?.theme||"").toUpperCase();
+    const base = pgxThemeColors(theme);
+    const o = (p && p.meta && p.meta.colors) ? p.meta.colors : {};
+    const bar  = String(o?.bar  || base.bar);
+    const cell = String(o?.cell || base.cell);
+    const off  = String(o?.off  || "#ffffff"); // semanas fuera de ventana
+    return {bar, cell, off};
+  }
+
+  // Ventana visible por programa (para imitar bloques cortos como tu Excel)
+  // meta.startWeek / meta.endWeek (1-based, dentro de 1..totalWeeks)
+  function pgxProgramWindow(p, totalWeeks){
+    const w = Math.max(1, Math.min(60, +totalWeeks || 16));
+    let s = parseInt(p?.meta?.startWeek ?? 1, 10);
+    let e = parseInt(p?.meta?.endWeek   ?? w, 10);
+    if (!Number.isFinite(s)) s = 1;
+    if (!Number.isFinite(e)) e = w;
+    s = Math.max(1, Math.min(w, s));
+    e = Math.max(1, Math.min(w, e));
+    if (e < s){ const tmp = s; s = e; e = tmp; }
+    return {start:s, end:e};
+  }
+
+  function pgxMaskWindowCells(values, start, end){
+    const arr = Array.isArray(values) ? values : [];
+    return arr.map((v,i)=>{
+      const wk = i+1;
+      if (wk < start || wk > end) return "";
+      return String(v||"");
+    });
+  }
+
+  function pgxMaskWindowSegments(segments, totalWeeks, start, end){
+    const seg = Array.isArray(segments) ? segments : [];
+    const weeks = [];
+    let acc = 0;
+    for (const s of seg){
+      const sp  = Math.max(0, +s.span || 0);
+      const txt = String(s.text || "");
+      for (let i=0;i<sp;i++){
+        if (acc < totalWeeks) weeks.push(txt);
+        acc++;
+        if (weeks.length >= totalWeeks) break;
+      }
+      if (weeks.length >= totalWeeks) break;
+    }
+    while (weeks.length < totalWeeks) weeks.push("");
+
+    for (let i=0;i<weeks.length;i++){
+      const wk = i+1;
+      if (wk < start || wk > end) weeks[i] = "";
+    }
+
+    // compress
+    const out = [];
+    let i = 0;
+    while (i < weeks.length){
+      const t = weeks[i];
+      let j = i+1;
+      while (j < weeks.length && weeks[j] === t) j++;
+      out.push({text:t, span:(j-i)});
+      i = j;
+    }
+    return out;
   }
 
   function pgxDefaultProgram(name, scope, theme){
@@ -2418,7 +2536,12 @@ const SALONES = [
     const store = pgxLoadStore();
     if (!store.order.length && pgxCanEdit()){
       const p1 = pgxDefaultProgram("AG REGULAR 1", "AGRARIA", "AGRARIA");
+      p1.meta.startWeek = 1;
+      p1.meta.endWeek = store.timeline.weeks;
       const p2 = pgxDefaultProgram("U.LIMA", "U.LIMA", "U.LIMA");
+      // Ventana visible por defecto (imita bloque corto)
+      p2.meta.startWeek = 8;
+      p2.meta.endWeek = 11;
       // U.LIMA: deja en blanco semanas 1-7 y 12-16 para que imite el bloque corto (editable)
       try{
         const seg = [{text:"", span:7},{text:"REPASO", span:4},{text:"", span:5}];
@@ -2439,6 +2562,9 @@ const SALONES = [
       }catch(e){}
 
       const p3 = pgxDefaultProgram("TALENTO", "PUCP", "PUCP");
+      // Ventana visible por defecto (según ejemplo)
+      p3.meta.startWeek = 1;
+      p3.meta.endWeek = 13;
       // TALENTO: plantilla base vacía (editar luego)
       try{
         const seg3 = [{text:"REPASO", span:1},{text:"", span:15}];
@@ -2460,6 +2586,7 @@ const SALONES = [
       pgxSaveStr(PGX_ZOOM_KEY, "0.85");
       pgxSaveStr(PGX_EDIT_KEY, "0");
       pgxSaveStr(PGX_FINE_KEY, "0");
+      pgxSaveStr(PGX_SETTINGS_KEY, \"0\");
     }
   }
 
@@ -2486,6 +2613,11 @@ const SALONES = [
 
   function pgxGetFineOn(){ return pgxLoadStr(PGX_FINE_KEY, "0") === "1"; }
   function pgxSetFineOn(on){ pgxSaveStr(PGX_FINE_KEY, on ? "1":"0"); }
+
+
+  function pgxGetSettingsOpen(){ return pgxLoadStr(PGX_SETTINGS_KEY, "0") === "1"; }
+  function pgxSetSettingsOpen(on){ pgxSaveStr(PGX_SETTINGS_KEY, on ? "1":"0"); }
+
 
   function pgxProgramsForRole(){
     const store = pgxLoadStore();
@@ -2577,6 +2709,7 @@ const SALONES = [
     const store = pgxLoadStore();
     const totalWeeks = pgxTotalWeeks();
     const dates = pgxTimelineDates();
+    const manualDates = Array.isArray(store.timeline?.manualDates) ? store.timeline.manualDates : null;
     const monthRuns = dates ? pgxMonthRuns(dates) : [];
     const monthEnds = pgxMonthEnds(dates);
 
@@ -2591,13 +2724,21 @@ const SALONES = [
         }).join("")
       : `<th class="pxMonth" colspan="${totalWeeks}">—</th>`;
 
-    const headDates = dates
-      ? dates.map((d,i)=>{
+    const headDates = (manualDates && manualDates.length===totalWeeks)
+      ? manualDates.map((s,i)=>{
           const wk = i+1;
           const cls = monthEnds.has(wk) ? "pxDate pxMonthEnd" : "pxDate";
-          return `<th class="${cls}">${escapeHtml(pgxFmtDDMM(d))}</th>`;
+          const txt = String(s||"").trim() || (dates && dates[i] ? pgxFmtDDMM(dates[i]) : String(wk));
+          return `<th class="${cls}">${escapeHtml(txt)}</th>`;
         }).join("")
-      : Array.from({length: totalWeeks}, (_,i)=>`<th class="pxDate">${i+1}</th>`).join("");
+      : (dates
+        ? dates.map((d,i)=>{
+            const wk = i+1;
+            const cls = monthEnds.has(wk) ? "pxDate pxMonthEnd" : "pxDate";
+            return `<th class="${cls}">${escapeHtml(pgxFmtDDMM(d))}</th>`;
+          }).join("")
+        : Array.from({length: totalWeeks}, (_,i)=>`<th class="pxDate">${i+1}</th>`).join("")
+      );
 
     const thead = `
       <thead>
@@ -2617,7 +2758,10 @@ const SALONES = [
     const tbodyRows = programs.map(p=>{
       const name = String(p.meta?.name||"PROGRAMA").toUpperCase();
       const theme = String(p.meta?.theme||"").toUpperCase();
-      const colors = pgxThemeColors(theme);
+      const colors = pgxProgramColors(p);
+      const win = pgxProgramWindow(p, totalWeeks);
+      const wStart = win.start;
+      const wEnd   = win.end;
 
       const lanes = (p.config?.lanes||[]).slice();
       const laneRows = lanes.filter(l=>l && l.key && l.label);
@@ -2633,7 +2777,8 @@ const SALONES = [
         }
         if (l.type==="segments"){
           // normalizar spans para que sumen totalWeeks
-          const seg = Array.isArray(l.segments) ? l.segments : [];
+          const seg0 = Array.isArray(l.segments) ? l.segments : [];
+          const seg = pgxMaskWindowSegments(seg0, totalWeeks, wStart, wEnd);
           let sum = seg.reduce((a,s)=>a+(+s.span||0),0);
           if (sum < totalWeeks){
             seg.push({text:"", span:(totalWeeks-sum)});
@@ -2670,8 +2815,11 @@ const SALONES = [
       // ACTIVIDAD row (week numbers)
       const actCells = Array.from({length: totalWeeks}, (_,i)=>{
         const wk = i+1;
-        const cls = monthEnds.has(wk) ? "pxW pxMonthEnd" : "pxW";
-        return `<td class="${cls}" style="background:${colors.cell}; font-weight:1000;">${wk}</td>`;
+        const inWin = (wk >= wStart && wk <= wEnd);
+        const cls = (monthEnds.has(wk) ? "pxW pxMonthEnd" : "pxW") + (inWin ? "" : " pxWOff");
+        const bg  = inWin ? colors.cell : colors.off;
+        const lbl = inWin ? wk : "";
+        return `<td class="${cls}" style="background:${bg}; font-weight:1000;">${lbl}</td>`;
       }).join("");
 
       const actRow = `
@@ -2703,7 +2851,8 @@ const SALONES = [
         }
 
         // cells
-        const groups = pgxGroupValues(l.values||[], fine);
+        const disp = pgxMaskWindowCells(l.values||[], wStart, wEnd);
+        const groups = pgxGroupValues(disp, fine);
         const tds = groups.map(g=>{
           const data = `data-pgid="${escapeHtml(p.id)}" data-lane="${escapeHtml(l.key)}" data-start="${g.start}" data-span="${g.span}"`;
           const cls = "pxCell" + (edit ? " pxEditable" : "");
@@ -2781,10 +2930,248 @@ const SALONES = [
     const btnNew = document.getElementById("pgxNew");
     const btnDel = document.getElementById("pgxDel");
     const btnJson = document.getElementById("pgxJson");
+    const btnSet = document.getElementById("pgxSettingsBtn");
+    const btnDates = document.getElementById("pgxDates");
     if (btnNew) btnNew.style.display = pgxCanEdit() ? "" : "none";
     if (btnDel) btnDel.style.display = pgxCanEdit() ? "" : "none";
     if (btnJson) btnJson.style.display = pgxCanEdit() ? "" : "none";
+    if (btnSet) btnSet.style.display = pgxCanEdit() ? "" : "none";
+    if (btnDates) btnDates.style.display = pgxCanEdit() ? "" : "none";
   }
+
+
+  function pgxSegmentsFromPrompt(raw, totalWeeks){
+    const s = String(raw||"").trim();
+    if (!s) return null;
+    const parts = s.split("|").map(x=>x.trim()).filter(Boolean);
+    const seg = [];
+    for (const p of parts){
+      const idx = p.lastIndexOf(":");
+      if (idx < 0) continue;
+      const txt = String(p.slice(0, idx)||"").trim();
+      const span = parseInt(String(p.slice(idx+1)||"").trim(), 10);
+      if (!Number.isFinite(span) || span < 1) continue;
+      seg.push({text:txt, span});
+    }
+    if (!seg.length) return null;
+
+    let sum = seg.reduce((a,x)=>a+(+x.span||0),0);
+    if (sum < totalWeeks) seg.push({text:"", span:(totalWeeks-sum)});
+    if (sum > totalWeeks){
+      let acc=0; const out=[];
+      for (const s2 of seg){
+        const sp = +s2.span||0;
+        if (!sp) continue;
+        if (acc+sp<=totalWeeks){ out.push(s2); acc+=sp; }
+        else{
+          const rem = totalWeeks-acc;
+          if (rem>0) out.push({text:s2.text, span:rem});
+          acc=totalWeeks; break;
+        }
+      }
+      return out;
+    }
+    return seg;
+  }
+
+  // Normaliza string a input[type=color]
+  function pgxToColor(s){
+    const v = String(s||"").trim();
+    if (/^#[0-9a-fA-F]{6}$/.test(v)) return v;
+    const m = /^rgba?\((\d+),\s*(\d+),\s*(\d+)/.exec(v);
+    if (m){
+      const r = pgxClamp255(m[1]); const g = pgxClamp255(m[2]); const b = pgxClamp255(m[3]);
+      return "#" + [r,g,b].map(x=>x.toString(16).padStart(2,"0")).join("");
+    }
+    return "#64748b";
+  }
+  function pgxClamp255(x){
+    const n = parseInt(x,10);
+    if (!Number.isFinite(n)) return 0;
+    return Math.max(0, Math.min(255, n));
+  }
+
+  function pgxRenderSettings(programs){
+    const wrap = document.getElementById("pgxSettings");
+    if (!wrap) return;
+    if (!pgxCanEdit()){ wrap.style.display="none"; return; }
+    const open = pgxGetSettingsOpen();
+    wrap.style.display = open ? "" : "none";
+    if (!open) return;
+
+    const active = pgxGetActiveId() || (programs[0]?.id||"");
+    const p = programs.find(x=>x.id===active) || programs[0];
+    if (!p){ wrap.innerHTML=""; return; }
+
+    const totalWeeks = pgxTotalWeeks();
+    const win = pgxProgramWindow(p, totalWeeks);
+    const colors = pgxProgramColors(p);
+
+    const lanes = (p.config?.lanes||[]).filter(l=>l && l.key && l.label);
+    const laneHtml = lanes.map(l=>`
+      <div class="pgxLaneItem">
+        <div class="k">${escapeHtml(l.key)}</div>
+        <input type="text" data-lane-key="${escapeHtml(l.key)}" value="${escapeHtml(l.label)}"/>
+      </div>
+    `).join("");
+
+    wrap.innerHTML = `
+      <div class="pgxSetTitle">PERSONALIZAR PROGRAMA</div>
+
+      <div class="pgxSetGrid">
+        <label>PROGRAMA
+          <select id="pgsPick">
+            ${programs.map(pp=>{
+              const nm = String(pp.meta?.name||"PROGRAMA").toUpperCase();
+              const sc = String(pp.meta?.scope||"ALL").toUpperCase();
+              const tag = (sc && sc!=="ALL") ? " · " + sc : "";
+              return `<option value="${escapeHtml(pp.id)}"${pp.id===p.id?" selected":""}>${escapeHtml(nm+tag)}</option>`;
+            }).join("")}
+          </select>
+        </label>
+
+        <label>NOMBRE
+          <input id="pgsName" type="text" value="${escapeHtml(String(p.meta?.name||""))}"/>
+        </label>
+
+        <label>SCOPE
+          <select id="pgsScope">
+            ${["ALL","AGRARIA","PUCP","U.LIMA"].map(x=>`<option value="${x}"${String(p.meta?.scope||"ALL").toUpperCase()===x?" selected":""}>${x}</option>`).join("")}
+          </select>
+        </label>
+
+        <label>TEMA
+          <select id="pgsTheme">
+            ${["AGRARIA","PUCP","U.LIMA"].map(x=>`<option value="${x}"${String(p.meta?.theme||"AGRARIA").toUpperCase()===x?" selected":""}>${x}</option>`).join("")}
+          </select>
+        </label>
+
+        <label>VENTANA INICIO (SEM)
+          <input id="pgsStartW" type="number" min="1" max="${totalWeeks}" value="${win.start}"/>
+        </label>
+
+        <label>VENTANA FIN (SEM)
+          <input id="pgsEndW" type="number" min="1" max="${totalWeeks}" value="${win.end}"/>
+        </label>
+
+        <label>COLOR BARRA
+          <input id="pgsBar" type="color" value="${pgxToColor(colors.bar)}"/>
+        </label>
+
+        <label>COLOR SEMANA
+          <input id="pgsCell" type="color" value="${pgxToColor(colors.cell)}"/>
+        </label>
+
+        <label>COLOR FUERA VENTANA
+          <input id="pgsOff" type="color" value="${pgxToColor(colors.off)}"/>
+        </label>
+      </div>
+
+      <div class="pgxSetRow">
+        <button id="pgsSave" class="btn ghost" type="button">GUARDAR</button>
+        <button id="pgsEtapa" class="btn ghost" type="button">EDITAR ETAPA</button>
+        <button id="pgsResetCols" class="btn ghost" type="button">RESET COLORES</button>
+      </div>
+
+      <div class="pgxSetTitle" style="margin-top:14px;">NOMBRES DE FILAS</div>
+      <div class="pgxLaneWrap" id="pgsLaneWrap">${laneHtml}</div>
+
+      <div style="margin-top:10px; color:var(--muted); font-weight:900;">
+        Tip: “EDITAR ETAPA” usa formato <b>TEXTO:SPAN|TEXTO:SPAN</b>. Ej: NIVELACIÓN:3|AVANCE TEÓRICO:10|REPASO:3
+      </div>
+    `;
+
+    // wire
+    document.getElementById("pgsPick")?.addEventListener("change", (e)=>{
+      pgxSetActiveId(String(e.target.value||""));
+      renderPrograma();
+    });
+
+    document.getElementById("pgsSave")?.addEventListener("click", ()=>{
+      const store = pgxLoadStore();
+      const id = pgxGetActiveId();
+      const pp = store.programs[id];
+      if (!pp) return;
+
+      pp.meta = pp.meta || {};
+      pp.meta.name  = String(document.getElementById("pgsName")?.value||"").trim().toUpperCase() || "PROGRAMA";
+      pp.meta.scope = String(document.getElementById("pgsScope")?.value||"ALL").trim().toUpperCase();
+      pp.meta.theme = String(document.getElementById("pgsTheme")?.value||"AGRARIA").trim().toUpperCase();
+
+      const tw = pgxTotalWeeks();
+      let sW = parseInt(document.getElementById("pgsStartW")?.value||"1",10);
+      let eW = parseInt(document.getElementById("pgsEndW")?.value||String(tw),10);
+      if (!Number.isFinite(sW)) sW = 1;
+      if (!Number.isFinite(eW)) eW = tw;
+      sW = Math.max(1, Math.min(tw, sW));
+      eW = Math.max(1, Math.min(tw, eW));
+      if (eW < sW){ const tmp=sW; sW=eW; eW=tmp; }
+      pp.meta.startWeek = sW;
+      pp.meta.endWeek = eW;
+
+      pp.meta.colors = pp.meta.colors || {};
+      pp.meta.colors.bar  = String(document.getElementById("pgsBar")?.value||"").trim();
+      pp.meta.colors.cell = String(document.getElementById("pgsCell")?.value||"").trim();
+      pp.meta.colors.off  = String(document.getElementById("pgsOff")?.value||"").trim();
+
+      const wrap2 = document.getElementById("pgsLaneWrap");
+      const lanes2 = (pp.config?.lanes||[]);
+      if (wrap2){
+        wrap2.querySelectorAll("input[data-lane-key]").forEach(inp=>{
+          const k = String(inp.getAttribute("data-lane-key")||"");
+          const v = String(inp.value||"").trim();
+          const l = lanes2.find(x=>String(x.key||"")===k);
+          if (l && v) l.label = v;
+        });
+      }
+
+      pp.meta.updatedAt = pgxNowISO();
+      store.programs[id]=pp;
+      pgxSaveStore(store);
+      toast("Guardado.");
+      renderPrograma();
+    });
+
+    document.getElementById("pgsEtapa")?.addEventListener("click", ()=>{
+      const store = pgxLoadStore();
+      const id = pgxGetActiveId();
+      const pp = store.programs[id];
+      if (!pp) return;
+
+      const tw = pgxTotalWeeks();
+      const curSeg = (pp.config?.lanes||[]).find(x=>x.key==="etapa")?.segments || [];
+      const curStr = curSeg.map(s=>`${String(s.text||"").trim()}:${+s.span||0}`).join("|");
+      const raw = prompt("Editar ETAPA (TEXTO:SPAN|...). Suma debe ser "+tw+".", curStr);
+      if (raw===null) return;
+      const seg = pgxSegmentsFromPrompt(raw, tw);
+      if (!seg){ alert("Formato inválido."); return; }
+
+      const lane = (pp.config?.lanes||[]).find(x=>x.key==="etapa");
+      if (lane){
+        lane.segments = seg;
+        pp.config.etapaSegments = seg;
+      }
+      pp.meta.updatedAt = pgxNowISO();
+      store.programs[id]=pp;
+      pgxSaveStore(store);
+      toast("Etapa actualizada.");
+      renderPrograma();
+    });
+
+    document.getElementById("pgsResetCols")?.addEventListener("click", ()=>{
+      const store = pgxLoadStore();
+      const id = pgxGetActiveId();
+      const pp = store.programs[id];
+      if (!pp) return;
+      if (pp.meta) delete pp.meta.colors;
+      pp.meta.updatedAt = pgxNowISO();
+      store.programs[id]=pp;
+      pgxSaveStore(store);
+      toast("Colores reseteados.");
+      renderPrograma();
+    });
+  }
+
 
   function pgxEnsureProgramaLayout(){
     const el = document.getElementById("view_programa");
@@ -2826,12 +3213,17 @@ const SALONES = [
           <button id="pgxDel" class="btn ghost" type="button">ELIMINAR</button>
           <button id="pgxJson" class="btn ghost" type="button">EDITOR JSON</button>
 
+          <button id="pgxSettingsBtn" class="btn ghost" type="button">PERSONALIZAR</button>
+          <button id="pgxDates" class="btn ghost" type="button">FECHAS MANUAL</button>
+
           <button id="pgxPng" class="btn ghost" type="button">DESCARGAR PNG</button>
         </div>
 
         <div class="pgHint" id="pgxHint" style="margin-top:8px;">
           Consejo: usa el scroll interno. Si activas <b>EDICIÓN FINA</b>, cada semana queda editable por separado.
         </div>
+      
+        <div id="pgxSettings" class="pgxSettings" style="display:none;"></div>
       </div>
 
       <div class="card panel12">
@@ -2849,6 +3241,8 @@ const SALONES = [
     const btnNew = document.getElementById("pgxNew");
     const btnDel = document.getElementById("pgxDel");
     const btnJson = document.getElementById("pgxJson");
+    const btnSet = document.getElementById("pgxSettingsBtn");
+    const btnDates = document.getElementById("pgxDates");
     const btnPng = document.getElementById("pgxPng");
 
     if (mode){
@@ -3021,6 +3415,43 @@ const SALONES = [
         }
       });
     }
+    if (btnSet){
+      btnSet.addEventListener("click", ()=>{
+        if (!pgxCanEdit()) return;
+        pgxSetSettingsOpen(!pgxGetSettingsOpen());
+        renderPrograma();
+      });
+    }
+
+    if (btnDates){
+      btnDates.addEventListener("click", ()=>{
+        if (!pgxCanEdit()) return;
+        const store = pgxLoadStore();
+        const w = pgxTotalWeeks();
+        const cur = Array.isArray(store.timeline?.manualDates) ? store.timeline.manualDates : [];
+        const hint = "Pega las FECHAS (dd/mm) separadas por coma para cada semana (total "+w+").\nEj: 09/02,16/02,23/02,...\n\nDeja vacío y acepta para borrar modo manual.";
+        const raw = prompt(hint, cur.join(","));
+        if (raw===null) return;
+        const s = String(raw||"").trim();
+        if (!s){
+          if (store.timeline) delete store.timeline.manualDates;
+          pgxSaveStore(store);
+          toast("Fechas manuales eliminadas.");
+          renderPrograma();
+          return;
+        }
+        const parts = s.split(",").map(x=>x.trim()).filter(Boolean);
+        if (parts.length !== w){
+          alert("Cantidad inválida: se esperaban "+w+" fechas y recibí "+parts.length+".");
+          return;
+        }
+        store.timeline.manualDates = parts;
+        pgxSaveStore(store);
+        toast("Fechas manuales guardadas.");
+        renderPrograma();
+      });
+    }
+
 
     if (btnPng){
       btnPng.addEventListener("click", ()=>{
@@ -3099,6 +3530,8 @@ const SALONES = [
 
     pgxFillProgramSelect(programs);
     pgxApplyHeaderUI();
+
+    pgxRenderSettings(programs);
 
     const canvas = document.getElementById("pgxCanvas");
     if (!canvas) return;
@@ -5615,7 +6048,7 @@ function ensureMaterialesLayout(){
       <div class="cardtitle">MATERIALES CRUDOS · AVANCE</div>
       <div style="color:var(--muted); font-weight:900; margin-bottom:10px;">
         Vinculado al <b>PROGRAMA</b>: se listan las semanas (códigos de la fila <b>Semana</b>) para marcar avance.
-        El enlace de AGRARIA puede quedar vacío hasta que exista.
+        AGRARIA usa una carpeta raíz por defecto (puedes cambiarla por programa).
       </div>
 
       <div class="mrTop">
@@ -5677,6 +6110,36 @@ function ensureMaterialesLayout(){
 
 // --- Material crudo: storage
 const MR_STORE_KEY = "LM_MATERIAL_CRUDO_V1";
+
+// Default: carpeta raíz de MATERIAL CRUDO (AGRARIA)
+const MR_DEFAULT_CRUDO_BY_THEME = {
+  "AGRARIA": "https://drive.google.com/drive/folders/1aPSbjNjE0-jHUOBpOqBUBmZTOqCZ6xXs?usp=drive_link"
+};
+
+function mrDefaultFolderForProgram(programId){
+  const list = (typeof pgxProgramsForRole === "function") ? pgxProgramsForRole() : [];
+  const p = list.find(x=>x.id===programId);
+  if (!p) return "";
+  const theme = String(p.meta?.theme||"").toUpperCase();
+  return String(MR_DEFAULT_CRUDO_BY_THEME[theme] || "").trim();
+}
+
+function mrFolderIdFromUrl(url){
+  const s = String(url||"").trim();
+  const m = /\/folders\/([a-zA-Z0-9_-]+)/.exec(s);
+  return m ? m[1] : "";
+}
+
+// Abre búsqueda dentro del folder por código (ej: SE03)
+// Nota: Drive interpreta el query: '<folderId>' in parents and name contains 'SE03'
+function mrSearchInFolderUrl(folderUrl, code){
+  const fid = mrFolderIdFromUrl(folderUrl);
+  const c = String(code||"").trim();
+  if (!fid || !c) return "";
+  const q = `'${fid}' in parents and name contains '${c}'`;
+  return "https://drive.google.com/drive/search?q=" + encodeURIComponent(q);
+}
+
 function mrLoadStore(){
   try{ return JSON.parse(localStorage.getItem(MR_STORE_KEY) || '{"done":{},"folders":{},"links":{}}'); }
   catch(e){ return {done:{}, folders:{}, links:{}}; }
@@ -5782,7 +6245,8 @@ function renderMateriales(){
       const pid = p.id;
       const nm = String(p.meta?.name||"PROGRAMA").toUpperCase();
       const pr = mrProgress(pid);
-      const folder = String((st.folders||{})[pid]||"").trim();
+      let folder = String((st.folders||{})[pid]||"").trim();
+      if (!folder) folder = mrDefaultFolderForProgram(pid);
       const pct = pr.total ? pr.pct : 0;
       return `
         <div class="card" style="border:1px solid rgba(0,0,0,.08); border-radius:16px; padding:12px; margin-top:10px; box-shadow:none;">
@@ -5805,7 +6269,8 @@ function renderMateriales(){
   // Vista UNO: checklist por semana
   folderInput.disabled = false;
   const pid = sel.value;
-  const folder = String((st.folders||{})[pid]||"").trim();
+  let folder = String((st.folders||{})[pid]||"").trim();
+  if (!folder) folder = mrDefaultFolderForProgram(pid);
   folderInput.value = folder;
 
   if (folder){
@@ -5837,6 +6302,8 @@ function renderMateriales(){
     const open = link || folder || "";
     const openCls = open ? "" : "disabled";
     const openHref = open || "#";
+    const searchUrl = mrSearchInFolderUrl(folder, code);
+    const searchCls = searchUrl ? "" : "disabled";
 
     const linkEdit = isAdmin ? `
       <input data-linkcode="${escapeHtml(code)}" type="text" value="${escapeHtml(link)}" placeholder="Link específico (opcional)"/>
@@ -5852,7 +6319,10 @@ function renderMateriales(){
           </label>
         </td>
         <td>
-          <a class="mrLink ${openCls}" href="${escapeHtml(openHref)}" target="_blank" rel="noopener">ABRIR</a>
+          <div style="display:flex; gap:10px; flex-wrap:wrap;">
+            <a class="mrLink ${openCls}" href="${escapeHtml(openHref)}" target="_blank" rel="noopener">ABRIR</a>
+            <a class="mrLink ${searchCls}" href="${escapeHtml(searchUrl||'#')}" target="_blank" rel="noopener">BUSCAR</a>
+          </div>
         </td>
         <td>${linkEdit}</td>
       </tr>
