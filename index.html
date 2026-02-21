@@ -1798,7 +1798,7 @@
   .pxWOff{ background:#fff !important; color: transparent; }
 
   .pxCell{ background:#fff; }
-  .pxCellIn{ min-width: 62px; width: 62px; }
+  .pxCellIn{ width:100%; min-width:62px; display:flex; align-items:center; justify-content:center; text-align:center; }
   .pxEditable{ cursor:pointer; }
   .pxEditable:hover{ outline:3px solid rgba(209,11,11,0.18); outline-offset:-3px; }
 
@@ -1825,6 +1825,7 @@
   .mrBtn:hover{ border-color: rgba(209,11,11,.35); box-shadow: 0 0 0 3px rgba(209,11,11,.10); }
   .mrLink{ font-weight:1000; text-decoration:none; }
   .mrLink.disabled{ pointer-events:none; opacity:.45; }
+  .mrBtn.disabled{ pointer-events:none; opacity:.45; }
 
 </style>
 </head>
@@ -2306,9 +2307,7 @@ const SALONES = [
   // - Encabezado global por meses + fechas (una sola vez en TODOS)
   // - Bloques por programa con etiqueta vertical (AGRARIA / U.LIMA / PUCP / etc.)
   // - Edición (Admin): click para editar celdas; Edición fina (por semana) / normal (merge por texto)
-  // - Export PNG
-
-  const PGX_STORE_KEY   = "LM_PROGRAMA_SHEET_V1_STORE";
+const PGX_STORE_KEY   = "LM_PROGRAMA_SHEET_V1_STORE";
   const PGX_ACTIVE_KEY  = "LM_PROGRAMA_SHEET_V1_ACTIVE";
   const PGX_MODE_KEY    = "LM_PROGRAMA_SHEET_V1_MODE";
   const PGX_ZOOM_KEY    = "LM_PROGRAMA_SHEET_V1_ZOOM";
@@ -2705,40 +2704,65 @@ const SALONES = [
     return out;
   }
 
+  
+  function pgxWeekDiff(a, b){
+    // diferencia en semanas (redondeada) entre dos fechas (a - b)
+    if (!a || !b) return 0;
+    const ms = a.getTime() - b.getTime();
+    return Math.round(ms / (7*24*60*60*1000));
+  }
+
   function pgxRenderSheet(programs, mode){
     const store = pgxLoadStore();
-    const totalWeeks = pgxTotalWeeks();
-    const dates = pgxTimelineDates();
-    const manualDates = Array.isArray(store.timeline?.manualDates) ? store.timeline.manualDates : null;
-    const monthRuns = dates ? pgxMonthRuns(dates) : [];
+
+    const baseWeeks = pgxTotalWeeks(); // semanas "base" (plantilla) por programa
+    const z = pgxGetZoom();
+    const fine = pgxGetFineOn();
+    const edit = pgxCanEdit() && pgxGetEditOn();
+
+    const baseStart0 = pgxParseDateYMD(String(store.timeline?.startDate||""));
+
+    // ✅ BASE real para el encabezado = la fecha más antigua (entre baseStart y startDate de programas)
+    let baseStart = baseStart0;
+    for (const p of (programs||[])){
+      const sd = pgxParseDateYMD(String(p?.meta?.startDate||""));
+      if (sd && (!baseStart || sd < baseStart)) baseStart = sd;
+    }
+    if (!baseStart) baseStart = new Date();
+
+    // ✅ Offset por programa (en semanas) + ancho total del tablero (displayWeeks)
+    const offsets = new Map();
+    let displayWeeks = baseWeeks;
+
+    for (const p of (programs||[])){
+      const pStart = pgxParseDateYMD(String(p?.meta?.startDate||"")) || baseStart0 || baseStart;
+      const off = Math.max(0, pgxWeekDiff(pStart, baseStart));
+      offsets.set(p.id, off);
+      displayWeeks = Math.max(displayWeeks, off + baseWeeks);
+    }
+
+    const dates = Array.from({length: displayWeeks}, (_,i)=>pgxAddDays(baseStart, i*7));
+    const monthRuns = pgxMonthRuns(dates);
     const monthEnds = pgxMonthEnds(dates);
 
-    const colCount = 2 + totalWeeks; // 2 fijas + semanas
-    const z = pgxGetZoom();
+    const manualDates = Array.isArray(store.timeline?.manualDates) ? store.timeline.manualDates : null;
 
-    // Header
     const headMonths = monthRuns.length
-      ? monthRuns.map((r,idx)=>{
-          const cls = "pxMonth";
-          return `<th class="${cls}" colspan="${r.span}">${escapeHtml(r.label)}</th>`;
-        }).join("")
-      : `<th class="pxMonth" colspan="${totalWeeks}">—</th>`;
+      ? monthRuns.map((r)=> `<th class="pxMonth" colspan="${r.span}">${escapeHtml(r.label)}</th>`).join("")
+      : `<th class="pxMonth" colspan="${displayWeeks}">—</th>`;
 
-    const headDates = (manualDates && manualDates.length===totalWeeks)
+    const headDates = (manualDates && manualDates.length === displayWeeks)
       ? manualDates.map((s,i)=>{
           const wk = i+1;
           const cls = monthEnds.has(wk) ? "pxDate pxMonthEnd" : "pxDate";
-          const txt = String(s||"").trim() || (dates && dates[i] ? pgxFmtDDMM(dates[i]) : String(wk));
+          const txt = String(s||"").trim() || (dates[i] ? pgxFmtDDMM(dates[i]) : String(wk));
           return `<th class="${cls}">${escapeHtml(txt)}</th>`;
         }).join("")
-      : (dates
-        ? dates.map((d,i)=>{
-            const wk = i+1;
-            const cls = monthEnds.has(wk) ? "pxDate pxMonthEnd" : "pxDate";
-            return `<th class="${cls}">${escapeHtml(pgxFmtDDMM(d))}</th>`;
-          }).join("")
-        : Array.from({length: totalWeeks}, (_,i)=>`<th class="pxDate">${i+1}</th>`).join("")
-      );
+      : dates.map((d,i)=>{
+          const wk = i+1;
+          const cls = monthEnds.has(wk) ? "pxDate pxMonthEnd" : "pxDate";
+          return `<th class="${cls}">${escapeHtml(pgxFmtDDMM(d))}</th>`;
+        }).join("");
 
     const thead = `
       <thead>
@@ -2752,47 +2776,77 @@ const SALONES = [
       </thead>
     `;
 
-    const fine = pgxGetFineOn();
-    const edit = pgxCanEdit() && pgxGetEditOn();
+    const OUT = "__PGX_OUT__"; // marcador interno (no visible), evita merges fuera de ventana/fecha
 
-    const tbodyRows = programs.map(p=>{
+    function segToWeekTexts(segments, n){
+      const seg = Array.isArray(segments) ? segments : [];
+      const out = [];
+      let acc = 0;
+      for (const s of seg){
+        const sp  = Math.max(0, +s.span || 0);
+        const txt = String(s.text || "");
+        for (let i=0;i<sp;i++){
+          if (acc < n) out.push(txt);
+          acc++;
+          if (out.length >= n) break;
+        }
+        if (out.length >= n) break;
+      }
+      while (out.length < n) out.push("");
+      return out.slice(0, n);
+    }
+
+    function compressToSegments(arr){
+      const out = [];
+      let i=0;
+      while (i < arr.length){
+        const t = arr[i];
+        let j=i+1;
+        while (j < arr.length && arr[j] === t) j++;
+        out.push({text:t, span:(j-i), start:(i+1)});
+        i=j;
+      }
+      return out;
+    }
+
+    // ✅ cuerpo por programa
+    const colCount = 2 + displayWeeks;
+    const tbodyRows = (programs||[]).map(p=>{
       const name = String(p.meta?.name||"PROGRAMA").toUpperCase();
-      const theme = String(p.meta?.theme||"").toUpperCase();
       const colors = pgxProgramColors(p);
-      const win = pgxProgramWindow(p, totalWeeks);
+      const win = pgxProgramWindow(p, baseWeeks);
       const wStart = win.start;
       const wEnd   = win.end;
 
-      const lanes = (p.config?.lanes||[]).slice();
-      const laneRows = lanes.filter(l=>l && l.key && l.label);
+      const off = offsets.get(p.id) || 0;
 
-      // asegura longitud
+      // normaliza lanes (longitud baseWeeks)
+      const lanes0 = (p.config?.lanes||[]).slice();
+      const laneRows = lanes0.filter(l=>l && l.key && l.label);
+
       laneRows.forEach(l=>{
         if (l.type==="cells"){
           const v = Array.isArray(l.values) ? l.values : [];
-          if (v.length !== totalWeeks){
-            const nv = Array.from({length: totalWeeks}, (_,i)=> String(v[i]||""));
-            l.values = nv;
+          if (v.length !== baseWeeks){
+            l.values = Array.from({length: baseWeeks}, (_,i)=> String(v[i]||""));
           }
         }
         if (l.type==="segments"){
-          // normalizar spans para que sumen totalWeeks
           const seg0 = Array.isArray(l.segments) ? l.segments : [];
-          const seg = pgxMaskWindowSegments(seg0, totalWeeks, wStart, wEnd);
-          let sum = seg.reduce((a,s)=>a+(+s.span||0),0);
-          if (sum < totalWeeks){
-            seg.push({text:"", span:(totalWeeks-sum)});
-          } else if (sum > totalWeeks){
-            // recorta
+          // asegurar sumatoria == baseWeeks
+          let sum = seg0.reduce((a,s)=>a+(+s.span||0),0);
+          const seg = seg0.slice();
+          if (sum < baseWeeks) seg.push({text:"", span:(baseWeeks-sum)});
+          if (sum > baseWeeks){
             let acc=0; const out=[];
             for (const s of seg){
               const sp = +s.span||0;
               if (!sp) continue;
-              if (acc + sp <= totalWeeks){ out.push(s); acc += sp; }
+              if (acc + sp <= baseWeeks){ out.push(s); acc += sp; }
               else{
-                const rem = totalWeeks - acc;
+                const rem = baseWeeks - acc;
                 if (rem>0) out.push({text:s.text, span:rem});
-                acc = totalWeeks;
+                acc = baseWeeks;
                 break;
               }
             }
@@ -2803,22 +2857,26 @@ const SALONES = [
         }
       });
 
-      // rowspan: actividad + lanes count
       const rowSpan = 1 + laneRows.length;
-
       const progCell = `
         <th class="pxProg" rowspan="${rowSpan}" style="background:${colors.bar};">
           <div class="pxProgV">${escapeHtml(name)}</div>
         </th>
       `;
 
-      // ACTIVIDAD row (week numbers)
-      const actCells = Array.from({length: totalWeeks}, (_,i)=>{
-        const wk = i+1;
-        const inWin = (wk >= wStart && wk <= wEnd);
-        const cls = (monthEnds.has(wk) ? "pxW pxMonthEnd" : "pxW") + (inWin ? "" : " pxWOff");
+      // ACTIVIDAD (semana local, alineada por fecha inicio del programa)
+      const actCells = Array.from({length: displayWeeks}, (_,i)=>{
+        const gw = i+1;
+        const localW = gw - off;
+        const inLocal = (localW >= 1 && localW <= baseWeeks);
+        const inWin   = inLocal && (localW >= wStart && localW <= wEnd);
+
+        let cls = monthEnds.has(gw) ? "pxW pxMonthEnd" : "pxW";
+        if (!inWin) cls += " pxWOff";
+
         const bg  = inWin ? colors.cell : colors.off;
-        const lbl = inWin ? wk : "";
+        const lbl = inWin ? String(localW) : "";
+
         return `<td class="${cls}" style="background:${bg}; font-weight:1000;">${lbl}</td>`;
       }).join("");
 
@@ -2832,16 +2890,31 @@ const SALONES = [
 
       const laneHtml = laneRows.map(l=>{
         const label = String(l.label||"").trim();
+
+        // ETAPA (segments) – no editable (pero centrado)
         if (l.type==="segments"){
-          const seg = Array.isArray(l.segments) ? l.segments : [];
-          const tds = seg.map(s=>{
+          const weekTxt = segToWeekTexts(l.segments, baseWeeks);
+
+          // aplicar ventana y mapear a global
+          const g = Array.from({length: displayWeeks}, ()=>OUT);
+          for (let lw=1; lw<=baseWeeks; lw++){
+            const gi = off + (lw-1);
+            if (gi < 0 || gi >= displayWeeks) continue;
+            if (lw < wStart || lw > wEnd){ g[gi] = OUT; continue; }
+            g[gi] = String(weekTxt[lw-1]||"");
+          }
+
+          const segs = compressToSegments(g);
+          const tds = segs.map(s=>{
             const sp = +s.span||1;
             const txt = String(s.text||"");
-            // estilo por etapa
-            const isEtapa = (l.key==="etapa");
-            const cls = isEtapa ? "pxSeg pxEtapaCell" : "pxSeg";
-            return `<td class="${cls}" colspan="${sp}">${escapeHtml(txt)}</td>`;
+            if (txt === OUT){
+              const cls = "pxSeg pxWOff";
+              return `<td class="${cls}" colspan="${sp}" style="background:${colors.off};">&nbsp;</td>`;
+            }
+            return `<td class="pxSeg pxEtapaCell" colspan="${sp}">${escapeHtml(txt) || "&nbsp;"}</td>`;
           }).join("");
+
           return `
             <tr>
               <th class="pxRowHead">${escapeHtml(label)}</th>
@@ -2850,14 +2923,37 @@ const SALONES = [
           `;
         }
 
-        // cells
-        const disp = pgxMaskWindowCells(l.values||[], wStart, wEnd);
-        const groups = pgxGroupValues(disp, fine);
-        const tds = groups.map(g=>{
-          const data = `data-pgid="${escapeHtml(p.id)}" data-lane="${escapeHtml(l.key)}" data-start="${g.start}" data-span="${g.span}"`;
-          const cls = "pxCell" + (edit ? " pxEditable" : "");
-          const content = escapeHtml(g.text||"");
-          return `<td class="${cls}" colspan="${g.span}" ${data}><div class="pxCellIn">${content || "&nbsp;"}</div></td>`;
+        // CELDAS (editable)
+        const vals = Array.isArray(l.values) ? l.values : Array.from({length: baseWeeks}, ()=>"");
+
+        const g = Array.from({length: displayWeeks}, ()=>OUT);
+        for (let lw=1; lw<=baseWeeks; lw++){
+          const gi = off + (lw-1);
+          if (gi < 0 || gi >= displayWeeks) continue;
+          if (lw < wStart || lw > wEnd){ g[gi] = OUT; continue; }
+          g[gi] = String(vals[lw-1]||"");
+        }
+
+        const groups = pgxGroupValues(g, fine);
+
+        const tds = groups.map(gr=>{
+          const txt = String(gr.text||"");
+          const sp  = +gr.span||1;
+          const gStart = +gr.start||1;
+
+          const isOut = (txt === OUT);
+          const localStart = gStart - off; // 1-based
+          const okLocal = (localStart >= 1 && localStart <= baseWeeks);
+
+          const canEdit = edit && !isOut && okLocal;
+
+          const data = !canEdit ? "" :
+            `data-pgid="${escapeHtml(p.id)}" data-lane="${escapeHtml(l.key)}" data-lstart="${localStart}" data-lspan="${sp}"`;
+
+          const cls = "pxCell" + (canEdit ? " pxEditable" : "") + (isOut ? " pxWOff" : "");
+          const content = isOut ? "&nbsp;" : (escapeHtml(txt) || "&nbsp;");
+
+          return `<td class="${cls}" colspan="${sp}" ${data}><div class="pxCellIn">${content}</div></td>`;
         }).join("");
 
         return `
@@ -2873,7 +2969,7 @@ const SALONES = [
 
     const tbody = `<tbody>${tbodyRows}</tbody>`;
 
-    const html = `
+    return `
       <div class="pxSheetWrap">
         <div class="pxSheetScroll" id="pgxScroll" style="zoom:${z};">
           <table class="pxSheet">
@@ -2883,8 +2979,8 @@ const SALONES = [
         </div>
       </div>
     `;
-    return html;
   }
+
 
   function pgxFillProgramSelect(programs){
     const sel = document.getElementById("pgxProgram");
@@ -2932,12 +3028,14 @@ const SALONES = [
     const btnJson = document.getElementById("pgxJson");
     const btnSet = document.getElementById("pgxSettingsBtn");
     const btnDates = document.getElementById("pgxDates");
-    if (btnNew) btnNew.style.display = pgxCanEdit() ? "" : "none";
+        const btnFill = document.getElementById(\"pgxFill\");
+if (btnNew) btnNew.style.display = pgxCanEdit() ? "" : "none";
     if (btnDel) btnDel.style.display = pgxCanEdit() ? "" : "none";
     if (btnJson) btnJson.style.display = pgxCanEdit() ? "" : "none";
     if (btnSet) btnSet.style.display = pgxCanEdit() ? "" : "none";
     if (btnDates) btnDates.style.display = pgxCanEdit() ? "" : "none";
-  }
+      if (btnFill) btnFill.style.display = pgxCanEdit() ? \"\" : \"none\";
+}
 
 
   function pgxSegmentsFromPrompt(raw, totalWeeks){
@@ -3046,7 +3144,11 @@ const SALONES = [
           </select>
         </label>
 
-        <label>VENTANA INICIO (SEM)
+        
+        <label>FECHA INICIO
+          <input id="pgsStartDate" type="date" value="${escapeHtml(String(p.meta?.startDate||""))}"/>
+        </label>
+<label>VENTANA INICIO (SEM)
           <input id="pgsStartW" type="number" min="1" max="${totalWeeks}" value="${win.start}"/>
         </label>
 
@@ -3098,7 +3200,12 @@ const SALONES = [
       pp.meta.scope = String(document.getElementById("pgsScope")?.value||"ALL").trim().toUpperCase();
       pp.meta.theme = String(document.getElementById("pgsTheme")?.value||"AGRARIA").trim().toUpperCase();
 
-      const tw = pgxTotalWeeks();
+      
+
+      // ✅ NUEVO: fecha inicio independiente por programa (YYYY-MM-DD). Vacío = usa BASE.
+      const sd = String(document.getElementById("pgsStartDate")?.value||"").trim();
+      if (sd) pp.meta.startDate = sd; else delete pp.meta.startDate;
+const tw = pgxTotalWeeks();
       let sW = parseInt(document.getElementById("pgsStartW")?.value||"1",10);
       let eW = parseInt(document.getElementById("pgsEndW")?.value||String(tw),10);
       if (!Number.isFinite(sW)) sW = 1;
@@ -3181,7 +3288,7 @@ const SALONES = [
       <div class="card panel12">
         <div class="cardtitle">PROGRAMA</div>
         <div style="color:var(--muted); font-weight:900; margin-bottom:10px;">
-          Programación estilo Excel (meses/fechas/semanas). En <b>EDITAR</b> (Admin) puedes hacer click en celdas para modificar.
+          Programación estilo Excel (meses/fechas/semanas). Cada programa puede tener <b>FECHA INICIO</b> independiente (Panel <b>PERSONALIZAR</b>). En <b>EDITAR</b> (Admin) puedes hacer click en celdas para modificar.
         </div>
 
         <div class="controls" style="justify-content:flex-start; gap:10px; flex-wrap:wrap;">
@@ -3204,6 +3311,7 @@ const SALONES = [
 
           <button id="pgxEdit" class="btn ghost" type="button">EDITAR</button>
           <button id="pgxFine" class="btn ghost" type="button">EDICIÓN FINA: OFF</button>
+          <button id="pgxFill" class="btn ghost" type="button">RELLENAR RANGO</button>
 
           <input id="pgxStart" type="date" style="min-width:160px;" />
           <input id="pgxWeeks" type="number" min="1" max="60" step="1" style="width:110px;" />
@@ -3215,8 +3323,6 @@ const SALONES = [
 
           <button id="pgxSettingsBtn" class="btn ghost" type="button">PERSONALIZAR</button>
           <button id="pgxDates" class="btn ghost" type="button">FECHAS MANUAL</button>
-
-          <button id="pgxPng" class="btn ghost" type="button">DESCARGAR PNG</button>
         </div>
 
         <div class="pgHint" id="pgxHint" style="margin-top:8px;">
@@ -3237,14 +3343,14 @@ const SALONES = [
     const zoom = document.getElementById("pgxZoom");
     const edit = document.getElementById("pgxEdit");
     const fine = document.getElementById("pgxFine");
+    const btnFill = document.getElementById("pgxFill");
     const btnApply = document.getElementById("pgxApply");
     const btnNew = document.getElementById("pgxNew");
     const btnDel = document.getElementById("pgxDel");
     const btnJson = document.getElementById("pgxJson");
     const btnSet = document.getElementById("pgxSettingsBtn");
     const btnDates = document.getElementById("pgxDates");
-    const btnPng = document.getElementById("pgxPng");
-
+  
     if (mode){
       mode.addEventListener("change", ()=>{
         pgxSetMode(mode.value);
@@ -3276,6 +3382,97 @@ const SALONES = [
         renderPrograma();
       });
     }
+
+    if (btnFill){
+      btnFill.addEventListener("click", ()=>{
+        if (!pgxCanEdit()) return;
+
+        const store = pgxLoadStore();
+        const pid = pgxGetActiveId();
+        const p = store.programs[pid];
+        if (!p) return;
+
+        const lanes = (p.config?.lanes||[]).filter(l=>l && l.type==="cells");
+        const laneKeys = lanes.map(l=>String(l.key||"")).filter(Boolean);
+        const hint =
+          "RELLENAR RANGO (tipo Excel)\\n" +
+          "Formato: LANE, INICIO, FIN, TEXTO\\n" +
+          "• Si TEXTO termina en número, auto-incrementa (SEN1 → SEN2 → SEN3).\\n" +
+          "• Si TEXTO no tiene número, se repite constante (SEPARATAS).\\n" +
+          "Ej: semana,1,3,SEN1\\n" +
+          "Ej: semana,4,16,SE01\\n" +
+          "Ej: reportes,1,3,RN1\\n" +
+          "Ej: materiales,1,3,SEPARATAS\\n\\n" +
+          "LANES disponibles: " + laneKeys.join(", ");
+
+        const raw = prompt(hint, "semana,1,3,SEN1");
+        if (raw === null) return;
+
+        const parts = String(raw||"").split(",").map(x=>String(x||"").trim());
+        if (parts.length < 4){
+          alert("Formato inválido. Se esperaba: LANE,INICIO,FIN,TEXTO");
+          return;
+        }
+        const laneKeyIn = String(parts[0]||"").trim();
+        const startW0 = parseInt(parts[1], 10);
+        const endW0   = parseInt(parts[2], 10);
+        const seed    = parts.slice(3).join(",").trim();
+
+        const lane = lanes.find(l=>String(l.key||"").toLowerCase()===laneKeyIn.toLowerCase())
+                  || lanes.find(l=>String(l.label||"").toLowerCase()===laneKeyIn.toLowerCase());
+        if (!lane){
+          alert("LANE no encontrada: " + laneKeyIn);
+          return;
+        }
+
+        const tw = pgxTotalWeeks();
+        let a = Number.isFinite(startW0) ? startW0 : 1;
+        let b = Number.isFinite(endW0)   ? endW0   : tw;
+        a = Math.max(1, Math.min(tw, a));
+        b = Math.max(1, Math.min(tw, b));
+        if (b < a){ const tmp=a; a=b; b=tmp; }
+
+        if (!seed){
+          alert("TEXTO vacío.");
+          return;
+        }
+
+        // soporte lista explícita con |
+        const list = seed.includes("|") ? seed.split("|").map(x=>x.trim()).filter(Boolean) : null;
+
+        const m = /^(.+?)(\d+)$/.exec(seed);
+        const hasNum = !!m;
+
+        const vals = Array.isArray(lane.values) ? lane.values : [];
+        const pad = hasNum ? String(m[2]||"").length : 0;
+        const baseNum = hasNum ? parseInt(m[2],10) : 0;
+        const pref = hasNum ? String(m[1]||"") : seed;
+
+        for (let w=a; w<=b; w++){
+          let v = seed;
+
+          if (list){
+            const idx = (w - a) % list.length;
+            v = list[idx];
+          } else if (hasNum){
+            v = pref + String(baseNum + (w-a)).padStart(pad, "0");
+          } else {
+            v = pref;
+          }
+
+          const i = w - 1;
+          if (i >= 0 && i < tw) vals[i] = v;
+        }
+
+        lane.values = vals;
+        p.meta.updatedAt = pgxNowISO();
+        store.programs[pid] = p;
+        pgxSaveStore(store);
+        toast("Rango rellenado.");
+        renderPrograma();
+      });
+    }
+
 
     if (btnApply){
       btnApply.addEventListener("click", ()=>{
@@ -3337,7 +3534,22 @@ const SALONES = [
         const store = pgxLoadStore();
         const p = pgxDefaultProgram(name, scope, theme);
         // ajusta longitud al timeline actual
-        const w = pgxTotalWeeks();
+        const progs = (typeof pgxProgramsForRole === "function") ? pgxProgramsForRole() : [];
+        const baseWeeks = pgxTotalWeeks();
+        const baseStart0 = pgxParseDateYMD(String(store.timeline?.startDate||""));
+        let baseStart = baseStart0;
+        for (const p of (progs||[])){
+          const sd = pgxParseDateYMD(String(p?.meta?.startDate||""));
+          if (sd && (!baseStart || sd < baseStart)) baseStart = sd;
+        }
+        if (!baseStart) baseStart = new Date();
+        let displayWeeks = baseWeeks;
+        for (const p of (progs||[])){
+          const pStart = pgxParseDateYMD(String(p?.meta?.startDate||"")) || baseStart0 || baseStart;
+          const off = Math.max(0, pgxWeekDiff(pStart, baseStart));
+          displayWeeks = Math.max(displayWeeks, off + baseWeeks);
+        }
+        const w = displayWeeks;
         p.config.lanes.forEach(l=>{
           if (l.type==="cells") l.values = Array.from({length:w}, (_,i)=> String(l.values?.[i]||""));
           if (l.type==="segments"){
@@ -3427,7 +3639,22 @@ const SALONES = [
       btnDates.addEventListener("click", ()=>{
         if (!pgxCanEdit()) return;
         const store = pgxLoadStore();
-        const w = pgxTotalWeeks();
+        const progs = (typeof pgxProgramsForRole === "function") ? pgxProgramsForRole() : [];
+        const baseWeeks = pgxTotalWeeks();
+        const baseStart0 = pgxParseDateYMD(String(store.timeline?.startDate||""));
+        let baseStart = baseStart0;
+        for (const p of (progs||[])){
+          const sd = pgxParseDateYMD(String(p?.meta?.startDate||""));
+          if (sd && (!baseStart || sd < baseStart)) baseStart = sd;
+        }
+        if (!baseStart) baseStart = new Date();
+        let displayWeeks = baseWeeks;
+        for (const p of (progs||[])){
+          const pStart = pgxParseDateYMD(String(p?.meta?.startDate||"")) || baseStart0 || baseStart;
+          const off = Math.max(0, pgxWeekDiff(pStart, baseStart));
+          displayWeeks = Math.max(displayWeeks, off + baseWeeks);
+        }
+        const w = displayWeeks;
         const cur = Array.isArray(store.timeline?.manualDates) ? store.timeline.manualDates : [];
         const hint = "Pega las FECHAS (dd/mm) separadas por coma para cada semana (total "+w+").\nEj: 09/02,16/02,23/02,...\n\nDeja vacío y acepta para borrar modo manual.";
         const raw = prompt(hint, cur.join(","));
@@ -3453,21 +3680,7 @@ const SALONES = [
     }
 
 
-    if (btnPng){
-      btnPng.addEventListener("click", ()=>{
-        const wrap = document.getElementById("pgxCanvas");
-        if (!wrap) return;
-        html2canvas(wrap, {backgroundColor:"#ffffff", scale:2}).then(canvas=>{
-          const a = document.createElement("a");
-          a.href = canvas.toDataURL("image/png");
-          a.download = `programa_${(new Date()).toISOString().slice(0,10)}.png`;
-          a.click();
-        }).catch(e=>{
-          console.error(e);
-          toast("No se pudo exportar PNG.");
-        });
-      });
-    }
+    
 
     el.dataset.ready="1";
   }
@@ -3483,34 +3696,36 @@ const SALONES = [
       if (!td) return;
       if (!pgxCanEdit() || !pgxGetEditOn()) return;
 
-      const pgid = String(td.getAttribute("data-pgid")||"");
-      const lane = String(td.getAttribute("data-lane")||"");
-      const start = +td.getAttribute("data-start")||1;
-      const span  = +td.getAttribute("data-span")||1;
-      if (!pgid || !lane) return;
+      const pgid   = String(td.getAttribute("data-pgid")||"");
+      const laneK  = String(td.getAttribute("data-lane")||"");
+      const lstart = +td.getAttribute("data-lstart")||1;  // ✅ local (programa)
+      const lspan  = +td.getAttribute("data-lspan")||1;   // ✅ local span
+      if (!pgid || !laneK) return;
 
       const store = pgxLoadStore();
       const p = store.programs[pgid];
       if (!p) return;
-      const l = (p.config?.lanes||[]).find(x=>x.key===lane);
+
+      const l = (p.config?.lanes||[]).find(x=>x.key===laneK);
       if (!l || l.type!=="cells") return;
 
-      const cur = String((l.values||[])[start-1] || "");
-      const nv = prompt(`Editar ${l.label} (semanas ${start}-${start+span-1})`, cur);
+      const cur = String((l.values||[])[lstart-1] || "");
+      const nv = prompt(`Editar ${l.label} (semanas ${lstart}-${lstart+lspan-1})`, cur);
       if (nv===null) return;
 
       const arr = Array.isArray(l.values) ? l.values : [];
-      for (let i=start-1;i<start-1+span;i++){
+      for (let i=lstart-1;i<lstart-1+lspan;i++){
         if (i>=0 && i<arr.length) arr[i] = String(nv||"");
       }
       l.values = arr;
+
       p.meta.updatedAt = pgxNowISO();
       store.programs[pgid]=p;
       pgxSaveStore(store);
-
       renderPrograma();
     });
   }
+
 
   function renderPrograma(){
     pgxEnsure();
@@ -6046,6 +6261,7 @@ function renderNotasGenerales(){
 
 
 
+
 function ensureMaterialesLayout(){
   const el = document.getElementById("view_materiales");
   if (el.dataset.ready === "1") return;
@@ -6059,116 +6275,119 @@ function ensureMaterialesLayout(){
       <div class="iGrid" id="matGrid"></div>
     </div>
 
-    <div class="card panel12" id="matCrudoCard">
-      <div class="cardtitle">MATERIALES CRUDOS · AVANCE</div>
+    <div class="card panel12" id="matCursoCard">
+      <div class="cardtitle">CONTROL DE MATERIALES POR CURSO</div>
       <div style="color:var(--muted); font-weight:900; margin-bottom:10px;">
-        Vinculado al <b>PROGRAMA</b>: se listan las semanas (códigos de la fila <b>Semana</b>) para marcar avance.
-        AGRARIA usa una carpeta raíz por defecto (puedes cambiarla por programa).
+        Cada <b>CURSO</b> usa la estructura del <b>PROGRAMA</b>: se listan las semanas (códigos de la fila <b>Semana</b>)
+        y se marcan 3 estados: <b>RECIBIDO</b>, <b>DIAGRAMADO</b> e <b>IMPRESO</b>.
       </div>
 
       <div class="mrTop">
         <div class="mrSelRow">
-          <select id="mrProgram"></select>
-          <input id="mrFolder" type="text" placeholder="Link carpeta MATERIAL CRUDO (Drive) para este programa" style="min-width:360px;"/>
-          <button id="mrSaveFolder" class="mrBtn" type="button">GUARDAR</button>
-          <a id="mrOpenFolder" class="mrBtn" target="_blank" rel="noopener" style="text-decoration:none; display:inline-flex; align-items:center;">ABRIR</a>
+          <select id="mcProgram"></select>
+          <select id="mcCourse"></select>
+          <select id="mcFilter">
+            <option value="ALL">VER: TODO</option>
+            <option value="P_REC">PENDIENTE: RECIBIDO</option>
+            <option value="P_DIA">PENDIENTE: DIAGRAMADO</option>
+            <option value="P_IMP">PENDIENTE: IMPRESO</option>
+            <option value="DONE">LISTO: IMPRESO</option>
+          </select>
+
+          <input id="mcLink" type="text" placeholder="Link carpeta del CURSO (Drive)" style="min-width:360px;"/>
+          <button id="mcSaveLink" class="mrBtn" type="button">GUARDAR</button>
+          <a id="mcOpenLink" class="mrBtn" target="_blank" rel="noopener" style="text-decoration:none; display:inline-flex; align-items:center;">ABRIR</a>
         </div>
 
         <div class="mrSelRow">
-          <button id="mrAll" class="mrBtn" type="button">MARCAR TODO</button>
-          <button id="mrClear" class="mrBtn" type="button">LIMPIAR</button>
-          <span class="mrKpi">AVANCE: <b id="mrPct">0%</b> (<span id="mrDone">0</span>/<span id="mrTotal">0</span>)</span>
-          <div class="mrProg"><div id="mrFill" class="mrProgFill"></div></div>
+          <button id="mcAllRec" class="mrBtn" type="button">RECIBIDO: TODO</button>
+          <button id="mcAllDia" class="mrBtn" type="button">DIAGRAMADO: TODO</button>
+          <button id="mcAllImp" class="mrBtn" type="button">IMPRESO: TODO</button>
+          <button id="mcClear"  class="mrBtn" type="button">LIMPIAR</button>
+
+          <span class="mrKpi">REC: <b id="mcRecPct">0%</b></span>
+          <span class="mrKpi">DIA: <b id="mcDiaPct">0%</b></span>
+          <span class="mrKpi">IMP: <b id="mcImpPct">0%</b></span>
         </div>
       </div>
 
-      <div id="mrTableWrap"></div>
+      <div id="mcTableWrap"></div>
     </div>
   `;
 
   // events
-  document.getElementById("mrProgram").addEventListener("change", renderMateriales);
-  document.getElementById("mrSaveFolder").addEventListener("click", ()=>{
-    const pid = document.getElementById("mrProgram").value || "__ALL__";
-    if (pid === "__ALL__") return toast("Selecciona un programa.");
-    const url = String(document.getElementById("mrFolder").value||"").trim();
-    const st = mrLoadStore();
-    if (!st.folders) st.folders = {};
-    st.folders[pid] = url;
-    mrSaveStore(st);
-    toast("Carpeta guardada.");
+  document.getElementById("mcProgram").addEventListener("change", renderMateriales);
+  document.getElementById("mcCourse").addEventListener("change", renderMateriales);
+  document.getElementById("mcFilter").addEventListener("change", renderMateriales);
+
+  document.getElementById("mcSaveLink").addEventListener("click", ()=>{
+    const pid = document.getElementById("mcProgram").value || "__ALL__";
+    const cid = document.getElementById("mcCourse").value || "";
+    if (pid === "__ALL__" || !cid) return toast("Selecciona PROGRAMA y CURSO.");
+    const url = String(document.getElementById("mcLink").value||"").trim();
+    const st = mcLoadStore();
+    if (!st.links) st.links = {};
+    if (!st.links[pid]) st.links[pid] = {};
+    st.links[pid][cid] = url;
+    mcSaveStore(st);
+    toast("Link guardado.");
     renderMateriales();
   });
-  document.getElementById("mrAll").addEventListener("click", ()=>{
-    const pid = document.getElementById("mrProgram").value || "__ALL__";
-    if (pid === "__ALL__") return toast("Selecciona un programa.");
-    const codes = mrWeekCodesForProgram(pid);
-    if (!codes.length) return toast("No hay semanas (códigos) para marcar.");
-    const st = mrLoadStore();
-    if (!st.done) st.done = {};
-    if (!st.done[pid]) st.done[pid] = {};
-    codes.forEach(c=> st.done[pid][c] = true);
-    mrSaveStore(st);
-    renderMateriales();
-  });
-  document.getElementById("mrClear").addEventListener("click", ()=>{
-    const pid = document.getElementById("mrProgram").value || "__ALL__";
-    if (pid === "__ALL__") return toast("Selecciona un programa.");
-    const st = mrLoadStore();
-    if (st.done && st.done[pid]) st.done[pid] = {};
-    mrSaveStore(st);
-    renderMateriales();
-  });
+
+  document.getElementById("mcAllRec").addEventListener("click", ()=> mcMarkAllColumn("rec", true));
+  document.getElementById("mcAllDia").addEventListener("click", ()=> mcMarkAllColumn("dia", true));
+  document.getElementById("mcAllImp").addEventListener("click", ()=> mcMarkAllColumn("imp", true));
+  document.getElementById("mcClear").addEventListener("click", ()=> mcClearAll());
 
   el.dataset.ready = "1";
 }
 
-// --- Material crudo: storage
-const MR_STORE_KEY = "LM_MATERIAL_CRUDO_V1";
+// --- Store (curso x semana x estado)
+const MC_STORE_KEY = "LM_MAT_CURSOS_V1";
 
-// Default: carpeta raíz de MATERIAL CRUDO (AGRARIA)
-const MR_DEFAULT_CRUDO_BY_THEME = {
-  "AGRARIA": "https://drive.google.com/drive/folders/1aPSbjNjE0-jHUOBpOqBUBmZTOqCZ6xXs?usp=drive_link"
-};
+function mcLoadStore(){
+  try{ return JSON.parse(localStorage.getItem(MC_STORE_KEY) || '{"links":{},"status":{}}'); }
+  catch(e){ return {links:{}, status:{}}; }
+}
+function mcSaveStore(st){
+  try{ localStorage.setItem(MC_STORE_KEY, JSON.stringify(st||{links:{},status:{}})); }catch(e){}
+}
 
-function mrDefaultFolderForProgram(programId){
+// --- Cursos por defecto (AGRARIA / AG REGULAR)
+function mcCoursesForProgram(programId){
   const list = (typeof pgxProgramsForRole === "function") ? pgxProgramsForRole() : [];
   const p = list.find(x=>x.id===programId);
-  if (!p) return "";
-  const theme = String(p.meta?.theme||"").toUpperCase();
-  return String(MR_DEFAULT_CRUDO_BY_THEME[theme] || "").trim();
+  const theme = String(p?.meta?.theme||"").toUpperCase();
+
+  if (theme !== "AGRARIA") return [];
+
+  return [
+    { id:"RV",        name:"RAZONAMIENTO VERBAL" },
+    { id:"TXT",       name:"TEXTOS" },
+    { id:"RM",        name:"RAZONAMIENTO MATEMÁTICO" },
+    { id:"ALG",       name:"ÁLGEBRA" },
+    { id:"GEO",       name:"GEOMETRÍA" },
+    { id:"TRIG",      name:"TRIGONOMETRÍA" },
+    { id:"ARI",       name:"ARITMÉTICA" },
+    { id:"FIS",       name:"FÍSICA" },
+    { id:"QUI",       name:"QUÍMICA" },
+    { id:"BIO",       name:"BIOLOGÍA" },
+    { id:"ECO",       name:"ECONOMÍA" },
+    { id:"HIS",       name:"HISTORIA" },
+    { id:"GEOG",      name:"GEOGRAFÍA" },
+    { id:"REF_MAT",   name:"REFORZAMIENTO DE MATEMÁTICAS" },
+  ];
 }
 
-function mrFolderIdFromUrl(url){
-  const s = String(url||"").trim();
-  const m = /\/folders\/([a-zA-Z0-9_-]+)/.exec(s);
-  return m ? m[1] : "";
-}
-
-// Abre búsqueda dentro del folder por código (ej: SE03)
-// Nota: Drive interpreta el query: '<folderId>' in parents and name contains 'SE03'
-function mrSearchInFolderUrl(folderUrl, code){
-  const fid = mrFolderIdFromUrl(folderUrl);
-  const c = String(code||"").trim();
-  if (!fid || !c) return "";
-  const q = `'${fid}' in parents and name contains '${c}'`;
-  return "https://drive.google.com/drive/search?q=" + encodeURIComponent(q);
-}
-
-function mrLoadStore(){
-  try{ return JSON.parse(localStorage.getItem(MR_STORE_KEY) || '{"done":{},"folders":{},"links":{}}'); }
-  catch(e){ return {done:{}, folders:{}, links:{}}; }
-}
-function mrSaveStore(st){
-  try{ localStorage.setItem(MR_STORE_KEY, JSON.stringify(st||{done:{},folders:{},links:{}})); }catch(e){}
-}
-
-function mrWeekCodesForProgram(programId){
-  const list = (typeof pgxProgramsForRole === "function") ? pgxProgramsForRole() : [];
-  const p = list.find(x=>x.id===programId);
+function mcWeekCodes(programId){
+  // Lee la fila "Semana" del módulo PROGRAMA (códigos únicos, no vacíos).
+  const store = (typeof pgxLoadStore === "function") ? pgxLoadStore() : null;
+  const p = store && store.programs ? store.programs[programId] : null;
   if (!p) return [];
+
   const lane = (p.config?.lanes||[]).find(l=>String(l.key||"").toLowerCase()==="semana");
   const vals = Array.isArray(lane?.values) ? lane.values : [];
+
   const out = [];
   const seen = new Set();
   for (const v of vals){
@@ -6181,14 +6400,68 @@ function mrWeekCodesForProgram(programId){
   return out;
 }
 
-function mrProgress(programId){
-  const codes = mrWeekCodesForProgram(programId);
-  const st = mrLoadStore();
-  const doneMap = (st.done && st.done[programId]) ? st.done[programId] : {};
-  const done = codes.filter(c=> !!doneMap[c]).length;
-  const total = codes.length;
-  const pct = total ? Math.round((done/total)*100) : 0;
-  return {done,total,pct,codes,doneMap,st};
+function mcEnsureStatus(st, pid, cid){
+  if (!st.status) st.status = {};
+  if (!st.status[pid]) st.status[pid] = {};
+  if (!st.status[pid][cid]) st.status[pid][cid] = {};
+  return st.status[pid][cid];
+}
+
+function mcGetFlags(st, pid, cid, code){
+  const map = mcEnsureStatus(st, pid, cid);
+  if (!map[code]) map[code] = {rec:false, dia:false, imp:false};
+  const o = map[code];
+  return {rec:!!o.rec, dia:!!o.dia, imp:!!o.imp};
+}
+
+function mcSetFlag(st, pid, cid, code, field, val){
+  const map = mcEnsureStatus(st, pid, cid);
+  if (!map[code]) map[code] = {rec:false, dia:false, imp:false};
+  map[code][field] = !!val;
+}
+
+function mcProgress(pid, cid){
+  const codes = mcWeekCodes(pid);
+  const st = mcLoadStore();
+  const map = (st.status && st.status[pid] && st.status[pid][cid]) ? st.status[pid][cid] : {};
+  const total = codes.length || 0;
+
+  let rec=0, dia=0, imp=0;
+  for (const c of codes){
+    const o = map[c] || {};
+    if (o.rec) rec++;
+    if (o.dia) dia++;
+    if (o.imp) imp++;
+  }
+  const pct = (x)=> total ? Math.round((x/total)*100) : 0;
+  return {total, rec, dia, imp, recPct:pct(rec), diaPct:pct(dia), impPct:pct(imp), st};
+}
+
+function mcSelected(){
+  const pid = document.getElementById("mcProgram")?.value || "__ALL__";
+  const cid = document.getElementById("mcCourse")?.value || "";
+  return {pid, cid};
+}
+
+function mcMarkAllColumn(field, val){
+  const {pid, cid} = mcSelected();
+  if (pid === "__ALL__" || !cid) return toast("Selecciona PROGRAMA y CURSO.");
+  const codes = mcWeekCodes(pid);
+  if (!codes.length) return toast("No hay semanas (códigos) para marcar. Completa la fila Semana en PROGRAMA.");
+
+  const st = mcLoadStore();
+  codes.forEach(code=> mcSetFlag(st, pid, cid, code, field, val));
+  mcSaveStore(st);
+  renderMateriales();
+}
+
+function mcClearAll(){
+  const {pid, cid} = mcSelected();
+  if (pid === "__ALL__" || !cid) return toast("Selecciona PROGRAMA y CURSO.");
+  const st = mcLoadStore();
+  if (st.status && st.status[pid] && st.status[pid][cid]) st.status[pid][cid] = {};
+  mcSaveStore(st);
+  renderMateriales();
 }
 
 function renderMateriales(){
@@ -6217,129 +6490,155 @@ function renderMateriales(){
     `;
   }).join("");
 
-  // ===== parte 2: materiales crudos + avance (solo Admin/Tutor) =====
-  const card = document.getElementById("matCrudoCard");
+  // ===== parte 2: control por curso (solo Admin/Tutor) =====
+  const card = document.getElementById("matCursoCard");
   if (!card) return;
   if (CURRENT_ROLE === "alumno"){ card.style.display = "none"; return; }
   card.style.display = "";
 
   const programs = (typeof pgxProgramsForRole === "function") ? pgxProgramsForRole() : [];
-  const sel = document.getElementById("mrProgram");
-  const prev = sel.value || "__ALL__";
 
-  sel.innerHTML = `<option value="__ALL__">PROGRAMA: TODOS</option>` + programs.map(p=>{
+  // program select
+  const selP = document.getElementById("mcProgram");
+  const prevP = selP.value || "__ALL__";
+  selP.innerHTML = `<option value="__ALL__">PROGRAMA: TODOS</option>` + programs.map(p=>{
     const nm = String(p.meta?.name||"PROGRAMA").toUpperCase();
     const sc = String(p.meta?.scope||"ALL").toUpperCase();
     return `<option value="${escapeHtml(p.id)}">${escapeHtml(nm)}${sc && sc!=="ALL" ? " · " + escapeHtml(sc) : ""}</option>`;
   }).join("");
+  const existsP = Array.from(selP.options).some(o=>o.value===prevP);
+  selP.value = existsP ? prevP : "__ALL__";
 
-  // mantener selección
-  const exists = Array.from(sel.options).some(o=>o.value===prev);
-  sel.value = exists ? prev : "__ALL__";
+  const wrap = document.getElementById("mcTableWrap");
+  const st = mcLoadStore();
 
-  const st = mrLoadStore();
+  // Vista TODOS: resumen por programa → cursos
+  if (selP.value === "__ALL__"){
+    document.getElementById("mcCourse").innerHTML = `<option value="">CURSO: —</option>`;
+    document.getElementById("mcLink").value = "";
+    document.getElementById("mcLink").disabled = true;
+    document.getElementById("mcOpenLink").href = "#";
+    document.getElementById("mcOpenLink").classList.add("disabled");
+    document.getElementById("mcOpenLink").textContent = "ABRIR";
+    document.getElementById("mcRecPct").textContent = "—";
+    document.getElementById("mcDiaPct").textContent = "—";
+    document.getElementById("mcImpPct").textContent = "—";
 
-  const folderInput = document.getElementById("mrFolder");
-  const openA = document.getElementById("mrOpenFolder");
-  const wrap = document.getElementById("mrTableWrap");
-
-  // Vista TODOS: resumen por programa
-  if (sel.value === "__ALL__"){
-    folderInput.value = "";
-    folderInput.disabled = true;
-    openA.href = "#";
-    openA.classList.add("disabled");
-    openA.textContent = "ABRIR";
-
-    document.getElementById("mrPct").textContent = "—";
-    document.getElementById("mrDone").textContent = "—";
-    document.getElementById("mrTotal").textContent = "—";
-    document.getElementById("mrFill").style.width = "0%";
-
-    const rows = programs.map(p=>{
+    const blocks = programs.map(p=>{
       const pid = p.id;
+      const courses = mcCoursesForProgram(pid);
+      if (!courses.length) return "";
       const nm = String(p.meta?.name||"PROGRAMA").toUpperCase();
-      const pr = mrProgress(pid);
-      let folder = String((st.folders||{})[pid]||"").trim();
-      if (!folder) folder = mrDefaultFolderForProgram(pid);
-      const pct = pr.total ? pr.pct : 0;
-      return `
-        <div class="card" style="border:1px solid rgba(0,0,0,.08); border-radius:16px; padding:12px; margin-top:10px; box-shadow:none;">
-          <div class="mrTop" style="margin:0;">
-            <div class="mrKpi">${escapeHtml(nm)} · <b>${pct}%</b> (${pr.done}/${pr.total})</div>
-            <div class="mrSelRow">
-              <a class="mrBtn" href="#" onclick="(function(){ try{ localStorage.setItem('${PGX_MODE_KEY}','ONE'); localStorage.setItem('${PGX_ACTIVE_KEY}','${pid}'); }catch(e){}; setView('programa'); })(); return false;">VER PROGRAMA</a>
-              <a class="mrBtn ${folder ? '' : 'disabled'}" href="${escapeHtml(folder||'#')}" target="_blank" rel="noopener">ABRIR CRUDO</a>
+
+      const items = courses.map(c=>{
+        const pr = mcProgress(pid, c.id);
+        const url = String((st.links && st.links[pid] && st.links[pid][c.id]) ? st.links[pid][c.id] : "").trim();
+        const openCls = url ? "" : "disabled";
+
+        return `
+          <div class="card" style="border:1px solid rgba(0,0,0,.08); border-radius:16px; padding:12px; box-shadow:none; margin-top:10px;">
+            <div class="mrTop" style="margin:0;">
+              <div class="mrKpi">${escapeHtml(c.name)} · <b>IMP ${pr.impPct}%</b> (REC ${pr.recPct}% · DIA ${pr.diaPct}%)</div>
+              <div class="mrSelRow">
+                <a class="mrBtn" href="#" onclick="(function(){ try{ document.getElementById('mcProgram').value='${escapeHtml(pid)}'; }catch(e){}; renderMateriales(); setTimeout(()=>{ try{ document.getElementById('mcCourse').value='${escapeHtml(c.id)}'; renderMateriales(); }catch(e){} }, 0); })(); return false;">VER</a>
+                <a class="mrBtn ${openCls}" href="${escapeHtml(url||'#')}" target="_blank" rel="noopener">ABRIR</a>
+              </div>
             </div>
           </div>
-          <div class="mrProg" style="width:100%; margin-top:10px;"><div class="mrProgFill" style="width:${pct}%;"></div></div>
+        `;
+      }).join("");
+
+      return `
+        <div class="card" style="border:1px solid rgba(0,0,0,.08); border-radius:16px; padding:12px; box-shadow:none; margin-top:12px;">
+          <div class="cardtitle" style="margin:0 0 6px 0;">${escapeHtml(nm)}</div>
+          <div style="color:var(--muted); font-weight:900;">Cursos configurados (AGRARIA).</div>
+          ${items}
         </div>
       `;
     }).join("");
 
-    wrap.innerHTML = rows || `<div class="pgEmpty">No hay programas para mostrar.</div>`;
+    wrap.innerHTML = blocks || `<div class="pgEmpty">No hay cursos configurados para los programas actuales.</div>`;
     return;
   }
 
-  // Vista UNO: checklist por semana
-  folderInput.disabled = false;
-  const pid = sel.value;
-  let folder = String((st.folders||{})[pid]||"").trim();
-  if (!folder) folder = mrDefaultFolderForProgram(pid);
-  folderInput.value = folder;
+  // Vista UNO: checklist por curso
+  const pid = selP.value;
 
-  if (folder){
-    openA.href = folder;
+  const courses = mcCoursesForProgram(pid);
+  const selC = document.getElementById("mcCourse");
+  const prevC = selC.value || "";
+  selC.innerHTML = courses.length
+    ? courses.map(c=> `<option value="${escapeHtml(c.id)}">${escapeHtml(c.name)}</option>`).join("")
+    : `<option value="">CURSO: (SIN CONFIG)</option>`;
+
+  const existsC = Array.from(selC.options).some(o=>o.value===prevC);
+  selC.value = existsC ? prevC : (courses[0]?.id || "");
+
+  const cid = selC.value || "";
+  if (!cid){
+    document.getElementById("mcLink").value = "";
+    document.getElementById("mcLink").disabled = true;
+    wrap.innerHTML = `<div class="pgEmpty">Este programa no tiene cursos configurados (solo AGRARIA está definido por ahora).</div>`;
+    return;
+  }
+
+  // link por curso
+  const link = String((st.links && st.links[pid] && st.links[pid][cid]) ? st.links[pid][cid] : "").trim();
+  const linkInp = document.getElementById("mcLink");
+  linkInp.disabled = false;
+  linkInp.value = link;
+
+  const openA = document.getElementById("mcOpenLink");
+  if (link){
+    openA.href = link;
     openA.classList.remove("disabled");
+    openA.textContent = "ABRIR";
   }else{
     openA.href = "#";
     openA.classList.add("disabled");
+    openA.textContent = "ABRIR (PENDIENTE)";
   }
-  openA.textContent = folder ? "ABRIR" : "ABRIR (PENDIENTE)";
 
-  const pr = mrProgress(pid);
-  document.getElementById("mrPct").textContent = pr.pct + "%";
-  document.getElementById("mrDone").textContent = String(pr.done);
-  document.getElementById("mrTotal").textContent = String(pr.total);
-  document.getElementById("mrFill").style.width = pr.pct + "%";
-
-  if (!pr.codes.length){
-    wrap.innerHTML = `<div class="pgEmpty">Este programa no tiene semanas (códigos) en la fila <b>Semana</b>. Completa esa fila en PROGRAMA para habilitar el avance.</div>`;
+  const codes = mcWeekCodes(pid);
+  if (!codes.length){
+    document.getElementById("mcRecPct").textContent = "0%";
+    document.getElementById("mcDiaPct").textContent = "0%";
+    document.getElementById("mcImpPct").textContent = "0%";
+    wrap.innerHTML = `<div class="pgEmpty">Este programa no tiene semanas (códigos) en la fila <b>Semana</b>. Completa esa fila en PROGRAMA para habilitar el control por curso.</div>`;
     return;
   }
 
-  const isAdmin = (CURRENT_ROLE === "admin");
-  const links = (st.links && st.links[pid]) ? st.links[pid] : {};
+  const pr = mcProgress(pid, cid);
+  document.getElementById("mcRecPct").textContent = pr.recPct + "%";
+  document.getElementById("mcDiaPct").textContent = pr.diaPct + "%";
+  document.getElementById("mcImpPct").textContent = pr.impPct + "%";
 
-  const rows = pr.codes.map(code=>{
-    const done = !!pr.doneMap[code];
-    const link = String(links[code]||"").trim();
-    const open = link || folder || "";
-    const openCls = open ? "" : "disabled";
-    const openHref = open || "#";
-    const searchUrl = mrSearchInFolderUrl(folder, code);
-    const searchCls = searchUrl ? "" : "disabled";
+  const filter = document.getElementById("mcFilter").value || "ALL";
 
-    const linkEdit = isAdmin ? `
-      <input data-linkcode="${escapeHtml(code)}" type="text" value="${escapeHtml(link)}" placeholder="Link específico (opcional)"/>
-    ` : `<span style="color:var(--muted); font-weight:900;">${link ? "Link definido" : "—"}</span>`;
+  const rows = codes.map(code=>{
+    const f = mcGetFlags(pr.st, pid, cid, code);
+
+    const show =
+      (filter==="ALL") ||
+      (filter==="P_REC" && !f.rec) ||
+      (filter==="P_DIA" && !f.dia) ||
+      (filter==="P_IMP" && !f.imp) ||
+      (filter==="DONE"  &&  f.imp);
+
+    if (!show) return "";
 
     return `
       <tr>
         <td><b>${escapeHtml(code)}</b></td>
-        <td>
-          <label style="display:flex; gap:8px; align-items:center; font-weight:1000;">
-            <input type="checkbox" data-code="${escapeHtml(code)}" ${done ? "checked":""}/>
-            <span class="${done ? "mrDone":"mrTodo"}">${done ? "HECHO":"PENDIENTE"}</span>
-          </label>
+        <td style="text-align:center;">
+          <input type="checkbox" data-code="${escapeHtml(code)}" data-field="rec" ${f.rec ? "checked":""}/>
         </td>
-        <td>
-          <div style="display:flex; gap:10px; flex-wrap:wrap;">
-            <a class="mrLink ${openCls}" href="${escapeHtml(openHref)}" target="_blank" rel="noopener">ABRIR</a>
-            <a class="mrLink ${searchCls}" href="${escapeHtml(searchUrl||'#')}" target="_blank" rel="noopener">BUSCAR</a>
-          </div>
+        <td style="text-align:center;">
+          <input type="checkbox" data-code="${escapeHtml(code)}" data-field="dia" ${f.dia ? "checked":""}/>
         </td>
-        <td>${linkEdit}</td>
+        <td style="text-align:center;">
+          <input type="checkbox" data-code="${escapeHtml(code)}" data-field="imp" ${f.imp ? "checked":""}/>
+        </td>
       </tr>
     `;
   }).join("");
@@ -6349,45 +6648,31 @@ function renderMateriales(){
       <thead>
         <tr>
           <th>SEMANA</th>
-          <th>AVANCE</th>
-          <th>CARPETA</th>
-          <th>${isAdmin ? "LINK POR SEMANA (OPCIONAL)" : "LINK"}</th>
+          <th>RECIBIDO</th>
+          <th>DIAGRAMADO</th>
+          <th>IMPRESO</th>
         </tr>
       </thead>
-      <tbody>${rows}</tbody>
+      <tbody>${rows || ""}</tbody>
     </table>
-    ${isAdmin ? `<div style="margin-top:10px; color:var(--muted); font-weight:900;">
-      Tip Admin: puedes definir links por semana (por ejemplo carpeta SE03) y quedarán guardados.
-    </div>`:""}
+    <div style="margin-top:10px; color:var(--muted); font-weight:900;">
+      Tip: usa el filtro para ver solo pendientes. “IMPRESO” representa el estado final.
+    </div>
   `;
 
-  // wire checkboxes + link inputs
-  wrap.querySelectorAll("input[type=checkbox][data-code]").forEach(ch=>{
+  // wire checkboxes
+  wrap.querySelectorAll("input[type=checkbox][data-code][data-field]").forEach(ch=>{
     ch.addEventListener("change", ()=>{
       const code = String(ch.getAttribute("data-code")||"");
-      const st2 = mrLoadStore();
-      if (!st2.done) st2.done = {};
-      if (!st2.done[pid]) st2.done[pid] = {};
-      st2.done[pid][code] = !!ch.checked;
-      mrSaveStore(st2);
+      const field = String(ch.getAttribute("data-field")||"");
+      const st2 = mcLoadStore();
+      mcSetFlag(st2, pid, cid, code, field, !!ch.checked);
+      mcSaveStore(st2);
       renderMateriales();
     });
   });
-
-  if (isAdmin){
-    wrap.querySelectorAll("input[data-linkcode]").forEach(inp=>{
-      inp.addEventListener("change", ()=>{
-        const code = String(inp.getAttribute("data-linkcode")||"");
-        const url = String(inp.value||"").trim();
-        const st2 = mrLoadStore();
-        if (!st2.links) st2.links = {};
-        if (!st2.links[pid]) st2.links[pid] = {};
-        st2.links[pid][code] = url;
-        mrSaveStore(st2);
-      });
-    });
-  }
 }
+
 
 // ===================== LISTAS (NUEVO) =====================
 const LISTAS = [
