@@ -1750,7 +1750,8 @@
     font-weight:1100;
   }
   .pxMonthEnd{
-    border-right:3px solid rgba(15,23,42,0.55) !important;
+    border-right:none !important;
+    box-shadow: inset -3px 0 0 rgba(15,23,42,0.55);
   }
 
 /* Encabezados fijos (mes + fecha) dentro del scroll */
@@ -1806,6 +1807,13 @@
   .pxCellIn{ width:100%; min-width:62px; display:flex; align-items:center; justify-content:center; text-align:center; }
   .pxEditable{ cursor:pointer; }
   .pxEditable:hover{ outline:3px solid rgba(209,11,11,0.18); outline-offset:-3px; }
+
+  /* Marco negro por programa (estilo Excel) */
+  .pxPTop > *{ border-top:2px solid rgba(15,23,42,0.80) !important; }
+  .pxPBot > *{ border-bottom:2px solid rgba(15,23,42,0.80) !important; }
+  tr.pxPRow > *:last-child{ border-right:2px solid rgba(15,23,42,0.80) !important; }
+  tr.pxPRow .pxRowHead{ border-left:2px solid rgba(15,23,42,0.80) !important; }
+  .pxProg{ border-left:2px solid rgba(15,23,42,0.80) !important; border-top:2px solid rgba(15,23,42,0.80) !important; border-bottom:2px solid rgba(15,23,42,0.80) !important; }
 
   .pxEtapaCell{ background: rgba(2,6,23,0.04); font-weight:1100; }
   .pxGap td{ border:none !important; height:14px; background:transparent; }
@@ -2669,6 +2677,20 @@ function pgxInsertProgramId(store, newProgram){
     if (!Number.isFinite(z)) return 0.85;
     return Math.max(0.55, Math.min(1.25, z));
   }
+
+  function pgxZoomOption(z){
+    const n = parseFloat(z);
+    const opts = ["1","0.95","0.90","0.85","0.80","0.75","0.70"];
+    if (!Number.isFinite(n)) return "0.85";
+    let best = opts[0];
+    let bestD = 1e9;
+    for (const s of opts){
+      const v = parseFloat(s);
+      const d = Math.abs(v - n);
+      if (d < bestD){ bestD = d; best = s; }
+    }
+    return best;
+  }
   function pgxSetZoom(z){
     const allowed = ["0.55","0.60","0.65","0.70","0.75","0.80","0.85","0.90","0.95","1","1.05","1.10","1.15","1.20","1.25"];
     let v = +z;
@@ -2861,20 +2883,25 @@ function pgxUpgradeProgram(p, baseWeeks){
     const monthEnds = pgxMonthEnds(dates);
 
 
+    let _accM = 0;
     const headMonths = monthRuns.length
-      ? monthRuns.map((r)=> `<th class="pxMonth" colspan="${r.span}">${escapeHtml(r.label)}</th>`).join("")
+      ? monthRuns.map((r)=>{
+          _accM += (+r.span||0);
+          const cls = (_accM < displayWeeks) ? "pxMonth pxMonthEnd" : "pxMonth";
+          return `<th class="${cls}" colspan="${r.span}">${escapeHtml(r.label)}</th>`;
+        }).join("")
       : `<th class="pxMonth" colspan="${displayWeeks}">—</th>`;
 
     const headDates = (manualDates && manualDates.length === displayWeeks)
       ? manualDates.map((s,i)=>{
           const wk = i+1;
-          const cls = monthEnds.has(wk) ? "pxDate pxMonthEnd" : "pxDate";
+          const cls = "pxDate";
           const txt = String(s||"").trim() || (dates[i] ? pgxFmtDDMM(dates[i]) : String(wk));
           return `<th class="${cls}">${escapeHtml(txt)}</th>`;
         }).join("")
       : dates.map((d,i)=>{
           const wk = i+1;
-          const cls = monthEnds.has(wk) ? "pxDate pxMonthEnd" : "pxDate";
+          const cls = "pxDate";
           return `<th class="${cls}">${escapeHtml(pgxFmtDDMM(d))}</th>`;
         }).join("");
 
@@ -2995,15 +3022,17 @@ function pgxUpgradeProgram(p, baseWeeks){
       }).join("");
 
       const actRow = `
-        <tr class="pxActRow">
+        <tr class="pxActRow pxPRow pxPTop">
           ${progCell}
           <th class="pxRowHead pxActHead" style="background:${colors.bar}; color:#fff;">ACTIVIDAD</th>
           ${actCells}
         </tr>
       `;
 
-      const laneHtml = laneRows.map(l=>{
+      const laneHtml = laneRows.map((l,li)=>{
         const label = String(l.label||"").trim();
+        const isLast = (li === laneRows.length-1);
+        const rowCls = "pxPRow" + (isLast ? " pxPBot" : "");
 
         // ETAPA (segments) – no editable (pero centrado)
         if (l.type==="segments"){
@@ -3026,11 +3055,11 @@ function pgxUpgradeProgram(p, baseWeeks){
               const cls = "pxSeg pxWOff";
               return `<td class="${cls}" colspan="${sp}" style="background:${colors.off};">&nbsp;</td>`;
             }
-            return `<td class="pxSeg pxEtapaCell" colspan="${sp}" style="background:${colors.cell};">${escapeHtml(txt) || "&nbsp;"}</td>`;
+            return `<td class="pxSeg pxEtapaCell" colspan="${sp}">${escapeHtml(txt) || "&nbsp;"}</td>`;
           }).join("");
 
           return `
-            <tr>
+            <tr class="${rowCls}">
               <th class="pxRowHead">${escapeHtml(label)}</th>
               ${tds}
             </tr>
@@ -3067,12 +3096,12 @@ function pgxUpgradeProgram(p, baseWeeks){
           const cls = "pxCell" + (canEdit ? " pxEditable" : "") + (isOut ? " pxWOff" : "");
           const content = isOut ? "&nbsp;" : (escapeHtml(txt) || "&nbsp;");
 
-          const bgStyle = isOut ? `background:${colors.off};` : `background:${colors.cell};`;
+          const bgStyle = isOut ? `background:${colors.off};` : `background:#ffffff;`;
           return `<td class="${cls}" colspan="${sp}" ${data} style="${bgStyle}"><div class="pxCellIn">${content}</div></td>`;
         }).join("");
 
         return `
-          <tr>
+          <tr class="${rowCls}">
             <th class="pxRowHead">${escapeHtml(label)}</th>
             ${tds}
           </tr>
@@ -3126,7 +3155,7 @@ function pgxUpgradeProgram(p, baseWeeks){
 
     if (start) start.value = String(vStart||"");
     if (weeks) weeks.value = String(vWeeks);
-    if (zoom)  zoom.value  = String(pgxGetZoom());
+    if (zoom)  zoom.value  = pgxZoomOption(pgxGetZoom());
     if (mode)  mode.value  = pgxGetMode();
     if (edit){
       edit.style.display = pgxCanEdit() ? "" : "none";
@@ -6462,15 +6491,7 @@ function ensureMaterialesLayout(){
         <div class="mrSelRow">
           <select id="mcProgram"></select>
           <select id="mcCourse"></select>
-          <select id="mcFilter">
-            <option value="ALL">VER: TODO</option>
-            <option value="P_REC">PENDIENTE: RECIBIDO</option>
-            <option value="P_DIA">PENDIENTE: DIAGRAMADO</option>
-            <option value="P_IMP">PENDIENTE: IMPRESO</option>
-            <option value="DONE">LISTO: IMPRESO</option>
-          </select>
-
-          <input id="mcLink" type="text" placeholder="Link carpeta del CURSO (Drive)" style="min-width:360px;"/>
+<input id="mcLink" type="text" placeholder="Link carpeta del CURSO (Drive)" style="min-width:360px;"/>
           <button id="mcSaveLink" class="mrBtn" type="button">GUARDAR</button>
           <a id="mcOpenLink" class="mrBtn" target="_blank" rel="noopener" style="text-decoration:none; display:inline-flex; align-items:center;">ABRIR</a>
         </div>
@@ -6492,28 +6513,28 @@ function ensureMaterialesLayout(){
   `;
 
   // events
-  document.getElementById("mcProgram").addEventListener("change", renderMateriales);
-  document.getElementById("mcCourse").addEventListener("change", renderMateriales);
-  document.getElementById("mcFilter").addEventListener("change", renderMateriales);
+  document.getElementById("mcProgram")?.addEventListener("change", renderMateriales);
+  document.getElementById("mcCourse")?.addEventListener("change", renderMateriales);
+  document.getElementById("mcFilter")?.addEventListener("change", renderMateriales);
 
-  document.getElementById("mcSaveLink").addEventListener("click", ()=>{
+  document.getElementById("mcSaveLink")?.addEventListener("click", ()=>{
     const pid = document.getElementById("mcProgram").value || "__ALL__";
     const cid = document.getElementById("mcCourse").value || "";
     if (pid === "__ALL__" || !cid) return toast("Selecciona PROGRAMA y CURSO.");
     const url = String(document.getElementById("mcLink").value||"").trim();
     const st = mcLoadStore();
     if (!st.links) st.links = {};
-    if (!st.links[pid]) st.links[pid] = {};
-    st.links[pid][cid] = url;
+    if (!st.links[pid0]) st.links[pid0] = {};
+    st.links[pid0][cid0] = url;
     mcSaveStore(st);
     toast("Link guardado.");
     renderMateriales();
   });
 
-  document.getElementById("mcAllRec").addEventListener("click", ()=> mcMarkAllColumn("rec", true));
-  document.getElementById("mcAllDia").addEventListener("click", ()=> mcMarkAllColumn("dia", true));
-  document.getElementById("mcAllImp").addEventListener("click", ()=> mcMarkAllColumn("imp", true));
-  document.getElementById("mcClear").addEventListener("click", ()=> mcClearAll());
+  document.getElementById("mcAllRec")?.addEventListener("click", ()=> mcMarkAllColumn("rec", true));
+  document.getElementById("mcAllDia")?.addEventListener("click", ()=> mcMarkAllColumn("dia", true));
+  document.getElementById("mcAllImp")?.addEventListener("click", ()=> mcMarkAllColumn("imp", true));
+  document.getElementById("mcClear")?.addEventListener("click", ()=> mcClearAll());
 
   el.dataset.ready = "1";
 }
@@ -6745,6 +6766,50 @@ function renderMateriales(){
     const v = Array.isArray(lane?.values) ? lane.values : [];
     return Array.from({length:baseWeeks}, (_,i)=> String(v[i]||`SEM${i+1}`));
   }
+  function getPlannedRange(p){
+    const baseWeeks = pgxTotalWeeks();
+    const win = (typeof pgxProgramWindow==="function") ? pgxProgramWindow(p, baseWeeks) : {start:1,end:baseWeeks};
+    let wStart = Math.max(1, Math.min(baseWeeks, +win.start || 1));
+    let wEnd   = Math.max(wStart, Math.min(baseWeeks, +win.end || baseWeeks));
+
+    let first = Infinity;
+    let last  = 0;
+
+    const lanes = (p?.config?.lanes||[]).filter(l=>l && l.type==="cells");
+    for (const l of lanes){
+      const vals = Array.isArray(l.values) ? l.values : [];
+      for (let i=wStart-1; i<=wEnd-1; i++){
+        const s = String(vals[i]||"").trim();
+        if (!s) continue;
+        if ((i+1) < first) first = i+1;
+        if ((i+1) > last)  last  = i+1;
+      }
+    }
+    if (first === Infinity) first = wStart;
+    if (last === 0) last = wEnd;
+
+    first = Math.max(wStart, Math.min(first, wEnd));
+    last  = Math.max(first, Math.min(last, wEnd));
+    return {first, last, wStart, wEnd};
+  }
+
+  function mcProgressRange(st, pid, cid, codes, first, last){
+    const map = (st.status && st.status[pid] && st.status[pid][cid]) ? st.status[pid][cid] : {};
+    const total = Math.max(0, (last - first + 1));
+
+    let rec=0, dia=0, imp=0, weekOk=0;
+    for (let i=first-1; i<=last-1; i++){
+      const code = String(codes[i] || `SEM${i+1}`);
+      const o = map[code] || {};
+      if (o.rec) rec++;
+      if (o.dia) dia++;
+      if (o.imp) imp++;
+      if (o.rec && o.dia && o.imp) weekOk++;
+    }
+    const pct = (x)=> total ? Math.round((x/total)*100) : 0;
+    return {total, rec, dia, imp, weekOk, recPct:pct(rec), diaPct:pct(dia), impPct:pct(imp), weekOkPct:pct(weekOk)};
+  }
+
 
   // build UI
   card.innerHTML = `
@@ -6772,14 +6837,10 @@ function renderMateriales(){
           </select>
         </label>
 
-        <select id="mcF2" style="padding:8px 10px; border-radius:12px; border:1px solid var(--border); font-weight:900;">
-          <option value="ALL">VER: TODO</option>
-          <option value="P_REC">PENDIENTE: RECIBIDO</option>
-          <option value="P_DIA">PENDIENTE: DIAGRAMADO</option>
-          <option value="P_IMP">PENDIENTE: IMPRESO</option>
-          <option value="DONE">LISTO: IMPRESO</option>
-        </select>
-        ${canWork ? `<button id="mcEditBtn" class="btn ${matEditOn?'primary':'ghost'}" type="button" style="margin-left:6px;">${matEditOn?'EDITANDO':'EDITAR'}</button>` : ""}
+        <a id="mcOpen2" class="btn ghost" target="_blank" rel="noopener" style="margin-left:6px; text-decoration:none;">CARPETA</a>
+        ${(canEdit && matEditOn) ? '<input id="mcLink2" type="text" placeholder="Link carpeta (Drive)" style="min-width:320px; padding:8px 10px; border-radius:12px; border:1px solid var(--border); font-weight:900;"/><button id="mcSaveLink2" class="btn ghost" type="button">GUARDAR LINK</button>' : ""}
+
+${canWork ? `<button id="mcEditBtn" class="btn ${matEditOn?'primary':'ghost'}" type="button" style="margin-left:6px;">${matEditOn?'EDITANDO':'EDITAR'}</button>` : ""}
       </div>
     </div>
 
@@ -6799,10 +6860,44 @@ function renderMateriales(){
   // set selects values
   const selP = card.querySelector("#mcP2");
   const selC = card.querySelector("#mcC2");
-  const selF = card.querySelector("#mcF2");
   if (selP) selP.value = prog ? prog.id : "";
   if (selC) selC.value = course || (courses[0]||"");
-  if (selF) selF.value = localStorage.getItem("LM_MAT_UI_FILTER") || "ALL";
+
+  // link de carpeta por curso (Admin configura; Tutor/Alumno abre)
+  const st0 = mcLoadStore();
+  const pid0 = String(selP?.value||"");
+  const cid0 = String(selC?.value||"");
+  const curUrl = String((st0.links && st0.links[pid0] && st0.links[pid0][cid0]) ? st0.links[pid0][cid0] : "").trim();
+  const openBtn = card.querySelector("#mcOpen2");
+  const linkInp = card.querySelector("#mcLink2");
+  const saveBtn = card.querySelector("#mcSaveLink2");
+
+  if (openBtn){
+    if (curUrl){
+      openBtn.setAttribute("href", curUrl);
+      openBtn.classList.remove("disabled");
+      openBtn.style.pointerEvents = "";
+      openBtn.style.opacity = "1";
+    }else{
+      openBtn.setAttribute("href", "#");
+      openBtn.style.pointerEvents = "none";
+      openBtn.style.opacity = "0.55";
+      openBtn.title = "Sin link configurado (Admin).";
+    }
+  }
+  if (linkInp) linkInp.value = curUrl;
+
+  saveBtn?.addEventListener("click", ()=>{
+    if (!canEdit) return toast("Solo Admin puede configurar links.");
+    const url = String(linkInp?.value||"").trim();
+    const st = mcLoadStore();
+    if (!st.links) st.links = {};
+    if (!st.links[pid0]) st.links[pid0] = {};
+    st.links[pid0][cid0] = url;
+    mcSaveStore(st);
+    toast("Link guardado.");
+    renderMateriales();
+  });
 
   selP?.addEventListener("change", ()=>{
     localStorage.setItem(PROG_KEY, String(selP.value||""));
@@ -6810,10 +6905,6 @@ function renderMateriales(){
   });
   selC?.addEventListener("change", ()=>{
     localStorage.setItem(COURSE_KEY, String(selC.value||""));
-    renderMateriales();
-  });
-  selF?.addEventListener("change", ()=>{
-    localStorage.setItem("LM_MAT_UI_FILTER", String(selF.value||"ALL"));
     renderMateriales();
   });
 
@@ -6835,22 +6926,23 @@ function renderMateriales(){
 
   const pid = prog.id;
   const cid = String(selC?.value||"");
-  const filter = String(selF?.value||"ALL");
 
   // dates per program
   const pStart = pgxParseDateYMD(String(prog?.meta?.startDate||"")) || pgxParseDateYMD(String(store.timeline?.startDate||"")) || new Date();
   const codes = getSemanaCodes(prog);
+  const range = getPlannedRange(prog);
 
   // progress
   const st = mcLoadStore();
-  const pr = mcProgress(st, pid, cid, codes);
+  const pr = mcProgressRange(st, pid, cid, codes, range.first, range.last);
 
   const progBars = `
-    <div style="display:grid; grid-template-columns: repeat(3, minmax(180px, 1fr)); gap:10px; margin-bottom:12px;">
+    <div style="display:grid; grid-template-columns: repeat(4, minmax(180px, 1fr)); gap:10px; margin-bottom:12px;">
       ${[
         {k:"rec", t:"RECIBIDO", v:pr.recPct},
         {k:"dia", t:"DIAGRAMADO", v:pr.diaPct},
         {k:"imp", t:"IMPRESO", v:pr.impPct},
+        {k:"wk",  t:"SEMANA OK", v:pr.weekOkPct},
       ].map(o=>`
         <div style="border:1px solid var(--border); border-radius:14px; padding:10px 12px; background:#fff;">
           <div style="display:flex; justify-content:space-between; align-items:center; font-weight:950; margin-bottom:6px;">
@@ -6860,7 +6952,7 @@ function renderMateriales(){
             <div style="height:10px; width:${o.v}%; background:linear-gradient(90deg,var(--accent2),var(--accent));"></div>
           </div>
           <div style="margin-top:6px; color:var(--muted); font-weight:850; font-size:12px;">
-            ${o.k==="imp" ? "Estado final del material." : "Progreso intermedio."}
+            ${o.k==="imp" ? "Estado final del material." : (o.k==="wk" ? "Semanas con 3 checks." : "Progreso intermedio.")}
           </div>
         </div>
       `).join("")}
@@ -6868,33 +6960,31 @@ function renderMateriales(){
   `;
 
   const rows = [];
-  for (let i=0;i<baseWeeks;i++){
-    const code = codes[i];
+  const totalW = Math.max(0, (range.last - range.first + 1));
+  for (let i=range.first-1, idx=1; i<=range.last-1; i++, idx++){
+    const code = String(codes[i] || `SEM${i+1}`);
     const date = fmtDM(pgxAddDays(pStart, i*7));
     const rec = !!mcGetFlag(st, pid, cid, code, "rec");
     const dia = !!mcGetFlag(st, pid, cid, code, "dia");
     const imp = !!mcGetFlag(st, pid, cid, code, "imp");
 
-    // filter
-    const okDone = imp;
-    const pendRec = !rec;
-    const pendDia = rec && !dia;
-    const pendImp = rec && dia && !imp;
-
-    let show = true;
-    if (filter==="DONE") show = okDone;
-    if (filter==="P_REC") show = pendRec;
-    if (filter==="P_DIA") show = pendDia;
-    if (filter==="P_IMP") show = pendImp;
-
-    if (!show) continue;
+    const wkDone = (rec && dia && imp);
+    const wkPct  = Math.round(((+rec + +dia + +imp)/3)*100);
 
     const dis = (canWork && matEditOn) ? "" : "disabled";
     rows.push(`
       <tr>
-        <td style="font-weight:950;">${i+1}</td>
+        <td style="font-weight:950;">${idx}</td>
         <td>${escapeHtml(date)}</td>
         <td style="font-weight:950;">${escapeHtml(code)}</td>
+
+        <td>
+          <div class="mcWeekMini">
+            <div class="mcWeekMiniBar"><div style="width:${wkPct}%;"></div></div>
+            <div class="mcWeekMiniTxt">${wkPct}%</div>
+          </div>
+        </td>
+
         <td><input type="checkbox" ${dis} data-code="${escapeHtml(code)}" data-field="rec" ${rec?"checked":""}></td>
         <td><input type="checkbox" ${dis} data-code="${escapeHtml(code)}" data-field="dia" ${dia?"checked":""}></td>
         <td><input type="checkbox" ${dis} data-code="${escapeHtml(code)}" data-field="imp" ${imp?"checked":""}></td>
@@ -6904,7 +6994,7 @@ function renderMateriales(){
 
   body.innerHTML = `
     <div class="mrTop" style="margin:0;">
-      <div class="mrKpi">${escapeHtml(String(prog.meta?.name||"PROGRAMA").toUpperCase())} · <b>${escapeHtml(String(cid||"CURSO").toUpperCase())}</b> · Inicio: <b>${escapeHtml(fmtDM(pStart))}</b></div>
+      <div class="mrKpi">${escapeHtml(String(prog.meta?.name||"PROGRAMA").toUpperCase())} · <b>${escapeHtml(String(cid||"CURSO").toUpperCase())}</b> · Inicio: <b>${escapeHtml(fmtDM(pgxAddDays(pStart,(range.first-1)*7)))}</b> · Fin: <b>${escapeHtml(fmtDM(pgxAddDays(pStart,(range.last-1)*7)))}</b></div>
     </div>
 
     ${progBars}
@@ -6916,13 +7006,14 @@ function renderMateriales(){
             <th style="padding:10px; border-bottom:1px solid var(--border);">#</th>
             <th style="padding:10px; border-bottom:1px solid var(--border);">FECHA</th>
             <th style="padding:10px; border-bottom:1px solid var(--border);">SEMANA</th>
+            <th style="padding:10px; border-bottom:1px solid var(--border);">SEM%</th>
             <th style="padding:10px; border-bottom:1px solid var(--border);">REC</th>
             <th style="padding:10px; border-bottom:1px solid var(--border);">DIA</th>
             <th style="padding:10px; border-bottom:1px solid var(--border);">IMP</th>
           </tr>
         </thead>
         <tbody>
-          ${rows.length ? rows.join("") : `<tr><td colspan="6" style="padding:14px; color:var(--muted); font-weight:950;">No hay filas para este filtro.</td></tr>`}
+          ${rows.length ? rows.join("") : `<tr><td colspan="7" style="padding:14px; color:var(--muted); font-weight:950;">No hay filas para este filtro.</td></tr>`}
         </tbody>
       </table>
     </div>
