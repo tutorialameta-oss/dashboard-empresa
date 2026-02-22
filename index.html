@@ -525,7 +525,174 @@
     }
 
     /* Botón descargar PNG */
-    .schDl{
+    
+    .hEditBtn{
+      padding:10px 14px;
+      border-radius:999px;
+      border:1px solid rgba(220,38,38,0.35);
+      background:#fff;
+      color:var(--accent);
+      font-weight:900;
+      letter-spacing:.02em;
+      cursor:pointer;
+      box-shadow: 0 2px 10px rgba(15,23,42,.06);
+    }
+    .hEditBtn:hover{ filter:brightness(0.98); }
+
+    .hEditBtnGhost{
+      padding:10px 14px;
+      border-radius:999px;
+      border:1px dashed rgba(220,38,38,0.35);
+      background:#fff;
+      color:var(--accent);
+      font-weight:900;
+      cursor:pointer;
+    }
+    .hEditBar{
+      margin-top:12px;
+      padding:10px 12px;
+      border-radius:12px;
+      background:rgba(220,38,38,0.06);
+      border:1px solid rgba(220,38,38,0.16);
+      color:var(--muted);
+      font-weight:800;
+    }
+
+    .schEdit{
+      padding:8px 12px;
+      border-radius:999px;
+      border:1px solid rgba(220,38,38,0.35);
+      background:#fff;
+      color:var(--accent);
+      font-weight:900;
+      cursor:pointer;
+    }
+
+    /* Modal editor */
+    .hEditorOverlay{
+      position:fixed;
+      inset:0;
+      background:rgba(2,6,23,0.45);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      z-index: 9999;
+      padding: 18px;
+    }
+    .hEditorModal{
+      width:min(980px, 96vw);
+      max-height: 92vh;
+      overflow:auto;
+      background:#fff;
+      border-radius:18px;
+      box-shadow: 0 30px 90px rgba(2,6,23,.30);
+      border:1px solid rgba(15,23,42,0.12);
+    }
+    .hEditorHead{
+      display:flex;
+      justify-content:space-between;
+      gap:12px;
+      padding:16px 18px;
+      border-bottom:1px solid rgba(15,23,42,0.10);
+      position:sticky;
+      top:0;
+      background:#fff;
+      z-index:1;
+    }
+    .hEditorTitle{ font-weight:1000; letter-spacing:.02em; }
+    .hEditorSub{ color:var(--muted); font-weight:800; font-size:12px; margin-top:4px; }
+    .hEditorClose{
+      border:1px solid rgba(15,23,42,0.14);
+      background:#fff;
+      border-radius:12px;
+      padding:8px 10px;
+      cursor:pointer;
+      font-weight:1000;
+    }
+    .hEditorBody{ padding: 16px 18px; }
+    .hEditorGrid{
+      display:grid;
+      grid-template-columns: repeat(4, minmax(0,1fr));
+      gap:12px;
+      margin-bottom:14px;
+    }
+    @media(max-width:900px){
+      .hEditorGrid{ grid-template-columns: repeat(2, minmax(0,1fr)); }
+    }
+    .hLbl{ display:block; font-weight:900; color:var(--muted); font-size:11px; margin-bottom:6px; letter-spacing:.04em; }
+    .hInp{
+      width:100%;
+      border:1px solid rgba(15,23,42,0.14);
+      border-radius:12px;
+      padding:10px 12px;
+      font-weight:900;
+      outline:none;
+    }
+    .hInpSm{
+      width:100%;
+      border:1px solid rgba(15,23,42,0.14);
+      border-radius:10px;
+      padding:8px 10px;
+      font-weight:900;
+      outline:none;
+    }
+    .hEditorBlocksHead{
+      display:flex; justify-content:space-between; align-items:center;
+      margin: 4px 0 10px 0;
+    }
+    .hEditorBlocksTitle{ font-weight:1000; letter-spacing:.02em; }
+    .hEditorBlocksWrap{
+      border:1px solid rgba(15,23,42,0.10);
+      border-radius:14px;
+      overflow:auto;
+    }
+    .hEditorTable{
+      width:100%;
+      border-collapse:collapse;
+      min-width: 860px;
+    }
+    .hEditorTable th, .hEditorTable td{
+      border-bottom:1px solid rgba(15,23,42,0.08);
+      padding:10px;
+      text-align:left;
+      vertical-align:middle;
+      font-weight:900;
+    }
+    .hEditorTable th{
+      background:rgba(15,23,42,0.03);
+      color:var(--muted);
+      font-size:11px;
+      letter-spacing:.04em;
+    }
+    .hEditorHint{
+      margin-top:10px;
+      color:var(--muted);
+      font-weight:800;
+      font-size:12px;
+    }
+    .hEditorFoot{
+      display:flex;
+      justify-content:flex-end;
+      gap:10px;
+      padding: 14px 18px;
+      border-top:1px solid rgba(15,23,42,0.10);
+      position:sticky;
+      bottom:0;
+      background:#fff;
+    }
+    .hBtn{
+      border-radius:999px;
+      border:1px solid rgba(15,23,42,0.14);
+      background:#fff;
+      padding:10px 14px;
+      font-weight:1000;
+      cursor:pointer;
+    }
+    .hBtnTiny{ padding:6px 10px; border-radius:10px; }
+    .hBtnGhost{ background:rgba(220,38,38,0.06); border:1px solid rgba(220,38,38,0.16); color:var(--accent); }
+    .hBtnPrimary{ background:var(--accent); border:1px solid var(--accent); color:#fff; }
+    .hBtnDanger{ background:rgba(220,38,38,0.10); border:1px solid rgba(220,38,38,0.22); color:var(--accent); }
+.schDl{
       border: 1px solid rgba(15,23,42,0.12);
       background: #fff;
       padding: 8px 10px;
@@ -7686,7 +7853,7 @@ function renderReportes(){
               <span class="b" style="background:${dot};"></span>
               ${escapeHtml(s.uni)}
             </div>
-            <button class="schDl" data-sid="${escapeHtml(s.id)}">DESCARGAR PNG</button>
+            <button class="schDl" data-sid="${escapeHtml(s.id)}">DESCARGAR PNG</button>${(CURRENT_ROLE==="admin" && HORARIOS_EDIT_MODE) ? `<button class="schEdit" data-sid="${escapeHtml(s.id)}">EDITAR</button>` : ``}
           </div>
         </div>
 
@@ -7726,7 +7893,7 @@ function renderReportes(){
   /* ======================================================================
     HORARIOS (SCHEDULES)
   ====================================================================== */
-  const SCHEDULES = sortSchedules([
+  let SCHEDULES = sortSchedules([
     // ========================= AGRARIA =========================
     {
       id:"AGR_LM_1",
@@ -8209,6 +8376,47 @@ function renderReportes(){
   ]);
 
   
+
+  // ===================== HORARIOS (PERSISTENCIA) =====================
+  const SCHEDULES_KEY = "LM_SCHEDULES_v1";
+
+  function isValidScheduleObj(x){
+    if (!x || typeof x !== "object") return false;
+    if (!x.id || !x.local || !x.uni || !x.salon) return false;
+    if (!Array.isArray(x.blocks)) return false;
+    // validar bloques mínimamente (deben alinearse a TIME_MARKS)
+    for (const b of x.blocks){
+      if (!b) return false;
+      if (!b.day || !b.start || !b.end) return false;
+      const is = idxMark(b.start);
+      const ie = idxMark(b.end);
+      if (is < 0 || ie < 0) return false;
+      if (is >= ie) return false;
+    }
+    return true;
+  }
+
+  function loadSchedules(){
+    try{
+      const raw = localStorage.getItem(SCHEDULES_KEY);
+      if (!raw) return null;
+      const arr = JSON.parse(raw);
+      if (!Array.isArray(arr)) return null;
+      const cleaned = arr.filter(isValidScheduleObj);
+      if (!cleaned.length) return null;
+      return cleaned;
+    }catch(e){ return null; }
+  }
+
+  function saveSchedules(){
+    try{ localStorage.setItem(SCHEDULES_KEY, JSON.stringify(SCHEDULES)); }catch(e){}
+  }
+
+  (function initSchedules(){
+    const saved = loadSchedules();
+    if (saved) SCHEDULES = sortSchedules(saved);
+  })();
+
   // ===================== HORARIOS (UX) =====================
   // Ajusta altura del contenedor de matriz para que el scroll horizontal sea visible siempre,
   // y habilita navegación “arrastrando” (drag-to-scroll).
@@ -8338,8 +8546,12 @@ function ensureHorariosLayout(){
           <select id="hUni"></select>
           <select id="hSalon"></select>
 
+          ${(CURRENT_ROLE==="admin") ? `<button id="hEditToggle" class="hEditBtn">EDITAR</button><button id="hNewSch" class="hEditBtnGhost" style="display:none;">+ NUEVO</button>` : ``}
+
           <button id="hReset">VER TODO</button>
         </div>
+
+        ${(CURRENT_ROLE==="admin") ? `<div id="hEditBar" class="hEditBar" style="display:none;">Modo edición activo: usa <b>EDITAR</b> en una tarjeta para modificar bloques.</div>` : ``}
 
         <div class="panelHint" style="margin-top:10px;">
           <span class="pill"><span class="dot agraria"></span>AGRARIA</span>
@@ -8411,6 +8623,36 @@ function ensureHorariosLayout(){
       rer();
     });
 
+    // Admin: modo edición (UI limpia)
+    if (CURRENT_ROLE === "admin"){
+      const tgl = document.getElementById("hEditToggle");
+      const neu = document.getElementById("hNewSch");
+      const bar = document.getElementById("hEditBar");
+
+      const applyEditUi = ()=>{
+        if (bar) bar.style.display = HORARIOS_EDIT_MODE ? "" : "none";
+        if (tgl) tgl.textContent = HORARIOS_EDIT_MODE ? "SALIR EDICIÓN" : "EDITAR";
+        if (neu) neu.style.display = HORARIOS_EDIT_MODE ? "" : "none";
+      };
+
+      if (tgl){
+        tgl.addEventListener("click", ()=>{
+          HORARIOS_EDIT_MODE = !HORARIOS_EDIT_MODE;
+          try{ localStorage.setItem("LM_HORARIOS_EDITMODE_v1", HORARIOS_EDIT_MODE ? "1" : "0"); }catch(e){}
+          applyEditUi();
+          renderHorarios(); // refrescar tarjetas con botón EDITAR
+        });
+      }
+      if (neu){
+        neu.addEventListener("click", ()=>openHorariosEditor(null, true));
+      }
+
+      // restaurar estado
+      try{
+        HORARIOS_EDIT_MODE = (localStorage.getItem("LM_HORARIOS_EDITMODE_v1") === "1");
+      }catch(e){ HORARIOS_EDIT_MODE = false; }
+      applyEditUi();
+    }
     
     // UX: ajustar altura y habilitar drag-to-scroll en matriz
     try{
@@ -8579,6 +8821,281 @@ el.dataset.ready = "1";
     }
   }
 
+
+  // ===================== HORARIOS (EDICIÓN) =====================
+  let HORARIOS_EDIT_MODE = false; // solo Admin
+  let HORARIOS_EDIT_CURRENT_ID = null;
+  let HORARIOS_EDIT_IS_NEW = false;
+  function fillSelectPlain(selId, values){
+    const sel = document.getElementById(selId);
+    if (!sel) return;
+    const prev = sel.value;
+    sel.innerHTML = "";
+    for (const v of values){
+      const opt = document.createElement("option");
+      opt.value = v;
+      opt.textContent = v;
+      sel.appendChild(opt);
+    }
+    if (prev && values.includes(prev)) sel.value = prev;
+  }
+
+
+  function ensureHorariosEditorModal(){
+    if (document.getElementById("hEditorOverlay")) return;
+    const el = document.createElement("div");
+    el.id = "hEditorOverlay";
+    el.className = "hEditorOverlay";
+    el.style.display = "none";
+    el.innerHTML = `
+      <div class="hEditorModal">
+        <div class="hEditorHead">
+          <div>
+            <div class="hEditorTitle" id="hEditorTitle">EDITAR HORARIO</div>
+            <div class="hEditorSub" id="hEditorSub">Edición de bloques por día y rango horario.</div>
+          </div>
+          <button class="hEditorClose" id="hEditorClose">✕</button>
+        </div>
+
+        <div class="hEditorBody">
+          <div class="hEditorGrid">
+            <div>
+              <label class="hLbl">LOCAL</label>
+              <select id="heLocal" class="hInp"></select>
+            </div>
+            <div>
+              <label class="hLbl">UNIVERSIDAD</label>
+              <select id="heUni" class="hInp"></select>
+            </div>
+            <div>
+              <label class="hLbl">SALÓN</label>
+              <input id="heSalon" class="hInp" placeholder="Ej: AGRARIA LM 1"/>
+            </div>
+            <div>
+              <label class="hLbl">ID</label>
+              <input id="heId" class="hInp" placeholder="ID interno" />
+            </div>
+          </div>
+
+          <div class="hEditorBlocks">
+            <div class="hEditorBlocksHead">
+              <div class="hEditorBlocksTitle">BLOQUES</div>
+              <button class="hBtn hBtnGhost" id="heAddBlock">+ BLOQUE</button>
+            </div>
+
+            <div class="hEditorBlocksWrap">
+              <table class="hEditorTable">
+                <thead>
+                  <tr>
+                    <th>DÍA</th>
+                    <th>INICIO</th>
+                    <th>FIN</th>
+                    <th>CURSO</th>
+                    <th>DOCENTE</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody id="heTbody"></tbody>
+              </table>
+            </div>
+
+            <div class="hEditorHint">
+              Nota: los horarios se alinean al tablero (TIME MARKS). Ej.: 13:00–15:00 es válido.
+            </div>
+          </div>
+        </div>
+
+        <div class="hEditorFoot">
+          <button class="hBtn hBtnGhost" id="heCancel">CANCELAR</button>
+          <button class="hBtn hBtnDanger" id="heDelete">ELIMINAR</button>
+          <button class="hBtn hBtnPrimary" id="heSave">GUARDAR</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(el);
+
+    // listeners base (una sola vez)
+    document.getElementById("hEditorClose").addEventListener("click", closeHorariosEditor);
+    document.getElementById("heCancel").addEventListener("click", closeHorariosEditor);
+
+    document.getElementById("heAddBlock").addEventListener("click", ()=>{
+      appendHorarioBlockRow({ day:"LUNES", start:"08:00", end:"09:50", course:"", teacher:"" });
+    });
+
+    document.getElementById("heSave").addEventListener("click", saveHorariosEditor);
+    document.getElementById("heDelete").addEventListener("click", deleteHorarioEditor);
+  }
+
+  function openHorariosEditor(scheduleId, isNew=false){
+    if (CURRENT_ROLE !== "admin") return;
+    ensureHorariosEditorModal();
+    HORARIOS_EDIT_CURRENT_ID = scheduleId || null;
+    HORARIOS_EDIT_IS_NEW = !!isNew;
+
+    // cargar selects
+    fillSelectPlain("heLocal", sortByLocalOrder(LOCAL_ORDER.slice()));
+    fillSelectPlain("heUni", ["AGRARIA","U.LIMA","PUCP","ESCOLARES"]);
+
+    const overlay = document.getElementById("hEditorOverlay");
+    const title = document.getElementById("hEditorTitle");
+    const sub   = document.getElementById("hEditorSub");
+    const delBtn= document.getElementById("heDelete");
+
+    const s = isNew ? null : (SCHEDULES.find(x=>x.id===scheduleId) || null);
+
+    title.textContent = isNew ? "NUEVO HORARIO" : "EDITAR HORARIO";
+    sub.textContent = isNew ? "Crea un nuevo salón con sus bloques." : "Edita bloques por día y rango horario.";
+    delBtn.style.display = isNew ? "none" : "";
+
+    // defaults
+    const heLocal = document.getElementById("heLocal");
+    const heUni   = document.getElementById("heUni");
+    const heSalon = document.getElementById("heSalon");
+    const heId    = document.getElementById("heId");
+
+    if (s){
+      heLocal.value = s.local;
+      heUni.value   = s.uni;
+      heSalon.value = s.salon;
+      heId.value    = s.id;
+      heId.disabled = true; // id estable para no romper columnas
+    }else{
+      heLocal.value = "LA MOLINA";
+      heUni.value   = "AGRARIA";
+      heSalon.value = "";
+      heId.value    = "SCH_" + String(Date.now());
+      heId.disabled = false;
+    }
+
+    // blocks
+    const tb = document.getElementById("heTbody");
+    tb.innerHTML = "";
+    const blocks = (s && Array.isArray(s.blocks)) ? s.blocks : [];
+    for (const b of blocks) appendHorarioBlockRow(b);
+
+    overlay.style.display = "flex";
+  }
+
+  function closeHorariosEditor(){
+    const overlay = document.getElementById("hEditorOverlay");
+    if (overlay) overlay.style.display = "none";
+    HORARIOS_EDIT_CURRENT_ID = null;
+    HORARIOS_EDIT_IS_NEW = false;
+  }
+
+  function escapeAttr(s){
+    return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+  }
+
+  function timeOptionsHtml(selected){
+    const sel = String(selected||"");
+    return TIME_MARKS.map(t=>`<option value="${t}" ${t===sel ? "selected" : ""}>${t}</option>`).join("");
+  }
+
+  function dayOptionsHtml(selected){
+    const sel = normalizeDayKey(selected||"LUNES");
+    return DAYS.map(d=>`<option value="${d}" ${d===sel ? "selected" : ""}>${d}</option>`).join("");
+  }
+
+  function appendHorarioBlockRow(b){
+    const tb = document.getElementById("heTbody");
+    if (!tb) return;
+
+    const day = normalizeDayKey(b.day || "LUNES");
+    const start = b.start || "08:00";
+    const end = b.end || "09:50";
+    const course = b.course || "";
+    const teacher = b.teacher || "";
+
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td><select class="heDay hInpSm">${dayOptionsHtml(day)}</select></td>
+      <td><select class="heStart hInpSm">${timeOptionsHtml(start)}</select></td>
+      <td><select class="heEnd hInpSm">${timeOptionsHtml(end)}</select></td>
+      <td><input class="heCourse hInpSm" value="${escapeAttr(course)}" placeholder="Ej: RV / ÁLG 1"/></td>
+      <td><input class="heTeacher hInpSm" value="${escapeAttr(teacher)}" placeholder="Ej: TABER"/></td>
+      <td><button class="hBtn hBtnTiny hBtnDanger heDel">✕</button></td>
+    `;
+    tb.appendChild(tr);
+
+    tr.querySelector(".heDel").addEventListener("click", ()=>tr.remove());
+  }
+
+  function collectEditorBlocks(){
+    const tb = document.getElementById("heTbody");
+    const rows = Array.from(tb.querySelectorAll("tr"));
+    const blocks = [];
+    for (const r of rows){
+      const day = normalizeDayKey(r.querySelector(".heDay").value);
+      const start = r.querySelector(".heStart").value;
+      const end = r.querySelector(".heEnd").value;
+      const course = r.querySelector(".heCourse").value.trim();
+      const teacher = r.querySelector(".heTeacher").value.trim();
+
+      const is = idxMark(start);
+      const ie = idxMark(end);
+      if (is < 0 || ie < 0 || is >= ie) continue;
+
+      blocks.push({ day, start, end, course, teacher });
+    }
+    return blocks;
+  }
+
+  function saveHorariosEditor(){
+    if (CURRENT_ROLE !== "admin") return;
+
+    const local = document.getElementById("heLocal").value;
+    const uni   = document.getElementById("heUni").value;
+    const salon = document.getElementById("heSalon").value.trim();
+    const id    = document.getElementById("heId").value.trim();
+
+    if (!local || !uni || !salon || !id){
+      alert("Completa LOCAL / UNIVERSIDAD / SALÓN / ID.");
+      return;
+    }
+
+    const blocks = collectEditorBlocks();
+    const obj = { id, local, uni, salon, blocks };
+
+    if (HORARIOS_EDIT_IS_NEW){
+      if (SCHEDULES.some(x=>x.id===id)){
+        alert("Ese ID ya existe. Cambia el ID.");
+        return;
+      }
+      SCHEDULES.push(obj);
+    }else{
+      const i = SCHEDULES.findIndex(x=>x.id===HORARIOS_EDIT_CURRENT_ID);
+      if (i < 0){
+        alert("No se encontró el horario para editar.");
+        return;
+      }
+      // mantener ID estable
+      obj.id = SCHEDULES[i].id;
+      SCHEDULES[i] = obj;
+    }
+
+    SCHEDULES = sortSchedules(SCHEDULES);
+    saveSchedules();
+    closeHorariosEditor();
+
+    try{ rebuildHorariosSalonOptions(); }catch(e){}
+    try{ renderHorarios(); }catch(e){}
+  }
+
+  function deleteHorarioEditor(){
+    if (CURRENT_ROLE !== "admin") return;
+    if (!HORARIOS_EDIT_CURRENT_ID) return;
+    if (!confirm("¿Eliminar este horario?")) return;
+
+    SCHEDULES = SCHEDULES.filter(x=>x.id!==HORARIOS_EDIT_CURRENT_ID);
+    SCHEDULES = sortSchedules(SCHEDULES);
+    saveSchedules();
+
+    closeHorariosEditor();
+    try{ rebuildHorariosSalonOptions(); }catch(e){}
+    try{ renderHorarios(); }catch(e){}
+  }
+
   // ===================== DESCARGAR PNG =====================
   function safeFileName(s){
     return String(s||"horario")
@@ -8644,6 +9161,15 @@ el.dataset.ready = "1";
     const sid = btn.getAttribute("data-sid");
     if (!sid) return;
     downloadSchedulePNG(sid);
+  });
+
+  document.addEventListener("click", (e)=>{
+    const btn = e.target.closest(".schEdit");
+    if (!btn) return;
+    if (CURRENT_ROLE !== "admin") return;
+    const sid = btn.getAttribute("data-sid");
+    if (!sid) return;
+    openHorariosEditor(sid, false);
   });
 
   // ===================== RENDER =====================
