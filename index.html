@@ -2313,6 +2313,8 @@ const PGX_STORE_KEY   = "LM_PROGRAMA_SHEET_V1_STORE";
   const PGX_ZOOM_KEY    = "LM_PROGRAMA_SHEET_V1_ZOOM";
   const PGX_EDIT_KEY    = "LM_PROGRAMA_SHEET_V1_EDIT";
   const PGX_FINE_KEY    = "LM_PROGRAMA_SHEET_V1_FINE";
+  const PGX_VIEW_START_KEY = "LM_PROGRAMA_SHEET_V1_VIEW_START";
+  const PGX_VIEW_WEEKS_KEY = "LM_PROGRAMA_SHEET_V1_VIEW_WEEKS";
 
   const PGX_SETTINGS_KEY = "LM_PROGRAMA_SHEET_V1_SETTINGS"; // panel Personalizar (Admin)
 
@@ -2381,6 +2383,7 @@ const PGX_STORE_KEY   = "LM_PROGRAMA_SHEET_V1_STORE";
     if (t === "AGRARIA") return {bar:getCss("--schHead_AGR"), cell:getCss("--schCell_AGR")};
     if (t === "PUCP")    return {bar:getCss("--schHead_PUCP"), cell:getCss("--schCell_PUCP")};
     if (t === "U.LIMA" || t === "ULIMA") return {bar:getCss("--schHead_UL"), cell:getCss("--schCell_UL")};
+    if (t === "ESCOLARES") return {bar:"#5b21b6", cell:"#ede9fe"};
     // default
     return {bar:"#64748b", cell:"#f1f5f9"};
   }
@@ -2614,6 +2617,19 @@ const PGX_STORE_KEY   = "LM_PROGRAMA_SHEET_V1_STORE";
   function pgxSetFineOn(on){ pgxSaveStr(PGX_FINE_KEY, on ? "1":"0"); }
 
 
+  function pgxGetViewStart(){ return pgxLoadStr(PGX_VIEW_START_KEY, ""); }
+  function pgxSetViewStart(v){ pgxSaveStr(PGX_VIEW_START_KEY, String(v||"")); }
+
+  function pgxGetViewWeeks(){
+    const v = +pgxLoadStr(PGX_VIEW_WEEKS_KEY, "0");
+    return (v && v>0) ? v : 0; // 0 = usar baseWeeks
+  }
+  function pgxSetViewWeeks(w){
+    const n = Math.max(0, Math.min(60, +w||0));
+    pgxSaveStr(PGX_VIEW_WEEKS_KEY, String(n));
+  }
+
+
   function pgxGetSettingsOpen(){ return pgxLoadStr(PGX_SETTINGS_KEY, "0") === "1"; }
   function pgxSetSettingsOpen(on){ pgxSaveStr(PGX_SETTINGS_KEY, on ? "1":"0"); }
 
@@ -2715,35 +2731,27 @@ const PGX_STORE_KEY   = "LM_PROGRAMA_SHEET_V1_STORE";
   function pgxRenderSheet(programs, mode){
     const store = pgxLoadStore();
 
-    const baseWeeks = pgxTotalWeeks(); // semanas "base" (plantilla) por programa
     const z = pgxGetZoom();
     const fine = pgxGetFineOn();
     const edit = pgxCanEdit() && pgxGetEditOn();
 
-    const baseStart0 = pgxParseDateYMD(String(store.timeline?.startDate||""));
+    const baseWeeks = pgxTotalWeeks();
+    const viewStartStr = pgxGetViewStart() || String(store.timeline?.startDate||"");
+    const viewWeeksRaw = pgxGetViewWeeks() || baseWeeks;
+    const displayWeeks = Math.max(1, Math.min(baseWeeks, +viewWeeksRaw||baseWeeks));
 
-    // ✅ BASE real para el encabezado = la fecha más antigua (entre baseStart y startDate de programas)
-    let baseStart = baseStart0;
-    for (const p of (programs||[])){
-      const sd = pgxParseDateYMD(String(p?.meta?.startDate||""));
-      if (sd && (!baseStart || sd < baseStart)) baseStart = sd;
-    }
-    if (!baseStart) baseStart = new Date();
+    const baseStart0 = pgxParseDateYMD(String(viewStartStr||""));
 
-    // ✅ Offset por programa (en semanas) + ancho total del tablero (displayWeeks)
+    // ✅ Encabezado FIJO: usa SOLO la fecha global (no se mueve por programas)
+    const baseStart = baseStart0 || new Date();
+
+    // ✅ Offset por programa (en semanas) respecto al encabezado fijo
     const offsets = new Map();
-    let displayWeeks = baseWeeks;
-
     for (const p of (programs||[])){
       const pStart = pgxParseDateYMD(String(p?.meta?.startDate||"")) || baseStart0 || baseStart;
-      const off = Math.max(0, pgxWeekDiff(pStart, baseStart));
+      const off = pgxWeekDiff(pStart, baseStart); // puede ser negativo
       offsets.set(p.id, off);
-      displayWeeks = Math.max(displayWeeks, off + baseWeeks);
     }
-
-    const dates = Array.from({length: displayWeeks}, (_,i)=>pgxAddDays(baseStart, i*7));
-    const monthRuns = pgxMonthRuns(dates);
-    const monthEnds = pgxMonthEnds(dates);
 
     const manualDates = Array.isArray(store.timeline?.manualDates) ? store.timeline.manualDates : null;
 
@@ -2989,7 +2997,7 @@ const PGX_STORE_KEY   = "LM_PROGRAMA_SHEET_V1_STORE";
     sel.innerHTML = programs.map(p=>{
       const nm = String(p.meta?.name||"PROGRAMA").toUpperCase();
       const sc = String(p.meta?.scope||"ALL").toUpperCase();
-      return `<option value="${escapeHtml(p.id)}">${escapeHtml(nm)}${sc && sc!=="ALL" ? " · " + escapeHtml(sc) : ""}</option>`;
+      return `<option value="${escapeHtml(p.id)}">${escapeHtml(nm)}</option>`;
     }).join("");
     sel.value = active;
   }
@@ -3004,8 +3012,13 @@ const PGX_STORE_KEY   = "LM_PROGRAMA_SHEET_V1_STORE";
     const edit  = document.getElementById("pgxEdit");
     const fine  = document.getElementById("pgxFine");
 
-    if (start) start.value = String(store.timeline?.startDate||"");
-    if (weeks) weeks.value = String(pgxTotalWeeks());
+    const baseStart = String(store.timeline?.startDate||"");
+    const vStart = pgxGetViewStart() || baseStart;
+    const baseWeeks = pgxTotalWeeks();
+    const vWeeks = pgxGetViewWeeks() || baseWeeks;
+
+    if (start) start.value = String(vStart||"");
+    if (weeks) weeks.value = String(vWeeks);
     if (zoom)  zoom.value  = String(pgxGetZoom());
     if (mode)  mode.value  = pgxGetMode();
     if (edit){
@@ -3014,8 +3027,18 @@ const PGX_STORE_KEY   = "LM_PROGRAMA_SHEET_V1_STORE";
       edit.classList.toggle("primary", pgxGetEditOn());
     }
     if (fine){
+      // visible solo en modo edición (Admin)
+      fine.style.display = (pgxCanEdit() && pgxGetEditOn()) ? "" : "none";
       fine.textContent = (pgxGetFineOn() ? "EDICIÓN FINA: ON" : "EDICIÓN FINA: OFF");
       fine.classList.toggle("primary", pgxGetFineOn());
+    }
+
+    // UI limpia: controles avanzados solo para Admin en edición
+    const advIds = ["pgxFill","pgxNew","pgxDel","pgxJson","pgxSettingsBtn","pgxDates"];
+    for (const id of advIds){
+      const el = document.getElementById(id);
+      if (!el) continue;
+      el.style.display = (pgxCanEdit() && pgxGetEditOn()) ? "" : "none";
     }
 
     const sel = document.getElementById("pgxProgram");
@@ -3092,10 +3115,9 @@ if (btnNew) btnNew.style.display = pgxCanEdit() ? "" : "none";
   function pgxRenderSettings(programs){
     const wrap = document.getElementById("pgxSettings");
     if (!wrap) return;
-    if (!pgxCanEdit()){ wrap.style.display="none"; return; }
-    const open = pgxGetSettingsOpen();
-    wrap.style.display = open ? "" : "none";
-    if (!open) return;
+    if (!pgxCanEdit() || !pgxGetEditOn()){ wrap.style.display="none"; return; }
+    // En modo edición siempre se muestra el panel
+    wrap.style.display = "";
 
     const active = pgxGetActiveId() || (programs[0]?.id||"");
     const p = programs.find(x=>x.id===active) || programs[0];
@@ -3121,9 +3143,7 @@ if (btnNew) btnNew.style.display = pgxCanEdit() ? "" : "none";
           <select id="pgsPick">
             ${programs.map(pp=>{
               const nm = String(pp.meta?.name||"PROGRAMA").toUpperCase();
-              const sc = String(pp.meta?.scope||"ALL").toUpperCase();
-              const tag = (sc && sc!=="ALL") ? " · " + sc : "";
-              return `<option value="${escapeHtml(pp.id)}"${pp.id===p.id?" selected":""}>${escapeHtml(nm+tag)}</option>`;
+              return `<option value="${escapeHtml(pp.id)}"${pp.id===p.id?" selected":""}>${escapeHtml(nm)}</option>`;
             }).join("")}
           </select>
         </label>
@@ -3140,7 +3160,7 @@ if (btnNew) btnNew.style.display = pgxCanEdit() ? "" : "none";
 
         <label>TEMA
           <select id="pgsTheme">
-            ${["AGRARIA","PUCP","U.LIMA"].map(x=>`<option value="${x}"${String(p.meta?.theme||"AGRARIA").toUpperCase()===x?" selected":""}>${x}</option>`).join("")}
+            ${["AGRARIA","U.LIMA","PUCP","ESCOLARES"].map(x=>`<option value="${x}"${String(p.meta?.theme||"AGRARIA").toUpperCase()===x?" selected":""}>${x}</option>`).join("")}
           </select>
         </label>
 
@@ -3372,7 +3392,11 @@ const tw = pgxTotalWeeks();
     if (edit){
       edit.addEventListener("click", ()=>{
         if (!pgxCanEdit()) return;
-        pgxSetEditOn(!pgxGetEditOn());
+        const on = !pgxGetEditOn();
+        pgxSetEditOn(on);
+        // en modo profesional: edición = abre panel; vista = limpio
+        pgxSetSettingsOpen(on);
+        if (!on) pgxSetFineOn(false);
         renderPrograma();
       });
     }
@@ -3476,11 +3500,25 @@ const tw = pgxTotalWeeks();
 
     if (btnApply){
       btnApply.addEventListener("click", ()=>{
-        const store = pgxLoadStore();
         const s = String(document.getElementById("pgxStart")?.value||"").trim();
         const w = Math.max(1, Math.min(60, +document.getElementById("pgxWeeks")?.value||16));
+
+        // ✅ Modo vista (Tutor o Admin sin editar): NO modifica datos, solo la ventana visible
+        if (!pgxCanEdit() || !pgxGetEditOn()){
+          if (s) pgxSetViewStart(s);
+          pgxSetViewWeeks(w);
+          renderPrograma();
+          toast("Vista actualizada.");
+          return;
+        }
+
+        // ✅ Modo edición (solo Admin): actualiza timeline base y reajusta arrays
+        const store = pgxLoadStore();
         if (s) store.timeline.startDate = s;
         store.timeline.weeks = w;
+        // sincroniza vista con timeline
+        pgxSetViewStart(String(store.timeline.startDate||""));
+        pgxSetViewWeeks(+store.timeline.weeks||0);
 
         // reajustar arrays de programas a la nueva longitud
         for (const id of store.order){
@@ -3528,8 +3566,10 @@ const tw = pgxTotalWeeks();
         const name = prompt("Nombre del nuevo programa:", "NUEVO PROGRAMA");
         if (!name) return;
 
-        const scope = prompt("Scope (ALL / AGRARIA / PUCP / U.LIMA):", "ALL") || "ALL";
-        const theme = prompt("Tema (AGRARIA / PUCP / U.LIMA):", "AGRARIA") || "AGRARIA";
+        const kind = (prompt("Tipo (AGRARIA / U.LIMA / PUCP / ESCOLARES):", "AGRARIA") || "AGRARIA").toUpperCase();
+        const allowed = ["AGRARIA","U.LIMA","PUCP","ESCOLARES"];
+        const theme = allowed.includes(kind) ? kind : "AGRARIA";
+        const scope = theme;
 
         const store = pgxLoadStore();
         const p = pgxDefaultProgram(name, scope, theme);
@@ -3751,12 +3791,20 @@ const tw = pgxTotalWeeks();
     const canvas = document.getElementById("pgxCanvas");
     if (!canvas) return;
 
+    const prevSc = document.getElementById("pgxScroll");
+    const prevSL = prevSc ? prevSc.scrollLeft : 0;
+    const prevST = prevSc ? prevSc.scrollTop  : 0;
+
     if (mode === "ONE"){
       const p = programs.find(x=>x.id===active) || programs[0];
       canvas.innerHTML = pgxRenderSheet([p], "ONE");
     } else {
       canvas.innerHTML = pgxRenderSheet(programs, "ALL");
     }
+
+    // restaurar scroll (evita que vuelva al inicio al re-render)
+    const scNew0 = document.getElementById("pgxScroll");
+    if (scNew0){ scNew0.scrollLeft = prevSL; scNew0.scrollTop = prevST; }
 
     // scroll interno + drag
     const sc = document.getElementById("pgxScroll");
@@ -4225,7 +4273,7 @@ function loadSavedView(){
     return new Chart(canvas, {
       type:"bar",
       data:{
-        labels: ["AGRARIA","PUCP","U.LIMA"],
+        labels: ["AGRARIA","U.LIMA","PUCP","ESCOLARES"],
         datasets:[
           {
             label:"ACTIVOS",
@@ -4396,7 +4444,7 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones por fecha y alu
   function initFilters(){
     const locals = uniq(SALONES.map(s=>s.local)).sort();
     fillSelectKeep("fLocal", locals, "LOCAL: TODOS");
-    fillSelectKeep("fUni", ["AGRARIA","PUCP","U.LIMA"], "UNIVERSIDAD: TODAS");
+    fillSelectKeep("fUni", ["AGRARIA","U.LIMA","PUCP","ESCOLARES"], "UNIVERSIDAD: TODAS");
     rebuildSalonOptions();
     fillSelectKeep("fModalidad", ["PRESENCIAL","VIRTUAL"], "MODALIDAD: TODAS");
 
@@ -5309,7 +5357,7 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones por fecha y alu
       <div class="panel12" id="sBlocks"></div>
     `;
 
-    fillSelectKeep("sUni", ["AGRARIA","PUCP","U.LIMA"], "UNIVERSIDAD: TODAS");
+    fillSelectKeep("sUni", ["AGRARIA","U.LIMA","PUCP","ESCOLARES"], "UNIVERSIDAD: TODAS");
 
     document.getElementById("sReset").addEventListener("click", ()=>{
       document.getElementById("sUni").value="__ALL__";
@@ -5395,7 +5443,7 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones por fecha y alu
     const fUni = document.getElementById("sUni").value;
     const q = low(document.getElementById("sQ").value);
 
-    const uniOrder = ["AGRARIA","PUCP","U.LIMA"];
+    const uniOrder = ["AGRARIA","U.LIMA","PUCP","ESCOLARES"];
     let unis = uniOrder.slice();
     if (fUni !== "__ALL__") unis = unis.filter(u=>u===fUni);
 
@@ -6464,204 +6512,268 @@ function mcClearAll(){
   renderMateriales();
 }
 
+
 function renderMateriales(){
   ensureMaterialesLayout();
 
-  // ===== parte 1: carpetas de materiales listos (tal cual antes) =====
+  // ===== tarjetas de carpetas (accesos directos) =====
   const grid = document.getElementById("matGrid");
-  grid.innerHTML = MATERIALES.map(x => {
-    const dot =
-      x.uni === "AGRARIA" ? getCss("--agraria") :
-      x.uni === "PUCP"    ? getCss("--pucp") :
-                            getCss("--ulima");
-
-    return `
-      <a class="iItem" href="${escapeHtml(x.url)}" target="_blank" rel="noopener"
-         style="text-decoration:none; color:inherit;">
-        <div class="iLeft">
-          <div class="iSalon">${escapeHtml(x.uni)}</div>
-          <div class="iMeta">
-            <span class="dot" style="background:${dot};"></span>
-            <span>ABRIR CARPETA</span>
-          </div>
-        </div>
-        <div class="iNum" style="color:${dot};">→</div>
-      </a>
-    `;
-  }).join("");
-
-  // ===== parte 2: control por curso (solo Admin/Tutor) =====
-  const card = document.getElementById("matCursoCard");
-  if (!card) return;
-  if (CURRENT_ROLE === "alumno"){ card.style.display = "none"; return; }
-  card.style.display = "";
-
-  const programs = (typeof pgxProgramsForRole === "function") ? pgxProgramsForRole() : [];
-
-  // program select
-  const selP = document.getElementById("mcProgram");
-  const prevP = selP.value || "__ALL__";
-  selP.innerHTML = `<option value="__ALL__">PROGRAMA: TODOS</option>` + programs.map(p=>{
-    const nm = String(p.meta?.name||"PROGRAMA").toUpperCase();
-    const sc = String(p.meta?.scope||"ALL").toUpperCase();
-    return `<option value="${escapeHtml(p.id)}">${escapeHtml(nm)}${sc && sc!=="ALL" ? " · " + escapeHtml(sc) : ""}</option>`;
-  }).join("");
-  const existsP = Array.from(selP.options).some(o=>o.value===prevP);
-  selP.value = existsP ? prevP : "__ALL__";
-
-  const wrap = document.getElementById("mcTableWrap");
-  const st = mcLoadStore();
-
-  // Vista TODOS: resumen por programa → cursos
-  if (selP.value === "__ALL__"){
-    document.getElementById("mcCourse").innerHTML = `<option value="">CURSO: —</option>`;
-    document.getElementById("mcLink").value = "";
-    document.getElementById("mcLink").disabled = true;
-    document.getElementById("mcOpenLink").href = "#";
-    document.getElementById("mcOpenLink").classList.add("disabled");
-    document.getElementById("mcOpenLink").textContent = "ABRIR";
-    document.getElementById("mcRecPct").textContent = "—";
-    document.getElementById("mcDiaPct").textContent = "—";
-    document.getElementById("mcImpPct").textContent = "—";
-
-    const blocks = programs.map(p=>{
-      const pid = p.id;
-      const courses = mcCoursesForProgram(pid);
-      if (!courses.length) return "";
-      const nm = String(p.meta?.name||"PROGRAMA").toUpperCase();
-
-      const items = courses.map(c=>{
-        const pr = mcProgress(pid, c.id);
-        const url = String((st.links && st.links[pid] && st.links[pid][c.id]) ? st.links[pid][c.id] : "").trim();
-        const openCls = url ? "" : "disabled";
-
-        return `
-          <div class="card" style="border:1px solid rgba(0,0,0,.08); border-radius:16px; padding:12px; box-shadow:none; margin-top:10px;">
-            <div class="mrTop" style="margin:0;">
-              <div class="mrKpi">${escapeHtml(c.name)} · <b>IMP ${pr.impPct}%</b> (REC ${pr.recPct}% · DIA ${pr.diaPct}%)</div>
-              <div class="mrSelRow">
-                <a class="mrBtn" href="#" onclick="(function(){ try{ document.getElementById('mcProgram').value='${escapeHtml(pid)}'; }catch(e){}; renderMateriales(); setTimeout(()=>{ try{ document.getElementById('mcCourse').value='${escapeHtml(c.id)}'; renderMateriales(); }catch(e){} }, 0); })(); return false;">VER</a>
-                <a class="mrBtn ${openCls}" href="${escapeHtml(url||'#')}" target="_blank" rel="noopener">ABRIR</a>
-              </div>
+  if (grid){
+    grid.innerHTML = (MATERIALES||[]).map(x=>{
+      const u = String(x.uni||"").toUpperCase();
+      const dot =
+        u === "AGRARIA"   ? getCss("--agraria") :
+        u === "PUCP"      ? getCss("--pucp") :
+        u === "U.LIMA"    ? getCss("--ulima") :
+        u === "ESCOLARES" ? "#7c3aed" :
+                            getCss("--accent");
+      return `
+        <a class="iItem" href="${escapeHtml(x.url)}" target="_blank" rel="noopener"
+           style="text-decoration:none; color:inherit;">
+          <div class="iLeft">
+            <div class="iSalon">${escapeHtml(u)}</div>
+            <div class="iMeta">
+              <span class="dot" style="background:${dot};"></span>
+              <span>ABRIR CARPETA</span>
             </div>
           </div>
-        `;
-      }).join("");
-
-      return `
-        <div class="card" style="border:1px solid rgba(0,0,0,.08); border-radius:16px; padding:12px; box-shadow:none; margin-top:12px;">
-          <div class="cardtitle" style="margin:0 0 6px 0;">${escapeHtml(nm)}</div>
-          <div style="color:var(--muted); font-weight:900;">Cursos configurados (AGRARIA).</div>
-          ${items}
-        </div>
+          <div class="iNum" style="color:${dot};">⟶</div>
+        </a>
       `;
     }).join("");
+  }
 
-    wrap.innerHTML = blocks || `<div class="pgEmpty">No hay cursos configurados para los programas actuales.</div>`;
+  // ===== CONTROL POR CURSO (flujo profesional) =====
+  const card = document.getElementById("matCursoCard");
+  if (!card) return;
+
+  const allowedUni = ["AGRARIA","U.LIMA","PUCP","ESCOLARES"];
+  const canEdit = (CURRENT_ROLE === "admin" || CURRENT_ROLE === "tutor");
+
+  const store = pgxLoadStore();
+  const programsAll = (typeof pgxProgramsForRole==="function") ? pgxProgramsForRole() : [];
+  const byUni = (uni)=> programsAll.filter(p=>String(p?.meta?.scope||"ALL").toUpperCase()===uni);
+
+  const COURSES = {
+    "AGRARIA":[
+      "Razonamiento Verbal","Textos","Razonamiento Matemático","Álgebra","Geometría","Trigonometría","Aritmética",
+      "Física","Química","Biología","Economía","Historia","Geografía","Reforzamiento de Matemáticas"
+    ],
+    "U.LIMA":["(Definir cursos U.LIMA)"],
+    "PUCP":["(Definir cursos PUCP)"],
+    "ESCOLARES":["(Definir cursos escolares)"]
+  };
+
+  const UNI_KEY="LM_MAT_UI_UNI";
+  const PROG_KEY="LM_MAT_UI_PROG";
+  const COURSE_KEY="LM_MAT_UI_COURSE";
+
+  const curUni = (localStorage.getItem(UNI_KEY) || "AGRARIA").toUpperCase();
+  const uni = allowedUni.includes(curUni) ? curUni : "AGRARIA";
+
+  const uniPrograms = byUni(uni);
+  const progIdSaved = localStorage.getItem(PROG_KEY) || "";
+  const prog = uniPrograms.find(p=>p.id===progIdSaved) || uniPrograms[0] || null;
+
+  const courses = COURSES[uni] || [];
+  const savedCourse = localStorage.getItem(COURSE_KEY) || "";
+  const course = courses.includes(savedCourse) ? savedCourse : (courses[0]||"");
+
+  // helpers
+  function fmtDM(d){
+    if (!d) return "";
+    const dd = String(d.getDate()).padStart(2,"0");
+    const mm = String(d.getMonth()+1).padStart(2,"0");
+    return `${dd}/${mm}`;
+  }
+
+  function getSemanaCodes(p){
+    const baseWeeks = pgxTotalWeeks();
+    const lane = (p?.config?.lanes||[]).find(x=>String(x.key||"").toLowerCase()==="semana");
+    const v = Array.isArray(lane?.values) ? lane.values : [];
+    return Array.from({length:baseWeeks}, (_,i)=> String(v[i]||`SEM${i+1}`));
+  }
+
+  // build UI
+  card.innerHTML = `
+    <div class="cardtitle">CONTROL DE MATERIALES</div>
+    <div style="color:var(--muted); font-weight:900; margin-bottom:12px;">
+      Flujo: <b>Universidad</b> → <b>Programa</b> → <b>Curso</b>. Las semanas muestran <b>código</b> y <b>fecha</b> según el programa.
+      ${canEdit ? "" : "<br/><b>Solo lectura</b>: para actualizar estados, ingresa como Tutor o Admin."}
+    </div>
+
+    <div class="mrTop" style="gap:10px;">
+      <div class="mrSelRow" style="flex-wrap:wrap;">
+        ${allowedUni.map(u=>`<button class="btn ${u===uni?"primary":"ghost"}" type="button" data-uni="${escapeHtml(u)}">${escapeHtml(u)}</button>`).join("")}
+      </div>
+
+      <div class="mrSelRow" style="flex-wrap:wrap;">
+        <label style="font-weight:950; color:var(--muted);">PROGRAMA
+          <select id="mcP2" style="margin-left:8px; padding:8px 10px; border-radius:12px; border:1px solid var(--border); font-weight:900;">
+            ${(uniPrograms.length?uniPrograms:[{id:"",meta:{name:"(Sin programas)"} }]).map(p=>`<option value="${escapeHtml(p.id||"")}">${escapeHtml(String(p?.meta?.name||"").toUpperCase()||"(SIN PROGRAMAS)")}</option>`).join("")}
+          </select>
+        </label>
+
+        <label style="font-weight:950; color:var(--muted);">CURSO
+          <select id="mcC2" style="margin-left:8px; padding:8px 10px; border-radius:12px; border:1px solid var(--border); font-weight:900;">
+            ${(courses.length?courses:["(Sin cursos)"]).map(c=>`<option value="${escapeHtml(c)}">${escapeHtml(String(c).toUpperCase())}</option>`).join("")}
+          </select>
+        </label>
+
+        <select id="mcF2" style="padding:8px 10px; border-radius:12px; border:1px solid var(--border); font-weight:900;">
+          <option value="ALL">VER: TODO</option>
+          <option value="P_REC">PENDIENTE: RECIBIDO</option>
+          <option value="P_DIA">PENDIENTE: DIAGRAMADO</option>
+          <option value="P_IMP">PENDIENTE: IMPRESO</option>
+          <option value="DONE">LISTO: IMPRESO</option>
+        </select>
+      </div>
+    </div>
+
+    <div id="mcBody2" style="margin-top:12px;"></div>
+  `;
+
+  // wire uni buttons
+  card.querySelectorAll("button[data-uni]").forEach(b=>{
+    b.addEventListener("click", ()=>{
+      localStorage.setItem(UNI_KEY, String(b.getAttribute("data-uni")||"AGRARIA"));
+      localStorage.removeItem(PROG_KEY);
+      localStorage.removeItem(COURSE_KEY);
+      renderMateriales();
+    });
+  });
+
+  // set selects values
+  const selP = card.querySelector("#mcP2");
+  const selC = card.querySelector("#mcC2");
+  const selF = card.querySelector("#mcF2");
+  if (selP) selP.value = prog ? prog.id : "";
+  if (selC) selC.value = course || (courses[0]||"");
+  if (selF) selF.value = localStorage.getItem("LM_MAT_UI_FILTER") || "ALL";
+
+  selP?.addEventListener("change", ()=>{
+    localStorage.setItem(PROG_KEY, String(selP.value||""));
+    renderMateriales();
+  });
+  selC?.addEventListener("change", ()=>{
+    localStorage.setItem(COURSE_KEY, String(selC.value||""));
+    renderMateriales();
+  });
+  selF?.addEventListener("change", ()=>{
+    localStorage.setItem("LM_MAT_UI_FILTER", String(selF.value||"ALL"));
+    renderMateriales();
+  });
+
+  const body = card.querySelector("#mcBody2");
+  if (!body) return;
+
+  if (!prog || !prog.id){
+    body.innerHTML = `<div class="pgEmpty">No hay programas para <b>${escapeHtml(uni)}</b>. Crea uno en <b>PROGRAMA</b> (Admin).</div>`;
     return;
   }
 
-  // Vista UNO: checklist por curso
-  const pid = selP.value;
+  const pid = prog.id;
+  const cid = String(selC?.value||"");
+  const filter = String(selF?.value||"ALL");
 
-  const courses = mcCoursesForProgram(pid);
-  const selC = document.getElementById("mcCourse");
-  const prevC = selC.value || "";
-  selC.innerHTML = courses.length
-    ? courses.map(c=> `<option value="${escapeHtml(c.id)}">${escapeHtml(c.name)}</option>`).join("")
-    : `<option value="">CURSO: (SIN CONFIG)</option>`;
+  // dates per program
+  const pStart = pgxParseDateYMD(String(prog?.meta?.startDate||"")) || pgxParseDateYMD(String(store.timeline?.startDate||"")) || new Date();
+  const codes = getSemanaCodes(prog);
+  const baseWeeks = pgxTotalWeeks();
 
-  const existsC = Array.from(selC.options).some(o=>o.value===prevC);
-  selC.value = existsC ? prevC : (courses[0]?.id || "");
+  // progress
+  const st = mcLoadStore();
+  const pr = mcProgress(st, pid, cid, codes);
 
-  const cid = selC.value || "";
-  if (!cid){
-    document.getElementById("mcLink").value = "";
-    document.getElementById("mcLink").disabled = true;
-    wrap.innerHTML = `<div class="pgEmpty">Este programa no tiene cursos configurados (solo AGRARIA está definido por ahora).</div>`;
-    return;
-  }
+  const progBars = `
+    <div style="display:grid; grid-template-columns: repeat(3, minmax(180px, 1fr)); gap:10px; margin-bottom:12px;">
+      ${[
+        {k:"rec", t:"RECIBIDO", v:pr.recPct},
+        {k:"dia", t:"DIAGRAMADO", v:pr.diaPct},
+        {k:"imp", t:"IMPRESO", v:pr.impPct},
+      ].map(o=>`
+        <div style="border:1px solid var(--border); border-radius:14px; padding:10px 12px; background:#fff;">
+          <div style="display:flex; justify-content:space-between; align-items:center; font-weight:950; margin-bottom:6px;">
+            <span>${o.t}</span><span>${o.v}%</span>
+          </div>
+          <div style="height:10px; border-radius:999px; background:rgba(15,23,42,0.10); overflow:hidden;">
+            <div style="height:10px; width:${o.v}%; background:linear-gradient(90deg,var(--accent2),var(--accent));"></div>
+          </div>
+          <div style="margin-top:6px; color:var(--muted); font-weight:850; font-size:12px;">
+            ${o.k==="imp" ? "Estado final del material." : "Progreso intermedio."}
+          </div>
+        </div>
+      `).join("")}
+    </div>
+  `;
 
-  // link por curso
-  const link = String((st.links && st.links[pid] && st.links[pid][cid]) ? st.links[pid][cid] : "").trim();
-  const linkInp = document.getElementById("mcLink");
-  linkInp.disabled = false;
-  linkInp.value = link;
+  const rows = [];
+  for (let i=0;i<baseWeeks;i++){
+    const code = codes[i];
+    const date = fmtDM(pgxAddDays(pStart, i*7));
+    const rec = !!mcGetFlag(st, pid, cid, code, "rec");
+    const dia = !!mcGetFlag(st, pid, cid, code, "dia");
+    const imp = !!mcGetFlag(st, pid, cid, code, "imp");
 
-  const openA = document.getElementById("mcOpenLink");
-  if (link){
-    openA.href = link;
-    openA.classList.remove("disabled");
-    openA.textContent = "ABRIR";
-  }else{
-    openA.href = "#";
-    openA.classList.add("disabled");
-    openA.textContent = "ABRIR (PENDIENTE)";
-  }
+    // filter
+    const okDone = imp;
+    const pendRec = !rec;
+    const pendDia = rec && !dia;
+    const pendImp = rec && dia && !imp;
 
-  const codes = mcWeekCodes(pid);
-  if (!codes.length){
-    document.getElementById("mcRecPct").textContent = "0%";
-    document.getElementById("mcDiaPct").textContent = "0%";
-    document.getElementById("mcImpPct").textContent = "0%";
-    wrap.innerHTML = `<div class="pgEmpty">Este programa no tiene semanas (códigos) en la fila <b>Semana</b>. Completa esa fila en PROGRAMA para habilitar el control por curso.</div>`;
-    return;
-  }
+    let show = true;
+    if (filter==="DONE") show = okDone;
+    if (filter==="P_REC") show = pendRec;
+    if (filter==="P_DIA") show = pendDia;
+    if (filter==="P_IMP") show = pendImp;
 
-  const pr = mcProgress(pid, cid);
-  document.getElementById("mcRecPct").textContent = pr.recPct + "%";
-  document.getElementById("mcDiaPct").textContent = pr.diaPct + "%";
-  document.getElementById("mcImpPct").textContent = pr.impPct + "%";
+    if (!show) continue;
 
-  const filter = document.getElementById("mcFilter").value || "ALL";
-
-  const rows = codes.map(code=>{
-    const f = mcGetFlags(pr.st, pid, cid, code);
-
-    const show =
-      (filter==="ALL") ||
-      (filter==="P_REC" && !f.rec) ||
-      (filter==="P_DIA" && !f.dia) ||
-      (filter==="P_IMP" && !f.imp) ||
-      (filter==="DONE"  &&  f.imp);
-
-    if (!show) return "";
-
-    return `
+    const dis = canEdit ? "" : "disabled";
+    rows.push(`
       <tr>
-        <td><b>${escapeHtml(code)}</b></td>
-        <td style="text-align:center;">
-          <input type="checkbox" data-code="${escapeHtml(code)}" data-field="rec" ${f.rec ? "checked":""}/>
-        </td>
-        <td style="text-align:center;">
-          <input type="checkbox" data-code="${escapeHtml(code)}" data-field="dia" ${f.dia ? "checked":""}/>
-        </td>
-        <td style="text-align:center;">
-          <input type="checkbox" data-code="${escapeHtml(code)}" data-field="imp" ${f.imp ? "checked":""}/>
-        </td>
+        <td style="font-weight:950;">${i+1}</td>
+        <td>${escapeHtml(date)}</td>
+        <td style="font-weight:950;">${escapeHtml(code)}</td>
+        <td><input type="checkbox" ${dis} data-code="${escapeHtml(code)}" data-field="rec" ${rec?"checked":""}></td>
+        <td><input type="checkbox" ${dis} data-code="${escapeHtml(code)}" data-field="dia" ${dia?"checked":""}></td>
+        <td><input type="checkbox" ${dis} data-code="${escapeHtml(code)}" data-field="imp" ${imp?"checked":""}></td>
       </tr>
-    `;
-  }).join("");
+    `);
+  }
 
-  wrap.innerHTML = `
-    <table class="mrTable">
-      <thead>
-        <tr>
-          <th>SEMANA</th>
-          <th>RECIBIDO</th>
-          <th>DIAGRAMADO</th>
-          <th>IMPRESO</th>
-        </tr>
-      </thead>
-      <tbody>${rows || ""}</tbody>
-    </table>
+  body.innerHTML = `
+    <div class="mrTop" style="margin:0;">
+      <div class="mrKpi">${escapeHtml(String(prog.meta?.name||"PROGRAMA").toUpperCase())} · <b>${escapeHtml(String(cid||"CURSO").toUpperCase())}</b> · Inicio: <b>${escapeHtml(fmtDM(pStart))}</b></div>
+    </div>
+
+    ${progBars}
+
+    <div style="border:1px solid var(--border); border-radius:14px; overflow:hidden;">
+      <table style="width:100%; border-collapse:collapse; font-weight:900;">
+        <thead>
+          <tr style="background:#f1f5f9;">
+            <th style="padding:10px; border-bottom:1px solid var(--border);">#</th>
+            <th style="padding:10px; border-bottom:1px solid var(--border);">FECHA</th>
+            <th style="padding:10px; border-bottom:1px solid var(--border);">SEMANA</th>
+            <th style="padding:10px; border-bottom:1px solid var(--border);">REC</th>
+            <th style="padding:10px; border-bottom:1px solid var(--border);">DIA</th>
+            <th style="padding:10px; border-bottom:1px solid var(--border);">IMP</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rows.length ? rows.join("") : `<tr><td colspan="6" style="padding:14px; color:var(--muted); font-weight:950;">No hay filas para este filtro.</td></tr>`}
+        </tbody>
+      </table>
+    </div>
+
     <div style="margin-top:10px; color:var(--muted); font-weight:900;">
-      Tip: usa el filtro para ver solo pendientes. “IMPRESO” representa el estado final.
+      Regla de lectura: <b>P_REC</b> = falta recibir · <b>P_DIA</b> = recibido pero falta diagramar · <b>P_IMP</b> = diagramado pero falta imprimir · <b>DONE</b> = impreso.
     </div>
   `;
 
   // wire checkboxes
-  wrap.querySelectorAll("input[type=checkbox][data-code][data-field]").forEach(ch=>{
+  body.querySelectorAll('input[type=checkbox][data-code][data-field]').forEach(ch=>{
     ch.addEventListener("change", ()=>{
       const code = String(ch.getAttribute("data-code")||"");
       const field = String(ch.getAttribute("data-field")||"");
@@ -6672,6 +6784,7 @@ function renderMateriales(){
     });
   });
 }
+
 
 
 // ===================== LISTAS (NUEVO) =====================
@@ -7288,7 +7401,7 @@ function renderReportes(){
 
   // ===================== ORDEN DE HORARIOS =====================
   const LOCAL_ORDER = ["LA MOLINA","SAN MIGUEL","SAN BORJA","VIRTUAL"];
-  const UNI_ORDER = ["AGRARIA","PUCP","U.LIMA"];
+  const UNI_ORDER = ["AGRARIA","U.LIMA","PUCP","ESCOLARES"];
 
   function sortSchedules(list){
     const idxLoc = (x)=> {
@@ -7941,7 +8054,7 @@ function ensureHorariosLayout(){
 
     const locals = uniq(SCHEDULES.map(s=>s.local));
     fillSelectKeep("hLocal", sortByLocalOrder(locals), "LOCAL: TODOS");
-    fillSelectKeep("hUni", ["AGRARIA","PUCP","U.LIMA"], "UNIVERSIDAD: TODAS");
+    fillSelectKeep("hUni", ["AGRARIA","U.LIMA","PUCP","ESCOLARES"], "UNIVERSIDAD: TODAS");
 
     // defaults
     document.getElementById("hLocal").value = "__ALL__";
