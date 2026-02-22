@@ -2359,11 +2359,27 @@ const PGX_STORE_KEY   = "LM_PROGRAMA_SHEET_V1_STORE";
 
   function pgxParseDateYMD(ymd){
     const s = String(ymd||"").trim();
-    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s);
-    if (!m) return null;
-    const d = new Date(+m[1], (+m[2])-1, +m[3]);
-    if (Number.isNaN(d.getTime())) return null;
-    return d;
+    // acepta: YYYY-MM-DD (input date), DD/MM, DD/MM/YYYY, DD-MM-YYYY
+    let m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s);
+    if (m){
+      const d = new Date(+m[1], (+m[2])-1, +m[3]);
+      if (Number.isNaN(d.getTime())) return null;
+      return d;
+    }
+    m = /^(\d{2})\/(\d{2})(?:\/(\d{4}))?$/.exec(s);
+    if (m){
+      const yy = m[3] ? +m[3] : (new Date()).getFullYear();
+      const d = new Date(yy, (+m[2])-1, +m[1]);
+      if (Number.isNaN(d.getTime())) return null;
+      return d;
+    }
+    m = /^(\d{2})-(\d{2})-(\d{4})$/.exec(s);
+    if (m){
+      const d = new Date(+m[3], (+m[2])-1, +m[1]);
+      if (Number.isNaN(d.getTime())) return null;
+      return d;
+    }
+    return null;
   }
   function pgxAddDays(d, days){
     const x = new Date(d.getTime());
@@ -6564,7 +6580,12 @@ function renderMateriales(){
   if (!card) return;
 
   const allowedUni = ["AGRARIA","U.LIMA","PUCP","ESCOLARES"];
-  const canEdit = (CURRENT_ROLE === "admin" || CURRENT_ROLE === "tutor");
+  const roleLower = String(CURRENT_ROLE||"").toLowerCase();
+  const canEdit = (roleLower === "admin"); // edición de estructura (solo Admin)
+  const canWork = (roleLower === "admin" || roleLower === "tutor"); // marcar estados (Tutor/Admin)
+  const MAT_EDIT_KEY = "LM_MAT_EDIT_MODE";
+  const matEditDefault = (roleLower === "tutor");
+  const matEditOn = (localStorage.getItem(MAT_EDIT_KEY) ?? (matEditDefault ? "1" : "0")) === "1";
 
   const store = pgxLoadStore();
   const programsAll = (typeof pgxProgramsForRole==="function") ? pgxProgramsForRole() : [];
@@ -6615,7 +6636,7 @@ function renderMateriales(){
     <div class="cardtitle">CONTROL DE MATERIALES</div>
     <div style="color:var(--muted); font-weight:900; margin-bottom:12px;">
       Flujo: <b>Universidad</b> → <b>Programa</b> → <b>Curso</b>. Las semanas muestran <b>código</b> y <b>fecha</b> según el programa.
-      ${canEdit ? "" : "<br/><b>Solo lectura</b>: para actualizar estados, ingresa como Tutor o Admin."}
+      ${canWork ? "" : "<br/><b>Solo lectura</b>: para actualizar estados, ingresa como Tutor o Admin."}
     </div>
 
     <div class="mrTop" style="gap:10px;">
@@ -6643,6 +6664,7 @@ function renderMateriales(){
           <option value="P_IMP">PENDIENTE: IMPRESO</option>
           <option value="DONE">LISTO: IMPRESO</option>
         </select>
+        ${canWork ? `<button id="mcEditBtn" class="btn ${matEditOn?'primary':'ghost'}" type="button" style="margin-left:6px;">${matEditOn?'EDITANDO':'EDITAR'}</button>` : ""}
       </div>
     </div>
 
@@ -6677,6 +6699,14 @@ function renderMateriales(){
   });
   selF?.addEventListener("change", ()=>{
     localStorage.setItem("LM_MAT_UI_FILTER", String(selF.value||"ALL"));
+    renderMateriales();
+  });
+
+  // toggle edición de materiales (marcar checkboxes)
+  const eb = card.querySelector("#mcEditBtn");
+  eb?.addEventListener("click", ()=>{
+    const now = (localStorage.getItem(MAT_EDIT_KEY) === "1");
+    localStorage.setItem(MAT_EDIT_KEY, now ? "0" : "1");
     renderMateriales();
   });
 
@@ -6745,7 +6775,7 @@ function renderMateriales(){
 
     if (!show) continue;
 
-    const dis = canEdit ? "" : "disabled";
+    const dis = (canWork && matEditOn) ? "" : "disabled";
     rows.push(`
       <tr>
         <td style="font-weight:950;">${i+1}</td>
