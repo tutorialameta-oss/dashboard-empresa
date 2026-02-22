@@ -2754,6 +2754,11 @@ const PGX_STORE_KEY   = "LM_PROGRAMA_SHEET_V1_STORE";
     }
 
     const manualDates = Array.isArray(store.timeline?.manualDates) ? store.timeline.manualDates : null;
+    // Fechas visibles del encabezado (ventana global fija)
+    const dates = Array.from({length: displayWeeks}, (_,i)=>pgxAddDays(baseStart, i*7));
+    const monthRuns = pgxMonthRuns(dates);
+    const monthEnds = pgxMonthEnds(dates);
+
 
     const headMonths = monthRuns.length
       ? monthRuns.map((r)=> `<th class="pxMonth" colspan="${r.span}">${escapeHtml(r.label)}</th>`).join("")
@@ -3051,13 +3056,24 @@ const PGX_STORE_KEY   = "LM_PROGRAMA_SHEET_V1_STORE";
     const btnJson = document.getElementById("pgxJson");
     const btnSet = document.getElementById("pgxSettingsBtn");
     const btnDates = document.getElementById("pgxDates");
-        const btnFill = document.getElementById("pgxFill");
-if (btnNew) btnNew.style.display = pgxCanEdit() ? "" : "none";
-    if (btnDel) btnDel.style.display = pgxCanEdit() ? "" : "none";
-    if (btnJson) btnJson.style.display = pgxCanEdit() ? "" : "none";
-    if (btnSet) btnSet.style.display = pgxCanEdit() ? "" : "none";
-    if (btnDates) btnDates.style.display = pgxCanEdit() ? "" : "none";
-      if (btnFill) btnFill.style.display = pgxCanEdit() ? "" : "none";
+    const btnFill = document.getElementById("pgxFill");
+
+    const can = pgxCanEdit();
+    const editOn = can && pgxGetEditOn();
+
+    // Botón principal
+    if (edit) edit.style.display = can ? "" : "none";
+
+    // Herramientas avanzadas solo cuando el Admin activa EDITAR
+    const advDisp = editOn ? "" : "none";
+    if (fine) fine.style.display = advDisp;
+    if (btnFill) btnFill.style.display = advDisp;
+    if (btnNew) btnNew.style.display = advDisp;
+    if (btnDel) btnDel.style.display = advDisp;
+    if (btnJson) btnJson.style.display = advDisp;
+    if (btnSet) btnSet.style.display = advDisp;
+    if (btnDates) btnDates.style.display = advDisp;
+
 }
 
 
