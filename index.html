@@ -2838,7 +2838,6 @@ function pgxUpgradeProgram(p, baseWeeks){
     const fine = pgxGetFineOn();
     const edit = pgxCanEdit() && pgxGetEditOn();
 
-    const baseWeeks = pgxTotalWeeks();
     const viewStartStr = pgxGetViewStart() || String(store.timeline?.startDate||"");
     const viewWeeksRaw = pgxGetViewWeeks() || baseWeeks;
     const displayWeeks = Math.max(1, Math.min(baseWeeks, +viewWeeksRaw||baseWeeks));
@@ -3124,7 +3123,6 @@ function pgxUpgradeProgram(p, baseWeeks){
 
     const baseStart = String(store.timeline?.startDate||"");
     const vStart = pgxGetViewStart() || baseStart;
-    const baseWeeks = pgxTotalWeeks();
     const vWeeks = pgxGetViewWeeks() || baseWeeks;
 
     if (start) start.value = String(vStart||"");
@@ -3699,11 +3697,10 @@ const tw = pgxTotalWeeks();
         const scope = theme;
 
         const store = pgxLoadStore();
-    const baseWeeks = pgxTotalWeeks();
+        const baseWeeks = pgxTotalWeeks();
         const p = pgxDefaultProgram(name, scope, theme);
         // ajusta longitud al timeline actual
         const progs = (typeof pgxProgramsForRole === "function") ? pgxProgramsForRole() : [];
-        const baseWeeks = pgxTotalWeeks();
         const baseStart0 = pgxParseDateYMD(String(store.timeline?.startDate||""));
         let baseStart = baseStart0;
         for (const p of (progs||[])){
@@ -3810,9 +3807,8 @@ const tw = pgxTotalWeeks();
       btnDates.addEventListener("click", ()=>{
         if (!pgxCanEdit()) return;
         const store = pgxLoadStore();
-    const baseWeeks = pgxTotalWeeks();
-        const progs = (typeof pgxProgramsForRole === "function") ? pgxProgramsForRole() : [];
         const baseWeeks = pgxTotalWeeks();
+        const progs = (typeof pgxProgramsForRole === "function") ? pgxProgramsForRole() : [];
         const baseStart0 = pgxParseDateYMD(String(store.timeline?.startDate||""));
         let baseStart = baseStart0;
         for (const p of (progs||[])){
@@ -6839,7 +6835,6 @@ function renderMateriales(){
   // dates per program
   const pStart = pgxParseDateYMD(String(prog?.meta?.startDate||"")) || pgxParseDateYMD(String(store.timeline?.startDate||"")) || new Date();
   const codes = getSemanaCodes(prog);
-  const baseWeeks = pgxTotalWeeks();
 
   // progress
   const st = mcLoadStore();
