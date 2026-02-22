@@ -2760,7 +2760,6 @@ function pgxUpgradeProgram(p, baseWeeks){
 
   function pgxTotalWeeks(){
     const store = pgxLoadStore();
-    const baseWeeks = pgxTotalWeeks();
     const w = +store.timeline?.weeks || 16;
     return Math.max(1, Math.min(60, w));
   }
@@ -2882,7 +2881,7 @@ function pgxUpgradeProgram(p, baseWeeks){
     const thead = `
       <thead>
         <tr class="pxHdr1">
-          <th class="pxCorner" colspan="2" rowspan="2">PROGRAMACIÓN</th
+          <th class="pxCorner" colspan="2" rowspan="2">PROGRAMACIÓN</th>
           ${headMonths}
         </tr>
         <tr class="pxHdr2">
@@ -6590,6 +6589,12 @@ function mcGetFlags(st, pid, cid, code){
   const o = map[code];
   return {rec:!!o.rec, dia:!!o.dia, imp:!!o.imp};
 }
+
+function mcGetFlag(st, pid, cid, code, field){
+  const f = mcGetFlags(st, pid, cid, code);
+  return !!(f && f[field]);
+}
+
 
 function mcSetFlag(st, pid, cid, code, field, val){
   const map = mcEnsureStatus(st, pid, cid);
