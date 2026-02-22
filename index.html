@@ -1753,6 +1753,11 @@
     border-right:3px solid rgba(15,23,42,0.55) !important;
   }
 
+/* Encabezados fijos (mes + fecha) dentro del scroll */
+.pxHdr1 th{ position:sticky; top:0; z-index:6; }
+.pxHdr2 th{ position:sticky; top:34px; z-index:6; }
+.pxCorner{ position:sticky; top:0; z-index:7; }
+
   .pxProg{
     position:sticky;
     left:0;
@@ -2416,6 +2421,44 @@ const PGX_STORE_KEY   = "LM_PROGRAMA_SHEET_V1_STORE";
     return {bar, cell, off};
   }
 
+
+// Orden fijo de visualización por universidad/tema (siempre):
+// AGRARIA → U.LIMA → PUCP → ESCOLARES
+function pgxThemeRank(theme){
+  const t = String(theme||"").toUpperCase().trim();
+  if (t==="AGRARIA") return 1;
+  if (t==="U.LIMA" || t==="ULIMA" || t==="UL") return 2;
+  if (t==="PUCP") return 3;
+  if (t==="ESCOLARES" || t==="ESCOLAR") return 4;
+  return 99;
+}
+
+// Inserta un programa nuevo respetando el bloque de su tema y el orden global.
+function pgxInsertProgramId(store, newProgram){
+  const id = newProgram.id;
+  const rNew = pgxThemeRank(newProgram?.meta?.theme);
+  // índices del mismo tema
+  let lastSame = -1;
+  for (let i=0;i<store.order.length;i++){
+    const p = store.programs[store.order[i]];
+    if (!p) continue;
+    if (pgxThemeRank(p?.meta?.theme)===rNew) lastSame = i;
+  }
+  if (lastSame >= 0){
+    store.order.splice(lastSame+1, 0, id);
+    return;
+  }
+  // si no existe ese tema, insertar antes del primer tema "mayor"
+  let pos = store.order.length;
+  for (let i=0;i<store.order.length;i++){
+    const p = store.programs[store.order[i]];
+    if (!p) continue;
+    const r = pgxThemeRank(p?.meta?.theme);
+    if (r > rNew){ pos = i; break; }
+  }
+  store.order.splice(pos, 0, id);
+}
+
   // Ventana visible por programa (para imitar bloques cortos como tu Excel)
   // meta.startWeek / meta.endWeek (1-based, dentro de 1..totalWeeks)
   function pgxProgramWindow(p, totalWeeks){
@@ -2522,6 +2565,7 @@ const PGX_STORE_KEY   = "LM_PROGRAMA_SHEET_V1_STORE";
           { key:"semana", label:"Semana", type:"cells", values: semana },
           { key:"simulacro", label:"Simulacro", type:"cells", values: empty.slice() },
           { key:"materiales", label:"Materiales", type:"cells", values: materiales },
+          { key:"eventos", label:"Eventos", type:"cells", values: empty.slice() },
           { key:"tutoria", label:"Tutoría", type:"cells", values: empty.slice() },
           { key:"reportes", label:"Reportes", type:"cells", values: reportes },
           { key:"seminario", label:"Seminario", type:"cells", values: empty.slice() },
@@ -2552,6 +2596,7 @@ const PGX_STORE_KEY   = "LM_PROGRAMA_SHEET_V1_STORE";
 
   function pgxEnsure(){
     const store = pgxLoadStore();
+    const baseWeeks = pgxTotalWeeks();
     if (!store.order.length && pgxCanEdit()){
       const p1 = pgxDefaultProgram("AG REGULAR 1", "AGRARIA", "AGRARIA");
       p1.meta.startWeek = 1;
@@ -2624,7 +2669,25 @@ const PGX_STORE_KEY   = "LM_PROGRAMA_SHEET_V1_STORE";
     if (!Number.isFinite(z)) return 0.85;
     return Math.max(0.55, Math.min(1.25, z));
   }
-  function pgxSetZoom(z){ pgxSaveStr(PGX_ZOOM_KEY, String(z)); }
+  function pgxSetZoom(z){
+    const allowed = ["0.55","0.60","0.65","0.70","0.75","0.80","0.85","0.90","0.95","1","1.05","1.10","1.15","1.20","1.25"];
+    let v = +z;
+    if (!Number.isFinite(v)) v = 0.85;
+    v = Math.max(0.55, Math.min(1.25, v));
+    // redondeo estable para que el <select> no quede en blanco
+    let s = (Math.round(v*100)/100).toFixed(2);
+    s = s.replace(/\.00$/,"").replace(/0$/,"");
+    if (!allowed.includes(s)){
+      // busca el más cercano
+      let best = allowed[0], bestd = 1e9;
+      for (const a of allowed){
+        const d = Math.abs(parseFloat(a)-v);
+        if (d<bestd){ bestd=d; best=a; }
+      }
+      s = best;
+    }
+    pgxSaveStr(PGX_ZOOM_KEY, s);
+  }
 
   function pgxGetEditOn(){ return pgxLoadStr(PGX_EDIT_KEY, "0") === "1"; }
   function pgxSetEditOn(on){ pgxSaveStr(PGX_EDIT_KEY, on ? "1":"0"); }
@@ -2650,14 +2713,35 @@ const PGX_STORE_KEY   = "LM_PROGRAMA_SHEET_V1_STORE";
   function pgxSetSettingsOpen(on){ pgxSaveStr(PGX_SETTINGS_KEY, on ? "1":"0"); }
 
 
+  
+function pgxUpgradeProgram(p, baseWeeks){
+  try{
+    if (!p || !p.config || !Array.isArray(p.config.lanes)) return p;
+    const keys = new Set(p.config.lanes.map(x=>String(x.key||"").toLowerCase()));
+    if (!keys.has("eventos")){
+      p.config.lanes.splice(4, 0, { key:"eventos", label:"Eventos", type:"cells", values: Array.from({length: baseWeeks}, ()=>"") });
+    }
+    // normaliza longitudes
+    p.config.lanes.forEach(l=>{
+      if (l.type==="cells"){
+        const old = Array.isArray(l.values)? l.values:[];
+        l.values = Array.from({length: baseWeeks}, (_,i)=> String(old[i]||""));
+      }
+    });
+    return p;
+  }catch(e){ return p; }
+}
+
   function pgxProgramsForRole(){
     const store = pgxLoadStore();
+    const baseWeeks = pgxTotalWeeks();
     const role = String(CURRENT_ROLE||"").toLowerCase();
     const uni = (role==="alumno") ? String((getAlumnoProfile()||{}).uni||"").toUpperCase() : "";
 
     const out = [];
     for (const id of store.order){
-      const p = store.programs[id];
+      let p = store.programs[id];
+      if (p) p = pgxUpgradeProgram(p, baseWeeks);
       if (!p) continue;
 
       if (pgxCanEdit()){ out.push(p); continue; }
@@ -2676,12 +2760,14 @@ const PGX_STORE_KEY   = "LM_PROGRAMA_SHEET_V1_STORE";
 
   function pgxTotalWeeks(){
     const store = pgxLoadStore();
+    const baseWeeks = pgxTotalWeeks();
     const w = +store.timeline?.weeks || 16;
     return Math.max(1, Math.min(60, w));
   }
 
   function pgxTimelineDates(){
     const store = pgxLoadStore();
+    const baseWeeks = pgxTotalWeeks();
     const total = pgxTotalWeeks();
     const start = pgxParseDateYMD(String(store.timeline?.startDate||""));
     if (!start) return null;
@@ -2746,6 +2832,7 @@ const PGX_STORE_KEY   = "LM_PROGRAMA_SHEET_V1_STORE";
 
   function pgxRenderSheet(programs, mode){
     const store = pgxLoadStore();
+    const baseWeeks = pgxTotalWeeks();
 
     const z = pgxGetZoom();
     const fine = pgxGetFineOn();
@@ -2795,11 +2882,11 @@ const PGX_STORE_KEY   = "LM_PROGRAMA_SHEET_V1_STORE";
 
     const thead = `
       <thead>
-        <tr>
-          <th class="pxCorner" colspan="2" rowspan="2">PROGRAMACIÓN</th>
+        <tr class="pxHdr1">
+          <th class="pxCorner" colspan="2" rowspan="2">PROGRAMACIÓN</th
           ${headMonths}
         </tr>
-        <tr>
+        <tr class="pxHdr2">
           ${headDates}
         </tr>
       </thead>
@@ -2900,7 +2987,7 @@ const PGX_STORE_KEY   = "LM_PROGRAMA_SHEET_V1_STORE";
         const inLocal = (localW >= 1 && localW <= baseWeeks);
         const inWin   = inLocal && (localW >= wStart && localW <= wEnd);
 
-        let cls = monthEnds.has(gw) ? "pxW pxMonthEnd" : "pxW";
+        let cls = "pxW";
         if (!inWin) cls += " pxWOff";
 
         const bg  = inWin ? colors.cell : colors.off;
@@ -2941,7 +3028,7 @@ const PGX_STORE_KEY   = "LM_PROGRAMA_SHEET_V1_STORE";
               const cls = "pxSeg pxWOff";
               return `<td class="${cls}" colspan="${sp}" style="background:${colors.off};">&nbsp;</td>`;
             }
-            return `<td class="pxSeg pxEtapaCell" colspan="${sp}">${escapeHtml(txt) || "&nbsp;"}</td>`;
+            return `<td class="pxSeg pxEtapaCell" colspan="${sp}" style="background:${colors.cell};">${escapeHtml(txt) || "&nbsp;"}</td>`;
           }).join("");
 
           return `
@@ -2982,7 +3069,8 @@ const PGX_STORE_KEY   = "LM_PROGRAMA_SHEET_V1_STORE";
           const cls = "pxCell" + (canEdit ? " pxEditable" : "") + (isOut ? " pxWOff" : "");
           const content = isOut ? "&nbsp;" : (escapeHtml(txt) || "&nbsp;");
 
-          return `<td class="${cls}" colspan="${sp}" ${data}><div class="pxCellIn">${content}</div></td>`;
+          const bgStyle = isOut ? `background:${colors.off};` : `background:${colors.cell};`;
+          return `<td class="${cls}" colspan="${sp}" ${data} style="${bgStyle}"><div class="pxCellIn">${content}</div></td>`;
         }).join("");
 
         return `
@@ -3025,6 +3113,7 @@ const PGX_STORE_KEY   = "LM_PROGRAMA_SHEET_V1_STORE";
 
   function pgxApplyHeaderUI(){
     const store = pgxLoadStore();
+    const baseWeeks = pgxTotalWeeks();
 
     const start = document.getElementById("pgxStart");
     const weeks = document.getElementById("pgxWeeks");
@@ -3243,6 +3332,7 @@ const PGX_STORE_KEY   = "LM_PROGRAMA_SHEET_V1_STORE";
 
     document.getElementById("pgsSave")?.addEventListener("click", ()=>{
       const store = pgxLoadStore();
+    const baseWeeks = pgxTotalWeeks();
       const id = pgxGetActiveId();
       const pp = store.programs[id];
       if (!pp) return;
@@ -3293,6 +3383,7 @@ const tw = pgxTotalWeeks();
 
     document.getElementById("pgsEtapa")?.addEventListener("click", ()=>{
       const store = pgxLoadStore();
+    const baseWeeks = pgxTotalWeeks();
       const id = pgxGetActiveId();
       const pp = store.programs[id];
       if (!pp) return;
@@ -3319,6 +3410,7 @@ const tw = pgxTotalWeeks();
 
     document.getElementById("pgsResetCols")?.addEventListener("click", ()=>{
       const store = pgxLoadStore();
+    const baseWeeks = pgxTotalWeeks();
       const id = pgxGetActiveId();
       const pp = store.programs[id];
       if (!pp) return;
@@ -3444,6 +3536,7 @@ const tw = pgxTotalWeeks();
         if (!pgxCanEdit()) return;
 
         const store = pgxLoadStore();
+    const baseWeeks = pgxTotalWeeks();
         const pid = pgxGetActiveId();
         const p = store.programs[pid];
         if (!p) return;
@@ -3546,6 +3639,7 @@ const tw = pgxTotalWeeks();
 
         // ✅ Modo edición (solo Admin): actualiza timeline base y reajusta arrays
         const store = pgxLoadStore();
+    const baseWeeks = pgxTotalWeeks();
         if (s) store.timeline.startDate = s;
         store.timeline.weeks = w;
         // sincroniza vista con timeline
@@ -3554,7 +3648,8 @@ const tw = pgxTotalWeeks();
 
         // reajustar arrays de programas a la nueva longitud
         for (const id of store.order){
-          const p = store.programs[id];
+          let p = store.programs[id];
+      if (p) p = pgxUpgradeProgram(p, baseWeeks);
           if (!p) continue;
           (p.config?.lanes||[]).forEach(l=>{
             if (l.type==="cells"){
@@ -3604,6 +3699,7 @@ const tw = pgxTotalWeeks();
         const scope = theme;
 
         const store = pgxLoadStore();
+    const baseWeeks = pgxTotalWeeks();
         const p = pgxDefaultProgram(name, scope, theme);
         // ajusta longitud al timeline actual
         const progs = (typeof pgxProgramsForRole === "function") ? pgxProgramsForRole() : [];
@@ -3647,7 +3743,7 @@ const tw = pgxTotalWeeks();
         });
 
         store.programs[p.id]=p;
-        store.order.push(p.id);
+        pgxInsertProgramId(store, p);
         pgxSaveStore(store);
         pgxSetActiveId(p.id);
         pgxSetMode("ONE");
@@ -3664,6 +3760,7 @@ const tw = pgxTotalWeeks();
         if (!confirm("¿Eliminar este programa?")) return;
 
         const store = pgxLoadStore();
+    const baseWeeks = pgxTotalWeeks();
         delete store.programs[id];
         store.order = store.order.filter(x=>x!==id);
         pgxSaveStore(store);
@@ -3678,7 +3775,9 @@ const tw = pgxTotalWeeks();
         if (!pgxCanEdit()) return;
         const id = pgxGetActiveId();
         const store = pgxLoadStore();
-        const p = store.programs[id];
+    const baseWeeks = pgxTotalWeeks();
+        let p = store.programs[id];
+      if (p) p = pgxUpgradeProgram(p, baseWeeks);
         if (!p) return;
 
         const raw = prompt("Editor JSON (pega JSON válido). Sugerencia: copia primero para respaldo.", JSON.stringify(p, null, 2));
@@ -3711,6 +3810,7 @@ const tw = pgxTotalWeeks();
       btnDates.addEventListener("click", ()=>{
         if (!pgxCanEdit()) return;
         const store = pgxLoadStore();
+    const baseWeeks = pgxTotalWeeks();
         const progs = (typeof pgxProgramsForRole === "function") ? pgxProgramsForRole() : [];
         const baseWeeks = pgxTotalWeeks();
         const baseStart0 = pgxParseDateYMD(String(store.timeline?.startDate||""));
@@ -3775,6 +3875,7 @@ const tw = pgxTotalWeeks();
       if (!pgid || !laneK) return;
 
       const store = pgxLoadStore();
+    const baseWeeks = pgxTotalWeeks();
       const p = store.programs[pgid];
       if (!p) return;
 
@@ -6391,7 +6492,7 @@ function ensureMaterialesLayout(){
         </div>
       </div>
 
-      <div id="mcTableWrap"></div>
+      <div class="mrBody" id="matCursoBody"></div>
     </div>
   `;
 
@@ -6500,21 +6601,33 @@ function mcSetFlag(st, pid, cid, code, field, val){
   map[code][field] = !!val;
 }
 
-function mcProgress(pid, cid){
-  const codes = mcWeekCodes(pid);
-  const st = mcLoadStore();
+function mcProgress(stOrPid, pidOrCid, cidOrNull, codesOrNull){
+  // Soporta llamadas antiguas y nuevas.
+  let st, pid, cid, codes;
+  if (typeof stOrPid === "string"){
+    pid = stOrPid;
+    cid = String(pidOrCid||"");
+    st = mcLoadStore();
+    codes = mcWeekCodes(pid);
+  }else{
+    st = stOrPid || mcLoadStore();
+    pid = String(pidOrCid||"");
+    cid = String(cidOrNull||"");
+    codes = Array.isArray(codesOrNull) ? codesOrNull : mcWeekCodes(pid);
+  }
+
   const map = (st.status && st.status[pid] && st.status[pid][cid]) ? st.status[pid][cid] : {};
-  const total = codes.length || 0;
+  const total = (codes && codes.length) ? codes.length : 0;
 
   let rec=0, dia=0, imp=0;
-  for (const c of codes){
+  for (const c of (codes||[])){
     const o = map[c] || {};
     if (o.rec) rec++;
     if (o.dia) dia++;
     if (o.imp) imp++;
   }
   const pct = (x)=> total ? Math.round((x/total)*100) : 0;
-  return {total, rec, dia, imp, recPct:pct(rec), diaPct:pct(dia), impPct:pct(imp), st};
+  return {total, rec, dia, imp, recPct:pct(rec), diaPct:pct(dia), impPct:pct(imp)};
 }
 
 function mcSelected(){
@@ -6588,6 +6701,7 @@ function renderMateriales(){
   const matEditOn = (localStorage.getItem(MAT_EDIT_KEY) ?? (matEditDefault ? "1" : "0")) === "1";
 
   const store = pgxLoadStore();
+    const baseWeeks = pgxTotalWeeks();
   const programsAll = (typeof pgxProgramsForRole==="function") ? pgxProgramsForRole() : [];
   const byUni = (uni)=> programsAll.filter(p=>String(p?.meta?.scope||"ALL").toUpperCase()===uni);
 
