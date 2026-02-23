@@ -2854,10 +2854,16 @@ function pgxInsertProgramId(store, newProgram){
   });
 }
 
+// === SYNC PROGRAMA (module-based) ===
+const PGX_MODULE = "LM_SHARED_PROGRAMA_STORE_V1";
+
 async function pgxRemoteGet_(){
   if (!PGX_SYNC_URL) return null;
   try{
-    const res = await fetch(PGX_SYNC_URL + "?action=get&_ts=" + Date.now(), { cache:"no-store" });
+    const res = await fetch(
+      PGX_SYNC_URL + "?module=" + encodeURIComponent(PGX_MODULE) + "&_ts=" + Date.now(),
+      { cache:"no-store" }
+    );
     if (!res.ok) return null;
     const data = await res.json();
     if (!data || !data.ok) return null;
@@ -2873,8 +2879,10 @@ async function pgxRemoteSet_(store){
     const res = await fetch(PGX_SYNC_URL, {
       method: "POST",
       cache: "no-store",
-      // NO pongas Content-Type application/json (a veces dispara preflight)
-      body: JSON.stringify({ action:"set", store: store || {} })
+      body: JSON.stringify({
+        module: PGX_MODULE,
+        store: store || {}
+      })
     });
     if (!res.ok) return false;
     const data = await res.json();
