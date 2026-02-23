@@ -2825,51 +2825,50 @@ function pgxInsertProgramId(store, newProgram){
     return store;
   }
 
+  
+function pgxJsonp_(url){
+    return new Promise((resolve, reject)=>{
+      const cb = "pgx_cb_" + Math.random().toString(36).slice(2);
+      const script = document.createElement("script");
+      const sep = url.includes("?") ? "&" : "?";
+      const timeout = setTimeout(()=>{
+        cleanup();
+        reject(new Error("JSONP timeout"));
+      }, 8000);
+
+      function cleanup(){
+        clearTimeout(timeout);
+        try { delete window[cb]; } catch(_) { window[cb] = undefined; }
+        if (script && script.parentNode) script.parentNode.removeChild(script);
+      }
+
+      window[cb] = (data)=>{ cleanup(); resolve(data); };
+      script.onerror = ()=>{ cleanup(); reject(new Error("JSONP error")); };
+
+      script.src = url + sep + "callback=" + encodeURIComponent(cb) + "&_=" + Date.now();
+      document.head.appendChild(script);
+    });
+  }
+
   async function pgxRemoteGet_(){
     if (!PGX_SYNC_URL) return null;
-
-    // JSONP para evitar CORS (Apps Script no envía Access-Control-Allow-Origin)
-    return await new Promise((resolve)=>{
-      const cb = "pgx_cb_" + Date.now() + "_" + Math.random().toString(16).slice(2);
-      const cleanup = ()=>{
-        try{ delete window[cb]; }catch(e){}
-        try{ if (script && script.parentNode) script.parentNode.removeChild(script); }catch(e){}
-      };
-
-      window[cb] = (data)=>{
-        cleanup();
-        try{
-          if (!data || !data.ok) return resolve(null);
-          return resolve(data.store || null);
-        }catch(_){
-          return resolve(null);
-        }
-      };
-
-      const url = PGX_SYNC_URL
-        + "?action=get"
-        + "&callback=" + encodeURIComponent(cb)
-        + "&_=" + Date.now();
-
-      const script = document.createElement("script");
-      script.src = url;
-      script.async = true;
-      script.onerror = ()=>{ cleanup(); resolve(null); };
-      document.head.appendChild(script);
-
-      // fallback por si nunca responde
-      setTimeout(()=>{ cleanup(); resolve(null); }, 8000);
-    });
+    try{
+      const data = await pgxJsonp_(PGX_SYNC_URL + "?action=get");
+      if (!data || !data.ok) return null;
+      return data.store || null;
+    }catch(_){
+      return null;
+    }
   }
 
   async function pgxRemoteSet_(store){
     if (!PGX_SYNC_URL) return false;
-
-    // "fire-and-forget" sin CORS: el navegador enviará el POST, pero no podremos leer respuesta
     try{
+      // Guardado "fire-and-forget" para evitar CORS (Apps Script no expone CORS)
       await fetch(PGX_SYNC_URL, {
         method: "POST",
         mode: "no-cors",
+        headers: { "Content-Type":"text/plain;charset=utf-8" },
         body: JSON.stringify({ store })
       });
       return true;
