@@ -2876,7 +2876,6 @@ async function pgxRemoteSet_(store){
     return false;
   }
 }
-  }
 
   function pgxLoadStore(){
     const st = pgxLoadJSON(PGX_STORE_KEY, null);
@@ -2884,7 +2883,29 @@ async function pgxRemoteSet_(store){
     return pgxDefaultStore();
   }
 
+  function pgxCollectUiPrefs_(){
+    return {
+      zoom: pgxLoadStr(PGX_ZOOM_KEY, "0.85"),
+      viewStart: pgxGetViewStart ? pgxGetViewStart() : pgxLoadStr(PGX_VIEW_START_KEY, ""),
+      viewWeeks: pgxGetViewWeeks ? pgxGetViewWeeks() : (+pgxLoadStr(PGX_VIEW_WEEKS_KEY, "0")||0),
+      mode: pgxLoadStr(PGX_MODE_KEY, "todos"),
+      activeId: pgxLoadStr(PGX_ACTIVE_KEY, "")
+    };
+  }
+
+  function pgxApplyUiPrefs_(ui){
+    try{
+      if (!ui || typeof ui !== "object") return;
+      if (ui.zoom) pgxSaveStr(PGX_ZOOM_KEY, String(ui.zoom));
+      if (typeof ui.viewStart !== "undefined") pgxSaveStr(PGX_VIEW_START_KEY, String(ui.viewStart||""));
+      if (typeof ui.viewWeeks !== "undefined") pgxSaveStr(PGX_VIEW_WEEKS_KEY, String(+ui.viewWeeks||0));
+      if (ui.mode) pgxSaveStr(PGX_MODE_KEY, String(ui.mode||"todos"));
+      if (typeof ui.activeId !== "undefined") pgxSaveStr(PGX_ACTIVE_KEY, String(ui.activeId||""));
+    }catch(_){}
+  }
   function pgxSaveStore(store){
+    store = store || {};
+    store._ui = pgxCollectUiPrefs_();   // ✅ comparte zoom / fecha / semanas también
     store = pgxMarkRev_(store);
     pgxSaveJSON(PGX_STORE_KEY, store);
 
@@ -2917,6 +2938,7 @@ async function pgxRemoteSet_(store){
   }
 
   if (shouldApply){
+    pgxApplyUiPrefs_(remote && remote._ui);
     pgxSaveJSON(PGX_STORE_KEY, remote);
     if (typeof state !== "undefined" && state && state.view === "programa" && typeof renderPrograma === "function"){
       renderPrograma();
@@ -2925,9 +2947,6 @@ async function pgxRemoteSet_(store){
   }
 }
 
-      if (typeof toast === "function") toast("Programa actualizado.");
-    }
-  }
 
   // Pull periódico para ver cambios de otros (quasi-tiempo real)
   pgxSyncPullOnce_();
@@ -3853,18 +3872,21 @@ const tw = pgxTotalWeeks();
     if (mode){
       mode.addEventListener("change", ()=>{
         pgxSetMode(mode.value);
+         pgxSaveStore(pgxLoadStore()); // comparte vista (modo) para todos
         renderPrograma();
       });
     }
     if (prog){
       prog.addEventListener("change", ()=>{
         pgxSetActiveId(prog.value);
+         pgxSaveStore(pgxLoadStore()); // comparte vista (programa activo) para todos
         renderPrograma();
       });
     }
     if (zoom){
       zoom.addEventListener("change", ()=>{
         pgxSetZoom(zoom.value);
+        pgxSaveStore(pgxLoadStore()); // comparte vista (zoom) para todos
         renderPrograma();
       });
     }
@@ -3989,6 +4011,7 @@ const tw = pgxTotalWeeks();
           pgxSetViewWeeks(w);
           renderPrograma();
           toast("Vista actualizada.");
+          pgxSaveStore(pgxLoadStore()); // comparte vista (fecha/semanas) para todos
           return;
         }
 
@@ -10048,7 +10071,6 @@ window.addEventListener("DOMContentLoaded", () => {
 
   // 3) Sesión existente: iniciar app
   startApp();
-});
-</script>
+});</script>
 </body>
 </html>
