@@ -3,6 +3,9 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"/>
+  <meta http-equiv="Pragma" content="no-cache"/>
+  <meta http-equiv="Expires" content="0"/>
   <title>LA META | DASHBOARD</title>
 
   <!-- Charts -->
@@ -2546,7 +2549,7 @@ const SALONES = [
   // - Bloques por programa con etiqueta vertical (AGRARIA / U.LIMA / PUCP / etc.)
   // - Edición (Admin): click para editar celdas; Edición fina (por semana) / normal (merge por texto)
 const PGX_STORE_KEY   = "LM_PROGRAMA_SHEET_V1_STORE";
-  const PGX_SYNC_URL = "https://script.google.com/macros/s/AKfycbxLUjS66__D_zFIq7N34cFXGm1CfiQg4n-N-3leue8ulLmEg-3J_iho5VyBw7aY_afTGw/exec";
+  const PGX_SYNC_URL   = "https://script.google.com/macros/s/AKfycbxLUjS66__D_zFIq7N34cFXGm1CfiQg4n-N-3leue8ulLmEg-3J_iho5VyBw7aY_afTGw/exec";
 
   const PGX_ACTIVE_KEY  = "LM_PROGRAMA_SHEET_V1_ACTIVE";
   const PGX_MODE_KEY    = "LM_PROGRAMA_SHEET_V1_MODE";
@@ -2825,72 +2828,50 @@ function pgxInsertProgramId(store, newProgram){
     return store;
   }
 
-  function pgxJsonp_(url){
-  return new Promise((resolve, reject)=>{
-    const cb = "pgx_cb_" + Math.random().toString(36).slice(2);
-    const script = document.createElement("script");
-    const sep = url.includes("?") ? "&" : "?";
-    let done = false;
-    const timeoutMs = 30000;
+  // ===================== SYNC CENTRAL (Apps Script WebApp) =====================
+  // Backend actual: requiere ?module=... (GET) y POST {module, store}
+  const LM_SYNC_URL = PGX_SYNC_URL;
 
-    function finishOk(data){ if(done) return; done=true; resolve(data); cleanup(); }
-    function finishErr(err){ if(done) return; done=true; reject(err); cleanup(); }
+  const LM_MODULE_PROGRAMA   = "LM_SHARED_PROGRAMA_STORE_V1";
+  const LM_MODULE_HORARIOS   = "LM_SHARED_HORARIOS_STORE_V1";
+  const LM_MODULE_MATERIALES = "LM_SHARED_MATERIALES_STORE_V1";
 
-    const timer = setTimeout(()=>finishErr(new Error("JSONP timeout")), timeoutMs);
-
-    function cleanup(){
-      clearTimeout(timer);
-      // deja el callback como no-op para evitar "is not defined" si la respuesta llega tarde
-      window[cb] = function(){};
-      setTimeout(()=>{
-        try{ if (script.parentNode) script.parentNode.removeChild(script); }catch(e){}
-      }, 1000);
+  async function lmRemoteGet_(module){
+    if (!LM_SYNC_URL) return null;
+    try{
+      const res = await fetch(
+        LM_SYNC_URL + "?module=" + encodeURIComponent(module) + "&_ts=" + Date.now(),
+        { cache:"no-store" }
+      );
+      if (!res.ok) return null;
+      const data = await res.json();
+      if (!data || !data.ok) return null;
+      return data.store ?? null;
+    }catch(_){
+      return null;
     }
-
-    window[cb] = function(data){ finishOk(data); };
-    script.onerror = function(){ finishErr(new Error("JSONP error")); };
-    script.src = url + sep + "callback=" + encodeURIComponent(cb) + "&_=" + Date.now();
-    document.head.appendChild(script);
-  });
-}
-
-// === SYNC PROGRAMA (module-based) ===
-const PGX_MODULE = "LM_SHARED_PROGRAMA_STORE_V1";
-
-async function pgxRemoteGet_(){
-  if (!PGX_SYNC_URL) return null;
-  try{
-    const res = await fetch(
-      PGX_SYNC_URL + "?module=" + encodeURIComponent(PGX_MODULE) + "&_ts=" + Date.now(),
-      { cache:"no-store" }
-    );
-    if (!res.ok) return null;
-    const data = await res.json();
-    if (!data || !data.ok) return null;
-    return data.store || null;
-  }catch(_){
-    return null;
   }
-}
 
-async function pgxRemoteSet_(store){
-  if (!PGX_SYNC_URL) return false;
-  try{
-    const res = await fetch(PGX_SYNC_URL, {
-      method: "POST",
-      cache: "no-store",
-      body: JSON.stringify({
-        module: PGX_MODULE,
-        store: store || {}
-      })
-    });
-    if (!res.ok) return false;
-    const data = await res.json();
-    return !!(data && data.ok);
-  }catch(_){
-    return false;
+  async function lmRemoteSet_(module, store){
+    if (!LM_SYNC_URL) return false;
+    try{
+      const res = await fetch(LM_SYNC_URL, {
+        method: "POST",
+        cache: "no-store",
+        body: JSON.stringify({ module, store: store || {} })
+      });
+      if (!res.ok) return false;
+      const data = await res.json();
+      return !!(data && data.ok);
+    }catch(_){
+      return false;
+    }
   }
-}
+
+  // Backward-compatible wrappers (PROGRAMA)
+  async function pgxRemoteGet_(){ return await lmRemoteGet_(LM_MODULE_PROGRAMA); }
+  async function pgxRemoteSet_(store){ return await lmRemoteSet_(LM_MODULE_PROGRAMA, store); }
+
 
   function pgxLoadStore(){
     const st = pgxLoadJSON(PGX_STORE_KEY, null);
@@ -2955,7 +2936,7 @@ async function pgxRemoteSet_(store){
   if (shouldApply){
     pgxApplyUiPrefs_(remote && remote._ui);
     pgxSaveJSON(PGX_STORE_KEY, remote);
-    if (typeof state !== "undefined" && state && state.view === "programa" && typeof renderPrograma === "function"){
+    if (typeof renderPrograma === "function"){
       renderPrograma();
     }
     if (typeof toast === "function") toast("Programa actualizado.");
@@ -2966,6 +2947,13 @@ async function pgxRemoteSet_(store){
   // Pull periódico para ver cambios de otros (quasi-tiempo real)
   pgxSyncPullOnce_();
   setInterval(()=>{ pgxSyncPullOnce_(); }, 5000);
+  schSyncPullOnce_();
+  setInterval(()=>{ schSyncPullOnce_(); }, 7000);
+  mcSyncPullOnce_();
+  setInterval(()=>{ mcSyncPullOnce_(); }, 9000);
+  document.addEventListener("visibilitychange", ()=>{
+    if (!document.hidden) pgxSyncPullOnce_();
+  });
 
 function pgxEnsure(){
     const store = pgxLoadStore();
@@ -6905,62 +6893,36 @@ function ensureMaterialesLayout(){
 }
 
 // --- Store (curso x semana x estado)
-const MC_STORE_KEY = "LM_MAT_CURSOS_V1"; // legacy (solo migración / fallback)
-
-function mcDefaultStore_(){ return { links:{}, status:{} }; }
-
-function mcNormalizeStore_(st){
-  if (!st || typeof st !== "object") return mcDefaultStore_();
-  if (!st.links || typeof st.links !== "object") st.links = {};
-  if (!st.status || typeof st.status !== "object") st.status = {};
-  return st;
-}
+const MC_STORE_KEY = "LM_MAT_CURSOS_V1";
 
 function mcLoadStore(){
+  try{ return JSON.parse(localStorage.getItem(MC_STORE_KEY) || '{"links":{},"status":{}}'); }
+  catch(e){ return {links:{}, status:{}}; }
+}
+function mcSaveStore(st){
+  try{ localStorage.setItem(MC_STORE_KEY, JSON.stringify(st||{links:{},status:{}})); }catch(e){}
+  // push a store compartido
+  mcSyncPush_(st||{links:{},status:{}});
+}
+
+
+// --- Sync central (MATERIALES - control por curso)
+async function mcSyncPullOnce_(){
+  const remote = await lmRemoteGet_(LM_MODULE_MATERIALES);
+  if (!remote || typeof remote !== "object") return;
   try{
-    // 1) Preferir store compartido (Apps Script) dentro del store principal de PROGRAMA
-    if (typeof pgxLoadStore === "function"){
-      const root = pgxLoadStore();
-      const shared = root && root._materialesCursos ? root._materialesCursos : null;
-      if (shared && typeof shared === "object"){
-        return mcNormalizeStore_(shared);
-      }
-
-      // 2) Migrar desde localStorage (si existía algo antiguo)
-      let legacy = null;
-      try{ legacy = JSON.parse(localStorage.getItem(MC_STORE_KEY) || ""); }catch(e){ legacy = null; }
-      if (legacy && typeof legacy === "object"){
-        const norm = mcNormalizeStore_(legacy);
-        root._materialesCursos = norm;
-        if (typeof pgxSaveStore === "function") pgxSaveStore(root);
-        return norm;
-      }
-    }
-
-    // 3) Fallback (no compartido): localStorage
-    return mcNormalizeStore_(JSON.parse(localStorage.getItem(MC_STORE_KEY) || "{}"));
-
-  }catch(e){
-    return mcDefaultStore_();
+    localStorage.setItem(MC_STORE_KEY, JSON.stringify(remote));
+  }catch(_){}
+  // si está abierta la vista materiales, repinta
+  if (typeof state !== "undefined" && state && state.view === "materiales" && typeof renderMateriales === "function"){
+    renderMateriales();
   }
 }
-
-function mcSaveStore(st){
-  const norm = mcNormalizeStore_(st || mcDefaultStore_());
+async function mcSyncPush_(st){
   try{
-    // Guardar al store compartido
-    if (typeof pgxLoadStore === "function" && typeof pgxSaveStore === "function"){
-      const root = pgxLoadStore() || {};
-      root._materialesCursos = norm;
-      pgxSaveStore(root);
-      return;
-    }
-  }catch(e){}
-
-  // Fallback local
-  try{ localStorage.setItem(MC_STORE_KEY, JSON.stringify(norm)); }catch(e){}
+    await lmRemoteSet_(LM_MODULE_MATERIALES, st || {links:{}, status:{}});
+  }catch(_){}
 }
-
 
 // --- Cursos por defecto (AGRARIA / AG REGULAR)
 function mcCoursesForProgram(programId){
@@ -8571,12 +8533,7 @@ function renderReportes(){
   
 
   // ===================== HORARIOS (PERSISTENCIA) =====================
-  // IMPORTANTE:
-  // - Los HORARIOS ahora se guardan dentro del MISMO store compartido del módulo PROGRAMA
-  //   (Apps Script + ScriptProperties) para que se vean IGUAL en cualquier PC y cuenta.
-  // - Se mantiene una migración automática desde el localStorage antiguo (LM_SCHEDULES_v1).
-
-  const SCHEDULES_KEY = "LM_SCHEDULES_v1"; // legacy (solo migración)
+  const SCHEDULES_KEY = "LM_SCHEDULES_v1";
 
   function isValidScheduleObj(x){
     if (!x || typeof x !== "object") return false;
@@ -8594,8 +8551,7 @@ function renderReportes(){
     return true;
   }
 
-  // legacy: leer desde localStorage (solo para migrar)
-  function loadSchedulesLocal_(){
+  function loadSchedules(){
     try{
       const raw = localStorage.getItem(SCHEDULES_KEY);
       if (!raw) return null;
@@ -8607,56 +8563,40 @@ function renderReportes(){
     }catch(e){ return null; }
   }
 
-  // shared: leer desde el store compartido (Apps Script)
-  function loadSchedulesShared_(){
-    try{
-      if (typeof pgxLoadStore !== "function") return null;
-      const root = pgxLoadStore();
-      const arr = root && Array.isArray(root._horariosSchedules) ? root._horariosSchedules : null;
-      if (arr && Array.isArray(arr)){
-        const cleaned = arr.filter(isValidScheduleObj);
-        if (cleaned.length) return cleaned;
-      }
-      return null;
-    }catch(e){ return null; }
+  function saveSchedules(){
+    try{ localStorage.setItem(SCHEDULES_KEY, JSON.stringify(SCHEDULES)); }catch(e){}
+    // push a store compartido
+    schSyncPush_();
   }
-
-  // shared: guardar al store compartido (Apps Script)
-  function saveSchedulesShared_(){
-    try{
-      if (typeof pgxLoadStore !== "function" || typeof pgxSaveStore !== "function"){
-        // fallback mínimo (no compartido)
-        localStorage.setItem(SCHEDULES_KEY, JSON.stringify(SCHEDULES));
-        return;
-      }
-      const root = pgxLoadStore() || {};
-      root._horariosSchedules = SCHEDULES;
-      pgxSaveStore(root);
-    }catch(e){
-      try{ localStorage.setItem(SCHEDULES_KEY, JSON.stringify(SCHEDULES)); }catch(_e){}
-    }
-  }
-
-  // Alias usados por el resto del código (no tocar)
-  function loadSchedules(){ return loadSchedulesShared_(); }
-  function saveSchedules(){ return saveSchedulesShared_(); }
 
   (function initSchedules(){
-    // 1) preferir store compartido
-    const shared = loadSchedulesShared_();
-    if (shared) { SCHEDULES = sortSchedules(shared); return; }
+    const saved = loadSchedules();
+    if (saved) SCHEDULES = sortSchedules(saved);
+  })()
 
-    // 2) migrar desde localStorage antiguo si existía
-    const legacy = loadSchedulesLocal_();
-    if (legacy){
-      SCHEDULES = sortSchedules(legacy);
-      saveSchedulesShared_(); // sube al store compartido
-      return;
+  // ===================== HORARIOS (SYNC CENTRAL) =====================
+  async function schSyncPullOnce_(){
+    const remote = await lmRemoteGet_(LM_MODULE_HORARIOS);
+    if (!Array.isArray(remote) || !remote.length) return;
+    try{
+      localStorage.setItem(SCHEDULES_KEY, JSON.stringify(remote));
+    }catch(_){}
+    try{
+      SCHEDULES = sortSchedules(remote);
+    }catch(_){}
+    // refresca UI si corresponde
+    if (typeof state !== "undefined" && state && state.view === "horarios" && typeof renderHorarios === "function"){
+      renderHorarios();
     }
+  }
 
-    // 3) sin nada: se queda el hardcoded del archivo
-  })();
+  async function schSyncPush_(){
+    try{
+      await lmRemoteSet_(LM_MODULE_HORARIOS, Array.isArray(SCHEDULES) ? SCHEDULES : []);
+    }catch(_){}
+  }
 
+;
 
   // ===================== HORARIOS (UX) =====================
   // Ajusta altura del contenedor de matriz para que el scroll horizontal sea visible siempre,
