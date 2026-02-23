@@ -2546,6 +2546,8 @@ const SALONES = [
   // - Bloques por programa con etiqueta vertical (AGRARIA / U.LIMA / PUCP / etc.)
   // - Edición (Admin): click para editar celdas; Edición fina (por semana) / normal (merge por texto)
 const PGX_STORE_KEY   = "LM_PROGRAMA_SHEET_V1_STORE";
+  const PGX_SYNC_URL   = "https://script.google.com/macros/s/AKfycbyij_-8uSiGFeo8GDdidm3u1nTuAkPAZIQ9nh1z0ELDcXKDBpinhDTfprDi8Cbiv58SLQ/exec";
+
   const PGX_ACTIVE_KEY  = "LM_PROGRAMA_SHEET_V1_ACTIVE";
   const PGX_MODE_KEY    = "LM_PROGRAMA_SHEET_V1_MODE";
   const PGX_ZOOM_KEY    = "LM_PROGRAMA_SHEET_V1_ZOOM";
@@ -2817,6 +2819,42 @@ function pgxInsertProgramId(store, newProgram){
     };
   }
 
+  function pgxMarkRev_(store){
+    store = store || {};
+    store._rev = Date.now();
+    return store;
+  }
+
+  async function pgxRemoteGet_(){
+    if (!PGX_SYNC_URL) return null;
+    try{
+      const url = PGX_SYNC_URL + "?action=get&_=" + Date.now();
+      const res = await fetch(url, { cache:"no-store" });
+      if (!res.ok) return null;
+      const data = await res.json();
+      if (!data || !data.ok) return null;
+      return data.store || null;
+    }catch(_){
+      return null;
+    }
+  }
+
+  async function pgxRemoteSet_(store){
+    if (!PGX_SYNC_URL) return false;
+    try{
+      const res = await fetch(PGX_SYNC_URL, {
+        method: "POST",
+        headers: { "Content-Type":"application/json" },
+        body: JSON.stringify({ store })
+      });
+      if (!res.ok) return false;
+      const data = await res.json().catch(()=>({ ok:true }));
+      return !!(data && (data.ok !== false));
+    }catch(_){
+      return false;
+    }
+  }
+
   function pgxLoadStore(){
     const st = pgxLoadJSON(PGX_STORE_KEY, null);
     if (st && st.timeline && st.programs && st.order) return st;
@@ -2824,10 +2862,35 @@ function pgxInsertProgramId(store, newProgram){
   }
 
   function pgxSaveStore(store){
+    store = pgxMarkRev_(store);
     pgxSaveJSON(PGX_STORE_KEY, store);
+
+    // sincroniza a remoto en background (compartido)
+    pgxRemoteSet_(store);
   }
 
-  function pgxEnsure(){
+  async function pgxSyncPullOnce_(){
+    const remote = await pgxRemoteGet_();
+    if (!remote || !remote.timeline || !remote.programs || !remote.order) return;
+
+    const local = pgxLoadJSON(PGX_STORE_KEY, null);
+    const rrev = +remote._rev || 0;
+    const lrev = +(local && local._rev) || 0;
+
+    if (rrev > lrev){
+      pgxSaveJSON(PGX_STORE_KEY, remote);
+      if (typeof state !== "undefined" && state && state.view === "programa" && typeof renderPrograma === "function"){
+        renderPrograma();
+      }
+      if (typeof toast === "function") toast("Programa actualizado.");
+    }
+  }
+
+  // Pull periódico para ver cambios de otros (quasi-tiempo real)
+  pgxSyncPullOnce_();
+  setInterval(()=>{ pgxSyncPullOnce_(); }, 5000);
+
+function pgxEnsure(){
     const store = pgxLoadStore();
     const baseWeeks = pgxTotalWeeks();
     if (!store.order.length && pgxCanEdit()){
