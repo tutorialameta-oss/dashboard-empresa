@@ -2546,7 +2546,7 @@ const SALONES = [
   // - Bloques por programa con etiqueta vertical (AGRARIA / U.LIMA / PUCP / etc.)
   // - Edición (Admin): click para editar celdas; Edición fina (por semana) / normal (merge por texto)
 const PGX_STORE_KEY   = "LM_PROGRAMA_SHEET_V1_STORE";
-  const PGX_SYNC_URL   = "https://script.google.com/macros/s/AKfycbzfMQFJ9OpiX5JdvezZgoty7rZGxUfx1qp9Z63mAh6Qdo-IIw9H3jG2fbrvW_JnxL1Q-g/exec";
+  const PGX_SYNC_URL = "https://script.google.com/macros/s/AKfycbxLUjS66__D_zFIq7N34cFXGm1CfiQg4n-N-3leue8ulLmEg-3J_iho5VyBw7aY_afTGw/exec";
 
   const PGX_ACTIVE_KEY  = "LM_PROGRAMA_SHEET_V1_ACTIVE";
   const PGX_MODE_KEY    = "LM_PROGRAMA_SHEET_V1_MODE";
@@ -6897,15 +6897,62 @@ function ensureMaterialesLayout(){
 }
 
 // --- Store (curso x semana x estado)
-const MC_STORE_KEY = "LM_MAT_CURSOS_V1";
+const MC_STORE_KEY = "LM_MAT_CURSOS_V1"; // legacy (solo migración / fallback)
+
+function mcDefaultStore_(){ return { links:{}, status:{} }; }
+
+function mcNormalizeStore_(st){
+  if (!st || typeof st !== "object") return mcDefaultStore_();
+  if (!st.links || typeof st.links !== "object") st.links = {};
+  if (!st.status || typeof st.status !== "object") st.status = {};
+  return st;
+}
 
 function mcLoadStore(){
-  try{ return JSON.parse(localStorage.getItem(MC_STORE_KEY) || '{"links":{},"status":{}}'); }
-  catch(e){ return {links:{}, status:{}}; }
+  try{
+    // 1) Preferir store compartido (Apps Script) dentro del store principal de PROGRAMA
+    if (typeof pgxLoadStore === "function"){
+      const root = pgxLoadStore();
+      const shared = root && root._materialesCursos ? root._materialesCursos : null;
+      if (shared && typeof shared === "object"){
+        return mcNormalizeStore_(shared);
+      }
+
+      // 2) Migrar desde localStorage (si existía algo antiguo)
+      let legacy = null;
+      try{ legacy = JSON.parse(localStorage.getItem(MC_STORE_KEY) || ""); }catch(e){ legacy = null; }
+      if (legacy && typeof legacy === "object"){
+        const norm = mcNormalizeStore_(legacy);
+        root._materialesCursos = norm;
+        if (typeof pgxSaveStore === "function") pgxSaveStore(root);
+        return norm;
+      }
+    }
+
+    // 3) Fallback (no compartido): localStorage
+    return mcNormalizeStore_(JSON.parse(localStorage.getItem(MC_STORE_KEY) || "{}"));
+
+  }catch(e){
+    return mcDefaultStore_();
+  }
 }
+
 function mcSaveStore(st){
-  try{ localStorage.setItem(MC_STORE_KEY, JSON.stringify(st||{links:{},status:{}})); }catch(e){}
+  const norm = mcNormalizeStore_(st || mcDefaultStore_());
+  try{
+    // Guardar al store compartido
+    if (typeof pgxLoadStore === "function" && typeof pgxSaveStore === "function"){
+      const root = pgxLoadStore() || {};
+      root._materialesCursos = norm;
+      pgxSaveStore(root);
+      return;
+    }
+  }catch(e){}
+
+  // Fallback local
+  try{ localStorage.setItem(MC_STORE_KEY, JSON.stringify(norm)); }catch(e){}
 }
+
 
 // --- Cursos por defecto (AGRARIA / AG REGULAR)
 function mcCoursesForProgram(programId){
@@ -8516,7 +8563,12 @@ function renderReportes(){
   
 
   // ===================== HORARIOS (PERSISTENCIA) =====================
-  const SCHEDULES_KEY = "LM_SCHEDULES_v1";
+  // IMPORTANTE:
+  // - Los HORARIOS ahora se guardan dentro del MISMO store compartido del módulo PROGRAMA
+  //   (Apps Script + ScriptProperties) para que se vean IGUAL en cualquier PC y cuenta.
+  // - Se mantiene una migración automática desde el localStorage antiguo (LM_SCHEDULES_v1).
+
+  const SCHEDULES_KEY = "LM_SCHEDULES_v1"; // legacy (solo migración)
 
   function isValidScheduleObj(x){
     if (!x || typeof x !== "object") return false;
@@ -8534,7 +8586,8 @@ function renderReportes(){
     return true;
   }
 
-  function loadSchedules(){
+  // legacy: leer desde localStorage (solo para migrar)
+  function loadSchedulesLocal_(){
     try{
       const raw = localStorage.getItem(SCHEDULES_KEY);
       if (!raw) return null;
@@ -8546,14 +8599,56 @@ function renderReportes(){
     }catch(e){ return null; }
   }
 
-  function saveSchedules(){
-    try{ localStorage.setItem(SCHEDULES_KEY, JSON.stringify(SCHEDULES)); }catch(e){}
+  // shared: leer desde el store compartido (Apps Script)
+  function loadSchedulesShared_(){
+    try{
+      if (typeof pgxLoadStore !== "function") return null;
+      const root = pgxLoadStore();
+      const arr = root && Array.isArray(root._horariosSchedules) ? root._horariosSchedules : null;
+      if (arr && Array.isArray(arr)){
+        const cleaned = arr.filter(isValidScheduleObj);
+        if (cleaned.length) return cleaned;
+      }
+      return null;
+    }catch(e){ return null; }
   }
 
+  // shared: guardar al store compartido (Apps Script)
+  function saveSchedulesShared_(){
+    try{
+      if (typeof pgxLoadStore !== "function" || typeof pgxSaveStore !== "function"){
+        // fallback mínimo (no compartido)
+        localStorage.setItem(SCHEDULES_KEY, JSON.stringify(SCHEDULES));
+        return;
+      }
+      const root = pgxLoadStore() || {};
+      root._horariosSchedules = SCHEDULES;
+      pgxSaveStore(root);
+    }catch(e){
+      try{ localStorage.setItem(SCHEDULES_KEY, JSON.stringify(SCHEDULES)); }catch(_e){}
+    }
+  }
+
+  // Alias usados por el resto del código (no tocar)
+  function loadSchedules(){ return loadSchedulesShared_(); }
+  function saveSchedules(){ return saveSchedulesShared_(); }
+
   (function initSchedules(){
-    const saved = loadSchedules();
-    if (saved) SCHEDULES = sortSchedules(saved);
+    // 1) preferir store compartido
+    const shared = loadSchedulesShared_();
+    if (shared) { SCHEDULES = sortSchedules(shared); return; }
+
+    // 2) migrar desde localStorage antiguo si existía
+    const legacy = loadSchedulesLocal_();
+    if (legacy){
+      SCHEDULES = sortSchedules(legacy);
+      saveSchedulesShared_(); // sube al store compartido
+      return;
+    }
+
+    // 3) sin nada: se queda el hardcoded del archivo
   })();
+
 
   // ===================== HORARIOS (UX) =====================
   // Ajusta altura del contenedor de matriz para que el scroll horizontal sea visible siempre,
