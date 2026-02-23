@@ -2857,7 +2857,9 @@ function pgxInsertProgramId(store, newProgram){
 async function pgxRemoteGet_(){
   if (!PGX_SYNC_URL) return null;
   try{
-    const data = await pgxJsonp_(PGX_SYNC_URL + "?action=get");
+    const res = await fetch(PGX_SYNC_URL + "?action=get&_ts=" + Date.now(), { cache:"no-store" });
+    if (!res.ok) return null;
+    const data = await res.json();
     if (!data || !data.ok) return null;
     return data.store || null;
   }catch(_){
@@ -2865,12 +2867,17 @@ async function pgxRemoteGet_(){
   }
 }
 
-// Guardado sin CORS: usamos JSONP con action=set&store=<json>
 async function pgxRemoteSet_(store){
   if (!PGX_SYNC_URL) return false;
   try{
-    const payload = encodeURIComponent(JSON.stringify(store||{}));
-    const data = await pgxJsonp_(PGX_SYNC_URL + "?action=set&store=" + payload);
+    const res = await fetch(PGX_SYNC_URL, {
+      method: "POST",
+      cache: "no-store",
+      // NO pongas Content-Type application/json (a veces dispara preflight)
+      body: JSON.stringify({ action:"set", store: store || {} })
+    });
+    if (!res.ok) return false;
+    const data = await res.json();
     return !!(data && data.ok);
   }catch(_){
     return false;
