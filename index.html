@@ -2827,32 +2827,56 @@ function pgxInsertProgramId(store, newProgram){
 
   async function pgxRemoteGet_(){
     if (!PGX_SYNC_URL) return null;
-    try{
-      const url = PGX_SYNC_URL + "?action=get&_=" + Date.now();
-      const res = await fetch(url, { cache:"no-store" });
-      if (!res.ok) return null;
-      const data = await res.json();
-      if (!data || !data.ok) return null;
-      return data.store || null;
-    }catch(_){
-      return null;
-    }
+
+    // JSONP para evitar CORS (Apps Script no envía Access-Control-Allow-Origin)
+    return await new Promise((resolve)=>{
+      const cb = "pgx_cb_" + Date.now() + "_" + Math.random().toString(16).slice(2);
+      const cleanup = ()=>{
+        try{ delete window[cb]; }catch(e){}
+        try{ if (script && script.parentNode) script.parentNode.removeChild(script); }catch(e){}
+      };
+
+      window[cb] = (data)=>{
+        cleanup();
+        try{
+          if (!data || !data.ok) return resolve(null);
+          return resolve(data.store || null);
+        }catch(_){
+          return resolve(null);
+        }
+      };
+
+      const url = PGX_SYNC_URL
+        + "?action=get"
+        + "&callback=" + encodeURIComponent(cb)
+        + "&_=" + Date.now();
+
+      const script = document.createElement("script");
+      script.src = url;
+      script.async = true;
+      script.onerror = ()=>{ cleanup(); resolve(null); };
+      document.head.appendChild(script);
+
+      // fallback por si nunca responde
+      setTimeout(()=>{ cleanup(); resolve(null); }, 8000);
+    });
   }
 
   async function pgxRemoteSet_(store){
     if (!PGX_SYNC_URL) return false;
+
+    // "fire-and-forget" sin CORS: el navegador enviará el POST, pero no podremos leer respuesta
     try{
-      const res = await fetch(PGX_SYNC_URL, {
+      await fetch(PGX_SYNC_URL, {
         method: "POST",
-        headers: { "Content-Type":"application/json" },
+        mode: "no-cors",
         body: JSON.stringify({ store })
       });
-      if (!res.ok) return false;
-      const data = await res.json().catch(()=>({ ok:true }));
-      return !!(data && (data.ok !== false));
+      return true;
     }catch(_){
       return false;
     }
+  }
   }
 
   function pgxLoadStore(){
