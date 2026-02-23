@@ -4784,11 +4784,11 @@ s("view_impresiones", v==="impresiones");
       table: ["ALUMNOS", "Listado completo de alumnos de La Meta."],
       horarios: ["HORARIOS", "Horarios de todos los ciclos de La Meta."],
             programa: ["PROGRAMA", "Programación de todos los ciclos que maneja La Meta."],
-impresiones: ["IMPRESIONES", "Registros y control de impresiones por fecha y alumno."],
+impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón."],
       silabos: ["SÍLABOS", "Repositorio de sílabos por universidad y curso."],
       evaluaciones: ["EVALUACIONES", "Evaluaciones por curso (5 preguntas). Envío automático y nota 0–20."],
       materiales: ["MATERIALES", "Accesos a carpetas de materiales por universidad."],
-      listas: ["LISTAS", "Listas y exportables por salón."],
+      listas: ["LISTAS", "Listas por salón."],
       reportes: ["REPORTES", "Envío y acceso a carpeta de acumulación de reportes por salón."],
       notas: ["NOTAS GENERALES", "Accesos rápidos a notas generales por universidad."]
     };
@@ -5718,7 +5718,6 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones por fecha y alu
           <span class="pill"><span class="dot ulima"></span>U.LIMA</span>
         </div>
         <div class="panelHint" style="margin-top:8px; color:var(--muted);">
-          Tip: en <b>MATRIZ</b> puedes desplazarte con la barra inferior o <b>arrastrando</b> dentro del cuadro.
         </div>
       </div>
 
@@ -6634,7 +6633,6 @@ function ensureNotasLayout(){
     <div class="card panel12">
       <div class="cardtitle">NOTAS GENERALES</div>
       <div style="color:var(--muted); font-weight:900; margin-bottom:12px;">
-        Accesos directos para administrar apuntes generales por universidad.
       </div>
       <div class="iGrid" id="notasGrid"></div>
     </div>
@@ -7240,7 +7238,6 @@ ${canWork ? `<button id="mcEditBtn" class="btn ${matEditOn?'primary':'ghost'}" t
     </div>
 
     <div style="margin-top:10px; color:var(--muted); font-weight:900;">
-      Regla de lectura: <b>P_REC</b> = falta recibir · <b>P_DIA</b> = recibido pero falta diagramar · <b>P_IMP</b> = diagramado pero falta imprimir · <b>DONE</b> = impreso.
     </div>
   `;
 
