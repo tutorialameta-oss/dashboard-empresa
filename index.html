@@ -2825,80 +2825,58 @@ function pgxInsertProgramId(store, newProgram){
     return store;
   }
 
-  
-function pgxJsonp_(url){
+  function pgxJsonp_(url){
   return new Promise((resolve, reject)=>{
     const cb = "pgx_cb_" + Math.random().toString(36).slice(2);
     const script = document.createElement("script");
     const sep = url.includes("?") ? "&" : "?";
-
     let done = false;
-    const timeoutMs = 30000; // 30 segundos
+    const timeoutMs = 30000;
 
-    function finishOk(data){
-      if (done) return;
-      done = true;
-      resolve(data);
-      cleanup();
-    }
+    function finishOk(data){ if(done) return; done=true; resolve(data); cleanup(); }
+    function finishErr(err){ if(done) return; done=true; reject(err); cleanup(); }
 
-    function finishErr(err){
-      if (done) return;
-      done = true;
-      reject(err);
-      cleanup();
-    }
+    const timer = setTimeout(()=>finishErr(new Error("JSONP timeout")), timeoutMs);
 
     function cleanup(){
       clearTimeout(timer);
-      // NO borramos el callback, lo dejamos como no-op
+      // deja el callback como no-op para evitar "is not defined" si la respuesta llega tarde
       window[cb] = function(){};
       setTimeout(()=>{
-        try{
-          if (script.parentNode) script.parentNode.removeChild(script);
-        }catch(_){}
+        try{ if (script.parentNode) script.parentNode.removeChild(script); }catch(e){}
       }, 1000);
     }
 
-    window[cb] = function(data){
-      finishOk(data);
-    };
-
-    const timer = setTimeout(()=>{
-      finishErr(new Error("JSONP timeout"));
-    }, timeoutMs);
-
-    script.onerror = function(){
-      finishErr(new Error("JSONP error"));
-    };
-
+    window[cb] = function(data){ finishOk(data); };
+    script.onerror = function(){ finishErr(new Error("JSONP error")); };
     script.src = url + sep + "callback=" + encodeURIComponent(cb) + "&_=" + Date.now();
     document.head.appendChild(script);
   });
 }
 
-  async function pgxRemoteGet_(){
-    if (!PGX_SYNC_URL) return null;
-    try{
-      const data = await pgxJsonp_(PGX_SYNC_URL + "?action=get");
-      if (!data || !data.ok) return null;
-      return data.store || null;
-    }catch(_){
-      return null;
-    }
+async function pgxRemoteGet_(){
+  if (!PGX_SYNC_URL) return null;
+  try{
+    const data = await pgxJsonp_(PGX_SYNC_URL + "?action=get");
+    if (!data || !data.ok) return null;
+    return data.store || null;
+  }catch(_){
+    return null;
   }
+}
 
-  async function pgxRemoteSet_(store){
-    if (!PGX_SYNC_URL) return false;
-    try{
-      const payload = encodeURIComponent(JSON.stringify(store));
-      const data = await pgxJsonp_(PGX_SYNC_URL + "?action=set&store=" + payload);
-      return !!(data && data.ok);
-    }catch(_){
-      return false;
-    }
+// Guardado sin CORS: usamos JSONP con action=set&store=<json>
+async function pgxRemoteSet_(store){
+  if (!PGX_SYNC_URL) return false;
+  try{
+    const payload = encodeURIComponent(JSON.stringify(store||{}));
+    const data = await pgxJsonp_(PGX_SYNC_URL + "?action=set&store=" + payload);
+    return !!(data && data.ok);
+  }catch(_){
+    return false;
   }
-
+}
+  }
 
   function pgxLoadStore(){
     const st = pgxLoadJSON(PGX_STORE_KEY, null);
@@ -2915,18 +2893,38 @@ function pgxJsonp_(url){
   }
 
   async function pgxSyncPullOnce_(){
-    const remote = await pgxRemoteGet_();
-    if (!remote || !remote.timeline || !remote.programs || !remote.order) return;
+  const remote = await pgxRemoteGet_();
+  if (!remote || !remote.timeline || !remote.programs || !remote.order) return;
 
-    const local = pgxLoadJSON(PGX_STORE_KEY, null);
-    const rrev = +remote._rev || 0;
-    const lrev = +(local && local._rev) || 0;
+  const local = pgxLoadJSON(PGX_STORE_KEY, null);
+  const rrev = +remote._rev || 0;
+  const lrev = +(local && local._rev) || 0;
 
-    if (rrev > lrev){
-      pgxSaveJSON(PGX_STORE_KEY, remote);
-      if (typeof state !== "undefined" && state && state.view === "programa" && typeof renderPrograma === "function"){
-        renderPrograma();
-      }
+  let shouldApply = false;
+
+  // Si no hay store local válido, aplica remoto
+  if (!local || !local.timeline || !local.programs || !local.order){
+    shouldApply = true;
+  } else if (rrev > lrev){
+    shouldApply = true;
+  } else if (rrev && rrev === lrev){
+    // mismo _rev pero contenido distinto (casos raros / caché)
+    try{
+      shouldApply = (JSON.stringify(remote) !== JSON.stringify(local));
+    }catch(e){
+      shouldApply = true;
+    }
+  }
+
+  if (shouldApply){
+    pgxSaveJSON(PGX_STORE_KEY, remote);
+    if (typeof state !== "undefined" && state && state.view === "programa" && typeof renderPrograma === "function"){
+      renderPrograma();
+    }
+    if (typeof toast === "function") toast("Programa actualizado.");
+  }
+}
+
       if (typeof toast === "function") toast("Programa actualizado.");
     }
   }
