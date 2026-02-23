@@ -2826,11 +2826,12 @@ function pgxInsertProgramId(store, newProgram){
   }
 
   
-function pgxJsonp_(url){
+  function pgxJsonp_(url){
     return new Promise((resolve, reject)=>{
       const cb = "pgx_cb_" + Math.random().toString(36).slice(2);
       const script = document.createElement("script");
       const sep = url.includes("?") ? "&" : "?";
+
       const timeout = setTimeout(()=>{
         cleanup();
         reject(new Error("JSONP timeout"));
@@ -2864,19 +2865,14 @@ function pgxJsonp_(url){
   async function pgxRemoteSet_(store){
     if (!PGX_SYNC_URL) return false;
     try{
-      // Guardado "fire-and-forget" para evitar CORS (Apps Script no expone CORS)
-      await fetch(PGX_SYNC_URL, {
-        method: "POST",
-        mode: "no-cors",
-        headers: { "Content-Type":"text/plain;charset=utf-8" },
-        body: JSON.stringify({ store })
-      });
-      return true;
+      const payload = encodeURIComponent(JSON.stringify(store));
+      const data = await pgxJsonp_(PGX_SYNC_URL + "?action=set&store=" + payload);
+      return !!(data && data.ok);
     }catch(_){
       return false;
     }
   }
-  }
+
 
   function pgxLoadStore(){
     const st = pgxLoadJSON(PGX_STORE_KEY, null);
