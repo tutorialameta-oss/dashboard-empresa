@@ -4766,12 +4766,23 @@ const tw = pgxTotalWeeks();
 
 
 
-  function renderPrograma(){
-    pgxEnsure();
-    pgxEnsureProgramaLayout();
 
-    const mode = pgxGetMode();
-    const programs = pgxProgramsForRole();
+
+  function renderPrograma(){
+    let mode = "ALL";
+    let programs = [];
+    try{
+      pgxEnsure();
+      pgxEnsureProgramaLayout();
+      mode = pgxGetMode();
+      programs = pgxProgramsForRole();
+    }catch(e){
+      console.error("[PGX] init/render precheck error", e);
+      const canvas0 = document.getElementById("pgxCanvas");
+      if (canvas0) canvas0.innerHTML = `<div class="pgEmpty">No se pudo cargar PROGRAMA. Revisa los datos guardados.</div>`;
+      return;
+    }
+
     if (!programs.length){
       const canvas = document.getElementById("pgxCanvas");
       if (canvas) canvas.innerHTML = `<div class="pgEmpty">No hay programas configurados.</div>`;
@@ -4787,10 +4798,13 @@ const tw = pgxTotalWeeks();
       pgxSetActiveId(active);
     }
 
-    pgxFillProgramSelect(programs);
-    pgxApplyHeaderUI();
-
-    pgxRenderSettings(programs);
+    try{
+      pgxFillProgramSelect(programs);
+      pgxApplyHeaderUI();
+      pgxRenderSettings(programs);
+    }catch(e){
+      console.error("[PGX] header/settings error", e);
+    }
 
     const canvas = document.getElementById("pgxCanvas");
     if (!canvas) return;
