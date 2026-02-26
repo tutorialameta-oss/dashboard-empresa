@@ -3059,7 +3059,23 @@ function pgxInsertProgramId(store, newProgram){
   function pgxLoadStore(){
     const st = pgxLoadJSON(PGX_STORE_KEY, null);
     if (st && st.timeline && st.programs){
-      if (!Array.isArray(st.order)) st.order = Object.keys(st.programs||{});
+      st.timeline = st.timeline || {};
+      st.timeline.weeks = Math.max(1, Math.min(60, +st.timeline.weeks || 16));
+      st.timeline.startDate = String(st.timeline.startDate || "");
+
+      const programs = (st.programs && typeof st.programs === "object") ? st.programs : {};
+      st.programs = programs;
+
+      const allIds = Object.keys(programs);
+      const fromOrder = Array.isArray(st.order)
+        ? st.order.map(id=>String(id||"")).filter(id=>id && programs[id])
+        : [];
+
+      // conserva orden válido y añade faltantes (evita vistas en blanco por order corrupto)
+      const seen = new Set(fromOrder);
+      for (const id of allIds){ if (!seen.has(id)) fromOrder.push(id); }
+      st.order = fromOrder;
+
       return st;
     }
     return pgxDefaultStore();
@@ -3320,7 +3336,10 @@ function pgxUpgradeProgram(p, baseWeeks){
     const uni = (role==="alumno") ? String((getAlumnoProfile()||{}).uni||"").toUpperCase() : "";
 
     const out = [];
-    for (const id of store.order){
+    const ids = (Array.isArray(store.order) && store.order.length)
+      ? store.order
+      : Object.keys(store.programs||{});
+    for (const id of ids){
       let p = store.programs[id];
       if (p) p = pgxUpgradeProgram(p, baseWeeks);
       if (!p) continue;
@@ -3694,7 +3713,8 @@ function pgxUpgradeProgram(p, baseWeeks){
       const sc = String(p.meta?.scope||"ALL").toUpperCase();
       return `<option value="${escapeHtml(p.id)}">${escapeHtml(nm)}</option>`;
     }).join("");
-    sel.value = active;
+    const exists = programs.some(p=>String(p.id)===String(active));
+    sel.value = exists ? active : (programs[0]?.id||"");
   }
 
   function pgxApplyHeaderUI(){
@@ -4079,12 +4099,27 @@ const tw = pgxTotalWeeks();
     pgxSaveStore(store);
     renderPrograma();
 
-    if (move){
-      const canvas = document.getElementById("pgxCanvas");
-      if (!canvas) return;
-      const next = canvas.querySelector(`td.pxEditable[data-pgid="${meta.pgid}"][data-lane="${meta.lane}"][data-lstart="${meta.start + meta.span}"]`);
+    if (move && move.dir){
+      const next = (move.dir === "down")
+        ? pgxFindNextDownCell(meta)
+        : pgxFindNextRightCell(meta);
       if (next) pgxBeginInlineEdit(next);
     }
+  }
+
+  function pgxFindNextRightCell(meta){
+    const canvas = document.getElementById("pgxCanvas");
+    if (!canvas) return null;
+    return canvas.querySelector(`td.pxEditable[data-pgid="${meta.pgid}"][data-lane="${meta.lane}"][data-lstart="${meta.start + meta.span}"]`);
+  }
+
+  function pgxFindNextDownCell(meta){
+    const canvas = document.getElementById("pgxCanvas");
+    if (!canvas) return null;
+    const col = String(meta.start);
+    const list = Array.from(canvas.querySelectorAll(`td.pxEditable[data-pgid="${meta.pgid}"][data-lstart="${col}"]`));
+    const i = list.findIndex(td=>String(td.getAttribute("data-lane")||"")===meta.lane);
+    return (i>=0 && i<list.length-1) ? list[i+1] : null;
   }
 
   function pgxFillDownFromActive(){
@@ -4131,7 +4166,7 @@ const tw = pgxTotalWeeks();
 
           <button id="pgxEdit" class="btn ghost" type="button">EDITAR</button>
           <button id="pgxFine" class="btn ghost" type="button">EDICIÓN FINA: OFF</button>
-          <button id="pgxFill" class="btn ghost" type="button">RELLENAR RANGO</button>
+          <button id="pgxFill" class="btn ghost" type="button">RELLENAR ABAJO</button>
 
           <input id="pgxStart" type="date" style="min-width:160px;" />
           <input id="pgxWeeks" type="number" min="1" max="60" step="1" style="width:110px;" />
@@ -4197,8 +4232,7 @@ const tw = pgxTotalWeeks();
     const btnJson = document.getElementById("pgxJson");
     const btnSet = document.getElementById("pgxSettingsBtn");
     const btnDates = document.getElementById("pgxDates");
-    const btnFs = document.getElementById("pgxFs");
-    const btnFsExit = document.getElementById("pgxFsExit");
+
   
     if (mode){
       mode.addEventListener("change", ()=>{
@@ -4637,16 +4671,12 @@ const tw = pgxTotalWeeks();
       }
       if (e.key === 'Enter'){
         e.preventDefault();
-        pgxEndInlineEdit(true, true);
+        pgxEndInlineEdit(true, { dir:"down" });
         return;
       }
       if (e.key === 'Tab'){
         e.preventDefault();
-        const all = Array.from(canvas.querySelectorAll('td.pxEditable'));
-        const i = all.indexOf(td);
-        pgxEndInlineEdit(true, false);
-        const next = all[i+1] || null;
-        if (next) pgxBeginInlineEdit(next);
+        pgxEndInlineEdit(true, { dir:"right" });
       }
     });
   }
@@ -4666,6 +4696,8 @@ const tw = pgxTotalWeeks();
 
 
 
+
+
   function renderPrograma(){
     pgxEnsure();
     pgxEnsureProgramaLayout();
@@ -4679,8 +4711,13 @@ const tw = pgxTotalWeeks();
     }
 
     // Active
-    const active = pgxGetActiveId() || programs[0].id;
-    if (!pgxGetActiveId()) pgxSetActiveId(active);
+    let active = pgxGetActiveId() || programs[0].id;
+    if (!programs.some(p=>p.id===active)){
+      active = programs[0].id;
+      pgxSetActiveId(active);
+    } else if (!pgxGetActiveId()){
+      pgxSetActiveId(active);
+    }
 
     pgxFillProgramSelect(programs);
     pgxApplyHeaderUI();
@@ -9515,79 +9552,6 @@ el.dataset.ready = "1";
       try{ requestAnimationFrame(()=>fitHorariosMatrixHeight()); }catch(e){}
       try{ bindHorariosCellTargets(); }catch(e){}
     }
-
-    const prev = HORARIOS_CELL_EDIT_CTX.blockIndex;
-    const teacher = (prev >= 0 && sch.blocks[prev]) ? String(sch.blocks[prev].teacher || "") : "";
-    const nextBlock = { day, start, end, course, teacher };
-
-    if (prev >= 0 && sch.blocks[prev]){
-      sch.blocks[prev] = nextBlock;
-    }else{
-      sch.blocks.push(nextBlock);
-    }
-
-    sch.blocks = sch.blocks.slice().sort((a,b)=>{
-      const dd = DAYS.indexOf(normalizeDayKey(a.day)) - DAYS.indexOf(normalizeDayKey(b.day));
-      if (dd !== 0) return dd;
-      return idxMark(a.start) - idxMark(b.start);
-    });
-
-    SCHEDULES = sortSchedules(SCHEDULES);
-    saveSchedules();
-    closeHorariosCellEditModal();
-    renderHorarios();
-  }
-
-  function bindHorariosCellTargets(){
-    const cards = Array.from(document.querySelectorAll(".schCard"));
-    cards.forEach(card=>{
-      card.classList.remove("hEditEnabled");
-      Array.from(card.querySelectorAll(".hCellEditable")).forEach(td=>td.classList.remove("hCellEditable"));
-
-      const sid = card.getAttribute("data-id");
-      const cardKey = card.getAttribute("data-cardkey") || "";
-      const isPlaceholder = (card.getAttribute("data-placeholder") === "1");
-      const sch = SCHEDULES.find(x=>x.id===sid) || {
-        id: sid,
-        local: card.getAttribute("data-local") || "",
-        uni: card.getAttribute("data-uni") || "",
-        salon: card.getAttribute("data-salon") || "",
-        blocks: []
-      };
-
-      const matrix = buildScheduleMatrix(sch);
-      const rows = Array.from(card.querySelectorAll("tbody tr"));
-      rows.forEach((tr, r)=>{
-        const tds = Array.from(tr.querySelectorAll("td"));
-        if (!tds.length) return;
-        let ptr = 1;
-        DAYS.forEach((d)=>{
-          const cell = matrix[r][d];
-          if (!cell || cell.kind === "skip") return;
-          const td = tds[ptr++];
-          if (!td) return;
-          td.classList.add("hCellEditable");
-          td.dataset.day = d;
-          td.dataset.start = TIME_ROWS[r].start;
-          td.dataset.end = (cell.kind === "start") ? TIME_ROWS[Math.min(TIME_ROWS.length-1, r + Number(cell.rowspan||1) - 1)].end : TIME_ROWS[r].end;
-          td.dataset.course = (cell.kind === "start" && cell.block) ? String(cell.block.course||"") : "";
-          td.dataset.blockIndex = "-1";
-          if (cell.kind === "start"){
-            const idx = (sch.blocks||[]).findIndex(b=>normalizeDayKey(b.day)===d && b.start===td.dataset.start && b.end===td.dataset.end && String(b.course||"")===td.dataset.course);
-            td.dataset.blockIndex = String(idx);
-          }
-          td.dataset.scheduleId = sid;
-          td.dataset.cardKey = cardKey;
-          if (isPlaceholder){
-            td.dataset.placeholder = "1";
-            td.dataset.phLocal = card.getAttribute("data-local") || "";
-            td.dataset.phColKey = card.getAttribute("data-colkey") || "";
-          }
-        });
-      });
-
-      if (CURRENT_ROLE === "admin" && HORARIOS_EDIT_MODE) card.classList.add("hEditEnabled");
-    });
   }
 
 
