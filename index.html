@@ -481,6 +481,35 @@
       background:#fff;
       box-shadow: var(--shadow);
     }
+
+    /* Compact mode encapsulado solo para Horarios */
+    .horariosView .schCard.compactMode{
+      width: min(100%, 640px);
+      max-width: 640px;
+      margin-inline: auto;
+      border-radius: 14px;
+    }
+    .horariosView .schCard.compactMode .schHead{
+      padding:10px 10px 8px;
+      gap:8px;
+    }
+    .horariosView .schCard.compactMode .schHead .loc{ font-size:14px; }
+    .horariosView .schCard.compactMode .schHead .sal{ font-size:11px; }
+    .horariosView .schCard.compactMode .schUniPill{ padding:7px 10px; font-size:11px; gap:6px; }
+    .horariosView .schCard.compactMode .schTableWrap{ padding:0 8px 8px; }
+    .horariosView .schCard.compactMode .schTable{ border-width:1px; }
+    .horariosView .schCard.compactMode .schTable th,
+    .horariosView .schCard.compactMode .schTable td{ padding:1px 4px; }
+    .horariosView .schCard.compactMode .schTable thead th{ font-size:10px; }
+    .horariosView .schCard.compactMode .schTable .timeHead{ font-size:10px; }
+    .horariosView .schCard.compactMode .schTable .timeCell{ font-size:10px; padding-left:6px; }
+    .horariosView .schCard.compactMode .schTable .timeCell.isMicro{ color:transparent; font-size:0; padding-top:0; padding-bottom:0; }
+    .horariosView .schCard.compactMode .schTable .timeCell.isMajor{ color:#334155; font-size:10px; }
+    .horariosView .schCard.compactMode .schTable col.timeCol{ width:72px; }
+    .horariosView .schCard.compactMode .schCell{ padding:3px 3px; }
+    .horariosView .schCard.compactMode .cell4{ row-gap:1px; }
+    .horariosView .schCard.compactMode .cell4 .cLine{ font-size:12px; }
+    .horariosView .schCard.compactMode .cell4 .tLine{ font-size:9px; }
     .schHead{
       padding:14px 14px 10px;
       display:flex;
@@ -7913,7 +7942,13 @@ function renderReportes(){
   }
   function slotRowHeightPx(slot){
     const mins = Math.max(1, toMinutes(slot.end) - toMinutes(slot.start));
-    return Math.max(12, Math.round(mins * 0.9));
+    return Math.max(8, Math.round(mins * 0.65));
+  }
+  function isMajorTimeSlotLabel(slot){
+    const mins = Math.max(1, toMinutes(slot.end) - toMinutes(slot.start));
+    const st = toMinutes(slot.start);
+    if (mins < 25) return false;
+    return (st % 30) === 0;
   }
 
   // “ÁLG 1” / “RV 2” / “FÍS 1” / “G&M 1” / “G&T 2” => 1 sola línea
@@ -8076,8 +8111,8 @@ function renderReportes(){
 
     const tbody = matrix.map((rowObj, i)=>{
       const slot = TIME_SLOT_CATALOG[i];
-      const timeLabel = slot.label;
-      const timeCell = `<td class="timeCell">${escapeHtml(timeLabel)}</td>`;
+      const timeLabel = isMajorTimeSlotLabel(slot) ? (slot.label || "") : "";
+      const timeCell = `<td class="timeCell ${timeLabel ? "isMajor" : "isMicro"}">${escapeHtml(timeLabel)}</td>`;
 
       const tds = DAYS.map(d=>{
         const cell = rowObj[d];
@@ -8097,7 +8132,7 @@ function renderReportes(){
     }).join("");
 
     return `
-      <div class="schCard ${placeholder ? "schCardPlaceholder" : ""}" data-id="${escapeHtml(s.id)}" data-local="${escapeHtml(s.local)}" data-uni="${escapeHtml(s.uni)}" data-salon="${escapeHtml(s.salon)}">
+      <div class="schCard compactMode ${placeholder ? "schCardPlaceholder" : ""}" data-id="${escapeHtml(s.id)}" data-local="${escapeHtml(s.local)}" data-uni="${escapeHtml(s.uni)}" data-salon="${escapeHtml(s.salon)}">
         <div class="schHead">
           <div class="hLeft">
             <p class="loc">${escapeHtml(s.local)}</p>
@@ -8785,6 +8820,7 @@ function renderReportes(){
 
 function ensureHorariosLayout(){
     const el = document.getElementById("view_horarios");
+    if (el) el.classList.add("horariosView");
     if (el.dataset.ready === "1") return;
 
     // Entorno alumno: solo su horario
