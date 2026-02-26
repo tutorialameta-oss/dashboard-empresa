@@ -2218,6 +2218,7 @@
     display:grid;
     grid-template-rows:auto minmax(0,1fr);
     gap:10px;
+    overflow:hidden;
   }
   .pgxMatrixHost.isFullscreen .pgxMatrixTopBar{
     display:flex;
@@ -2226,6 +2227,8 @@
     gap:10px;
     position:sticky;
     top:0;
+    left:0;
+    right:0;
     z-index:3;
     background:#fff;
     padding:2px 0;
@@ -2241,7 +2244,14 @@
     font-weight:900;
     color:var(--muted);
   }
-  .pgxMatrixHost.isFullscreen .pgxMatrixExit{ display:inline-flex; }
+  .pgxMatrixHost.isFullscreen .pgxMatrixExit{
+    display:inline-flex;
+    position:fixed;
+    top:22px;
+    right:22px;
+    z-index:10060;
+    box-shadow:0 10px 24px rgba(2,6,23,.22);
+  }
   .pgxMatrixHost.isFullscreen .pxSheetWrap{height:100%; min-height:0;}
   .pgxMatrixHost.isFullscreen .pxSheetScroll{
     max-height:calc(100vh - 58px) !important;
@@ -3787,6 +3797,9 @@ function pgxUpgradeProgram(p, baseWeeks){
     }
 
     if (sel && mode) sel.style.display = (mode.value==="ONE") ? "" : "none";
+    if (btnSet && admin){
+      btnSet.textContent = (editOn && pgxGetSettingsOpen()) ? "OCULTAR PERSONALIZAR" : "PERSONALIZAR";
+    }
   }
 
 
@@ -4097,8 +4110,13 @@ const tw = pgxTotalWeeks();
     pgxSaveStore(store);
     pgxSetActiveId(p.id);
     pgxSetMode("ONE");
+    pgxSetSettingsOpen(true);
     renderPrograma();
-    toast("Programa creado.");
+    requestAnimationFrame(()=>{
+      const nameInput = document.getElementById("pgsName");
+      if (nameInput){ nameInput.focus(); nameInput.select(); }
+    });
+    toast("Programa creado. Puedes editar el nombre en PERSONALIZAR.");
   }
 
   function pgxEnsureProgramaLayout(){
