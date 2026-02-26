@@ -591,7 +591,7 @@
     }
 
     /* Botón descargar PNG */
-    
+
     .hEditBtn{
       padding:10px 14px;
       border-radius:999px;
@@ -1217,7 +1217,7 @@
       /* SÍLABOS */
       .syWrap{ grid-template-columns: 1fr; }
     }
-  
+
 
     /* ===================== AUTH (ADMIN / TUTOR) ===================== */
     .authOverlay{
@@ -1295,7 +1295,7 @@
       cursor:pointer;
     }
 
-  
+
     /* ======================================================================
        ✅ MODO ALUMNO: Más profesional y dinámico (solo visual)
     ====================================================================== */
@@ -2073,7 +2073,7 @@
     }
 
 
-  
+
 
   /* ===================== PROGRAMA (HOJA) v1 ===================== */
   .pxSheetWrap{ width:100%; }
@@ -2211,10 +2211,10 @@
     inset:10px;
     z-index:10035;
     background:#fff;
-    border-radius:16px;
+    border-radius:0;
     box-shadow:0 24px 70px rgba(2,6,23,.28);
     border:1px solid rgba(15,23,42,0.14);
-    padding:12px;
+    padding:10px 10px 0 10px;
     display:grid;
     grid-template-rows:auto minmax(0,1fr);
     gap:10px;
@@ -2242,9 +2242,10 @@
     color:var(--muted);
   }
   .pgxMatrixHost.isFullscreen .pgxMatrixExit{ display:inline-flex; }
+  .pgxMatrixHost.isFullscreen .pxSheetWrap{height:100%; min-height:0;}
   .pgxMatrixHost.isFullscreen .pxSheetScroll{
-    max-height:calc(100vh - 88px) !important;
-    height:calc(100vh - 88px) !important;
+    max-height:calc(100vh - 58px) !important;
+    height:calc(100vh - 58px) !important;
   }
 
   @media (max-width: 900px){
@@ -2749,9 +2750,9 @@ const SALONES = [
 
   const AUTO_REFRESH_MS = 30000;
 
-  
 
-  
+
+
   // ===================== PROGRAMA (HOJA) v1 =====================
   // Objetivo: imitar/optimizar la tabla estilo Excel (PROGRAMACIÓN / FECHA / semanas),
   // con:
@@ -2863,9 +2864,10 @@ const PGX_STORE_KEY   = "LM_PROGRAMA_SHEET_V1_STORE";
   function pgxProgramColors(p){
     const theme = String(p?.meta?.theme||"").toUpperCase();
     const base = pgxThemeColors(theme);
-    const bar  = String(base.bar || "#64748b");
-    const cell = String(base.cell || "#f1f5f9");
-    const off  = "#ffffff";
+    const o = (p && p.meta && p.meta.colors) ? p.meta.colors : {};
+    const bar  = String(o?.bar  || base.bar);
+    const cell = String(o?.cell || base.cell);
+    const off  = String(o?.off  || "#ffffff");
     return {bar, cell, off};
   }
 
@@ -3298,7 +3300,7 @@ function pgxEnsure(){
   function pgxSetSettingsOpen(on){ pgxSaveStr(PGX_SETTINGS_KEY, on ? "1":"0"); }
 
 
-  
+
 function pgxUpgradeProgram(p, baseWeeks){
   try{
     if (!p || !p.config || !Array.isArray(p.config.lanes)) return p;
@@ -3406,7 +3408,7 @@ function pgxUpgradeProgram(p, baseWeeks){
     return out;
   }
 
-  
+
   function pgxWeekDiff(a, b){
     // diferencia en semanas (redondeada) entre dos fechas (a - b)
     if (!a || !b) return 0;
@@ -3701,16 +3703,56 @@ function pgxUpgradeProgram(p, baseWeeks){
   }
 
   function pgxApplyHeaderUI(){
+    const mode  = document.getElementById("pgxMode");
+    const sel   = document.getElementById("pgxProgram");
+    const zoom  = document.getElementById("pgxZoom");
+    const start = document.getElementById("pgxStart");
+    const weeks = document.getElementById("pgxWeeks");
+    const apply = document.getElementById("pgxApply");
     const edit  = document.getElementById("pgxEdit");
-    const save  = document.getElementById("pgxSave");
-    const create = document.getElementById("pgxCreate");
+    const fs    = document.getElementById("pgxFsToggle");
+
+    const fine = document.getElementById("pgxFine");
+    const fill = document.getElementById("pgxFill");
+    const btnNew = document.getElementById("pgxNew");
+    const btnDel = document.getElementById("pgxDel");
+    const btnJson = document.getElementById("pgxJson");
+    const btnSet = document.getElementById("pgxSettingsBtn");
+    const btnDates = document.getElementById("pgxDates");
+    const btnSave = document.getElementById("pgxSave");
+    const btnCreate = document.getElementById("pgxCreate");
+
+    const store = pgxLoadStore();
+    const baseWeeks = pgxTotalWeeks();
+    const vStart = pgxGetViewStart() || String(store.timeline?.startDate||"");
+    const vWeeks = pgxGetViewWeeks() || baseWeeks;
+    if (start) start.value = String(vStart||"");
+    if (weeks) weeks.value = String(vWeeks||baseWeeks);
+    if (zoom) zoom.value = pgxZoomOption(pgxGetZoom());
+    if (mode) mode.value = pgxGetMode();
+
+    const admin = pgxCanEdit();
+    const editOn = admin && pgxGetEditOn();
+
     if (edit){
-      edit.style.display = pgxCanEdit() ? "" : "none";
-      edit.textContent = (pgxGetEditOn() ? "EDITANDO" : "EDITAR");
-      edit.classList.toggle("primary", pgxGetEditOn());
+      edit.style.display = admin ? "" : "none";
+      edit.textContent = editOn ? "EDITANDO" : "EDITAR";
+      edit.classList.toggle("primary", editOn);
     }
-    if (save) save.style.display = pgxCanEdit() ? "" : "none";
-    if (create) create.style.display = pgxCanEdit() ? "" : "none";
+    if (fs) fs.style.display = admin ? "" : "none";
+
+    const mainViewCtrls = [mode, sel, zoom, start, weeks, apply];
+    const editCtrls = [fine, fill, btnNew, btnDel, btnJson, btnSet, btnDates, btnSave, btnCreate];
+
+    if (admin){
+      mainViewCtrls.forEach(el=>{ if (el) el.style.display = editOn ? "" : "none"; });
+      editCtrls.forEach(el=>{ if (el) el.style.display = editOn ? "" : "none"; });
+    } else {
+      mainViewCtrls.forEach(el=>{ if (el) el.style.display = ""; });
+      editCtrls.forEach(el=>{ if (el) el.style.display = "none"; });
+    }
+
+    if (sel) sel.style.display = (mode && mode.value==="ONE") ? "" : "none";
   }
 
 
@@ -3768,25 +3810,139 @@ function pgxUpgradeProgram(p, baseWeeks){
   function pgxRenderSettings(programs){
     const wrap = document.getElementById("pgxSettings");
     if (!wrap) return;
-    wrap.style.display = "none";
-    wrap.innerHTML = "";
-  }
+    if (!pgxCanEdit() || !pgxGetEditOn()){ wrap.style.display="none"; return; }
+    // En modo edición siempre se muestra el panel
+    wrap.style.display = "";
+
+    const active = pgxGetActiveId() || (programs[0]?.id||"");
+    const p = programs.find(x=>x.id===active) || programs[0];
+    if (!p){ wrap.innerHTML=""; return; }
+
+    const totalWeeks = pgxTotalWeeks();
+    const win = pgxProgramWindow(p, totalWeeks);
+    const colors = pgxProgramColors(p);
+
+    const lanes = (p.config?.lanes||[]).filter(l=>l && l.key && l.label);
+    const laneHtml = lanes.map(l=>`
+      <div class="pgxLaneItem">
+        <div class="k">${escapeHtml(l.key)}</div>
+        <input type="text" data-lane-key="${escapeHtml(l.key)}" value="${escapeHtml(l.label)}"/>
+      </div>
+    `).join("");
+
+    wrap.innerHTML = `
+      <div class="pgxSetTitle">PERSONALIZAR PROGRAMA</div>
+
+      <div class="pgxSetGrid">
+        <label>PROGRAMA
+          <select id="pgsPick">
+            ${programs.map(pp=>{
+              const nm = String(pp.meta?.name||"PROGRAMA").toUpperCase();
+              return `<option value="${escapeHtml(pp.id)}"${pp.id===p.id?" selected":""}>${escapeHtml(nm)}</option>`;
+            }).join("")}
+          </select>
+        </label>
+
+        <label>NOMBRE
+          <input id="pgsName" type="text" value="${escapeHtml(String(p.meta?.name||""))}"/>
+        </label>
+
+        <label>SCOPE
+          <select id="pgsScope">
+            ${["ALL","AGRARIA","PUCP","U.LIMA"].map(x=>`<option value="${x}"${String(p.meta?.scope||"ALL").toUpperCase()===x?" selected":""}>${x}</option>`).join("")}
+          </select>
+        </label>
+
+        <label>TEMA
+          <select id="pgsTheme">
+            ${["AGRARIA","U.LIMA","PUCP","ESCOLARES"].map(x=>`<option value="${x}"${String(p.meta?.theme||"AGRARIA").toUpperCase()===x?" selected":""}>${x}</option>`).join("")}
+          </select>
+        </label>
+
+
+        <label>FECHA INICIO
+          <input id="pgsStartDate" type="date" value="${escapeHtml(String(p.meta?.startDate||""))}"/>
+        </label>
+<label>VENTANA INICIO (SEM)
+          <input id="pgsStartW" type="number" min="1" max="${totalWeeks}" value="${win.start}"/>
+        </label>
+
+        <label>VENTANA FIN (SEM)
+          <input id="pgsEndW" type="number" min="1" max="${totalWeeks}" value="${win.end}"/>
+        </label>
+
+        <label>COLOR BARRA
+          <input id="pgsBar" type="color" value="${pgxToColor(colors.bar)}"/>
+        </label>
+
+        <label>COLOR SEMANA
+          <input id="pgsCell" type="color" value="${pgxToColor(colors.cell)}"/>
+        </label>
+
+        <label>COLOR FUERA VENTANA
+          <input id="pgsOff" type="color" value="${pgxToColor(colors.off)}"/>
+        </label>
+      </div>
+
+      <div class="pgxSetRow">
+        <button id="pgsSave" class="btn ghost" type="button">GUARDAR</button>
+        <button id="pgsEtapa" class="btn ghost" type="button">EDITAR ETAPA</button>
+        <button id="pgsResetCols" class="btn ghost" type="button">RESET COLORES</button>
+      </div>
 
 
   let PROGRAMA_MATRIX_FULLSCREEN = false;
 
-  function fitProgramaMatrixHeight(){
-    const host = document.getElementById("pgxMatrixHost");
-    const sc = document.getElementById("pgxScroll");
-    if (!sc) return;
-    if (host && host.classList.contains("isFullscreen")){
-      sc.style.maxHeight = "calc(100vh - 88px)";
-      sc.style.height = "calc(100vh - 88px)";
-    } else {
-      sc.style.height = "";
-      sc.style.maxHeight = "calc(100vh - 230px)";
-    }
-  }
+    document.getElementById("pgsSave")?.addEventListener("click", ()=>{
+      const store = pgxLoadStore();
+    const baseWeeks = pgxTotalWeeks();
+      const id = pgxGetActiveId();
+      const pp = store.programs[id];
+      if (!pp) return;
+
+      pp.meta = pp.meta || {};
+      pp.meta.name  = String(document.getElementById("pgsName")?.value||"").trim().toUpperCase() || "PROGRAMA";
+      pp.meta.scope = String(document.getElementById("pgsScope")?.value||"ALL").trim().toUpperCase();
+      pp.meta.theme = String(document.getElementById("pgsTheme")?.value||"AGRARIA").trim().toUpperCase();
+
+
+
+      // ✅ NUEVO: fecha inicio independiente por programa (YYYY-MM-DD). Vacío = usa BASE.
+      const sd = String(document.getElementById("pgsStartDate")?.value||"").trim();
+      if (sd) pp.meta.startDate = sd; else delete pp.meta.startDate;
+const tw = pgxTotalWeeks();
+      let sW = parseInt(document.getElementById("pgsStartW")?.value||"1",10);
+      let eW = parseInt(document.getElementById("pgsEndW")?.value||String(tw),10);
+      if (!Number.isFinite(sW)) sW = 1;
+      if (!Number.isFinite(eW)) eW = tw;
+      sW = Math.max(1, Math.min(tw, sW));
+      eW = Math.max(1, Math.min(tw, eW));
+      if (eW < sW){ const tmp=sW; sW=eW; eW=tmp; }
+      pp.meta.startWeek = sW;
+      pp.meta.endWeek = eW;
+
+      pp.meta.colors = pp.meta.colors || {};
+      pp.meta.colors.bar  = String(document.getElementById("pgsBar")?.value||"").trim();
+      pp.meta.colors.cell = String(document.getElementById("pgsCell")?.value||"").trim();
+      pp.meta.colors.off  = String(document.getElementById("pgsOff")?.value||"").trim();
+
+      const wrap2 = document.getElementById("pgsLaneWrap");
+      const lanes2 = (pp.config?.lanes||[]);
+      if (wrap2){
+        wrap2.querySelectorAll("input[data-lane-key]").forEach(inp=>{
+          const k = String(inp.getAttribute("data-lane-key")||"");
+          const v = String(inp.value||"").trim();
+          const l = lanes2.find(x=>String(x.key||"")===k);
+          if (l && v) l.label = v;
+        });
+      }
+
+      pp.meta.updatedAt = pgxNowISO();
+      store.programs[id]=pp;
+      pgxSaveStore(store);
+      toast("Guardado.");
+      renderPrograma();
+    });
 
   function setProgramaMatrixFullscreen(force){
     const host = document.getElementById("pgxMatrixHost");
@@ -3823,6 +3979,73 @@ function pgxUpgradeProgram(p, baseWeeks){
     toast("Programa creado.");
   }
 
+
+
+  let PROGRAMA_MATRIX_FULLSCREEN = false;
+
+  function pgxScheduleRelayout(){
+    const sc = document.getElementById("pgxScroll");
+    if (!sc) return;
+    requestAnimationFrame(()=>{
+      try{ fitProgramaMatrixHeight(); }catch(e){}
+      void sc.offsetHeight;
+    });
+  }
+
+  function fitProgramaMatrixHeight(){
+    const host = document.getElementById("pgxMatrixHost");
+    const sc = document.getElementById("pgxScroll");
+    if (!sc) return;
+    if (host && host.classList.contains("isFullscreen")){
+      sc.style.maxHeight = "calc(100vh - 58px)";
+      sc.style.height = "calc(100vh - 58px)";
+    } else {
+      sc.style.height = "";
+      sc.style.maxHeight = "calc(100vh - 230px)";
+    }
+  }
+
+  function setProgramaMatrixFullscreen(force){
+    const host = document.getElementById("pgxMatrixHost");
+    const tgl = document.getElementById("pgxFsToggle");
+    if (!host || !tgl) return;
+    const next = (typeof force === "boolean") ? force : !PROGRAMA_MATRIX_FULLSCREEN;
+    PROGRAMA_MATRIX_FULLSCREEN = !!next;
+    host.classList.toggle("isFullscreen", PROGRAMA_MATRIX_FULLSCREEN);
+    tgl.textContent = PROGRAMA_MATRIX_FULLSCREEN ? "SALIR PANTALLA COMPLETA" : "PANTALLA COMPLETA";
+    if (!PROGRAMA_MATRIX_FULLSCREEN){ host.scrollTop=0; host.scrollLeft=0; }
+    pgxScheduleRelayout();
+  }
+
+  function pgxNextProgramName(cycle, store){
+    const names = (store.order||[]).map(id=>String(store.programs?.[id]?.meta?.name||"").toUpperCase());
+    let maxN = 0;
+    for (const n of names){
+      const m = new RegExp(`^${cycle.replace('.','\.')}\s*(\d+)?$`).exec(n.trim());
+      if (!m) continue;
+      const num = m[1] ? parseInt(m[1],10) : 1;
+      if (num > maxN) maxN = num;
+    }
+    return `${cycle} ${Math.max(2, maxN+1)}`;
+  }
+
+  function pgxCreateProgramFlow(){
+    if (!pgxCanEdit() || !pgxGetEditOn()) return;
+    const kind = String(document.getElementById("pgxCreateType")?.value||"AGRARIA").toUpperCase();
+    const allowed = ["AGRARIA","U.LIMA","PUCP","ESCOLARES"];
+    if (!allowed.includes(kind)) return;
+    const store = pgxLoadStore();
+    const name = pgxNextProgramName(kind, store);
+    const p = pgxDefaultProgram(name, kind, kind);
+    store.programs[p.id]=p;
+    pgxInsertProgramId(store, p);
+    pgxSaveStore(store);
+    pgxSetActiveId(p.id);
+    pgxSetMode("ONE");
+    renderPrograma();
+    toast("Programa creado.");
+  }
+
   function pgxEnsureProgramaLayout(){
     const el = document.getElementById("view_programa");
     if (!el || el.dataset.ready==="1") return;
@@ -3831,17 +4054,57 @@ function pgxUpgradeProgram(p, baseWeeks){
       <div class="card panel12">
         <div class="cardtitle">PROGRAMA</div>
         <div class="controls" style="justify-content:flex-start; gap:10px; flex-wrap:wrap;">
-          <button id="pgxSave" class="btn ghost" type="button">GUARDAR</button>
           <button id="pgxEdit" class="btn ghost" type="button">EDITAR</button>
-          <button id="pgxCreate" class="btn ghost" type="button">+ CREAR PROGRAMA</button>
           <button id="pgxFsToggle" class="hFsBtn" type="button">PANTALLA COMPLETA</button>
+
+          <select id="pgxMode">
+            <option value="ALL">VER: TODOS</option>
+            <option value="ONE">VER: UNO</option>
+          </select>
+
+          <select id="pgxProgram"></select>
+
+          <select id="pgxZoom">
+            <option value="1">ZOOM: 100%</option>
+            <option value="0.95">ZOOM: 95%</option>
+            <option value="0.90">ZOOM: 90%</option>
+            <option value="0.85">ZOOM: 85%</option>
+            <option value="0.80">ZOOM: 80%</option>
+            <option value="0.75">ZOOM: 75%</option>
+            <option value="0.70">ZOOM: 70%</option>
+          </select>
+
+          <button id="pgxFine" class="btn ghost" type="button">EDICIÓN FINA: OFF</button>
+          <button id="pgxFill" class="btn ghost" type="button">RELLENAR RANGO</button>
+
+          <input id="pgxStart" type="date" style="min-width:160px;" />
+          <input id="pgxWeeks" type="number" min="1" max="60" step="1" style="width:110px;" />
+          <button id="pgxApply" class="btn ghost" type="button">APLICAR</button>
+
+          <button id="pgxNew" class="btn ghost" type="button">+ NUEVO</button>
+          <button id="pgxDel" class="btn ghost" type="button">ELIMINAR</button>
+          <button id="pgxJson" class="btn ghost" type="button">EDITOR JSON</button>
+          <button id="pgxSettingsBtn" class="btn ghost" type="button">PERSONALIZAR</button>
+          <button id="pgxDates" class="btn ghost" type="button">FECHAS MANUAL</button>
+          <button id="pgxSave" class="btn ghost" type="button">GUARDAR</button>
+
+          <select id="pgxCreateType">
+            <option value="AGRARIA">CICLO: AGRARIA</option>
+            <option value="U.LIMA">CICLO: U.LIMA</option>
+            <option value="PUCP">CICLO: PUCP</option>
+            <option value="ESCOLARES">CICLO: ESCOLARES</option>
+          </select>
+          <button id="pgxCreate" class="btn ghost" type="button">+ CREAR PROGRAMA</button>
         </div>
+
+        <div class="pgHint" id="pgxHint" style="margin-top:8px;"></div>
+        <div id="pgxSettings" class="pgxSettings" style="display:none;"></div>
       </div>
 
       <div class="card panel12">
         <div id="pgxMatrixHost" class="pgxMatrixHost">
           <div class="pgxMatrixTopBar">
-            <span class="pgxMatrixFsBadge">PROGRAMA EN PANTALLA COMPLETA</span>
+            <span class="pgxMatrixFsBadge">MODO PANTALLA COMPLETA</span>
             <button id="pgxFsExit" class="hFsBtn pgxMatrixExit" type="button">SALIR PANTALLA COMPLETA</button>
           </div>
           <div id="pgxCanvas"></div>
@@ -3849,37 +4112,149 @@ function pgxUpgradeProgram(p, baseWeeks){
       </div>
     `;
 
+    const mode = document.getElementById("pgxMode");
+    const prog = document.getElementById("pgxProgram");
+    const zoom = document.getElementById("pgxZoom");
     const edit = document.getElementById("pgxEdit");
-    const save = document.getElementById("pgxSave");
-    const create = document.getElementById("pgxCreate");
+    const fine = document.getElementById("pgxFine");
+    const btnFill = document.getElementById("pgxFill");
+    const btnApply = document.getElementById("pgxApply");
+    const btnNew = document.getElementById("pgxNew");
+    const btnDel = document.getElementById("pgxDel");
+    const btnJson = document.getElementById("pgxJson");
+    const btnSet = document.getElementById("pgxSettingsBtn");
+    const btnDates = document.getElementById("pgxDates");
+    const btnSave = document.getElementById("pgxSave");
+    const btnCreate = document.getElementById("pgxCreate");
     const fsTgl = document.getElementById("pgxFsToggle");
     const fsExit = document.getElementById("pgxFsExit");
 
-    if (save){
-      save.addEventListener("click", ()=>{
-        const store = pgxLoadStore();
-        pgxSaveStore(store);
-        pgxGridState.dirty = false;
-        toast("Programa guardado.");
-      });
-    }
+    if (mode) mode.addEventListener("change", ()=>{ pgxSetMode(mode.value); pgxSaveStore(pgxLoadStore()); renderPrograma(); pgxScheduleRelayout(); });
+    if (prog) prog.addEventListener("change", ()=>{ pgxSetActiveId(prog.value); pgxSaveStore(pgxLoadStore()); renderPrograma(); pgxScheduleRelayout(); });
+    if (zoom) zoom.addEventListener("change", ()=>{ pgxSetZoom(zoom.value); pgxSaveStore(pgxLoadStore()); renderPrograma(); pgxScheduleRelayout(); });
 
     if (edit){
       edit.addEventListener("click", ()=>{
         if (!pgxCanEdit()) return;
         const on = !pgxGetEditOn();
         pgxSetEditOn(on);
-        if (!on && pgxGridState.dirty){
-          const store = pgxLoadStore();
-          pgxSaveStore(store);
-          pgxGridState.dirty = false;
-          toast("Programa guardado.");
+        pgxSetSettingsOpen(on);
+        if (!on) pgxSetFineOn(false);
+        renderPrograma();
+        pgxScheduleRelayout();
+      });
+    }
+
+    if (fine){ fine.addEventListener("click", ()=>{ pgxSetFineOn(!pgxGetFineOn()); renderPrograma(); pgxScheduleRelayout(); }); }
+    if (btnFill){
+      btnFill.addEventListener("click", ()=>{
+        if (!pgxCanEdit() || !pgxGetEditOn()) return;
+        const store = pgxLoadStore();
+        const pid = pgxGetActiveId();
+        const p = store.programs[pid];
+        if (!p) return;
+        const lanes = (p.config?.lanes||[]).filter(l=>l && l.type==="cells");
+        const laneKeys = lanes.map(l=>String(l.key||"")).filter(Boolean);
+        const raw = prompt("RELLENAR RANGO (LANE,INICIO,FIN,TEXTO). LANES: "+laneKeys.join(", "), "semana,1,3,SEN1");
+        if (raw===null) return;
+        const parts = String(raw||"").split(",").map(x=>String(x||"").trim());
+        if (parts.length < 4){ alert("Formato inválido. Usa: LANE,INICIO,FIN,TEXTO"); return; }
+        const laneKeyIn = String(parts[0]||"").trim();
+        const startW0 = parseInt(parts[1],10);
+        const endW0 = parseInt(parts[2],10);
+        const seed = parts.slice(3).join(",").trim();
+        const lane = lanes.find(l=>String(l.key||"").toLowerCase()===laneKeyIn.toLowerCase()) || lanes.find(l=>String(l.label||"").toLowerCase()===laneKeyIn.toLowerCase());
+        if (!lane){ alert("LANE no encontrada: "+laneKeyIn); return; }
+        const tw = pgxTotalWeeks();
+        let a = Number.isFinite(startW0)?startW0:1;
+        let b = Number.isFinite(endW0)?endW0:tw;
+        a=Math.max(1,Math.min(tw,a)); b=Math.max(1,Math.min(tw,b));
+        if (b<a){ const t=a; a=b; b=t; }
+        if (!seed){ alert("TEXTO vacío."); return; }
+        const list = seed.includes("|") ? seed.split("|").map(x=>x.trim()).filter(Boolean) : null;
+        const m = /^(.+?)(\d+)$/.exec(seed);
+        const hasNum = !!m;
+        const vals = Array.isArray(lane.values) ? lane.values : [];
+        const pad = hasNum ? String(m[2]||"").length : 0;
+        const baseNum = hasNum ? parseInt(m[2],10) : 0;
+        const pref = hasNum ? String(m[1]||"") : seed;
+        for (let w=a; w<=b; w++){
+          let v = seed;
+          if (list){ const idx=(w-a)%list.length; v=list[idx]; }
+          else if (hasNum){ v=pref + String(baseNum+(w-a)).padStart(pad,"0"); }
+          else v=pref;
+          const i=w-1; if (i>=0 && i<tw) vals[i]=v;
         }
+        lane.values = vals;
+        p.meta.updatedAt = pgxNowISO();
+        store.programs[pid] = p;
+        pgxSaveStore(store);
+        toast("Rango rellenado.");
         renderPrograma();
       });
     }
 
-    if (create) create.addEventListener("click", pgxCreateProgramFlow);
+    if (btnApply){
+      btnApply.addEventListener("click", ()=>{
+        const s = String(document.getElementById("pgxStart")?.value||"").trim();
+        const w = Math.max(1, Math.min(60, +document.getElementById("pgxWeeks")?.value||16));
+        if (!pgxCanEdit() || !pgxGetEditOn()){
+          if (s) pgxSetViewStart(s);
+          pgxSetViewWeeks(w);
+          renderPrograma();
+          toast("Vista actualizada.");
+          pgxSaveStore(pgxLoadStore());
+          pgxScheduleRelayout();
+          return;
+        }
+        const store = pgxLoadStore();
+        const baseWeeks = pgxTotalWeeks();
+        if (s) store.timeline.startDate = s;
+        store.timeline.weeks = w;
+        pgxSetViewStart(String(store.timeline.startDate||""));
+        pgxSetViewWeeks(+store.timeline.weeks||0);
+        for (const id of store.order){
+          let p = store.programs[id];
+          if (p) p = pgxUpgradeProgram(p, baseWeeks);
+          if (!p) continue;
+          (p.config?.lanes||[]).forEach(l=>{
+            if (l.type==="cells"){
+              const old = Array.isArray(l.values)? l.values:[];
+              l.values = Array.from({length:w}, (_,i)=>String(old[i]||""));
+            }
+            if (l.type==="segments"){
+              const seg = Array.isArray(l.segments)? l.segments:[];
+              let sum = seg.reduce((a,s)=>a+(+s.span||0),0);
+              if (sum < w) seg.push({text:"", span:(w-sum)});
+              if (sum > w){
+                let acc=0; const out=[];
+                for (const s2 of seg){
+                  const sp=+s2.span||0;
+                  if (!sp) continue;
+                  if (acc+sp<=w){ out.push(s2); acc+=sp; }
+                  else{ const rem = w-acc; if (rem>0) out.push({text:s2.text, span:rem}); acc=w; break; }
+                }
+                l.segments = out;
+              } else l.segments = seg;
+            }
+          });
+          p.meta.updatedAt = pgxNowISO();
+        }
+        pgxSaveStore(store);
+        renderPrograma();
+        toast("Timeline actualizado.");
+        pgxScheduleRelayout();
+      });
+    }
+
+    if (btnNew){ btnNew.addEventListener("click", ()=>{ if (!pgxCanEdit()||!pgxGetEditOn()) return; const name = prompt("Nombre del nuevo programa:", "NUEVO PROGRAMA"); if(!name) return; const kind=(prompt("Tipo (AGRARIA / U.LIMA / PUCP / ESCOLARES):", "AGRARIA")||"AGRARIA").toUpperCase(); const allowed=["AGRARIA","U.LIMA","PUCP","ESCOLARES"]; const theme=allowed.includes(kind)?kind:"AGRARIA"; const scope=theme; const store=pgxLoadStore(); const baseWeeks=pgxTotalWeeks(); const p=pgxDefaultProgram(name,scope,theme); const w=baseWeeks; p.config.lanes.forEach(l=>{ if(l.type==="cells") l.values=Array.from({length:w},(_,i)=>String(l.values?.[i]||"")); }); store.programs[p.id]=p; pgxInsertProgramId(store,p); pgxSaveStore(store); pgxSetActiveId(p.id); pgxSetMode("ONE"); renderPrograma(); toast("Programa creado."); pgxScheduleRelayout(); }); }
+    if (btnDel){ btnDel.addEventListener("click", ()=>{ if(!pgxCanEdit()||!pgxGetEditOn()) return; const id=pgxGetActiveId(); if(!id) return; if(!confirm("¿Eliminar este programa?")) return; const store=pgxLoadStore(); delete store.programs[id]; store.order=store.order.filter(x=>x!==id); pgxSaveStore(store); pgxSetActiveId(store.order[0]||""); renderPrograma(); toast("Programa eliminado."); pgxScheduleRelayout(); }); }
+    if (btnJson){ btnJson.addEventListener("click", ()=>{ if(!pgxCanEdit()||!pgxGetEditOn()) return; const id=pgxGetActiveId(); const store=pgxLoadStore(); const baseWeeks=pgxTotalWeeks(); let p=store.programs[id]; if(p) p=pgxUpgradeProgram(p,baseWeeks); if(!p) return; const raw=prompt("Editor JSON (pega JSON válido). Sugerencia: copia primero para respaldo.", JSON.stringify(p,null,2)); if(!raw) return; try{ const obj=JSON.parse(raw); if(!obj||!obj.id) throw new Error(); obj.meta=obj.meta||{}; obj.meta.updatedAt=pgxNowISO(); store.programs[obj.id]=obj; if(!store.order.includes(obj.id)) store.order.push(obj.id); pgxSaveStore(store); pgxSetActiveId(obj.id); renderPrograma(); toast("JSON guardado."); pgxScheduleRelayout(); }catch(e){ alert("JSON inválido. No se guardó."); } }); }
+    if (btnSet){ btnSet.addEventListener("click", ()=>{ if(!pgxCanEdit()||!pgxGetEditOn()) return; pgxSetSettingsOpen(!pgxGetSettingsOpen()); renderPrograma(); pgxScheduleRelayout(); }); }
+    if (btnDates){ btnDates.addEventListener("click", ()=>{ if(!pgxCanEdit()||!pgxGetEditOn()) return; const store=pgxLoadStore(); const baseWeeks=pgxTotalWeeks(); const cur=Array.isArray(store.timeline?.manualDates)?store.timeline.manualDates:[]; const raw=prompt("Pega las FECHAS (dd/mm) separadas por coma para cada semana (total "+baseWeeks+").", cur.join(",")); if(raw===null) return; const t=String(raw||"").trim(); if(!t){ if(store.timeline) delete store.timeline.manualDates; pgxSaveStore(store); toast("Fechas manuales eliminadas."); renderPrograma(); pgxScheduleRelayout(); return; } const parts=t.split(",").map(x=>x.trim()).filter(Boolean); if(parts.length!==baseWeeks){ alert("Cantidad inválida: se esperaban "+baseWeeks+" fechas y recibí "+parts.length+"."); return; } store.timeline.manualDates=parts; pgxSaveStore(store); toast("Fechas manuales guardadas."); renderPrograma(); pgxScheduleRelayout(); }); }
+
+    if (btnSave){ btnSave.addEventListener("click", ()=>{ if(!pgxCanEdit()||!pgxGetEditOn()) return; const store=pgxLoadStore(); pgxSaveStore(store); pgxGridState.dirty=false; toast("Guardado."); }); }
+    if (btnCreate){ btnCreate.addEventListener("click", pgxCreateProgramFlow); }
     if (fsTgl) fsTgl.addEventListener("click", ()=>setProgramaMatrixFullscreen());
     if (fsExit) fsExit.addEventListener("click", ()=>setProgramaMatrixFullscreen(false));
 
@@ -4252,7 +4627,7 @@ function pgxUpgradeProgram(p, baseWeeks){
 
     pgxWireCellEditing();
     if (pgxCanEdit() && pgxGetEditOn()) pgxRefreshSelectionUi();
-    try{ requestAnimationFrame(()=>fitProgramaMatrixHeight()); }catch(e){}
+    try{ pgxScheduleRelayout(); }catch(e){}
   }
 
 
@@ -6199,7 +6574,7 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
     });
   }
 
-  
+
   function renderEvalList(evals){
     const wrap = document.getElementById("evList");
     const work = document.getElementById("evWork");
@@ -7360,7 +7735,7 @@ const LISTAS_LOCAL_ORDER = ["LA MOLINA","SAN MIGUEL","SAN BORJA","VIRTUAL"];
 
 function sortListasByLocalOrder(values){
   return values.slice().sort((a,b)=>{
-    const ia = LISTAS_LOCAL_ORDER.indexOf(a); 
+    const ia = LISTAS_LOCAL_ORDER.indexOf(a);
     const ib = LISTAS_LOCAL_ORDER.indexOf(b);
     return (ia<0?999:ia) - (ib<0?999:ib);
   });
@@ -8454,7 +8829,7 @@ function renderReportes(){
     },
   ]);
 
-  
+
 
   // ===================== HORARIOS (PERSISTENCIA) =====================
   const SCHEDULES_KEY = "LM_SCHEDULES_v1";
@@ -8759,11 +9134,11 @@ function ensureHorariosLayout(){
       }catch(e){ HORARIOS_EDIT_MODE = false; }
       applyEditUi();
     }
-    
+
     // UX: ajustar altura y habilitar drag-to-scroll en matriz
     try{
       // se ejecuta después de que el DOM ya esté armado
-      setTimeout(()=>{ 
+      setTimeout(()=>{
         enableHorariosDragScroll();
         fitHorariosMatrixHeight();
       }, 0);
@@ -9635,9 +10010,9 @@ el.dataset.ready = "1";
   });
 
   // ===================== RENDER =====================
-  
+
   // ===================== INICIO (ALUMNOS) =====================
-  
+
 function ensureInicioAlumnoLayout(){
     const el = document.getElementById("view_inicio_alumno");
     if (!el || el.dataset.ready === "1") return;
@@ -10027,7 +10402,7 @@ if (state.view==="impresiones") renderImpresiones();
     }
 
     if (bestIdx === -1 || bestScore < 6){
-      return { salon, rows: [], error: "No se encontró un encabezado válido (NOMBRES/ESTADO/MODALIDAD/DNI/CORREO...)."}; 
+      return { salon, rows: [], error: "No se encontró un encabezado válido (NOMBRES/ESTADO/MODALIDAD/DNI/CORREO...)."};
     }
 
     const headerIdx = bestIdx;
