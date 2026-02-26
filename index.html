@@ -10949,6 +10949,21 @@ function startApp(){
 
 // ✅ Arranque: lo antes posible (para reducir flash)
 window.addEventListener("DOMContentLoaded", () => {
+  // Salvaguarda de interactividad inicial (evita overlays/clases colgadas).
+  try{
+    document.body.style.pointerEvents = "auto";
+    document.body.classList.remove("fullscreen-active", "modal-open", "isFullscreen");
+    const overlayIds = ["hCellEditOverlay","hEditorOverlay","pgxCellEditOverlay"];
+    for (const id of overlayIds){
+      const el = document.getElementById(id);
+      if (el) el.style.display = "none";
+    }
+    ["roleAdmin","roleTutor","roleAlumno","btnLogin"].forEach(id=>{
+      const b = document.getElementById(id);
+      if (b) b.removeAttribute("disabled");
+    });
+  }catch(e){}
+
   // 1) Auth primero
   const hasSession = initAuth();
 
