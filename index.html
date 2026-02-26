@@ -3821,15 +3821,15 @@ function pgxUpgradeProgram(p, baseWeeks){
     // Calcula FIN solo para visualización (start + weeks)
     const endInp = document.getElementById("pgxEnd");
     if (endInp){
-      const sd = pgxParseDateYMD(String(vStart||\"\"));
+      const sd = pgxParseDateYMD(String(vStart||""));
       const wv = Math.max(1, Math.floor(+vWeeks||baseWeeks));
       if (sd){
         const ed = new Date(sd.getTime() + (wv-1)*7*24*60*60*1000);
         const yyyy = ed.getFullYear();
-        const mm = String(ed.getMonth()+1).padStart(2,\"0\");
-        const dd = String(ed.getDate()).padStart(2,\"0\");
+        const mm = String(ed.getMonth()+1).padStart(2,"0");
+        const dd = String(ed.getDate()).padStart(2,"0");
         endInp.value = `${yyyy}-${mm}-${dd}`;
-      } else endInp.value = \"\";
+      } else endInp.value = "";
     }
 if (zoom) zoom.value = pgxZoomOption(pgxGetZoom());
     if (mode) mode.value = pgxGetMode();
@@ -3924,7 +3924,7 @@ if (zoom) zoom.value = pgxZoomOption(pgxGetZoom());
 
     // Respeta el toggle PERSONALIZAR
     const open = !!pgxGetSettingsOpen();
-    if (!open){ wrap.style.display = \"none\"; wrap.innerHTML = \"\"; return; }
+    if (!open){ wrap.style.display = "none"; wrap.innerHTML = ""; return; }
     const active = pgxGetActiveId() || (programs[0]?.id||"");
     const p = programs.find(x=>x.id===active) || programs[0];
     if (!p){ wrap.innerHTML=""; return; }
@@ -4777,7 +4777,7 @@ const tw = pgxTotalWeeks();
 
 
     // Panel PERSONALIZAR (solo ADMIN en edición)
-    try{ if (typeof pgxRenderSettings === \"function\") pgxRenderSettings(programs); }catch(e){}
+    try{ if (typeof pgxRenderSettings === "function") pgxRenderSettings(programs); }catch(e){}
     const canvas = document.getElementById("pgxCanvas");
     if (!canvas) return;
 
