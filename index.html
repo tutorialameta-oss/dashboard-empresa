@@ -3746,6 +3746,8 @@ function pgxUpgradeProgram(p, baseWeeks){
     const btnJson = document.getElementById("pgxJson");
     const btnSet = document.getElementById("pgxSettingsBtn");
     const btnDates = document.getElementById("pgxDates");
+    const btnFs = document.getElementById("pgxFs");
+    const btnFsExit = document.getElementById("pgxFsExit");
     const btnFill = document.getElementById("pgxFill");
 
     const can = pgxCanEdit();
@@ -4141,6 +4143,7 @@ const tw = pgxTotalWeeks();
 
           <button id="pgxSettingsBtn" class="btn ghost" type="button">PERSONALIZAR</button>
           <button id="pgxDates" class="btn ghost" type="button">FECHAS MANUAL</button>
+          <button id="pgxFs" class="btn ghost" type="button">PANTALLA COMPLETA</button>
         </div>
 
         <div class="pgHint" id="pgxHint" style="margin-top:8px;">
@@ -4150,7 +4153,34 @@ const tw = pgxTotalWeeks();
       </div>
 
       <div class="card panel12">
-        <div id="pgxCanvas"></div>
+        <div id="pgxFsHost" class="pgxFsHost">
+          <button id="pgxFsExit" class="btn ghost pgxFsExit" type="button">SALIR</button>
+          <div id="pgxCanvas"></div>
+        </div>
+      </div>
+
+      <div id="pgxCellEditOverlay" class="pgxCellEditOverlay">
+        <div class="pgxCellEditModal">
+          <div class="pgxCellEditHead">
+            <div>
+              <div style="font-weight:1000;">EDICIÓN RÁPIDA</div>
+              <div id="pgxCellEditMeta" class="pgSmall">—</div>
+            </div>
+            <button id="pgxCellEditClose" class="btn ghost" type="button">✕</button>
+          </div>
+          <div class="pgxCellEditBody">
+            <label class="pgSmall">VALOR
+              <input id="pgxCellEditValue" type="text" />
+            </label>
+            <div id="pgxCellSelInfo" class="pgSmall">Sin selección de rango.</div>
+          </div>
+          <div class="pgxCellEditFoot">
+            <button id="pgxCellApplyRange" class="btn ghost" type="button">APLICAR A RANGO</button>
+            <button id="pgxCellFillDown" class="btn ghost" type="button">FILL DOWN</button>
+            <button id="pgxCellEditCancel" class="btn ghost" type="button">CANCELAR</button>
+            <button id="pgxCellEditSave" class="btn" type="button">GUARDAR</button>
+          </div>
+        </div>
       </div>
     `;
 
@@ -4536,6 +4566,12 @@ const tw = pgxTotalWeeks();
 
     
 
+    document.getElementById("pgxCellEditClose")?.addEventListener("click", pgxCloseCellEditor);
+    document.getElementById("pgxCellEditCancel")?.addEventListener("click", pgxCloseCellEditor);
+    document.getElementById("pgxCellEditSave")?.addEventListener("click", pgxSaveCellEditor);
+    document.getElementById("pgxCellApplyRange")?.addEventListener("click", ()=>pgxApplyToRange(false));
+    document.getElementById("pgxCellFillDown")?.addEventListener("click", ()=>pgxApplyToRange(true));
+
     el.dataset.ready="1";
   }
 
@@ -4614,6 +4650,18 @@ const tw = pgxTotalWeeks();
       }
     });
   }
+
+  document.addEventListener("keydown", (e)=>{
+    const ov = document.getElementById("pgxCellEditOverlay");
+    if (ov && ov.style.display !== "none"){
+      if (e.key === "Escape"){ e.preventDefault(); pgxCloseCellEditor(); return; }
+      if (e.key === "Enter"){ e.preventDefault(); pgxSaveCellEditor(); return; }
+    }
+    if (e.key === "Escape" && PGX_FULLSCREEN){
+      e.preventDefault();
+      pgxSetFullscreen(false);
+    }
+  });
 
 
 
@@ -9151,6 +9199,7 @@ function ensureHorariosLayout(){
     });
     document.getElementById("hUni").addEventListener("change", ()=>{
       rebuildHorariosSalonOptions();
+      syncHorariosUniBadges();
       rer();
     });
 
@@ -9466,6 +9515,79 @@ el.dataset.ready = "1";
       try{ requestAnimationFrame(()=>fitHorariosMatrixHeight()); }catch(e){}
       try{ bindHorariosCellTargets(); }catch(e){}
     }
+
+    const prev = HORARIOS_CELL_EDIT_CTX.blockIndex;
+    const teacher = (prev >= 0 && sch.blocks[prev]) ? String(sch.blocks[prev].teacher || "") : "";
+    const nextBlock = { day, start, end, course, teacher };
+
+    if (prev >= 0 && sch.blocks[prev]){
+      sch.blocks[prev] = nextBlock;
+    }else{
+      sch.blocks.push(nextBlock);
+    }
+
+    sch.blocks = sch.blocks.slice().sort((a,b)=>{
+      const dd = DAYS.indexOf(normalizeDayKey(a.day)) - DAYS.indexOf(normalizeDayKey(b.day));
+      if (dd !== 0) return dd;
+      return idxMark(a.start) - idxMark(b.start);
+    });
+
+    SCHEDULES = sortSchedules(SCHEDULES);
+    saveSchedules();
+    closeHorariosCellEditModal();
+    renderHorarios();
+  }
+
+  function bindHorariosCellTargets(){
+    const cards = Array.from(document.querySelectorAll(".schCard"));
+    cards.forEach(card=>{
+      card.classList.remove("hEditEnabled");
+      Array.from(card.querySelectorAll(".hCellEditable")).forEach(td=>td.classList.remove("hCellEditable"));
+
+      const sid = card.getAttribute("data-id");
+      const cardKey = card.getAttribute("data-cardkey") || "";
+      const isPlaceholder = (card.getAttribute("data-placeholder") === "1");
+      const sch = SCHEDULES.find(x=>x.id===sid) || {
+        id: sid,
+        local: card.getAttribute("data-local") || "",
+        uni: card.getAttribute("data-uni") || "",
+        salon: card.getAttribute("data-salon") || "",
+        blocks: []
+      };
+
+      const matrix = buildScheduleMatrix(sch);
+      const rows = Array.from(card.querySelectorAll("tbody tr"));
+      rows.forEach((tr, r)=>{
+        const tds = Array.from(tr.querySelectorAll("td"));
+        if (!tds.length) return;
+        let ptr = 1;
+        DAYS.forEach((d)=>{
+          const cell = matrix[r][d];
+          if (!cell || cell.kind === "skip") return;
+          const td = tds[ptr++];
+          if (!td) return;
+          td.classList.add("hCellEditable");
+          td.dataset.day = d;
+          td.dataset.start = TIME_ROWS[r].start;
+          td.dataset.end = (cell.kind === "start") ? TIME_ROWS[Math.min(TIME_ROWS.length-1, r + Number(cell.rowspan||1) - 1)].end : TIME_ROWS[r].end;
+          td.dataset.course = (cell.kind === "start" && cell.block) ? String(cell.block.course||"") : "";
+          td.dataset.blockIndex = "-1";
+          if (cell.kind === "start"){
+            const idx = (sch.blocks||[]).findIndex(b=>normalizeDayKey(b.day)===d && b.start===td.dataset.start && b.end===td.dataset.end && String(b.course||"")===td.dataset.course);
+            td.dataset.blockIndex = String(idx);
+          }
+          td.dataset.scheduleId = sid;
+          td.dataset.cardKey = cardKey;
+          if (isPlaceholder){
+            td.dataset.placeholder = "1";
+            td.dataset.phLocal = card.getAttribute("data-local") || "";
+            td.dataset.phColKey = card.getAttribute("data-colkey") || "";
+          }
+        });
+      });
+
+      if (CURRENT_ROLE === "admin" && HORARIOS_EDIT_MODE) card.classList.add("hEditEnabled");
+    });
   }
 
 
