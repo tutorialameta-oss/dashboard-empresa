@@ -297,6 +297,7 @@
     .dot{ width:10px; height:10px; border-radius:999px; display:inline-block; }
     .dot.pucp{ background: var(--pucp); }
     .dot.ulima{ background: var(--ulima); }
+    .dot.escolares{ background: var(--schHead_ESC); }
     .dot.agraria{ background: var(--agraria); }
     .dot.pres{ background: var(--pres); }
     .dot.virt{ background: var(--virt); }
@@ -619,6 +620,17 @@
       border:1px solid rgba(220,38,38,0.16);
       color:var(--muted);
       font-weight:800;
+    }
+    .hUniBadges{ margin-top:10px; }
+    .hUniBadge{
+      cursor:pointer;
+      user-select:none;
+      transition:all .15s ease;
+    }
+    .hUniBadge.active{
+      border-color: rgba(15,23,42,0.35);
+      box-shadow: 0 2px 10px rgba(15,23,42,.10);
+      transform: translateY(-1px);
     }
 
     .schEdit{
@@ -8889,10 +8901,11 @@ function ensureHorariosLayout(){
 
         ${(CURRENT_ROLE==="admin") ? `<div id="hEditBar" class="hEditBar" style="display:none;">Modo edición activo: usa <b>EDITAR</b> en una tarjeta para modificar bloques.</div>` : ``}
 
-        <div class="panelHint" style="margin-top:10px;">
-          <span class="pill"><span class="dot agraria"></span>AGRARIA</span>
-          <span class="pill"><span class="dot pucp"></span>PUCP</span>
-          <span class="pill"><span class="dot ulima"></span>U.LIMA</span>
+        <div class="panelHint hUniBadges" id="hUniBadges">
+          <span class="pill hUniBadge" data-uni="AGRARIA"><span class="dot agraria"></span>AGRARIA</span>
+          <span class="pill hUniBadge" data-uni="PUCP"><span class="dot pucp"></span>PUCP</span>
+          <span class="pill hUniBadge" data-uni="U.LIMA"><span class="dot ulima"></span>U.LIMA</span>
+          <span class="pill hUniBadge" data-uni="ESCOLARES"><span class="dot escolares"></span>ESCOLARES</span>
         </div>
       </div>
 
@@ -8951,9 +8964,24 @@ function ensureHorariosLayout(){
     });
     document.getElementById("hUni").addEventListener("change", ()=>{
       rebuildHorariosSalonOptions();
+      syncHorariosUniBadges();
       rer();
     });
-    document.getElementById("hSalon").addEventListener("change", rer);
+    const uniBadges = document.getElementById("hUniBadges");
+    if (uniBadges){
+      uniBadges.addEventListener("click", (e)=>{
+        const b = e.target.closest(".hUniBadge");
+        if (!b) return;
+        const uni = b.getAttribute("data-uni") || "__ALL__";
+        const sel = document.getElementById("hUni");
+        if (!sel) return;
+        sel.value = (sel.value === uni) ? "__ALL__" : uni;
+        rebuildHorariosSalonOptions();
+        syncHorariosUniBadges();
+        rer();
+      });
+    }
+    syncHorariosUniBadges();
 
     const fsTgl = document.getElementById("hFsToggle");
     const fsExit = document.getElementById("hFsExit");
@@ -9020,6 +9048,16 @@ el.dataset.ready = "1";
 
     const salones = uniq(base.map(s=>s.salon)).sort((a,b)=>a.localeCompare(b,"es"));
     fillSelectKeep("hSalon", salones, "SALÓN: TODOS");
+  }
+
+  function syncHorariosUniBadges(){
+    const box = document.getElementById("hUniBadges");
+    const uniSel = document.getElementById("hUni");
+    if (!box || !uniSel) return;
+    const val = uniSel.value;
+    Array.from(box.querySelectorAll(".hUniBadge")).forEach(b=>{
+      b.classList.toggle("active", b.getAttribute("data-uni") === val);
+    });
   }
 
   let HORARIOS_MATRIX_FULLSCREEN = false;
@@ -9268,89 +9306,6 @@ el.dataset.ready = "1";
       try{ requestAnimationFrame(()=>fitHorariosMatrixHeight()); }catch(e){}
       try{ bindHorariosCellTargets(); }catch(e){}
     }
-
-    let sch = SCHEDULES.find(x=>x.id===HORARIOS_CELL_EDIT_CTX.scheduleId);
-    if (!sch){
-      if (HORARIOS_CELL_EDIT_CTX.isPlaceholder){
-        const iden = scheduleIdentityFromMatrix(HORARIOS_CELL_EDIT_CTX.phLocal, HORARIOS_CELL_EDIT_CTX.phColKey);
-        sch = { id: iden.id, local: iden.local, uni: iden.uni, salon: iden.salon, blocks: [] };
-        SCHEDULES.push(sch);
-      }else{
-        alert("No se encontró el horario.");
-        return;
-      }
-    }
-
-    const prev = HORARIOS_CELL_EDIT_CTX.blockIndex;
-    const teacher = (prev >= 0 && sch.blocks[prev]) ? String(sch.blocks[prev].teacher || "") : "";
-    const nextBlock = { day, start, end, course, teacher };
-
-    if (prev >= 0 && sch.blocks[prev]){
-      sch.blocks[prev] = nextBlock;
-    }else{
-      sch.blocks.push(nextBlock);
-    }
-
-    sch.blocks = sch.blocks.slice().sort((a,b)=>{
-      const dd = DAYS.indexOf(normalizeDayKey(a.day)) - DAYS.indexOf(normalizeDayKey(b.day));
-      if (dd !== 0) return dd;
-      return idxMark(a.start) - idxMark(b.start);
-    });
-
-    SCHEDULES = sortSchedules(SCHEDULES);
-    saveSchedules();
-    closeHorariosCellEditModal();
-    renderHorarios();
-  }
-
-  function bindHorariosCellTargets(){
-    const cards = Array.from(document.querySelectorAll(".schCard"));
-    cards.forEach(card=>{
-      card.classList.remove("hEditEnabled");
-      Array.from(card.querySelectorAll(".hCellEditable")).forEach(td=>td.classList.remove("hCellEditable"));
-
-      const sid = card.getAttribute("data-id");
-      const isPlaceholder = (card.getAttribute("data-placeholder") === "1");
-      const sch = SCHEDULES.find(x=>x.id===sid) || {
-        id: sid,
-        local: card.getAttribute("data-local") || "",
-        uni: card.getAttribute("data-uni") || "",
-        salon: card.getAttribute("data-salon") || "",
-        blocks: []
-      };
-
-      const matrix = buildScheduleMatrix(sch);
-      const rows = Array.from(card.querySelectorAll("tbody tr"));
-      rows.forEach((tr, r)=>{
-        const tds = Array.from(tr.querySelectorAll("td"));
-        if (!tds.length) return;
-        let ptr = 1;
-        DAYS.forEach((d)=>{
-          const cell = matrix[r][d];
-          if (!cell || cell.kind === "skip") return;
-          const td = tds[ptr++];
-          if (!td) return;
-          td.classList.add("hCellEditable");
-          td.dataset.day = d;
-          td.dataset.start = TIME_ROWS[r].start;
-          td.dataset.end = (cell.kind === "start") ? TIME_ROWS[Math.min(TIME_ROWS.length-1, r + Number(cell.rowspan||1) - 1)].end : TIME_ROWS[r].end;
-          td.dataset.course = (cell.kind === "start" && cell.block) ? String(cell.block.course||"") : "";
-          td.dataset.blockIndex = "-1";
-          if (cell.kind === "start"){
-            const idx = (sch.blocks||[]).findIndex(b=>normalizeDayKey(b.day)===d && b.start===td.dataset.start && b.end===td.dataset.end && String(b.course||"")===td.dataset.course);
-            td.dataset.blockIndex = String(idx);
-          }
-          td.dataset.scheduleId = sid;
-          if (isPlaceholder){
-            td.dataset.placeholder = "1";
-            td.dataset.phLocal = card.getAttribute("data-local") || "";
-            td.dataset.phColKey = card.getAttribute("data-colkey") || "";
-          }
-        });
-      });
-
-      if (CURRENT_ROLE === "admin" && HORARIOS_EDIT_MODE) card.classList.add("hEditEnabled");
-    });
   }
 
 
