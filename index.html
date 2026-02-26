@@ -2077,7 +2077,7 @@
 
   /* ===================== PROGRAMA (HOJA) v1 ===================== */
   .pxSheetWrap{ width:100%; }
-  .pxZoom{ width:max-content; min-width:100%; }
+  .pxZoom{ display:inline-block; width:max-content; }
   .pxSheetScroll{
     width:100%;
     overflow:auto;
@@ -2261,7 +2261,7 @@
     height:100% !important;
     min-height:0;
     overflow-y:auto;
-    overflow-x:scroll;
+    overflow-x:auto;
     scrollbar-gutter: stable both-edges;
     padding-bottom: 6px;
   }
@@ -4249,6 +4249,7 @@ const tw = pgxTotalWeeks();
         const on = !pgxGetEditOn();
         pgxSetEditOn(on);
         pgxSetSettingsOpen(on);
+        if (on) pgxSetMode("ALL");
         if (!on) pgxSetFineOn(false);
         renderPrograma();
         pgxScheduleRelayout();
@@ -4308,51 +4309,11 @@ const tw = pgxTotalWeeks();
       btnApply.addEventListener("click", ()=>{
         const s = String(document.getElementById("pgxStart")?.value||"").trim();
         const w = Math.max(1, Math.floor(+document.getElementById("pgxWeeks")?.value||16));
-        if (!pgxCanEdit() || !pgxGetEditOn()){
-          if (s) pgxSetViewStart(s);
-          pgxSetViewWeeks(w);
-          renderPrograma();
-          toast("Vista actualizada.");
-          pgxSaveStore(pgxLoadStore());
-          pgxScheduleRelayout();
-          return;
-        }
-        const store = pgxLoadStore();
-        const baseWeeks = pgxTotalWeeks();
-        if (s) store.timeline.startDate = s;
-        store.timeline.weeks = w;
-        pgxSetViewStart(String(store.timeline.startDate||""));
-        pgxSetViewWeeks(+store.timeline.weeks||0);
-        for (const id of store.order){
-          let p = store.programs[id];
-          if (p) p = pgxUpgradeProgram(p, baseWeeks);
-          if (!p) continue;
-          (p.config?.lanes||[]).forEach(l=>{
-            if (l.type==="cells"){
-              const old = Array.isArray(l.values)? l.values:[];
-              l.values = Array.from({length:w}, (_,i)=>String(old[i]||""));
-            }
-            if (l.type==="segments"){
-              const seg = Array.isArray(l.segments)? l.segments:[];
-              let sum = seg.reduce((a,s)=>a+(+s.span||0),0);
-              if (sum < w) seg.push({text:"", span:(w-sum)});
-              if (sum > w){
-                let acc=0; const out=[];
-                for (const s2 of seg){
-                  const sp=+s2.span||0;
-                  if (!sp) continue;
-                  if (acc+sp<=w){ out.push(s2); acc+=sp; }
-                  else{ const rem = w-acc; if (rem>0) out.push({text:s2.text, span:rem}); acc=w; break; }
-                }
-                l.segments = out;
-              } else l.segments = seg;
-            }
-          });
-          p.meta.updatedAt = pgxNowISO();
-        }
-        pgxSaveStore(store);
+        if (s) pgxSetViewStart(s);
+        pgxSetViewWeeks(w);
         renderPrograma();
-        toast("Timeline actualizado.");
+        toast("Vista actualizada.");
+        pgxSaveStore(pgxLoadStore());
         pgxScheduleRelayout();
       });
     }
