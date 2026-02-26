@@ -2241,14 +2241,7 @@
     font-weight:900;
     color:var(--muted);
   }
-  .pgxMatrixHost.isFullscreen .pgxMatrixExit{
-    display:inline-flex;
-    position:fixed;
-    top:18px;
-    right:24px;
-    z-index:10060;
-    box-shadow:0 10px 24px rgba(2,6,23,.22);
-  }
+  .pgxMatrixHost.isFullscreen .pgxMatrixExit{ display:inline-flex; }
   .pgxMatrixHost.isFullscreen .pxSheetWrap{height:100%; min-height:0;}
   .pgxMatrixHost.isFullscreen .pxSheetScroll{
     max-height:calc(100vh - 58px) !important;
@@ -3768,10 +3761,10 @@ function pgxUpgradeProgram(p, baseWeeks){
     if (start) start.value = String(vStart||"");
     if (weeks) weeks.value = String(vWeeks||baseWeeks);
     if (zoom) zoom.value = pgxZoomOption(pgxGetZoom());
+    if (mode) mode.value = pgxGetMode();
 
     const admin = pgxCanEdit();
     const editOn = admin && pgxGetEditOn();
-    if (mode) mode.value = admin ? pgxGetMode() : "ALL";
 
     if (edit){
       edit.style.display = admin ? "" : "none";
@@ -3779,25 +3772,21 @@ function pgxUpgradeProgram(p, baseWeeks){
       edit.classList.toggle("primary", editOn);
     }
     if (fs) fs.style.display = admin ? "" : "none";
-    if (fine) fine.textContent = `EDICIÓN FINA: ${pgxGetFineOn() ? "ON" : "OFF"}`;
 
     // Navegación de fechas visible fuera del editor
     [start, weeks, apply].forEach(el=>{ if (el) el.style.display = ""; });
 
     if (admin){
       // Controles de vista avanzados solo dentro de editar
-      [mode, sel, zoom, fill, btnSave, createType, btnCreate, btnSet].forEach(el=>{ if (el) el.style.display = editOn ? "" : "none"; });
-      if (fine) fine.style.display = editOn ? "" : "none";
+      [mode, sel, zoom, fine, fill, btnSave, createType, btnCreate, btnSet].forEach(el=>{ if (el) el.style.display = editOn ? "" : "none"; });
       // Avanzados escondidos para simplificar
       [btnNew, btnDel, btnJson, btnDates].forEach(el=>{ if (el) el.style.display = "none"; });
     } else {
-      if (mode) mode.style.display = "none";
-      if (sel) sel.style.display = "none";
-      if (zoom) zoom.style.display = "";
+      [mode, sel, zoom].forEach(el=>{ if (el) el.style.display = ""; });
       [fine, fill, btnNew, btnDel, btnJson, btnSet, btnDates, btnSave, createType, btnCreate].forEach(el=>{ if (el) el.style.display = "none"; });
     }
 
-    if (admin && sel && mode) sel.style.display = (mode.value==="ONE") ? "" : "none";
+    if (sel && mode) sel.style.display = (mode.value==="ONE") ? "" : "none";
   }
 
 
@@ -3855,7 +3844,8 @@ function pgxUpgradeProgram(p, baseWeeks){
   function pgxRenderSettings(programs){
     const wrap = document.getElementById("pgxSettings");
     if (!wrap) return;
-    if (!pgxCanEdit() || !pgxGetEditOn() || !pgxGetSettingsOpen()){ wrap.style.display="none"; return; }
+    if (!pgxCanEdit() || !pgxGetEditOn()){ wrap.style.display="none"; return; }
+    // En modo edición siempre se muestra el panel
     wrap.style.display = "";
 
     const active = pgxGetActiveId() || (programs[0]?.id||"");
@@ -3864,6 +3854,8 @@ function pgxUpgradeProgram(p, baseWeeks){
 
     const totalWeeks = pgxTotalWeeks();
     const win = pgxProgramWindow(p, totalWeeks);
+    const colors = pgxProgramColors(p);
+
     const lanes = (p.config?.lanes||[]).filter(l=>l && l.key && l.label && String(l.key||"").toLowerCase()!=="eventos");
     const laneHtml = lanes.map(l=>`
       <div class="pgxLaneItem">
@@ -3913,25 +3905,23 @@ function pgxUpgradeProgram(p, baseWeeks){
           <input id="pgsEndW" type="number" min="1" max="${totalWeeks}" value="${win.end}"/>
         </label>
 
+        <label>COLOR BARRA
+          <input id="pgsBar" type="color" value="${pgxToColor(colors.bar)}"/>
+        </label>
+
+        <label>COLOR SEMANA
+          <input id="pgsCell" type="color" value="${pgxToColor(colors.cell)}"/>
+        </label>
+
+        <label>COLOR FUERA VENTANA
+          <input id="pgsOff" type="color" value="${pgxToColor(colors.off)}"/>
+        </label>
       </div>
 
       <div class="pgxSetRow">
         <button id="pgsSave" class="btn ghost" type="button">GUARDAR</button>
         <button id="pgsEtapa" class="btn ghost" type="button">EDITAR ETAPA</button>
-        
-      </div>
-
-
-
-      <div class="pgxSetTitle" style="margin-top:14px;">ELIMINAR PROGRAMA</div>
-      <div class="pgxSetRow">
-        <select id="pgsDeletePick">
-          ${programs.map(pp=>{
-            const nm = String(pp.meta?.name||"PROGRAMA").toUpperCase();
-            return `<option value="${escapeHtml(pp.id)}"${pp.id===p.id?" selected":""}>${escapeHtml(nm)}</option>`;
-          }).join("")}
-        </select>
-        <button id="pgsDelete" class="btn ghost" type="button">ELIMINAR PROGRAMA</button>
+        <button id="pgsResetCols" class="btn ghost" type="button">RESET COLORES</button>
       </div>
 
       <div class="pgxSetTitle" style="margin-top:14px;">NOMBRES DE FILAS</div>
@@ -3976,7 +3966,10 @@ const tw = pgxTotalWeeks();
       pp.meta.startWeek = sW;
       pp.meta.endWeek = eW;
 
-      if (pp.meta && pp.meta.colors) delete pp.meta.colors;
+      pp.meta.colors = pp.meta.colors || {};
+      pp.meta.colors.bar  = String(document.getElementById("pgsBar")?.value||"").trim();
+      pp.meta.colors.cell = String(document.getElementById("pgsCell")?.value||"").trim();
+      pp.meta.colors.off  = String(document.getElementById("pgsOff")?.value||"").trim();
 
       const wrap2 = document.getElementById("pgsLaneWrap");
       const lanes2 = (pp.config?.lanes||[]);
@@ -4023,18 +4016,17 @@ const tw = pgxTotalWeeks();
       renderPrograma();
     });
 
-    document.getElementById("pgsDelete")?.addEventListener("click", ()=>{
+    document.getElementById("pgsResetCols")?.addEventListener("click", ()=>{
       const store = pgxLoadStore();
-      const id = String(document.getElementById("pgsDeletePick")?.value || pgxGetActiveId() || "");
-      if (!id || !store.programs[id]) return;
-      const label = String(store.programs[id]?.meta?.name||"PROGRAMA").toUpperCase();
-      if (!confirm(`¿Eliminar programa ${label}?`)) return;
-      delete store.programs[id];
-      store.order = (store.order||[]).filter(x=>x!==id);
+    const baseWeeks = pgxTotalWeeks();
+      const id = pgxGetActiveId();
+      const pp = store.programs[id];
+      if (!pp) return;
+      if (pp.meta) delete pp.meta.colors;
+      pp.meta.updatedAt = pgxNowISO();
+      store.programs[id]=pp;
       pgxSaveStore(store);
-      pgxSetActiveId(store.order[0] || "");
-      pgxSetMode("ALL");
-      toast("Programa eliminado.");
+      toast("Colores reseteados.");
       renderPrograma();
     });
   }
@@ -4625,7 +4617,7 @@ const tw = pgxTotalWeeks();
     pgxEnsure();
     pgxEnsureProgramaLayout();
 
-    const mode = (!pgxCanEdit() || !pgxGetEditOn()) ? "ALL" : pgxGetMode();
+    const mode = pgxGetMode();
     const programs = pgxProgramsForRole();
     if (!programs.length){
       const canvas = document.getElementById("pgxCanvas");
@@ -4639,7 +4631,6 @@ const tw = pgxTotalWeeks();
 
     pgxFillProgramSelect(programs);
     pgxApplyHeaderUI();
-    pgxRenderSettings(programs);
 
     const canvas = document.getElementById("pgxCanvas");
     if (!canvas) return;
