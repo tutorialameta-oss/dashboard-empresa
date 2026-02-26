@@ -3890,11 +3890,12 @@ if (zoom) zoom.value = pgxZoomOption(pgxGetZoom());
       // Avanzados escondidos para simplificar
       [btnNew, btnJson, btnDates].forEach(el=>{ if (el) el.style.display = "none"; });
     } else {
-      [mode, sel, zoom].forEach(el=>{ if (el) el.style.display = ""; });
+      [mode, zoom].forEach(el=>{ if (el) el.style.display = ""; });
+      if (sel) sel.style.display = "none";
       [fine, fill, btnNew, btnDel, btnJson, btnSet, btnDates, btnSave, createType, btnCreate].forEach(el=>{ if (el) el.style.display = "none"; });
     }
 
-    if (sel && mode) sel.style.display = (mode.value==="ONE") ? "" : "none";
+    if (admin && sel && mode) sel.style.display = (mode.value==="ONE") ? "" : "none";
     if (btnSet && admin){
       btnSet.textContent = (editOn && pgxGetSettingsOpen()) ? "OCULTAR PERSONALIZAR" : "PERSONALIZAR";
     }
