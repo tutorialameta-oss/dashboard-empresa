@@ -4582,10 +4582,6 @@ const tw = pgxTotalWeeks();
       const td = e.target?.closest ? e.target.closest('td.pxEditable') : null;
       if (!td || !pgxCanEdit() || !pgxGetEditOn()) return;
       pgxSetSelectedCell(td, e.shiftKey);
-      if (!e.shiftKey){
-        const ctx = pgxCellCtxFromTd(td);
-        pgxEditCellJsonDialog(ctx);
-      }
     });
 
     canvas.addEventListener('dblclick',(e)=>{
@@ -10860,10 +10856,12 @@ function startApp(){
   ensureBoot();
   applyRoleUI();
 
-  // si había una vista guardada, aplícala
+  // si había una vista guardada, aplícala; si no, fuerza la vista por defecto
   const sv = loadSavedView();
-  if (sv && ALLOWED_VIEWS.includes(sv) && state.view !== sv){
-    setView(sv);
+  if (sv && ALLOWED_VIEWS.includes(sv)){
+    if (state.view !== sv) setView(sv);
+  } else {
+    setView(state.view || "overview");
   }
 
   loadAll();
