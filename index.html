@@ -3857,7 +3857,8 @@ function pgxUpgradeProgram(p, baseWeeks){
   function pgxRenderSettings(programs){
     const wrap = document.getElementById("pgxSettings");
     if (!wrap) return;
-    if (!pgxCanEdit() || !pgxGetEditOn() || !pgxGetSettingsOpen()){ wrap.style.display="none"; return; }
+    if (!pgxCanEdit() || !pgxGetEditOn()){ wrap.style.display="none"; return; }
+    // En modo edición siempre se muestra el panel
     wrap.style.display = "";
 
     const active = pgxGetActiveId() || (programs[0]?.id||"");
