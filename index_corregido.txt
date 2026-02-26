@@ -2208,7 +2208,7 @@
   .pgxMatrixFsBadge{ display:none; }
   .pgxMatrixHost.isFullscreen{
     position:fixed;
-    inset:0;
+    inset:10px;
     z-index:10035;
     background:#fff;
     border-radius:0;
@@ -2241,18 +2241,11 @@
     font-weight:900;
     color:var(--muted);
   }
-  .pgxMatrixHost.isFullscreen .pgxMatrixExit{
-    display:inline-flex;
-    position:fixed;
-    top:18px;
-    right:24px;
-    z-index:10060;
-    box-shadow:0 10px 24px rgba(2,6,23,.22);
-  }
+  .pgxMatrixHost.isFullscreen .pgxMatrixExit{ display:inline-flex; }
   .pgxMatrixHost.isFullscreen .pxSheetWrap{height:100%; min-height:0;}
   .pgxMatrixHost.isFullscreen .pxSheetScroll{
-    max-height:calc(100vh - 52px) !important;
-    height:calc(100vh - 52px) !important;
+    max-height:calc(100vh - 58px) !important;
+    height:calc(100vh - 58px) !important;
   }
 
   @media (max-width: 900px){
@@ -3126,30 +3119,9 @@ function pgxInsertProgramId(store, newProgram){
   async function pgxRemoteSet_(store){ return await lmRemoteSet_(LM_MODULE_PROGRAMA, store); }
 
 
-
-  function pgxNormalizeStore_(st){
-    const out = (st && typeof st === "object") ? st : {};
-    out.timeline = (out.timeline && typeof out.timeline === "object") ? out.timeline : {startDate:"",weeks:16};
-    out.programs = (out.programs && typeof out.programs === "object") ? out.programs : {};
-    const ids = Object.keys(out.programs);
-    const ordRaw = Array.isArray(out.order) ? out.order : [];
-    const seen = new Set();
-    const order = [];
-    for (const id of ordRaw){
-      const k = String(id||"");
-      if (!k || seen.has(k) || !out.programs[k]) continue;
-      seen.add(k); order.push(k);
-    }
-    for (const id of ids){
-      if (!seen.has(id)){ seen.add(id); order.push(id); }
-    }
-    out.order = order;
-    return out;
-  }
-
   function pgxLoadStore(){
     const st = pgxLoadJSON(PGX_STORE_KEY, null);
-    if (st && st.timeline && st.programs && st.order) return pgxNormalizeStore_(st);
+    if (st && st.timeline && st.programs && st.order) return st;
     return pgxDefaultStore();
   }
 
@@ -3186,7 +3158,6 @@ function pgxInsertProgramId(store, newProgram){
   async function pgxSyncPullOnce_(){
   const remote = await pgxRemoteGet_();
   if (!remote || !remote.timeline || !remote.programs || !remote.order) return;
-  const remoteNorm = pgxNormalizeStore_(remote);
 
   const local = pgxLoadJSON(PGX_STORE_KEY, null);
   const rrev = +remote._rev || 0;
@@ -3209,8 +3180,8 @@ function pgxInsertProgramId(store, newProgram){
   }
 
   if (shouldApply){
-    pgxApplyUiPrefs_(remoteNorm && remoteNorm._ui);
-    pgxSaveJSON(PGX_STORE_KEY, remoteNorm);
+    pgxApplyUiPrefs_(remote && remote._ui);
+    pgxSaveJSON(PGX_STORE_KEY, remote);
     if (typeof renderPrograma === "function"){
       renderPrograma();
     }
@@ -3233,8 +3204,7 @@ function pgxInsertProgramId(store, newProgram){
 function pgxEnsure(){
     const store = pgxLoadStore();
     const baseWeeks = pgxTotalWeeks();
-    const validCount = (store.order||[]).filter(id=>!!store.programs?.[id]).length;
-    if ((validCount===0) && pgxCanEdit()){
+    if (!store.order.length && pgxCanEdit()){
       const p1 = pgxDefaultProgram("AG REGULAR 1", "AGRARIA", "AGRARIA");
       p1.meta.startWeek = 1;
       p1.meta.endWeek = store.timeline.weeks;
@@ -3343,8 +3313,8 @@ function pgxEnsure(){
   function pgxGetEditOn(){ return pgxLoadStr(PGX_EDIT_KEY, "0") === "1"; }
   function pgxSetEditOn(on){ pgxSaveStr(PGX_EDIT_KEY, on ? "1":"0"); }
 
-  function pgxGetFineOn(){ return true; }
-  function pgxSetFineOn(on){ /* edición fina siempre activa */ }
+  function pgxGetFineOn(){ return pgxLoadStr(PGX_FINE_KEY, "0") === "1"; }
+  function pgxSetFineOn(on){ pgxSaveStr(PGX_FINE_KEY, on ? "1":"0"); }
 
 
   function pgxGetViewStart(){ return pgxLoadStr(PGX_VIEW_START_KEY, ""); }
@@ -3773,6 +3743,7 @@ function pgxUpgradeProgram(p, baseWeeks){
     const edit  = document.getElementById("pgxEdit");
     const fs    = document.getElementById("pgxFsToggle");
 
+    const fine = document.getElementById("pgxFine");
     const fill = document.getElementById("pgxFill");
     const btnNew = document.getElementById("pgxNew");
     const btnDel = document.getElementById("pgxDel");
@@ -3790,10 +3761,10 @@ function pgxUpgradeProgram(p, baseWeeks){
     if (start) start.value = String(vStart||"");
     if (weeks) weeks.value = String(vWeeks||baseWeeks);
     if (zoom) zoom.value = pgxZoomOption(pgxGetZoom());
+    if (mode) mode.value = pgxGetMode();
 
     const admin = pgxCanEdit();
     const editOn = admin && pgxGetEditOn();
-    if (mode) mode.value = admin ? pgxGetMode() : "ALL";
 
     if (edit){
       edit.style.display = admin ? "" : "none";
@@ -3807,17 +3778,15 @@ function pgxUpgradeProgram(p, baseWeeks){
 
     if (admin){
       // Controles de vista avanzados solo dentro de editar
-      [mode, sel, zoom, fill, btnSave, createType, btnCreate, btnSet].forEach(el=>{ if (el) el.style.display = editOn ? "" : "none"; });
+      [mode, sel, zoom, fine, fill, btnSave, createType, btnCreate, btnSet].forEach(el=>{ if (el) el.style.display = editOn ? "" : "none"; });
       // Avanzados escondidos para simplificar
       [btnNew, btnDel, btnJson, btnDates].forEach(el=>{ if (el) el.style.display = "none"; });
     } else {
-      if (mode) mode.style.display = "none";
-      if (sel) sel.style.display = "none";
-      if (zoom) zoom.style.display = "";
-      [fill, btnNew, btnDel, btnJson, btnSet, btnDates, btnSave, createType, btnCreate].forEach(el=>{ if (el) el.style.display = "none"; });
+      [mode, sel, zoom].forEach(el=>{ if (el) el.style.display = ""; });
+      [fine, fill, btnNew, btnDel, btnJson, btnSet, btnDates, btnSave, createType, btnCreate].forEach(el=>{ if (el) el.style.display = "none"; });
     }
 
-    if (admin && sel && mode) sel.style.display = (mode.value==="ONE") ? "" : "none";
+    if (sel && mode) sel.style.display = (mode.value==="ONE") ? "" : "none";
   }
 
 
@@ -3875,7 +3844,8 @@ function pgxUpgradeProgram(p, baseWeeks){
   function pgxRenderSettings(programs){
     const wrap = document.getElementById("pgxSettings");
     if (!wrap) return;
-    if (!pgxCanEdit() || !pgxGetEditOn() || !pgxGetSettingsOpen()){ wrap.style.display="none"; return; }
+    if (!pgxCanEdit() || !pgxGetEditOn()){ wrap.style.display="none"; return; }
+    // En modo edición siempre se muestra el panel
     wrap.style.display = "";
 
     const active = pgxGetActiveId() || (programs[0]?.id||"");
@@ -3884,6 +3854,8 @@ function pgxUpgradeProgram(p, baseWeeks){
 
     const totalWeeks = pgxTotalWeeks();
     const win = pgxProgramWindow(p, totalWeeks);
+    const colors = pgxProgramColors(p);
+
     const lanes = (p.config?.lanes||[]).filter(l=>l && l.key && l.label && String(l.key||"").toLowerCase()!=="eventos");
     const laneHtml = lanes.map(l=>`
       <div class="pgxLaneItem">
@@ -3933,25 +3905,23 @@ function pgxUpgradeProgram(p, baseWeeks){
           <input id="pgsEndW" type="number" min="1" max="${totalWeeks}" value="${win.end}"/>
         </label>
 
+        <label>COLOR BARRA
+          <input id="pgsBar" type="color" value="${pgxToColor(colors.bar)}"/>
+        </label>
+
+        <label>COLOR SEMANA
+          <input id="pgsCell" type="color" value="${pgxToColor(colors.cell)}"/>
+        </label>
+
+        <label>COLOR FUERA VENTANA
+          <input id="pgsOff" type="color" value="${pgxToColor(colors.off)}"/>
+        </label>
       </div>
 
       <div class="pgxSetRow">
         <button id="pgsSave" class="btn ghost" type="button">GUARDAR</button>
         <button id="pgsEtapa" class="btn ghost" type="button">EDITAR ETAPA</button>
-        
-      </div>
-
-
-
-      <div class="pgxSetTitle" style="margin-top:14px;">ELIMINAR PROGRAMA</div>
-      <div class="pgxSetRow">
-        <select id="pgsDeletePick">
-          ${programs.map(pp=>{
-            const nm = String(pp.meta?.name||"PROGRAMA").toUpperCase();
-            return `<option value="${escapeHtml(pp.id)}"${pp.id===p.id?" selected":""}>${escapeHtml(nm)}</option>`;
-          }).join("")}
-        </select>
-        <button id="pgsDelete" class="btn ghost" type="button">ELIMINAR PROGRAMA</button>
+        <button id="pgsResetCols" class="btn ghost" type="button">RESET COLORES</button>
       </div>
 
       <div class="pgxSetTitle" style="margin-top:14px;">NOMBRES DE FILAS</div>
@@ -3996,7 +3966,10 @@ const tw = pgxTotalWeeks();
       pp.meta.startWeek = sW;
       pp.meta.endWeek = eW;
 
-      if (pp.meta && pp.meta.colors) delete pp.meta.colors;
+      pp.meta.colors = pp.meta.colors || {};
+      pp.meta.colors.bar  = String(document.getElementById("pgsBar")?.value||"").trim();
+      pp.meta.colors.cell = String(document.getElementById("pgsCell")?.value||"").trim();
+      pp.meta.colors.off  = String(document.getElementById("pgsOff")?.value||"").trim();
 
       const wrap2 = document.getElementById("pgsLaneWrap");
       const lanes2 = (pp.config?.lanes||[]);
@@ -4043,18 +4016,17 @@ const tw = pgxTotalWeeks();
       renderPrograma();
     });
 
-    document.getElementById("pgsDelete")?.addEventListener("click", ()=>{
+    document.getElementById("pgsResetCols")?.addEventListener("click", ()=>{
       const store = pgxLoadStore();
-      const id = String(document.getElementById("pgsDeletePick")?.value || pgxGetActiveId() || "");
-      if (!id || !store.programs[id]) return;
-      const label = String(store.programs[id]?.meta?.name||"PROGRAMA").toUpperCase();
-      if (!confirm(`¿Eliminar programa ${label}?`)) return;
-      delete store.programs[id];
-      store.order = (store.order||[]).filter(x=>x!==id);
+    const baseWeeks = pgxTotalWeeks();
+      const id = pgxGetActiveId();
+      const pp = store.programs[id];
+      if (!pp) return;
+      if (pp.meta) delete pp.meta.colors;
+      pp.meta.updatedAt = pgxNowISO();
+      store.programs[id]=pp;
       pgxSaveStore(store);
-      pgxSetActiveId(store.order[0] || "");
-      pgxSetMode("ALL");
-      toast("Programa eliminado.");
+      toast("Colores reseteados.");
       renderPrograma();
     });
   }
@@ -4152,6 +4124,7 @@ const tw = pgxTotalWeeks();
             <option value="0.70">ZOOM: 70%</option>
           </select>
 
+          <button id="pgxFine" class="btn ghost" type="button">EDICIÓN FINA: OFF</button>
           <button id="pgxFill" class="btn ghost" type="button">RELLENAR RANGO</button>
 
           <input id="pgxStart" type="date" style="min-width:160px;" />
@@ -4193,6 +4166,7 @@ const tw = pgxTotalWeeks();
     const prog = document.getElementById("pgxProgram");
     const zoom = document.getElementById("pgxZoom");
     const edit = document.getElementById("pgxEdit");
+    const fine = document.getElementById("pgxFine");
     const btnFill = document.getElementById("pgxFill");
     const btnApply = document.getElementById("pgxApply");
     const btnNew = document.getElementById("pgxNew");
@@ -4215,11 +4189,13 @@ const tw = pgxTotalWeeks();
         const on = !pgxGetEditOn();
         pgxSetEditOn(on);
         pgxSetSettingsOpen(on);
+        if (!on) pgxSetFineOn(false);
         renderPrograma();
         pgxScheduleRelayout();
       });
     }
 
+    if (fine){ fine.addEventListener("click", ()=>{ pgxSetFineOn(!pgxGetFineOn()); renderPrograma(); pgxScheduleRelayout(); }); }
     if (btnFill){
       btnFill.addEventListener("click", ()=>{
         if (!pgxCanEdit() || !pgxGetEditOn()) return;
@@ -4400,7 +4376,6 @@ const tw = pgxTotalWeeks();
       pgxGridState.range = {r1:pgxGridState.selected.row,c1:pgxGridState.selected.col,r2:ctx.row,c2:ctx.col};
     }
     pgxRefreshSelectionUi();
-    try{ td.scrollIntoView({block:"nearest", inline:"nearest"}); }catch(e){}
   }
 
   function pgxRefreshSelectionUi(){
@@ -4456,27 +4431,6 @@ const tw = pgxTotalWeeks();
       }
     }
     renderPrograma();
-  }
-
-  function pgxEditCellJsonDialog(ctx){
-    if (!ctx) return;
-    const td = pgxFindCellByPos(ctx.row, ctx.col);
-    if (!td) return;
-    const before = String(td.getAttribute('data-value')||'');
-    const seed = JSON.stringify({value: before}, null, 2);
-    const raw = prompt('Editar celda (JSON). Ejemplo: {"value":"SE01"}', seed);
-    if (raw===null) return;
-    let parsed = null;
-    try{ parsed = JSON.parse(String(raw||'{}')); }catch(err){ alert('JSON inválido.'); return; }
-    const after = String((parsed && parsed.value!=null) ? parsed.value : '').trim();
-    if (after === before) return;
-    const store = pgxLoadStore();
-    if (pgxApplyCellValue(store, ctx, after)){
-      pgxPushHistory({cells:[{...ctx,before,after}]});
-      pgxGridState.dirty = true;
-      pgxSaveStore(store);
-      renderPrograma();
-    }
   }
 
   function pgxCellsInRange(){
@@ -4587,8 +4541,7 @@ const tw = pgxTotalWeeks();
       const td = e.target?.closest ? e.target.closest('td.pxEditable') : null;
       if (!td || !pgxCanEdit() || !pgxGetEditOn()) return;
       pgxSetSelectedCell(td);
-      const ctx = pgxCellCtxFromTd(td);
-      pgxEditCellJsonDialog(ctx);
+      pgxStartEditing(td);
     });
 
     canvas.addEventListener('mousedown',(e)=>{
@@ -4634,7 +4587,8 @@ const tw = pgxTotalWeeks();
 
       if (e.key==='Enter'){
         e.preventDefault();
-        pgxEditCellJsonDialog(sel);
+        const td = pgxFindCellByPos(sel.row, sel.col);
+        if (td) pgxStartEditing(td);
         return;
       }
 
@@ -4663,17 +4617,8 @@ const tw = pgxTotalWeeks();
     pgxEnsure();
     pgxEnsureProgramaLayout();
 
-    const mode = (!pgxCanEdit() || !pgxGetEditOn()) ? "ALL" : pgxGetMode();
-    let programs = pgxProgramsForRole();
-    if (!programs.length){
-      try{
-        const storeFix = pgxNormalizeStore_(pgxLoadStore());
-        if ((storeFix.order||[]).length || Object.keys(storeFix.programs||{}).length){
-          pgxSaveStore(storeFix);
-          programs = pgxProgramsForRole();
-        }
-      }catch(e){}
-    }
+    const mode = pgxGetMode();
+    const programs = pgxProgramsForRole();
     if (!programs.length){
       const canvas = document.getElementById("pgxCanvas");
       if (canvas) canvas.innerHTML = `<div class="pgEmpty">No hay programas configurados.</div>`;
@@ -4686,7 +4631,6 @@ const tw = pgxTotalWeeks();
 
     pgxFillProgramSelect(programs);
     pgxApplyHeaderUI();
-    pgxRenderSettings(programs);
 
     const canvas = document.getElementById("pgxCanvas");
     if (!canvas) return;
@@ -10855,12 +10799,10 @@ function startApp(){
   ensureBoot();
   applyRoleUI();
 
-  // si había una vista guardada, aplícala; si no, fuerza la vista por defecto
+  // si había una vista guardada, aplícala
   const sv = loadSavedView();
-  if (sv && ALLOWED_VIEWS.includes(sv)){
-    if (state.view !== sv) setView(sv);
-  } else {
-    setView(state.view || "overview");
+  if (sv && ALLOWED_VIEWS.includes(sv) && state.view !== sv){
+    setView(sv);
   }
 
   loadAll();
