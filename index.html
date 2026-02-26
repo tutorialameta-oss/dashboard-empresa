@@ -2096,7 +2096,8 @@
     #view_programa .pxSheetScroll{
       max-height: calc(100vh - 75px);  /* baja este número para que sea más largo */
     }
-  .pxSheetScroll.dragging{ cursor:grabbing; }
+  .pxSheetScroll.dragging{ cursor:grabbing; user-select:none; -webkit-user-select:none; }
+  .pxSheetScroll.dragging *{ user-select:none !important; -webkit-user-select:none !important; }
 
   .pxSheet{
     border-collapse: collapse;
@@ -4312,8 +4313,6 @@ const tw = pgxTotalWeeks();
         <div class="cardtitle">PROGRAMA</div>
         <div class="controls" style="justify-content:flex-start; gap:10px; flex-wrap:wrap;">
           <button id="pgxEdit" class="btn ghost" type="button">EDITAR</button>
-          <button id="pgxFsToggle" class="hFsBtn" type="button">PANTALLA COMPLETA</button>
-
           <select id="pgxProgram"></select>
 
           <select id="pgxZoom">
