@@ -2640,6 +2640,10 @@ if (btnSil) btnSil.style.display = "";
     const pass = document.getElementById("authPass");
     const err = document.getElementById("authErr");
     const btn = document.getElementById("btnLogin");
+    if (!bA || !bT || !bS || !pass || !btn){
+      console.error("AUTH: faltan elementos del formulario de acceso.");
+      return false;
+    }
 
     function pick(r){
       selected = r;
@@ -2694,10 +2698,12 @@ if (btnSil) btnSil.style.display = "";
       }
 
       if (btn){ btn.disabled = true; btn.textContent = "VERIFICANDO…"; }
-
-      const row = await findAlumnoByCredentials(u, p);
-
-      if (btn){ btn.disabled = false; btn.textContent = "ENTRAR"; }
+      let row = null;
+      try{
+        row = await findAlumnoByCredentials(u, p);
+      }finally{
+        if (btn){ btn.disabled = false; btn.textContent = "ENTRAR"; }
+      }
 
       if (!row){
         if (err){ err.textContent = "Usuario o contraseña incorrectos."; err.style.display = "block"; }
@@ -2713,6 +2719,8 @@ if (btnSil) btnSil.style.display = "";
     }
 
     if (btn) btn.addEventListener("click", ()=>{ doLogin(); });
+    if (pass) pass.addEventListener("keydown", (e)=>{ if (e.key === "Enter") doLogin(); });
+    if (user) user.addEventListener("keydown", (e)=>{ if (e.key === "Enter") doLogin(); });
     if (pass) pass.addEventListener("keydown", (e)=>{ if (e.key === "Enter") doLogin(); });
     if (user) user.addEventListener("keydown", (e)=>{ if (e.key === "Enter") doLogin(); });
 
@@ -3979,6 +3987,72 @@ const tw = pgxTotalWeeks();
     toast("Programa creado.");
   }
 
+
+
+  let PROGRAMA_MATRIX_FULLSCREEN = false;
+
+  function pgxScheduleRelayout(){
+    const sc = document.getElementById("pgxScroll");
+    if (!sc) return;
+    requestAnimationFrame(()=>{
+      try{ fitProgramaMatrixHeight(); }catch(e){}
+      void sc.offsetHeight;
+    });
+  }
+
+  function fitProgramaMatrixHeight(){
+    const host = document.getElementById("pgxMatrixHost");
+    const sc = document.getElementById("pgxScroll");
+    if (!sc) return;
+    if (host && host.classList.contains("isFullscreen")){
+      sc.style.maxHeight = "calc(100vh - 58px)";
+      sc.style.height = "calc(100vh - 58px)";
+    } else {
+      sc.style.height = "";
+      sc.style.maxHeight = "calc(100vh - 230px)";
+    }
+  }
+
+  function setProgramaMatrixFullscreen(force){
+    const host = document.getElementById("pgxMatrixHost");
+    const tgl = document.getElementById("pgxFsToggle");
+    if (!host || !tgl) return;
+    const next = (typeof force === "boolean") ? force : !PROGRAMA_MATRIX_FULLSCREEN;
+    PROGRAMA_MATRIX_FULLSCREEN = !!next;
+    host.classList.toggle("isFullscreen", PROGRAMA_MATRIX_FULLSCREEN);
+    tgl.textContent = PROGRAMA_MATRIX_FULLSCREEN ? "SALIR PANTALLA COMPLETA" : "PANTALLA COMPLETA";
+    if (!PROGRAMA_MATRIX_FULLSCREEN){ host.scrollTop=0; host.scrollLeft=0; }
+    pgxScheduleRelayout();
+  }
+
+  function pgxNextProgramName(cycle, store){
+    const names = (store.order||[]).map(id=>String(store.programs?.[id]?.meta?.name||"").toUpperCase());
+    let maxN = 0;
+    for (const n of names){
+      const m = new RegExp(`^${cycle.replace('.','\.')}\s*(\d+)?$`).exec(n.trim());
+      if (!m) continue;
+      const num = m[1] ? parseInt(m[1],10) : 1;
+      if (num > maxN) maxN = num;
+    }
+    return `${cycle} ${Math.max(2, maxN+1)}`;
+  }
+
+  function pgxCreateProgramFlow(){
+    if (!pgxCanEdit() || !pgxGetEditOn()) return;
+    const kind = String(document.getElementById("pgxCreateType")?.value||"AGRARIA").toUpperCase();
+    const allowed = ["AGRARIA","U.LIMA","PUCP","ESCOLARES"];
+    if (!allowed.includes(kind)) return;
+    const store = pgxLoadStore();
+    const name = pgxNextProgramName(kind, store);
+    const p = pgxDefaultProgram(name, kind, kind);
+    store.programs[p.id]=p;
+    pgxInsertProgramId(store, p);
+    pgxSaveStore(store);
+    pgxSetActiveId(p.id);
+    pgxSetMode("ONE");
+    renderPrograma();
+    toast("Programa creado.");
+  }
 
 
   let PROGRAMA_MATRIX_FULLSCREEN = false;
