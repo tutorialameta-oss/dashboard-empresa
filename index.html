@@ -3126,9 +3126,30 @@ function pgxInsertProgramId(store, newProgram){
   async function pgxRemoteSet_(store){ return await lmRemoteSet_(LM_MODULE_PROGRAMA, store); }
 
 
+
+  function pgxNormalizeStore_(st){
+    const out = (st && typeof st === "object") ? st : {};
+    out.timeline = (out.timeline && typeof out.timeline === "object") ? out.timeline : {startDate:"",weeks:16};
+    out.programs = (out.programs && typeof out.programs === "object") ? out.programs : {};
+    const ids = Object.keys(out.programs);
+    const ordRaw = Array.isArray(out.order) ? out.order : [];
+    const seen = new Set();
+    const order = [];
+    for (const id of ordRaw){
+      const k = String(id||"");
+      if (!k || seen.has(k) || !out.programs[k]) continue;
+      seen.add(k); order.push(k);
+    }
+    for (const id of ids){
+      if (!seen.has(id)){ seen.add(id); order.push(id); }
+    }
+    out.order = order;
+    return out;
+  }
+
   function pgxLoadStore(){
     const st = pgxLoadJSON(PGX_STORE_KEY, null);
-    if (st && st.timeline && st.programs && st.order) return st;
+    if (st && st.timeline && st.programs && st.order) return pgxNormalizeStore_(st);
     return pgxDefaultStore();
   }
 
@@ -3165,6 +3186,7 @@ function pgxInsertProgramId(store, newProgram){
   async function pgxSyncPullOnce_(){
   const remote = await pgxRemoteGet_();
   if (!remote || !remote.timeline || !remote.programs || !remote.order) return;
+  const remoteNorm = pgxNormalizeStore_(remote);
 
   const local = pgxLoadJSON(PGX_STORE_KEY, null);
   const rrev = +remote._rev || 0;
@@ -3187,8 +3209,8 @@ function pgxInsertProgramId(store, newProgram){
   }
 
   if (shouldApply){
-    pgxApplyUiPrefs_(remote && remote._ui);
-    pgxSaveJSON(PGX_STORE_KEY, remote);
+    pgxApplyUiPrefs_(remoteNorm && remoteNorm._ui);
+    pgxSaveJSON(PGX_STORE_KEY, remoteNorm);
     if (typeof renderPrograma === "function"){
       renderPrograma();
     }
@@ -4648,12 +4670,10 @@ const tw = pgxTotalWeeks();
 
     const mode = (!pgxCanEdit() || !pgxGetEditOn()) ? "ALL" : pgxGetMode();
     let programs = pgxProgramsForRole();
-    if (!programs.length && pgxCanEdit()){
+    if (!programs.length){
       try{
-        const storeFix = pgxLoadStore();
-        const ids = Object.keys(storeFix.programs||{});
-        if (ids.length){
-          storeFix.order = ids;
+        const storeFix = pgxNormalizeStore_(pgxLoadStore());
+        if ((storeFix.order||[]).length || Object.keys(storeFix.programs||{}).length){
           pgxSaveStore(storeFix);
           programs = pgxProgramsForRole();
         }
