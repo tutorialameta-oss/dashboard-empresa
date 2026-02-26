@@ -2737,21 +2737,6 @@ if (btnSil) btnSil.style.display = "";
     if (btn) btn.addEventListener("click", ()=>{ doLogin(); });
     if (pass) pass.addEventListener("keydown", (e)=>{ if (e.key === "Enter") doLogin(); });
     if (user) user.addEventListener("keydown", (e)=>{ if (e.key === "Enter") doLogin(); });
-    if (pass) pass.addEventListener("keydown", (e)=>{ if (e.key === "Enter") doLogin(); });
-    if (user) user.addEventListener("keydown", (e)=>{ if (e.key === "Enter") doLogin(); });
-
-    const overlay = document.getElementById("authOverlay");
-    if (overlay && !overlay.dataset.authDelegated){
-      overlay.dataset.authDelegated = "1";
-      overlay.addEventListener("click", (ev)=>{
-        const t = ev.target?.closest ? ev.target.closest("#roleAdmin,#roleTutor,#roleAlumno,#btnLogin") : null;
-        if (!t) return;
-        if (t.id === "roleAdmin") return pick("admin");
-        if (t.id === "roleTutor") return pick("tutor");
-        if (t.id === "roleAlumno") return pick("alumno");
-        if (t.id === "btnLogin") return doLogin();
-      }, true);
-    }
 
     const overlay = document.getElementById("authOverlay");
     if (overlay && !overlay.dataset.authDelegated){
@@ -3578,7 +3563,7 @@ function pgxUpgradeProgram(p, baseWeeks){
 
       // normaliza lanes (longitud baseWeeks)
       const lanes0 = (p.config?.lanes||[]).slice();
-      const laneRows = lanes0.filter(l=>l && l.key && l.label && String(l.key||"").toLowerCase()!=="eventos");
+      const laneRows = lanes0.filter(l=>l && l.key && l.label);
 
       laneRows.forEach(l=>{
         if (l.type==="cells"){
@@ -3940,8 +3925,19 @@ function pgxUpgradeProgram(p, baseWeeks){
         <button id="pgsResetCols" class="btn ghost" type="button">RESET COLORES</button>
       </div>
 
+      <div class="pgxSetTitle" style="margin-top:14px;">NOMBRES DE FILAS</div>
+      <div class="pgxLaneWrap" id="pgsLaneWrap">${laneHtml}</div>
 
-  let PROGRAMA_MATRIX_FULLSCREEN = false;
+      <div style="margin-top:10px; color:var(--muted); font-weight:900;">
+        Tip: “EDITAR ETAPA” usa formato <b>TEXTO:SPAN|TEXTO:SPAN</b>. Ej: NIVELACIÓN:3|AVANCE TEÓRICO:10|REPASO:3
+      </div>
+    `;
+
+    // wire
+    document.getElementById("pgsPick")?.addEventListener("change", (e)=>{
+      pgxSetActiveId(String(e.target.value||""));
+      renderPrograma();
+    });
 
     document.getElementById("pgsSave")?.addEventListener("click", ()=>{
       const store = pgxLoadStore();
@@ -3994,239 +3990,48 @@ const tw = pgxTotalWeeks();
       renderPrograma();
     });
 
-  function setProgramaMatrixFullscreen(force){
-    const host = document.getElementById("pgxMatrixHost");
-    const tgl = document.getElementById("pgxFsToggle");
-    if (!host || !tgl) return;
-    const next = (typeof force === "boolean") ? force : !PROGRAMA_MATRIX_FULLSCREEN;
-    PROGRAMA_MATRIX_FULLSCREEN = !!next;
-    host.classList.toggle("isFullscreen", PROGRAMA_MATRIX_FULLSCREEN);
-    tgl.textContent = PROGRAMA_MATRIX_FULLSCREEN ? "SALIR PANTALLA COMPLETA" : "PANTALLA COMPLETA";
-    if (!PROGRAMA_MATRIX_FULLSCREEN){ host.scrollTop=0; host.scrollLeft=0; }
-    try{ fitProgramaMatrixHeight(); }catch(e){}
-  }
+    document.getElementById("pgsEtapa")?.addEventListener("click", ()=>{
+      const store = pgxLoadStore();
+    const baseWeeks = pgxTotalWeeks();
+      const id = pgxGetActiveId();
+      const pp = store.programs[id];
+      if (!pp) return;
 
-  function pgxCreateProgramFlow(){
-    if (!pgxCanEdit()) return;
-    const cycles = ["AGRARIA","U.LIMA","PUCP","ESCOLARES"];
-    const kindRaw = prompt("Selecciona ciclo: AGRARIA / U.LIMA / PUCP / ESCOLARES", "AGRARIA");
-    if (kindRaw===null) return;
-    const cycle = String(kindRaw||"").trim().toUpperCase();
-    if (!cycles.includes(cycle)){ alert("Ciclo inválido. Solo: AGRARIA, U.LIMA, PUCP, ESCOLARES."); return; }
-    const nameRaw = prompt("Nombre del nuevo programa:", cycle);
-    if (nameRaw===null) return;
-    const name = String(nameRaw||"").trim().toUpperCase();
-    if (!name){ alert("El nombre es obligatorio."); return; }
+      const tw = pgxTotalWeeks();
+      const curSeg = (pp.config?.lanes||[]).find(x=>x.key==="etapa")?.segments || [];
+      const curStr = curSeg.map(s=>`${String(s.text||"").trim()}:${+s.span||0}`).join("|");
+      const raw = prompt("Editar ETAPA (TEXTO:SPAN|...). Suma debe ser "+tw+".", curStr);
+      if (raw===null) return;
+      const seg = pgxSegmentsFromPrompt(raw, tw);
+      if (!seg){ alert("Formato inválido."); return; }
 
-    const store = pgxLoadStore();
-    const p = pgxDefaultProgram(name, cycle, cycle);
-    if (p.meta && p.meta.colors) delete p.meta.colors;
-    store.programs[p.id] = p;
-    pgxInsertProgramId(store, p); // respeta orden fijo + inserta debajo del último de su ciclo
-    pgxSaveStore(store);
-    pgxSetActiveId(p.id);
-    renderPrograma();
-    toast("Programa creado.");
-  }
+      const lane = (pp.config?.lanes||[]).find(x=>x.key==="etapa");
+      if (lane){
+        lane.segments = seg;
+        pp.config.etapaSegments = seg;
+      }
+      pp.meta.updatedAt = pgxNowISO();
+      store.programs[id]=pp;
+      pgxSaveStore(store);
+      toast("Etapa actualizada.");
+      renderPrograma();
+    });
 
-
-
-  let PROGRAMA_MATRIX_FULLSCREEN = false;
-
-  function pgxScheduleRelayout(){
-    const sc = document.getElementById("pgxScroll");
-    if (!sc) return;
-    requestAnimationFrame(()=>{
-      try{ fitProgramaMatrixHeight(); }catch(e){}
-      void sc.offsetHeight;
+    document.getElementById("pgsResetCols")?.addEventListener("click", ()=>{
+      const store = pgxLoadStore();
+    const baseWeeks = pgxTotalWeeks();
+      const id = pgxGetActiveId();
+      const pp = store.programs[id];
+      if (!pp) return;
+      if (pp.meta) delete pp.meta.colors;
+      pp.meta.updatedAt = pgxNowISO();
+      store.programs[id]=pp;
+      pgxSaveStore(store);
+      toast("Colores reseteados.");
+      renderPrograma();
     });
   }
 
-  function fitProgramaMatrixHeight(){
-    const host = document.getElementById("pgxMatrixHost");
-    const sc = document.getElementById("pgxScroll");
-    if (!sc) return;
-    if (host && host.classList.contains("isFullscreen")){
-      sc.style.maxHeight = "calc(100vh - 58px)";
-      sc.style.height = "calc(100vh - 58px)";
-    } else {
-      sc.style.height = "";
-      sc.style.maxHeight = "calc(100vh - 230px)";
-    }
-  }
-
-  function setProgramaMatrixFullscreen(force){
-    const host = document.getElementById("pgxMatrixHost");
-    const tgl = document.getElementById("pgxFsToggle");
-    if (!host || !tgl) return;
-    const next = (typeof force === "boolean") ? force : !PROGRAMA_MATRIX_FULLSCREEN;
-    PROGRAMA_MATRIX_FULLSCREEN = !!next;
-    host.classList.toggle("isFullscreen", PROGRAMA_MATRIX_FULLSCREEN);
-    tgl.textContent = PROGRAMA_MATRIX_FULLSCREEN ? "SALIR PANTALLA COMPLETA" : "PANTALLA COMPLETA";
-    if (!PROGRAMA_MATRIX_FULLSCREEN){ host.scrollTop=0; host.scrollLeft=0; }
-    pgxScheduleRelayout();
-  }
-
-  function pgxNextProgramName(cycle, store){
-    const names = (store.order||[]).map(id=>String(store.programs?.[id]?.meta?.name||"").toUpperCase());
-    let maxN = 0;
-    for (const n of names){
-      const m = new RegExp(`^${cycle.replace('.','\.')}\s*(\d+)?$`).exec(n.trim());
-      if (!m) continue;
-      const num = m[1] ? parseInt(m[1],10) : 1;
-      if (num > maxN) maxN = num;
-    }
-    return `${cycle} ${Math.max(2, maxN+1)}`;
-  }
-
-  function pgxCreateProgramFlow(){
-    if (!pgxCanEdit() || !pgxGetEditOn()) return;
-    const kind = String(document.getElementById("pgxCreateType")?.value||"AGRARIA").toUpperCase();
-    const allowed = ["AGRARIA","U.LIMA","PUCP","ESCOLARES"];
-    if (!allowed.includes(kind)) return;
-    const store = pgxLoadStore();
-    const name = pgxNextProgramName(kind, store);
-    const p = pgxDefaultProgram(name, kind, kind);
-    store.programs[p.id]=p;
-    pgxInsertProgramId(store, p);
-    pgxSaveStore(store);
-    pgxSetActiveId(p.id);
-    pgxSetMode("ONE");
-    renderPrograma();
-    toast("Programa creado.");
-  }
-
-
-  let PROGRAMA_MATRIX_FULLSCREEN = false;
-
-  function pgxScheduleRelayout(){
-    const sc = document.getElementById("pgxScroll");
-    if (!sc) return;
-    requestAnimationFrame(()=>{
-      try{ fitProgramaMatrixHeight(); }catch(e){}
-      void sc.offsetHeight;
-    });
-  }
-
-  function fitProgramaMatrixHeight(){
-    const host = document.getElementById("pgxMatrixHost");
-    const sc = document.getElementById("pgxScroll");
-    if (!sc) return;
-    if (host && host.classList.contains("isFullscreen")){
-      sc.style.maxHeight = "calc(100vh - 58px)";
-      sc.style.height = "calc(100vh - 58px)";
-    } else {
-      sc.style.height = "";
-      sc.style.maxHeight = "calc(100vh - 230px)";
-    }
-  }
-
-  function setProgramaMatrixFullscreen(force){
-    const host = document.getElementById("pgxMatrixHost");
-    const tgl = document.getElementById("pgxFsToggle");
-    if (!host || !tgl) return;
-    const next = (typeof force === "boolean") ? force : !PROGRAMA_MATRIX_FULLSCREEN;
-    PROGRAMA_MATRIX_FULLSCREEN = !!next;
-    host.classList.toggle("isFullscreen", PROGRAMA_MATRIX_FULLSCREEN);
-    tgl.textContent = PROGRAMA_MATRIX_FULLSCREEN ? "SALIR PANTALLA COMPLETA" : "PANTALLA COMPLETA";
-    if (!PROGRAMA_MATRIX_FULLSCREEN){ host.scrollTop=0; host.scrollLeft=0; }
-    pgxScheduleRelayout();
-  }
-
-  function pgxNextProgramName(cycle, store){
-    const names = (store.order||[]).map(id=>String(store.programs?.[id]?.meta?.name||"").toUpperCase());
-    let maxN = 0;
-    for (const n of names){
-      const m = new RegExp(`^${cycle.replace('.','\.')}\s*(\d+)?$`).exec(n.trim());
-      if (!m) continue;
-      const num = m[1] ? parseInt(m[1],10) : 1;
-      if (num > maxN) maxN = num;
-    }
-    return `${cycle} ${Math.max(2, maxN+1)}`;
-  }
-
-  function pgxCreateProgramFlow(){
-    if (!pgxCanEdit() || !pgxGetEditOn()) return;
-    const kind = String(document.getElementById("pgxCreateType")?.value||"AGRARIA").toUpperCase();
-    const allowed = ["AGRARIA","U.LIMA","PUCP","ESCOLARES"];
-    if (!allowed.includes(kind)) return;
-    const store = pgxLoadStore();
-    const name = pgxNextProgramName(kind, store);
-    const p = pgxDefaultProgram(name, kind, kind);
-    store.programs[p.id]=p;
-    pgxInsertProgramId(store, p);
-    pgxSaveStore(store);
-    pgxSetActiveId(p.id);
-    pgxSetMode("ONE");
-    renderPrograma();
-    toast("Programa creado.");
-  }
-
-
-  let PROGRAMA_MATRIX_FULLSCREEN = false;
-
-  function pgxScheduleRelayout(){
-    const sc = document.getElementById("pgxScroll");
-    if (!sc) return;
-    requestAnimationFrame(()=>{
-      try{ fitProgramaMatrixHeight(); }catch(e){}
-      void sc.offsetHeight;
-    });
-  }
-
-  function fitProgramaMatrixHeight(){
-    const host = document.getElementById("pgxMatrixHost");
-    const sc = document.getElementById("pgxScroll");
-    if (!sc) return;
-    if (host && host.classList.contains("isFullscreen")){
-      sc.style.maxHeight = "calc(100vh - 58px)";
-      sc.style.height = "calc(100vh - 58px)";
-    } else {
-      sc.style.height = "";
-      sc.style.maxHeight = "calc(100vh - 230px)";
-    }
-  }
-
-  function setProgramaMatrixFullscreen(force){
-    const host = document.getElementById("pgxMatrixHost");
-    const tgl = document.getElementById("pgxFsToggle");
-    if (!host || !tgl) return;
-    const next = (typeof force === "boolean") ? force : !PROGRAMA_MATRIX_FULLSCREEN;
-    PROGRAMA_MATRIX_FULLSCREEN = !!next;
-    host.classList.toggle("isFullscreen", PROGRAMA_MATRIX_FULLSCREEN);
-    tgl.textContent = PROGRAMA_MATRIX_FULLSCREEN ? "SALIR PANTALLA COMPLETA" : "PANTALLA COMPLETA";
-    if (!PROGRAMA_MATRIX_FULLSCREEN){ host.scrollTop=0; host.scrollLeft=0; }
-    pgxScheduleRelayout();
-  }
-
-  function pgxNextProgramName(cycle, store){
-    const names = (store.order||[]).map(id=>String(store.programs?.[id]?.meta?.name||"").toUpperCase());
-    let maxN = 0;
-    for (const n of names){
-      const m = new RegExp(`^${cycle.replace('.','\.')}\s*(\d+)?$`).exec(n.trim());
-      if (!m) continue;
-      const num = m[1] ? parseInt(m[1],10) : 1;
-      if (num > maxN) maxN = num;
-    }
-    return `${cycle} ${Math.max(2, maxN+1)}`;
-  }
-
-  function pgxCreateProgramFlow(){
-    if (!pgxCanEdit() || !pgxGetEditOn()) return;
-    const kind = String(document.getElementById("pgxCreateType")?.value||"AGRARIA").toUpperCase();
-    const allowed = ["AGRARIA","U.LIMA","PUCP","ESCOLARES"];
-    if (!allowed.includes(kind)) return;
-    const store = pgxLoadStore();
-    const name = pgxNextProgramName(kind, store);
-    const p = pgxDefaultProgram(name, kind, kind);
-    store.programs[p.id]=p;
-    pgxInsertProgramId(store, p);
-    pgxSaveStore(store);
-    pgxSetActiveId(p.id);
-    pgxSetMode("ONE");
-    renderPrograma();
-    toast("Programa creado.");
-  }
 
 
   let PROGRAMA_MATRIX_FULLSCREEN = false;
@@ -4815,7 +4620,7 @@ const tw = pgxTotalWeeks();
     pgxEnsure();
     pgxEnsureProgramaLayout();
 
-    const mode = "ALL";
+    const mode = pgxGetMode();
     const programs = pgxProgramsForRole();
     if (!programs.length){
       const canvas = document.getElementById("pgxCanvas");
