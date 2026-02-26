@@ -3766,6 +3766,8 @@ function pgxUpgradeProgram(p, baseWeeks){
     const btnJson = document.getElementById("pgxJson");
     const btnSet = document.getElementById("pgxSettingsBtn");
     const btnDates = document.getElementById("pgxDates");
+    const btnFs = document.getElementById("pgxFs");
+    const btnFsExit = document.getElementById("pgxFsExit");
     const btnFill = document.getElementById("pgxFill");
 
     const can = pgxCanEdit();
@@ -4176,6 +4178,7 @@ const tw = pgxTotalWeeks();
 
           <button id="pgxSettingsBtn" class="btn ghost" type="button">PERSONALIZAR</button>
           <button id="pgxDates" class="btn ghost" type="button">FECHAS MANUAL</button>
+          <button id="pgxFs" class="btn ghost" type="button">PANTALLA COMPLETA</button>
         </div>
 
         <div class="pgHint" id="pgxHint" style="margin-top:8px;">
@@ -4185,7 +4188,34 @@ const tw = pgxTotalWeeks();
       </div>
 
       <div class="card panel12">
-        <div id="pgxCanvas"></div>
+        <div id="pgxFsHost" class="pgxFsHost">
+          <button id="pgxFsExit" class="btn ghost pgxFsExit" type="button">SALIR</button>
+          <div id="pgxCanvas"></div>
+        </div>
+      </div>
+
+      <div id="pgxCellEditOverlay" class="pgxCellEditOverlay">
+        <div class="pgxCellEditModal">
+          <div class="pgxCellEditHead">
+            <div>
+              <div style="font-weight:1000;">EDICIÓN RÁPIDA</div>
+              <div id="pgxCellEditMeta" class="pgSmall">—</div>
+            </div>
+            <button id="pgxCellEditClose" class="btn ghost" type="button">✕</button>
+          </div>
+          <div class="pgxCellEditBody">
+            <label class="pgSmall">VALOR
+              <input id="pgxCellEditValue" type="text" />
+            </label>
+            <div id="pgxCellSelInfo" class="pgSmall">Sin selección de rango.</div>
+          </div>
+          <div class="pgxCellEditFoot">
+            <button id="pgxCellApplyRange" class="btn ghost" type="button">APLICAR A RANGO</button>
+            <button id="pgxCellFillDown" class="btn ghost" type="button">FILL DOWN</button>
+            <button id="pgxCellEditCancel" class="btn ghost" type="button">CANCELAR</button>
+            <button id="pgxCellEditSave" class="btn" type="button">GUARDAR</button>
+          </div>
+        </div>
       </div>
     `;
 
@@ -4570,6 +4600,12 @@ const tw = pgxTotalWeeks();
 
     
 
+    document.getElementById("pgxCellEditClose")?.addEventListener("click", pgxCloseCellEditor);
+    document.getElementById("pgxCellEditCancel")?.addEventListener("click", pgxCloseCellEditor);
+    document.getElementById("pgxCellEditSave")?.addEventListener("click", pgxSaveCellEditor);
+    document.getElementById("pgxCellApplyRange")?.addEventListener("click", ()=>pgxApplyToRange(false));
+    document.getElementById("pgxCellFillDown")?.addEventListener("click", ()=>pgxApplyToRange(true));
+
     el.dataset.ready="1";
   }
 
@@ -4644,6 +4680,20 @@ const tw = pgxTotalWeeks();
       }
     });
   }
+
+  document.addEventListener("keydown", (e)=>{
+    const ov = document.getElementById("pgxCellEditOverlay");
+    if (ov && ov.style.display !== "none"){
+      if (e.key === "Escape"){ e.preventDefault(); pgxCloseCellEditor(); return; }
+      if (e.key === "Enter"){ e.preventDefault(); pgxSaveCellEditor(); return; }
+    }
+    if (e.key === "Escape" && PGX_FULLSCREEN){
+      e.preventDefault();
+      pgxSetFullscreen(false);
+    }
+  });
+
+
 
 
 
@@ -9186,6 +9236,7 @@ function ensureHorariosLayout(){
     });
     document.getElementById("hUni").addEventListener("change", ()=>{
       rebuildHorariosSalonOptions();
+      syncHorariosUniBadges();
       rer();
     });
 
