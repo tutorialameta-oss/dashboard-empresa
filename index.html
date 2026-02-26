@@ -2050,6 +2050,12 @@
       width:100%; height:42px; border-radius:14px; border:1px solid var(--border); padding:4px;
       background:#fff;
     }
+    .pgxSetGrid .pgxDateField input[type="date"]{
+      min-width:0;
+      width:100%;
+      padding:8px 10px;
+      font-size:13px;
+    }
     .pgxSetRow{
       display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-top:10px;
     }
@@ -4000,11 +4006,11 @@ if (zoom) zoom.value = pgxZoomOption(pgxGetZoom());
         </label>
 
 
-        <label>INICIO PROGRAMA (EDICIÓN)
+        <label class="pgxDateField">INICIO PROGRAMA (EDICIÓN)
           <input id="pgsStartDate" type="date" value="${escapeHtml(String(p.meta?.startDate||""))}"/>
         </label>
 
-        <label>FIN PROGRAMA (EDICIÓN)
+        <label class="pgxDateField">FIN PROGRAMA (EDICIÓN)
           <input id="pgsEndDate" type="date" value="${escapeHtml(String(p.meta?.endDate||""))}"/>
         </label>
 
@@ -4198,6 +4204,7 @@ const tw = pgxTotalWeeks();
     requestAnimationFrame(()=>{
       try{ fitProgramaMatrixHeight(); }catch(e){}
       void sc.offsetHeight;
+      try{ pgxWireHNav(); }catch(e){}
     });
   }
 
@@ -4239,7 +4246,11 @@ const tw = pgxTotalWeeks();
     host.classList.toggle("isFullscreen", PROGRAMA_MATRIX_FULLSCREEN);
     tgl.textContent = PROGRAMA_MATRIX_FULLSCREEN ? "SALIR PANTALLA COMPLETA" : "PANTALLA COMPLETA";
     if (!PROGRAMA_MATRIX_FULLSCREEN){ host.scrollTop=0; host.scrollLeft=0; }
+    try{ pgxWireHNav(); }catch(e){}
     pgxScheduleRelayout();
+    requestAnimationFrame(()=>{
+      try{ pgxWireHNav(); }catch(e){}
+    });
   }
 
   function pgxNextProgramName(cycle, store){
@@ -4894,11 +4905,13 @@ const tw = pgxTotalWeeks();
       if (btnL) btnL.addEventListener("click", ()=>scrollByAmt(-1));
       if (btnR) btnR.addEventListener("click", ()=>scrollByAmt( 1));
 
-      range.addEventListener("input", ()=>{
+      const onRange = ()=>{
         const sc = document.getElementById("pgxScroll");
         if (!sc) return;
         sc.scrollLeft = +range.value || 0;
-      });
+      };
+      range.addEventListener("input", onRange);
+      range.addEventListener("change", onRange);
 
       window.addEventListener("resize", ()=>{ try{ pgxWireHNav(); }catch(e){} }, { passive:true });
 
