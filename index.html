@@ -2731,6 +2731,13 @@ const SALONES = [
   // - Bloques por programa con etiqueta vertical (AGRARIA / U.LIMA / PUCP / etc.)
   // - Edición (Admin): click para editar celdas; Edición fina (por semana) / normal (merge por texto)
 const PGX_STORE_KEY   = "LM_PROGRAMA_SHEET_V1_STORE";
+  const PGX_LEGACY_STORE_KEYS = [
+    "LM_PROGRAMA_SHEET_STORE",
+    "LM_PROGRAMA_STORE",
+    "LM_SHARED_PROGRAMA_STORE_V1_LOCAL",
+    "LM_PROGRAMA_SHEET_V1_STORE_BAK",
+    "LM_PROGRAMA_SHEET_V1_BACKUP"
+  ];
   const PGX_SYNC_URL   = "https://script.google.com/macros/s/AKfycbxLUjS66__D_zFIq7N34cFXGm1CfiQg4n-N-3leue8ulLmEg-3J_iho5VyBw7aY_afTGw/exec";
 
   const PGX_ACTIVE_KEY  = "LM_PROGRAMA_SHEET_V1_ACTIVE";
@@ -2743,6 +2750,7 @@ const PGX_STORE_KEY   = "LM_PROGRAMA_SHEET_V1_STORE";
 
   const PGX_SETTINGS_KEY = "LM_PROGRAMA_SHEET_V1_SETTINGS"; // panel Personalizar (Admin)
   const PGX_EDIT_STATE = { anchor:null, dragging:false, activeTd:null, orig:"", clipboard:"" };
+  let PGX_DIAG_LOGGED = false;
 
   // Toast (mensaje corto)
   function toast(msg){
@@ -3056,8 +3064,38 @@ function pgxInsertProgramId(store, newProgram){
   async function pgxRemoteSet_(store){ return await lmRemoteSet_(LM_MODULE_PROGRAMA, store); }
 
 
+  function pgxFindStoredPrograma_(){
+    const tried = [PGX_STORE_KEY, ...PGX_LEGACY_STORE_KEYS];
+    let sourceKey = "";
+    let data = null;
+    for (const k of tried){
+      const candidate = pgxLoadJSON(k, null);
+      if (candidate && candidate.timeline && candidate.programs){
+        sourceKey = k;
+        data = candidate;
+        break;
+      }
+    }
+    return { sourceKey, data, tried };
+  }
+
+  function pgxDiagStore_(meta){
+    if (PGX_DIAG_LOGGED) return;
+    PGX_DIAG_LOGGED = true;
+    try{
+      const info = meta || {};
+      console.info("[PGX] store load", {
+        sourceKey: info.sourceKey || "none",
+        triedKeys: info.tried || [],
+        programs: +(info.programCount || 0),
+        order: +(info.orderCount || 0)
+      });
+    }catch(_){ }
+  }
+
   function pgxLoadStore(){
-    const st = pgxLoadJSON(PGX_STORE_KEY, null);
+    const found = pgxFindStoredPrograma_();
+    const st = found.data;
     if (st && st.timeline && st.programs){
       st.timeline = st.timeline || {};
       st.timeline.weeks = Math.max(1, Math.min(60, +st.timeline.weeks || 16));
@@ -3076,8 +3114,21 @@ function pgxInsertProgramId(store, newProgram){
       for (const id of allIds){ if (!seen.has(id)) fromOrder.push(id); }
       st.order = fromOrder;
 
+      if (found.sourceKey && found.sourceKey !== PGX_STORE_KEY){
+        // migra silenciosamente para no perder datos de versiones previas/backup.
+        pgxSaveJSON(PGX_STORE_KEY, st);
+      }
+
+      pgxDiagStore_({
+        sourceKey: found.sourceKey,
+        tried: found.tried,
+        programCount: allIds.length,
+        orderCount: st.order.length
+      });
+
       return st;
     }
+    pgxDiagStore_({ sourceKey:"none", tried: found.tried, programCount:0, orderCount:0 });
     return pgxDefaultStore();
   }
 
@@ -4692,6 +4743,8 @@ const tw = pgxTotalWeeks();
       pgxSetFullscreen(false);
     }
   });
+
+
 
 
 
