@@ -2077,6 +2077,7 @@
 
   /* ===================== PROGRAMA (HOJA) v1 ===================== */
   .pxSheetWrap{ width:100%; }
+  .pxZoom{ width:max-content; min-width:100%; }
   .pxSheetScroll{
     width:100%;
     overflow:auto;
@@ -2252,10 +2253,14 @@
     z-index:10060;
     box-shadow:0 10px 24px rgba(2,6,23,.22);
   }
-  .pgxMatrixHost.isFullscreen .pxSheetWrap{height:100%; min-height:0;}
+  .pgxMatrixHost.isFullscreen .pxSheetWrap{height:100%; min-height:0; overflow:hidden;}
   .pgxMatrixHost.isFullscreen .pxSheetScroll{
-    max-height:calc(100vh - 58px) !important;
-    height:calc(100vh - 58px) !important;
+    width:100%;
+    max-width:100%;
+    max-height:none !important;
+    height:100% !important;
+    min-height:0;
+    overflow:auto;
   }
 
   @media (max-width: 900px){
@@ -3720,11 +3725,13 @@ function pgxUpgradeProgram(p, baseWeeks){
 
     return `
       <div class="pxSheetWrap">
-        <div class="pxSheetScroll" id="pgxScroll" style="zoom:${z};">
-          <table class="pxSheet">
-            ${thead}
-            ${tbody}
-          </table>
+        <div class="pxSheetScroll" id="pgxScroll">
+          <div class="pxZoom" style="zoom:${z};">
+            <table class="pxSheet">
+              ${thead}
+              ${tbody}
+            </table>
+          </div>
         </div>
       </div>
     `;
@@ -4062,11 +4069,22 @@ const tw = pgxTotalWeeks();
     const sc = document.getElementById("pgxScroll");
     if (!sc) return;
     if (host && host.classList.contains("isFullscreen")){
-      sc.style.maxHeight = "calc(100vh - 58px)";
-      sc.style.height = "calc(100vh - 58px)";
+      const bar = host.querySelector(".pgxMatrixTopBar");
+      const cs = getComputedStyle(host);
+      const pTop = parseFloat(cs.paddingTop||"0") || 0;
+      const pBottom = parseFloat(cs.paddingBottom||"0") || 0;
+      const gap = parseFloat(cs.rowGap || cs.gap || "0") || 0;
+      const barH = bar ? bar.getBoundingClientRect().height : 0;
+      const usable = Math.max(220, Math.floor(host.clientHeight - pTop - pBottom - barH - (barH ? gap : 0)));
+      sc.style.maxHeight = `${usable}px`;
+      sc.style.height = `${usable}px`;
+      sc.style.width = "100%";
+      sc.style.maxWidth = "100%";
     } else {
       sc.style.height = "";
       sc.style.maxHeight = "calc(100vh - 230px)";
+      sc.style.width = "100%";
+      sc.style.maxWidth = "100%";
     }
   }
 
