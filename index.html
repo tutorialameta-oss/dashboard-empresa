@@ -3547,7 +3547,9 @@ function pgxUpgradeProgram(p, baseWeeks){
 
     const viewStartStr = pgxGetViewStart() || String(store.timeline?.startDate||"");
     const viewWeeksRaw = pgxGetViewWeeks() || baseWeeks;
-    const displayWeeks = Math.max(1, Math.min(baseWeeks, +viewWeeksRaw||baseWeeks));
+    const requestedWeeks = Math.max(1, Math.floor(+viewWeeksRaw || baseWeeks));
+    // En pantalla completa, mostrar al menos todo el año (52 semanas) para permitir desplazamiento horizontal real.
+    const displayWeeks = PROGRAMA_MATRIX_FULLSCREEN ? Math.max(requestedWeeks, 52) : requestedWeeks;
 
     const baseStart0 = pgxParseDateYMD(String(viewStartStr||""));
 
@@ -4242,10 +4244,15 @@ const tw = pgxTotalWeeks();
     const tgl = document.getElementById("pgxFsToggle");
     if (!host || !tgl) return;
     const next = (typeof force === "boolean") ? force : !PROGRAMA_MATRIX_FULLSCREEN;
+    const changed = (PROGRAMA_MATRIX_FULLSCREEN !== !!next);
     PROGRAMA_MATRIX_FULLSCREEN = !!next;
     host.classList.toggle("isFullscreen", PROGRAMA_MATRIX_FULLSCREEN);
     tgl.textContent = PROGRAMA_MATRIX_FULLSCREEN ? "SALIR PANTALLA COMPLETA" : "PANTALLA COMPLETA";
     if (!PROGRAMA_MATRIX_FULLSCREEN){ host.scrollTop=0; host.scrollLeft=0; }
+    if (changed){
+      renderPrograma();
+      return;
+    }
     try{ pgxWireHNav(); }catch(e){}
     pgxScheduleRelayout();
     requestAnimationFrame(()=>{
