@@ -2261,9 +2261,15 @@
     height:100% !important;
     min-height:0;
     overflow-y:auto;
-    overflow-x:auto;
+    overflow-x:scroll;
     scrollbar-gutter: stable both-edges;
     padding-bottom: 6px;
+  }
+  .pgxMatrixHost.isFullscreen .pxSheetScroll::-webkit-scrollbar:horizontal{ height:14px; }
+  .pgxMatrixHost.isFullscreen .pxSheetScroll::-webkit-scrollbar-thumb:horizontal{
+    background: rgba(15,23,42,0.35);
+    border-radius: 999px;
+    border: 3px solid #f8fafc;
   }
 
   @media (max-width: 900px){
@@ -3917,14 +3923,14 @@ function pgxUpgradeProgram(p, baseWeeks){
         </label>
 
 
-        <label>FECHA INICIO
+        <label>INICIO PROGRAMA (EDICIÓN)
           <input id="pgsStartDate" type="date" value="${escapeHtml(String(p.meta?.startDate||""))}"/>
         </label>
-<label>VENTANA INICIO (SEM)
+<label>SEMANA INICIO PROGRAMA
           <input id="pgsStartW" type="number" min="1" max="${totalWeeks}" value="${win.start}"/>
         </label>
 
-        <label>VENTANA FIN (SEM)
+        <label>SEMANA FIN PROGRAMA
           <input id="pgsEndW" type="number" min="1" max="${totalWeeks}" value="${win.end}"/>
         </label>
 
@@ -4652,7 +4658,9 @@ const tw = pgxTotalWeeks();
       pgxSetMode("ALL");
       PGX_INIT_RENDER_DONE = true;
     }
-    const mode = pgxGetMode();
+    const editOn = pgxCanEdit() && pgxGetEditOn();
+    if (editOn && pgxGetMode() !== "ALL") pgxSetMode("ALL");
+    const mode = editOn ? "ALL" : pgxGetMode();
 
     // Active (solo para selects/edición, no para filtrar al inicio)
     const active = pgxGetActiveId() || programs[0].id;
