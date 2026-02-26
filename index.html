@@ -59,8 +59,8 @@
       /* ===== U.LIMA (NARANJA) ===== */
       --schHead_UL:#b85f00;
       --schCell_UL:#ffe6c7;
-      --schHead_ESC:#5b21b6;
-      --schCell_ESC:#ede9fe;
+      --schHead_ESC:#d4a200;
+      --schCell_ESC:#fff4cc;
 
       /* Líneas de tabla / col horas */
       --schGrid:rgba(15,23,42,0.28);
@@ -8103,10 +8103,10 @@ function renderReportes(){
 
   function getCornerLabelByCycle(cycle){
     const c = String(cycle||"").toUpperCase();
-    if (c === "AGRARIA_1" || c === "AGRARIA_2" || c === "AGRARIA") return "AG";
-    if (c === "ULIMA_1" || c === "ULIMA_2" || c === "U.LIMA") return "UL";
-    if (c === "PUCP") return "PUCP";
-    if (c === "ESCOLARES") return "ESC";
+    if (c.startsWith("AGRARIA_") || c === "AGRARIA") return "AG";
+    if (c.startsWith("ULIMA_") || c === "U.LIMA") return "UL";
+    if (c.startsWith("PUCP_") || c === "PUCP") return "PUCP";
+    if (c.startsWith("ESCOLARES_") || c === "ESCOLARES") return "ESC";
     return "AG";
   }
 
@@ -9039,10 +9039,17 @@ el.dataset.ready = "1";
     try{ fitHorariosMatrixHeight(); }catch(e){}
   }
 
-  function matrixColumnKeyForSchedule(sch){
+  function localCodeFromName(local){
+    if (local === "LA MOLINA") return "LM";
+    if (local === "SAN MIGUEL") return "SM";
+    if (local === "SAN BORJA") return "SB";
+    return "VIRT";
+  }
+
+  function baseColumnKeyForSchedule(sch){
     if (sch.uni === "AGRARIA"){
       if (String(sch.salon||"").toUpperCase().includes("ESCOLAR")) return "ESCOLARES";
-      if (sch.id === "AGR_LM_2" || String(sch.salon||"").includes("LM 2")) return "AGRARIA_2";
+      if (sch.id === "AGR_LM_2" || String(sch.salon||"").includes(" 2") || String(sch.salon||"").includes("LM 2")) return "AGRARIA_2";
       return "AGRARIA_1";
     }
     if (sch.uni === "U.LIMA"){
@@ -9053,47 +9060,91 @@ el.dataset.ready = "1";
       return "ULIMA_1";
     }
     if (sch.uni === "PUCP") return "PUCP";
-    return "OTROS";
+    return "ESCOLARES";
+  }
+
+  function expandColKeyForLocal(local, baseKey){
+    const lc = localCodeFromName(local);
+    if (baseKey === "AGRARIA_1") return `AGRARIA_${lc}_1`;
+    if (baseKey === "AGRARIA_2") return `AGRARIA_${lc}_2`;
+    if (baseKey === "ULIMA_1") return `ULIMA_${lc}_1`;
+    if (baseKey === "ULIMA_2") return `ULIMA_${lc}_2`;
+    if (baseKey === "PUCP") return `PUCP_${lc}`;
+    if (baseKey === "ESCOLARES") return `ESCOLARES_${lc}`;
+    return `${baseKey}_${lc}`;
+  }
+
+  function matrixColumnKeyForSchedule(sch){
+    return expandColKeyForLocal(sch.local, baseColumnKeyForSchedule(sch));
+  }
+
+  function scheduleCardKey(local, colKey){
+    return `${local}||${colKey}`;
+  }
+
+  function cycleTypeFromColKey(colKey){
+    const c = String(colKey||"").toUpperCase();
+    if (c.startsWith("AGRARIA_")) return "AGRARIA";
+    if (c.startsWith("ULIMA_")) return "U.LIMA";
+    if (c.startsWith("PUCP_")) return "PUCP";
+    if (c.startsWith("ESCOLARES_")) return "ESCOLARES";
+    if (c === "AGRARIA" || c === "U.LIMA" || c === "PUCP" || c === "ESCOLARES") return c;
+    return "AGRARIA";
+  }
+
+  function inferSalonByCardKey(local, colKey, fallback){
+    const t = cycleTypeFromColKey(colKey);
+    const lc = localCodeFromName(local);
+    if (t === "AGRARIA") return `AGRARIA ${lc}${String(colKey).endsWith("_2") ? " 2" : " 1"}`;
+    if (t === "U.LIMA") return `ULIMA ${lc}${String(colKey).endsWith("_2") ? " 2" : " 1"}`;
+    if (t === "PUCP") return `PUCP ${lc}`;
+    if (t === "ESCOLARES") return `ESCOLARES ${lc}`;
+    return fallback || `${t} ${lc}`;
   }
 
   function buildPlaceholderSchedule(local, colKey, colLabel){
+    const fullColKey = expandColKeyForLocal(local, colKey);
     return {
-      id: `__PH__${local}__${colKey}`,
+      id: `__PH__${fullColKey}`,
       local,
-      uni: colLabel,
-      salon: `${colLabel}`,
+      uni: cycleTypeFromColKey(fullColKey),
+      salon: inferSalonByCardKey(local, fullColKey, colLabel),
       blocks: [],
       __isPlaceholder: true,
-      __colKey: colKey
+      __colKey: fullColKey,
+      __cardKey: scheduleCardKey(local, fullColKey)
     };
   }
 
-  function scheduleIdentityFromMatrix(local, colKey){
-    const locCode = (local === "LA MOLINA") ? "LM" : (local === "SAN MIGUEL" ? "SM" : (local === "SAN BORJA" ? "SB" : "VIRT"));
-    if (colKey === "AGRARIA_1") return { id:`AGR_${locCode}_1`, local, uni:"AGRARIA", salon:`AGRARIA ${locCode} 1`, colKey };
-    if (colKey === "AGRARIA_2") return { id:`AGR_${locCode}_2`, local, uni:"AGRARIA", salon:`AGRARIA ${locCode} 2`, colKey };
-    if (colKey === "ULIMA_1") return { id:`UL_${locCode}_1`, local, uni:"U.LIMA", salon:`ULIMA ${locCode} 1`, colKey };
-    if (colKey === "ULIMA_2") return { id:`UL_${locCode}_2`, local, uni:"U.LIMA", salon:`ULIMA ${locCode} 2`, colKey };
-    if (colKey === "PUCP") return { id:`PUCP_${locCode}`, local, uni:"PUCP", salon:`PUCP ${locCode}`, colKey };
-    return { id:`ESC_${locCode}`, local, uni:"ESCOLARES", salon:`ESCOLARES ${locCode}`, colKey };
+  function scheduleIdentityFromCardKey(cardKey){
+    const parts = String(cardKey||"").split("||");
+    const local = parts[0] || "VIRTUAL";
+    const colKey = parts[1] || expandColKeyForLocal(local, "ESCOLARES");
+    const uni = cycleTypeFromColKey(colKey);
+    const lc = localCodeFromName(local);
+    const id = `SCH_${String(colKey).replace(/[^A-Z0-9_]+/g,"_")}`;
+    return { id, local, uni, salon: inferSalonByCardKey(local, colKey, ""), colKey, cardKey: scheduleCardKey(local, colKey) };
   }
 
   function scheduleCardHtmlWithMeta(s){
     const colKey = String(s.__colKey || matrixColumnKeyForSchedule(s));
+    const cardKey = String(s.__cardKey || scheduleCardKey(s.local, colKey));
+    const uniType = cycleTypeFromColKey(colKey);
     const view = Object.assign({}, s, {
-      uni: colKey === "ESCOLARES" ? "ESCOLARES" : s.uni,
+      uni: uniType,
+      salon: inferSalonByCardKey(s.local, colKey, s.salon),
       cornerLabel: getCornerLabelByCycle(colKey)
     });
     let html = scheduleToHtmlCard(view);
-    html = html.replace('<div class="schCard"', `<div class="schCard" data-cycle="${escapeAttr(colKey)}"`);
+    html = html.replace('<div class="schCard"', `<div class="schCard" data-cycle="${escapeAttr(colKey)}" data-colkey="${escapeAttr(colKey)}" data-cardkey="${escapeAttr(cardKey)}"`);
     if (s.__isPlaceholder){
-      const identity = scheduleIdentityFromMatrix(s.local, colKey);
+      const identity = scheduleIdentityFromCardKey(cardKey);
       html = html
         .replace('data-id="'+escapeHtml(s.id)+'"', `data-id="${escapeHtml(identity.id)}"`)
         .replace('data-uni="'+escapeHtml(view.uni)+'"', `data-uni="${escapeHtml(identity.uni)}"`)
         .replace('data-salon="'+escapeHtml(view.salon)+'"', `data-salon="${escapeHtml(identity.salon)}"`)
         .replace('data-local="'+escapeHtml(view.local)+'"', `data-local="${escapeHtml(identity.local)}"`)
-        .replace('<div class="schCard"', `<div class="schCard" data-placeholder="1" data-colkey="${escapeAttr(colKey)}"`)
+        .replace('<div class="schCard"', `<div class="schCard" data-placeholder="1"`)
         .replace(/data-sid="[^"]*"/g, `data-sid="${escapeAttr(identity.id)}"`);
     }
     return html;
@@ -9186,18 +9237,16 @@ el.dataset.ready = "1";
     // index
     const by = new Map();
     for (const sch of base){
-      const lk = sch.local;
       const ck = matrixColumnKeyForSchedule(sch);
-      const key = lk + "||" + ck;
-      if (!by.has(key)) by.set(key, []);
-      by.get(key).push(sch);
+      if (!by.has(ck)) by.set(ck, []);
+      by.get(ck).push(sch);
     }
 
     const headCells = COLS.map(c=>`<div class="mxHead">${escapeHtml(c.label)}</div>`).join("");
 
     const rows = LOCS.map(loc=>{
       const cells = COLS.map(c=>{
-        const key = loc + "||" + c.key;
+        const key = expandColKeyForLocal(loc, c.key);
         const list = sortSchedules((by.get(key) || []).slice());
         const inner = list.length
           ? list.map(scheduleCardHtmlWithMeta).join("")
@@ -9218,6 +9267,18 @@ el.dataset.ready = "1";
       try{ applyHorariosZoom(); }catch(e){}
       try{ requestAnimationFrame(()=>fitHorariosMatrixHeight()); }catch(e){}
       try{ bindHorariosCellTargets(); }catch(e){}
+    }
+
+    let sch = SCHEDULES.find(x=>x.id===HORARIOS_CELL_EDIT_CTX.scheduleId);
+    if (!sch){
+      if (HORARIOS_CELL_EDIT_CTX.isPlaceholder){
+        const iden = scheduleIdentityFromMatrix(HORARIOS_CELL_EDIT_CTX.phLocal, HORARIOS_CELL_EDIT_CTX.phColKey);
+        sch = { id: iden.id, local: iden.local, uni: iden.uni, salon: iden.salon, blocks: [] };
+        SCHEDULES.push(sch);
+      }else{
+        alert("No se encontró el horario.");
+        return;
+      }
     }
 
     const prev = HORARIOS_CELL_EDIT_CTX.blockIndex;
@@ -9395,10 +9456,21 @@ el.dataset.ready = "1";
       return;
     }
 
-    let sch = SCHEDULES.find(x=>x.id===HORARIOS_CELL_EDIT_CTX.scheduleId);
+    let sch = null;
+    if (HORARIOS_CELL_EDIT_CTX.cardKey){
+      sch = SCHEDULES.find(x=>scheduleCardKey(x.local, matrixColumnKeyForSchedule(x))===HORARIOS_CELL_EDIT_CTX.cardKey) || null;
+    }
+    if (!sch && HORARIOS_CELL_EDIT_CTX.scheduleId){
+      sch = SCHEDULES.find(x=>x.id===HORARIOS_CELL_EDIT_CTX.scheduleId) || null;
+    }
     if (!sch){
-      if (HORARIOS_CELL_EDIT_CTX.isPlaceholder){
-        const iden = scheduleIdentityFromMatrix(HORARIOS_CELL_EDIT_CTX.phLocal, HORARIOS_CELL_EDIT_CTX.phColKey);
+      if (HORARIOS_CELL_EDIT_CTX.cardKey){
+        const iden = scheduleIdentityFromCardKey(HORARIOS_CELL_EDIT_CTX.cardKey);
+        sch = { id: iden.id, local: iden.local, uni: iden.uni, salon: iden.salon, blocks: [] };
+        SCHEDULES.push(sch);
+      }else if (HORARIOS_CELL_EDIT_CTX.isPlaceholder){
+        const fallbackKey = scheduleCardKey(HORARIOS_CELL_EDIT_CTX.phLocal, HORARIOS_CELL_EDIT_CTX.phColKey);
+        const iden = scheduleIdentityFromCardKey(fallbackKey);
         sch = { id: iden.id, local: iden.local, uni: iden.uni, salon: iden.salon, blocks: [] };
         SCHEDULES.push(sch);
       }else{
@@ -9436,6 +9508,7 @@ el.dataset.ready = "1";
       Array.from(card.querySelectorAll(".hCellEditable")).forEach(td=>td.classList.remove("hCellEditable"));
 
       const sid = card.getAttribute("data-id");
+      const cardKey = card.getAttribute("data-cardkey") || "";
       const isPlaceholder = (card.getAttribute("data-placeholder") === "1");
       const sch = SCHEDULES.find(x=>x.id===sid) || {
         id: sid,
@@ -9467,6 +9540,7 @@ el.dataset.ready = "1";
             td.dataset.blockIndex = String(idx);
           }
           td.dataset.scheduleId = sid;
+          td.dataset.cardKey = cardKey;
           if (isPlaceholder){
             td.dataset.placeholder = "1";
             td.dataset.phLocal = card.getAttribute("data-local") || "";
@@ -9837,6 +9911,7 @@ el.dataset.ready = "1";
       end: cell.dataset.end,
       course: cell.dataset.course || "",
       blockIndex: Number(cell.dataset.blockIndex || "-1"),
+      cardKey: cell.dataset.cardKey || card.getAttribute("data-cardkey") || "",
       isPlaceholder: cell.dataset.placeholder === "1",
       phLocal: cell.dataset.phLocal || "",
       phColKey: cell.dataset.phColKey || ""
