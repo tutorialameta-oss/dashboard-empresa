@@ -4623,6 +4623,11 @@ const tw = pgxTotalWeeks();
     if (!programs.length){
       const canvas = document.getElementById("pgxCanvas");
       if (canvas) canvas.innerHTML = `<div class="pgEmpty">No hay programas configurados.</div>`;
+      const settings = document.getElementById("pgxSettings");
+      if (settings){
+        settings.innerHTML = "";
+        settings.style.display = "none";
+      }
       return;
     }
 
@@ -4639,6 +4644,7 @@ const tw = pgxTotalWeeks();
 
     pgxFillProgramSelect(programs);
     pgxApplyHeaderUI();
+    pgxRenderSettings(programs);
 
     const canvas = document.getElementById("pgxCanvas");
     if (!canvas) return;
