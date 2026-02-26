@@ -402,27 +402,53 @@
       cursor:pointer;
     }
     .hMatrixHost{ position:relative; }
+    .hMatrixTopBar{ display:none; }
     .hMatrixExit{ display:none; }
+    .hMatrixFsBadge{ display:none; }
     .hMatrixHost.isFullscreen{
       position:fixed;
       inset:10px;
       z-index:10040;
       background:#fff;
       border-radius:16px;
-      box-shadow:0 28px 80px rgba(2,6,23,.35);
+      box-shadow:0 24px 70px rgba(2,6,23,.28);
       border:1px solid rgba(15,23,42,0.14);
-      padding:14px;
+      padding:12px;
+      display:grid;
+      grid-template-rows:auto minmax(0,1fr);
+      gap:10px;
+    }
+    .hMatrixHost.isFullscreen .hMatrixTopBar{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      position:sticky;
+      top:0;
+      z-index:3;
+      background:#fff;
+      padding:2px 0;
+    }
+    .hMatrixHost.isFullscreen .hMatrixFsBadge{
+      display:inline-flex;
+      align-items:center;
+      border-radius:999px;
+      border:1px solid rgba(15,23,42,0.14);
+      background:#f8fafc;
+      padding:6px 10px;
+      font-size:12px;
+      font-weight:900;
+      color:var(--muted);
     }
     .hMatrixHost.isFullscreen .hMatrixExit{
       display:inline-flex;
-      position:absolute;
-      top:14px;
-      right:14px;
-      z-index:2;
+      position:sticky;
+      top:0;
+      z-index:4;
     }
     .hMatrixHost.isFullscreen .schMatrixWrap{
-      max-height:calc(100vh - 56px);
-      height:calc(100vh - 56px);
+      max-height:calc(100vh - 88px);
+      height:calc(100vh - 88px);
     }
 
     /* Horarios: filtros más compactos para ganar área de matriz */
@@ -606,7 +632,7 @@
     .hCellEditOverlay{
       position:fixed;
       inset:0;
-      background:rgba(2,6,23,0.5);
+      background:rgba(2,6,23,0.52);
       display:flex;
       align-items:center;
       justify-content:center;
@@ -614,19 +640,58 @@
       padding:16px;
     }
     .hCellEditModal{
-      width:min(520px, 96vw);
+      width:calc(100% - 32px);
+      max-width:720px;
+      max-height:calc(100vh - 32px);
       background:#fff;
       border-radius:18px;
-      border:1px solid rgba(15,23,42,0.14);
-      box-shadow:0 28px 80px rgba(2,6,23,.35);
-      overflow:hidden;
+      border:1px solid rgba(15,23,42,0.12);
+      box-shadow:0 24px 72px rgba(2,6,23,.30);
+      overflow:auto;
     }
-    .hCellEditHead{ padding:14px 16px; border-bottom:1px solid rgba(15,23,42,0.10); display:flex; justify-content:space-between; align-items:flex-start; gap:8px; }
-    .hCellEditTitle{ font-weight:1000; }
-    .hCellEditSub{ font-size:12px; color:var(--muted); font-weight:800; margin-top:4px; }
-    .hCellEditBody{ padding:14px 16px; display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
+    .hCellEditHead{
+      padding:16px 18px 12px;
+      border-bottom:1px solid rgba(15,23,42,0.10);
+      display:flex;
+      justify-content:space-between;
+      align-items:flex-start;
+      gap:12px;
+      position:sticky;
+      top:0;
+      background:#fff;
+      z-index:1;
+    }
+    .hCellEditTitle{ font-size:18px; font-weight:1000; line-height:1.15; }
+    .hCellEditSub{ font-size:12px; color:var(--muted); font-weight:800; margin-top:6px; }
+    .hCellEditHead .hBtnTiny{ padding:8px 10px; border-radius:10px; font-size:14px; line-height:1; }
+    .hCellEditBody{
+      padding:14px 18px 16px;
+      display:grid;
+      grid-template-columns:repeat(2,minmax(0,1fr));
+      gap:12px;
+    }
     .hCellEditBody .full{ grid-column:1 / -1; }
-    .hCellEditFoot{ padding:12px 16px; border-top:1px solid rgba(15,23,42,0.10); display:flex; justify-content:flex-end; gap:8px; }
+    .hCellEditBody .hLbl{ margin-bottom:6px; }
+    .hCellEditBody .hInp{
+      border:1px solid rgba(15,23,42,0.18);
+      border-radius:12px;
+      padding:10px 12px;
+      min-height:42px;
+      background:#fff;
+    }
+    .hCellEditFoot{
+      padding:12px 18px 14px;
+      border-top:1px solid rgba(15,23,42,0.10);
+      display:flex;
+      justify-content:flex-end;
+      gap:10px;
+      position:sticky;
+      bottom:0;
+      background:#fff;
+    }
+    @media(max-width:760px){
+      .hCellEditBody{ grid-template-columns:1fr; }
+    }
     .schCard.hEditEnabled .hCellEditable{ cursor:pointer; }
     .schCard.hEditEnabled .hCellEditable:hover{ outline:2px solid rgba(220,38,38,0.18); outline-offset:-2px; }
     .schCard[data-placeholder="1"] .schDl,
@@ -8805,7 +8870,10 @@ function ensureHorariosLayout(){
 
       <div class="panel12">
         <div id="hMatrixHost" class="hMatrixHost">
-          <button id="hFsExit" class="hFsBtn hMatrixExit">SALIR PANTALLA COMPLETA</button>
+          <div class="hMatrixTopBar">
+            <span class="hMatrixFsBadge">MODO PANTALLA COMPLETA</span>
+            <button id="hFsExit" class="hFsBtn hMatrixExit">SALIR PANTALLA COMPLETA</button>
+          </div>
           <div id="schMatrix" class="schMatrixWrap" style="display:none;"></div>
         </div>
         <div class="schGridWrap" id="schGrid"></div>
@@ -9109,6 +9177,77 @@ el.dataset.ready = "1";
       try{ requestAnimationFrame(()=>fitHorariosMatrixHeight()); }catch(e){}
       try{ bindHorariosCellTargets(); }catch(e){}
     }
+    if (!course){
+      alert("Ingresa el nombre del curso.");
+      return;
+    }
+
+    const sch = SCHEDULES.find(x=>x.id===HORARIOS_CELL_EDIT_CTX.scheduleId);
+    if (!sch){
+      alert("No se encontró el horario.");
+      return;
+    }
+
+    const prev = HORARIOS_CELL_EDIT_CTX.blockIndex;
+    const teacher = (prev >= 0 && sch.blocks[prev]) ? String(sch.blocks[prev].teacher || "") : "";
+    const nextBlock = { day, start, end, course, teacher };
+
+    if (prev >= 0 && sch.blocks[prev]){
+      sch.blocks[prev] = nextBlock;
+    }else{
+      sch.blocks.push(nextBlock);
+    }
+
+    sch.blocks = sch.blocks.slice().sort((a,b)=>{
+      const dd = DAYS.indexOf(normalizeDayKey(a.day)) - DAYS.indexOf(normalizeDayKey(b.day));
+      if (dd !== 0) return dd;
+      return idxMark(a.start) - idxMark(b.start);
+    });
+
+    SCHEDULES = sortSchedules(SCHEDULES);
+    saveSchedules();
+    closeHorariosCellEditModal();
+    renderHorarios();
+  }
+
+  function bindHorariosCellTargets(){
+    const cards = Array.from(document.querySelectorAll(".schCard"));
+    cards.forEach(card=>{
+      card.classList.remove("hEditEnabled");
+      Array.from(card.querySelectorAll(".hCellEditable")).forEach(td=>td.classList.remove("hCellEditable"));
+
+      if (card.getAttribute("data-placeholder") === "1") return;
+      const sid = card.getAttribute("data-id");
+      const sch = SCHEDULES.find(x=>x.id===sid);
+      if (!sch) return;
+
+      const matrix = buildScheduleMatrix(sch);
+      const rows = Array.from(card.querySelectorAll("tbody tr"));
+      rows.forEach((tr, r)=>{
+        const tds = Array.from(tr.querySelectorAll("td"));
+        if (!tds.length) return;
+        let ptr = 1;
+        DAYS.forEach((d)=>{
+          const cell = matrix[r][d];
+          if (!cell || cell.kind === "skip") return;
+          const td = tds[ptr++];
+          if (!td) return;
+          td.classList.add("hCellEditable");
+          td.dataset.day = d;
+          td.dataset.start = TIME_ROWS[r].start;
+          td.dataset.end = (cell.kind === "start") ? TIME_ROWS[Math.min(TIME_ROWS.length-1, r + Number(cell.rowspan||1) - 1)].end : TIME_ROWS[r].end;
+          td.dataset.course = (cell.kind === "start" && cell.block) ? String(cell.block.course||"") : "";
+          td.dataset.blockIndex = "-1";
+          if (cell.kind === "start"){
+            const idx = (sch.blocks||[]).findIndex(b=>normalizeDayKey(b.day)===d && b.start===td.dataset.start && b.end===td.dataset.end && String(b.course||"")===td.dataset.course);
+            td.dataset.blockIndex = String(idx);
+          }
+          td.dataset.scheduleId = sid;
+        });
+      });
+
+      if (CURRENT_ROLE === "admin" && HORARIOS_EDIT_MODE) card.classList.add("hEditEnabled");
+    });
   }
 
 
@@ -9124,8 +9263,8 @@ el.dataset.ready = "1";
       <div class="hCellEditModal" role="dialog" aria-modal="true">
         <div class="hCellEditHead">
           <div>
-            <div class="hCellEditTitle">Editar bloque</div>
-            <div class="hCellEditSub">Ajusta día y horas sin cambiar el formato visual del horario.</div>
+            <div class="hCellEditTitle" id="hCellEditTitle">Edición rápida</div>
+            <div class="hCellEditSub" id="hCellEditSub">Ajusta día y horas sin cambiar el formato visual del horario.</div>
           </div>
           <button id="hCellEditClose" class="hBtn hBtnTiny">✕</button>
         </div>
@@ -9135,16 +9274,16 @@ el.dataset.ready = "1";
             <select id="hceDay" class="hInp"></select>
           </div>
           <div>
-            <label class="hLbl">CURSO</label>
-            <input id="hceCourse" class="hInp" placeholder="Ej: RV / ÁLG 1" />
-          </div>
-          <div>
             <label class="hLbl">HORA INICIO</label>
             <select id="hceStart" class="hInp"></select>
           </div>
           <div>
             <label class="hLbl">HORA FIN</label>
             <select id="hceEnd" class="hInp"></select>
+          </div>
+          <div class="full">
+            <label class="hLbl">CURSO</label>
+            <input id="hceCourse" class="hInp" placeholder="Ej: RV / ÁLG 1" />
           </div>
         </div>
         <div class="hCellEditFoot">
@@ -9175,7 +9314,11 @@ el.dataset.ready = "1";
     if (!HORARIOS_CELL_EDIT_CTX) return;
 
     const ov = document.getElementById("hCellEditOverlay");
+    const ttl = document.getElementById("hCellEditTitle");
+    const sub = document.getElementById("hCellEditSub");
     const day = normalizeDayKey(ctx.day || "LUNES");
+    if (ttl) ttl.textContent = `Edición rápida · ${String(ctx.scheduleId || "HORARIO")}`;
+    if (sub) sub.textContent = `Celda ${day} ${String(ctx.start||"")} - ${String(ctx.end||"")}`;
     document.getElementById("hceDay").value = day;
     document.getElementById("hceCourse").value = String(ctx.course || "");
     document.getElementById("hceStart").value = ctx.start || "08:00";
@@ -9641,17 +9784,23 @@ el.dataset.ready = "1";
 
   document.addEventListener("keydown", (e)=>{
     const ov = document.getElementById("hCellEditOverlay");
-    if (!ov || ov.style.display === "none") return;
-    if (e.key === "Escape"){
-      e.preventDefault();
-      closeHorariosCellEditModal();
-      return;
+    if (ov && ov.style.display !== "none"){
+      if (e.key === "Escape"){
+        e.preventDefault();
+        closeHorariosCellEditModal();
+        return;
+      }
+      if (e.key === "Enter"){
+        const tag = String((document.activeElement && document.activeElement.tagName) || "").toUpperCase();
+        if (tag === "TEXTAREA") return;
+        e.preventDefault();
+        saveHorariosCellEditModal();
+        return;
+      }
     }
-    if (e.key === "Enter"){
-      const tag = String((document.activeElement && document.activeElement.tagName) || "").toUpperCase();
-      if (tag === "TEXTAREA") return;
+    if (e.key === "Escape" && HORARIOS_MATRIX_FULLSCREEN){
       e.preventDefault();
-      saveHorariosCellEditModal();
+      setHorariosMatrixFullscreen(false);
     }
   });
 
