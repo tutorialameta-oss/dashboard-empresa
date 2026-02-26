@@ -8948,6 +8948,11 @@ function ensureHorariosLayout(){
     if (fsTgl) fsTgl.addEventListener("click", ()=>setHorariosMatrixFullscreen());
     if (fsExit) fsExit.addEventListener("click", ()=>setHorariosMatrixFullscreen(false));
 
+    const fsTgl = document.getElementById("hFsToggle");
+    const fsExit = document.getElementById("hFsExit");
+    if (fsTgl) fsTgl.addEventListener("click", ()=>setHorariosMatrixFullscreen());
+    if (fsExit) fsExit.addEventListener("click", ()=>setHorariosMatrixFullscreen(false));
+
     // Admin: modo edición (UI limpia)
     if (CURRENT_ROLE === "admin"){
       const tgl = document.getElementById("hEditToggle");
