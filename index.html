@@ -4548,7 +4548,7 @@ const tw = pgxTotalWeeks();
       if (!ctx) continue;
       const before = String(cellTd.getAttribute('data-value')||'');
       if (before===seed) continue;
-      if (pgxApplyCellValue(store, ctx, seed)) changes.push({...ctx,before,after:seed});
+      if (pgxApplyCellValue(store, ctx, seed)) changes.push({ ctx: ctx, before: before, after: seed });
     }
     if (!changes.length) return;
     pgxPushHistory({cells:changes});
