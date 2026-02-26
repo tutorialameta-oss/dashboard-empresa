@@ -2742,8 +2742,7 @@ const PGX_STORE_KEY   = "LM_PROGRAMA_SHEET_V1_STORE";
   const PGX_VIEW_WEEKS_KEY = "LM_PROGRAMA_SHEET_V1_VIEW_WEEKS";
 
   const PGX_SETTINGS_KEY = "LM_PROGRAMA_SHEET_V1_SETTINGS"; // panel Personalizar (Admin)
-  let PGX_FULLSCREEN = false;
-  const PGX_EDIT_STATE = { anchor:null, dragging:false, ctx:null };
+  const PGX_EDIT_STATE = { anchor:null, dragging:false, activeTd:null, orig:"", clipboard:"" };
 
   // Toast (mensaje corto)
   function toast(msg){
@@ -3059,7 +3058,10 @@ function pgxInsertProgramId(store, newProgram){
 
   function pgxLoadStore(){
     const st = pgxLoadJSON(PGX_STORE_KEY, null);
-    if (st && st.timeline && st.programs && st.order) return st;
+    if (st && st.timeline && st.programs){
+      if (!Array.isArray(st.order)) st.order = Object.keys(st.programs||{});
+      return st;
+    }
     return pgxDefaultStore();
   }
 
@@ -3106,6 +3108,8 @@ function pgxInsertProgramId(store, newProgram){
   // Si no hay store local válido, aplica remoto
   if (!local || !local.timeline || !local.programs || !local.order){
     shouldApply = true;
+  } else if (Array.isArray(local.order) && local.order.length > 0 && Array.isArray(remote.order) && remote.order.length === 0){
+    shouldApply = false;
   } else if (rrev > lrev){
     shouldApply = true;
   } else if (rrev && rrev === lrev){
@@ -3142,7 +3146,13 @@ function pgxInsertProgramId(store, newProgram){
 function pgxEnsure(){
     const store = pgxLoadStore();
     const baseWeeks = pgxTotalWeeks();
-    if (!store.order.length && pgxCanEdit()){
+
+    if ((!Array.isArray(store.order) || !store.order.length) && Object.keys(store.programs||{}).length){
+      store.order = Object.keys(store.programs||{});
+      pgxSaveStore(store);
+    }
+
+    if ((!store.order.length && !Object.keys(store.programs||{}).length) && pgxCanEdit()){
       const p1 = pgxDefaultProgram("AG REGULAR 1", "AGRARIA", "AGRARIA");
       p1.meta.startWeek = 1;
       p1.meta.endWeek = store.timeline.weeks;
@@ -3195,6 +3205,18 @@ function pgxEnsure(){
       pgxSaveStr(PGX_EDIT_KEY, "0");
       pgxSaveStr(PGX_FINE_KEY, "0");
       pgxSaveStr(PGX_SETTINGS_KEY, "0");
+    }
+
+    if (pgxCanEdit()){
+      const hasEsc = (store.order||[]).some(id=>String(store.programs?.[id]?.meta?.theme||"").toUpperCase()==="ESCOLARES");
+      if (!hasEsc){
+        const p4 = pgxDefaultProgram("ESCOLARES", "ESCOLARES", "ESCOLARES");
+        p4.meta.startWeek = 1;
+        p4.meta.endWeek = store.timeline.weeks;
+        store.programs[p4.id]=p4;
+        store.order = Array.isArray(store.order) ? store.order.concat([p4.id]) : [p4.id];
+        pgxSaveStore(store);
+      }
     }
   }
 
@@ -3989,13 +4011,6 @@ const tw = pgxTotalWeeks();
   }
 
 
-  function pgxSetFullscreen(on){
-    PGX_FULLSCREEN = !!on;
-    const host = document.getElementById("pgxFsHost");
-    if (!host) return;
-    host.classList.toggle("isFullscreen", PGX_FULLSCREEN);
-  }
-
   function pgxClearSelection(){
     const canvas = document.getElementById("pgxCanvas");
     if (!canvas) return;
@@ -4008,80 +4023,83 @@ const tw = pgxTotalWeeks();
     return Array.from(canvas.querySelectorAll("td.pxEditable.pxSel"));
   }
 
-  function pgxUpdateSelInfo(){
-    const el = document.getElementById("pgxCellSelInfo");
-    if (!el) return;
-    const n = pgxSelectedCells().length;
-    el.textContent = n>0 ? `Rango seleccionado: ${n} celdas.` : "Sin selección de rango.";
+  function pgxCellMeta(td){
+    return {
+      pgid:String(td.getAttribute("data-pgid")||""),
+      lane:String(td.getAttribute("data-lane")||""),
+      start:+td.getAttribute("data-lstart")||1,
+      span:+td.getAttribute("data-lspan")||1
+    };
   }
 
-  function pgxOpenCellEditor(ctx){
-    PGX_EDIT_STATE.ctx = ctx;
-    const ov = document.getElementById("pgxCellEditOverlay");
-    const meta = document.getElementById("pgxCellEditMeta");
-    const inp = document.getElementById("pgxCellEditValue");
-    if (!ov || !inp || !meta) return;
-    meta.textContent = `${ctx.label} · semanas ${ctx.start}-${ctx.start+ctx.span-1}`;
-    inp.value = String(ctx.value||"");
-    ov.style.display = "flex";
-    pgxUpdateSelInfo();
-    setTimeout(()=>{ inp.focus(); inp.select(); },0);
-  }
-
-  function pgxCloseCellEditor(){
-    const ov = document.getElementById("pgxCellEditOverlay");
-    if (ov) ov.style.display = "none";
-    PGX_EDIT_STATE.ctx = null;
-  }
-
-  function pgxApplyValueToCellMeta(meta, value){
-    const store = pgxLoadStore();
+  function pgxApplyCellValue(meta, value, store){
     const p = store.programs[meta.pgid];
-    if (!p) return false;
+    if (!p) return;
     const l = (p.config?.lanes||[]).find(x=>x.key===meta.lane);
-    if (!l || l.type!=="cells") return false;
+    if (!l || l.type!=="cells") return;
     const arr = Array.isArray(l.values) ? l.values : [];
     for (let i=meta.start-1; i<meta.start-1+meta.span; i++){
       if (i>=0 && i<arr.length) arr[i] = String(value||"");
     }
     l.values = arr;
     p.meta.updatedAt = pgxNowISO();
-    store.programs[meta.pgid] = p;
-    pgxSaveStore(store);
-    return true;
+    store.programs[meta.pgid]=p;
   }
 
-  function pgxSaveCellEditor(){
-    const ctx = PGX_EDIT_STATE.ctx;
-    if (!ctx) return;
-    const v = String(document.getElementById("pgxCellEditValue")?.value||"");
-    if (pgxApplyValueToCellMeta(ctx, v)){
-      pgxCloseCellEditor();
-      renderPrograma();
+  function pgxBeginInlineEdit(td){
+    if (!td) return;
+    if (PGX_EDIT_STATE.activeTd && PGX_EDIT_STATE.activeTd !== td){
+      pgxEndInlineEdit(true);
+    }
+    PGX_EDIT_STATE.activeTd = td;
+    PGX_EDIT_STATE.orig = td.textContent || "";
+    td.setAttribute("contenteditable","true");
+    td.focus();
+    try{ document.execCommand('selectAll', false, null); }catch(e){}
+  }
+
+  function pgxEndInlineEdit(save, move){
+    const td = PGX_EDIT_STATE.activeTd;
+    if (!td) return;
+    const original = PGX_EDIT_STATE.orig;
+    const value = (td.textContent||"").trim();
+    td.removeAttribute("contenteditable");
+    PGX_EDIT_STATE.activeTd = null;
+    PGX_EDIT_STATE.orig = "";
+
+    if (!save){
+      td.textContent = original;
+      return;
+    }
+
+    const meta = pgxCellMeta(td);
+    if (!meta.pgid || !meta.lane) return;
+    const store = pgxLoadStore();
+    pgxApplyCellValue(meta, value, store);
+    pgxSaveStore(store);
+    renderPrograma();
+
+    if (move){
+      const canvas = document.getElementById("pgxCanvas");
+      if (!canvas) return;
+      const next = canvas.querySelector(`td.pxEditable[data-pgid="${meta.pgid}"][data-lane="${meta.lane}"][data-lstart="${meta.start + meta.span}"]`);
+      if (next) pgxBeginInlineEdit(next);
     }
   }
 
-  function pgxApplyToRange(fillDown){
+  function pgxFillDownFromActive(){
+    const td = PGX_EDIT_STATE.activeTd;
     const cells = pgxSelectedCells();
-    if (!cells.length) return;
-    const seed = fillDown ? String(PGX_EDIT_STATE.ctx?.value||"") : String(document.getElementById("pgxCellEditValue")?.value||"");
-    const metas = cells.map(td=>(
-      { pgid:String(td.getAttribute("data-pgid")||""), lane:String(td.getAttribute("data-lane")||""), start:+td.getAttribute("data-lstart")||1, span:+td.getAttribute("data-lspan")||1 }
-    ));
+    if (!td || !cells.length) return;
+    const value = (td.textContent||"").trim();
     const store = pgxLoadStore();
-    for (const m of metas){
-      const p = store.programs[m.pgid]; if (!p) continue;
-      const l = (p.config?.lanes||[]).find(x=>x.key===m.lane); if (!l || l.type!=="cells") continue;
-      const arr = Array.isArray(l.values) ? l.values : [];
-      for (let i=m.start-1; i<m.start-1+m.span; i++) if (i>=0 && i<arr.length) arr[i] = seed;
-      l.values = arr;
-      p.meta.updatedAt = pgxNowISO();
-      store.programs[m.pgid] = p;
+    for (const c of cells){
+      const m = pgxCellMeta(c);
+      pgxApplyCellValue(m, value, store);
     }
     pgxSaveStore(store);
     renderPrograma();
   }
-
 
   function pgxEnsureProgramaLayout(){
     const el = document.getElementById("view_programa");
@@ -4224,6 +4242,10 @@ const tw = pgxTotalWeeks();
     if (btnFill){
       btnFill.addEventListener("click", ()=>{
         if (!pgxCanEdit()) return;
+        if (pgxGetEditOn() && PGX_EDIT_STATE.activeTd && pgxSelectedCells().length){
+          pgxFillDownFromActive();
+          return;
+        }
 
         const store = pgxLoadStore();
     const baseWeeks = pgxTotalWeeks();
@@ -4496,8 +4518,6 @@ const tw = pgxTotalWeeks();
       });
     }
 
-    if (btnFs){ btnFs.addEventListener("click", ()=>pgxSetFullscreen(true)); }
-    if (btnFsExit){ btnFsExit.addEventListener("click", ()=>pgxSetFullscreen(false)); }
 
     if (btnDates){
       btnDates.addEventListener("click", ()=>{
@@ -4567,9 +4587,7 @@ const tw = pgxTotalWeeks();
       if (!pgxCanEdit() || !pgxGetEditOn()) return;
       if (!e.shiftKey) pgxClearSelection();
       td.classList.add("pxSel");
-      PGX_EDIT_STATE.anchor = td;
       PGX_EDIT_STATE.dragging = true;
-      pgxUpdateSelInfo();
     });
 
     canvas.addEventListener("mouseover", (e)=>{
@@ -4577,30 +4595,59 @@ const tw = pgxTotalWeeks();
       const td = e.target?.closest ? e.target.closest("td.pxEditable") : null;
       if (!td) return;
       td.classList.add("pxSel");
-      pgxUpdateSelInfo();
     });
 
     window.addEventListener("mouseup", ()=>{ PGX_EDIT_STATE.dragging = false; });
 
-    canvas.addEventListener("dblclick", (e)=>{
+    canvas.addEventListener("click", (e)=>{
       const td = e.target?.closest ? e.target.closest("td.pxEditable") : null;
       if (!td) return;
       if (!pgxCanEdit() || !pgxGetEditOn()) return;
+      pgxBeginInlineEdit(td);
+    });
 
-      const pgid   = String(td.getAttribute("data-pgid")||"");
-      const laneK  = String(td.getAttribute("data-lane")||"");
-      const lstart = +td.getAttribute("data-lstart")||1;
-      const lspan  = +td.getAttribute("data-lspan")||1;
-      if (!pgid || !laneK) return;
+    canvas.addEventListener("keydown", (e)=>{
+      const td = e.target?.closest ? e.target.closest("td.pxEditable[contenteditable='true']") : null;
+      if (!td) return;
 
-      const store = pgxLoadStore();
-      const p = store.programs[pgid];
-      if (!p) return;
-      const l = (p.config?.lanes||[]).find(x=>x.key===laneK);
-      if (!l || l.type!=="cells") return;
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase()==='c'){
+        e.preventDefault();
+        PGX_EDIT_STATE.clipboard = (td.textContent||"").trim();
+        return;
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase()==='v'){
+        e.preventDefault();
+        const val = PGX_EDIT_STATE.clipboard || "";
+        const sels = pgxSelectedCells();
+        const store = pgxLoadStore();
+        if (sels.length){
+          for (const c of sels) pgxApplyCellValue(pgxCellMeta(c), val, store);
+        }else{
+          pgxApplyCellValue(pgxCellMeta(td), val, store);
+        }
+        pgxSaveStore(store);
+        renderPrograma();
+        return;
+      }
 
-      const cur = String((l.values||[])[lstart-1] || "");
-      pgxOpenCellEditor({ pgid, lane:laneK, start:lstart, span:lspan, label:String(l.label||laneK), value:cur });
+      if (e.key === 'Escape'){
+        e.preventDefault();
+        pgxEndInlineEdit(false);
+        return;
+      }
+      if (e.key === 'Enter'){
+        e.preventDefault();
+        pgxEndInlineEdit(true, true);
+        return;
+      }
+      if (e.key === 'Tab'){
+        e.preventDefault();
+        const all = Array.from(canvas.querySelectorAll('td.pxEditable'));
+        const i = all.indexOf(td);
+        pgxEndInlineEdit(true, false);
+        const next = all[i+1] || null;
+        if (next) pgxBeginInlineEdit(next);
+      }
     });
   }
 
@@ -4615,6 +4662,8 @@ const tw = pgxTotalWeeks();
       pgxSetFullscreen(false);
     }
   });
+
+
 
 
   function renderPrograma(){
@@ -9466,6 +9515,79 @@ el.dataset.ready = "1";
       try{ requestAnimationFrame(()=>fitHorariosMatrixHeight()); }catch(e){}
       try{ bindHorariosCellTargets(); }catch(e){}
     }
+
+    const prev = HORARIOS_CELL_EDIT_CTX.blockIndex;
+    const teacher = (prev >= 0 && sch.blocks[prev]) ? String(sch.blocks[prev].teacher || "") : "";
+    const nextBlock = { day, start, end, course, teacher };
+
+    if (prev >= 0 && sch.blocks[prev]){
+      sch.blocks[prev] = nextBlock;
+    }else{
+      sch.blocks.push(nextBlock);
+    }
+
+    sch.blocks = sch.blocks.slice().sort((a,b)=>{
+      const dd = DAYS.indexOf(normalizeDayKey(a.day)) - DAYS.indexOf(normalizeDayKey(b.day));
+      if (dd !== 0) return dd;
+      return idxMark(a.start) - idxMark(b.start);
+    });
+
+    SCHEDULES = sortSchedules(SCHEDULES);
+    saveSchedules();
+    closeHorariosCellEditModal();
+    renderHorarios();
+  }
+
+  function bindHorariosCellTargets(){
+    const cards = Array.from(document.querySelectorAll(".schCard"));
+    cards.forEach(card=>{
+      card.classList.remove("hEditEnabled");
+      Array.from(card.querySelectorAll(".hCellEditable")).forEach(td=>td.classList.remove("hCellEditable"));
+
+      const sid = card.getAttribute("data-id");
+      const cardKey = card.getAttribute("data-cardkey") || "";
+      const isPlaceholder = (card.getAttribute("data-placeholder") === "1");
+      const sch = SCHEDULES.find(x=>x.id===sid) || {
+        id: sid,
+        local: card.getAttribute("data-local") || "",
+        uni: card.getAttribute("data-uni") || "",
+        salon: card.getAttribute("data-salon") || "",
+        blocks: []
+      };
+
+      const matrix = buildScheduleMatrix(sch);
+      const rows = Array.from(card.querySelectorAll("tbody tr"));
+      rows.forEach((tr, r)=>{
+        const tds = Array.from(tr.querySelectorAll("td"));
+        if (!tds.length) return;
+        let ptr = 1;
+        DAYS.forEach((d)=>{
+          const cell = matrix[r][d];
+          if (!cell || cell.kind === "skip") return;
+          const td = tds[ptr++];
+          if (!td) return;
+          td.classList.add("hCellEditable");
+          td.dataset.day = d;
+          td.dataset.start = TIME_ROWS[r].start;
+          td.dataset.end = (cell.kind === "start") ? TIME_ROWS[Math.min(TIME_ROWS.length-1, r + Number(cell.rowspan||1) - 1)].end : TIME_ROWS[r].end;
+          td.dataset.course = (cell.kind === "start" && cell.block) ? String(cell.block.course||"") : "";
+          td.dataset.blockIndex = "-1";
+          if (cell.kind === "start"){
+            const idx = (sch.blocks||[]).findIndex(b=>normalizeDayKey(b.day)===d && b.start===td.dataset.start && b.end===td.dataset.end && String(b.course||"")===td.dataset.course);
+            td.dataset.blockIndex = String(idx);
+          }
+          td.dataset.scheduleId = sid;
+          td.dataset.cardKey = cardKey;
+          if (isPlaceholder){
+            td.dataset.placeholder = "1";
+            td.dataset.phLocal = card.getAttribute("data-local") || "";
+            td.dataset.phColKey = card.getAttribute("data-colkey") || "";
+          }
+        });
+      });
+
+      if (CURRENT_ROLE === "admin" && HORARIOS_EDIT_MODE) card.classList.add("hEditEnabled");
+    });
   }
 
 
