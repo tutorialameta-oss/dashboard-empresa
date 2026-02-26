@@ -2253,7 +2253,7 @@
     z-index:10060;
     box-shadow:0 10px 24px rgba(2,6,23,.22);
   }
-  .pgxMatrixHost.isFullscreen .pxSheetWrap{height:100%; min-height:0; overflow:hidden;}
+  .pgxMatrixHost.isFullscreen .pxSheetWrap{height:100%; min-height:0; overflow:visible;}
   .pgxMatrixHost.isFullscreen .pxSheetScroll{
     width:100%;
     max-width:100%;
@@ -2263,7 +2263,7 @@
     overflow-y:auto;
     overflow-x:scroll;
     scrollbar-gutter: stable both-edges;
-    padding-bottom: 6px;
+    padding-bottom: 18px;
   }
   .pgxMatrixHost.isFullscreen .pxSheetScroll::-webkit-scrollbar:horizontal{ height:14px; }
   .pgxMatrixHost.isFullscreen .pxSheetScroll::-webkit-scrollbar-thumb:horizontal{
@@ -3926,6 +3926,10 @@ function pgxUpgradeProgram(p, baseWeeks){
         <label>INICIO PROGRAMA (EDICIÓN)
           <input id="pgsStartDate" type="date" value="${escapeHtml(String(p.meta?.startDate||""))}"/>
         </label>
+
+        <label>FIN PROGRAMA (EDICIÓN)
+          <input id="pgsEndDate" type="date" value="${escapeHtml(String(p.meta?.endDate||""))}"/>
+        </label>
 <label>SEMANA INICIO PROGRAMA
           <input id="pgsStartW" type="number" min="1" max="${totalWeeks}" value="${win.start}"/>
         </label>
@@ -3985,6 +3989,8 @@ function pgxUpgradeProgram(p, baseWeeks){
       // ✅ NUEVO: fecha inicio independiente por programa (YYYY-MM-DD). Vacío = usa BASE.
       const sd = String(document.getElementById("pgsStartDate")?.value||"").trim();
       if (sd) pp.meta.startDate = sd; else delete pp.meta.startDate;
+      const ed = String(document.getElementById("pgsEndDate")?.value||"").trim();
+      if (ed) pp.meta.endDate = ed; else delete pp.meta.endDate;
 const tw = pgxTotalWeeks();
       let sW = parseInt(document.getElementById("pgsStartW")?.value||"1",10);
       let eW = parseInt(document.getElementById("pgsEndW")?.value||String(tw),10);
@@ -3993,6 +3999,18 @@ const tw = pgxTotalWeeks();
       sW = Math.max(1, Math.min(tw, sW));
       eW = Math.max(1, Math.min(tw, eW));
       if (eW < sW){ const tmp=sW; sW=eW; eW=tmp; }
+
+      // ✅ NUEVO: si hay FIN PROGRAMA (fecha), ajusta SEMANA FIN según diferencia (semanas) desde INICIO PROGRAMA.
+      if (ed){
+        const sEff = pgxParseDateYMD(sd) || pgxParseDateYMD(String(store.timeline?.startDate||""));
+        const eEff = pgxParseDateYMD(ed);
+        if (sEff && eEff){
+          let dW = pgxWeekDiff(eEff, sEff);
+          if (dW < 0) dW = -dW;
+          eW = Math.max(1, Math.min(tw, sW + dW));
+          if (eW < sW) eW = sW;
+        }
+      }
       pp.meta.startWeek = sW;
       pp.meta.endWeek = eW;
 
