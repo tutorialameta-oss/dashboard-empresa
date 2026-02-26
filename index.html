@@ -2050,6 +2050,12 @@
       width:100%; height:42px; border-radius:14px; border:1px solid var(--border); padding:4px;
       background:#fff;
     }
+    .pgxSetGrid .pgxDateField input[type="date"]{
+      min-width:0;
+      width:100%;
+      padding:8px 10px;
+      font-size:13px;
+    }
     .pgxSetRow{
       display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-top:10px;
     }
@@ -2090,7 +2096,9 @@
     #view_programa .pxSheetScroll{
       max-height: calc(100vh - 75px);  /* baja este número para que sea más largo */
     }
-  .pxSheetScroll.dragging{ cursor:grabbing; }
+  .pxSheetScroll.dragging{ cursor:grabbing; user-select:none; -webkit-user-select:none; }
+  .pxSheetScroll.dragging *{ user-select:none !important; -webkit-user-select:none !important; }
+  body.pgxNoSelect, body.pgxNoSelect *{ user-select:none !important; -webkit-user-select:none !important; }
 
   .pxSheet{
     border-collapse: collapse;
@@ -2204,6 +2212,9 @@
 
 
   .pgxMatrixHost{ position:relative; }
+  #pgxFsToggle,
+  .pgxMatrixFsBadge,
+  .pgxMatrixExit{ display:none !important; }
   .pgxMatrixTopBar{ display:none; }
   .pgxMatrixExit{ display:none; }
   .pgxMatrixFsBadge{ display:none; }
@@ -2285,7 +2296,36 @@
     cursor:pointer;
   }
   .pgxHBtn:hover{ border-color: rgba(209,11,11,0.35); box-shadow: 0 0 0 3px rgba(209,11,11,0.10); }
-  .pgxHRange{ width:100%; flex:1; }
+  .pgxHRange{
+    width:100%;
+    flex:1;
+    appearance:none;
+    -webkit-appearance:none;
+    height:8px;
+    border-radius:999px;
+    background: linear-gradient(180deg, rgba(15,23,42,0.20), rgba(15,23,42,0.14));
+    outline:none;
+  }
+  .pgxHRange::-webkit-slider-thumb{
+    -webkit-appearance:none;
+    appearance:none;
+    width:18px;
+    height:18px;
+    border-radius:999px;
+    border:1px solid rgba(15,23,42,0.22);
+    background:#fff;
+    box-shadow:0 4px 14px rgba(2,6,23,.22);
+    cursor:pointer;
+  }
+  .pgxHRange::-moz-range-thumb{
+    width:18px;
+    height:18px;
+    border-radius:999px;
+    border:1px solid rgba(15,23,42,0.22);
+    background:#fff;
+    box-shadow:0 4px 14px rgba(2,6,23,.22);
+    cursor:pointer;
+  }
 
   .pgxMatrixHost.isFullscreen .pgxHNav{
     display:flex;
@@ -3512,7 +3552,7 @@ function pgxUpgradeProgram(p, baseWeeks){
 
     const viewStartStr = pgxGetViewStart() || String(store.timeline?.startDate||"");
     const viewWeeksRaw = pgxGetViewWeeks() || baseWeeks;
-    const displayWeeks = Math.max(1, Math.min(baseWeeks, +viewWeeksRaw||baseWeeks));
+    const displayWeeks = Math.max(1, Math.floor(+viewWeeksRaw || baseWeeks));
 
     const baseStart0 = pgxParseDateYMD(String(viewStartStr||""));
 
@@ -3798,7 +3838,6 @@ function pgxUpgradeProgram(p, baseWeeks){
     const weeks = document.getElementById("pgxWeeks");
     const apply = document.getElementById("pgxApply");
     const edit  = document.getElementById("pgxEdit");
-    const fs    = document.getElementById("pgxFsToggle");
 
     const fine = document.getElementById("pgxFine");
     const fill = document.getElementById("pgxFill");
@@ -3821,15 +3860,15 @@ function pgxUpgradeProgram(p, baseWeeks){
     // Calcula FIN solo para visualización (start + weeks)
     const endInp = document.getElementById("pgxEnd");
     if (endInp){
-      const sd = pgxParseDateYMD(String(vStart||\"\"));
+      const sd = pgxParseDateYMD(String(vStart||""));
       const wv = Math.max(1, Math.floor(+vWeeks||baseWeeks));
       if (sd){
         const ed = new Date(sd.getTime() + (wv-1)*7*24*60*60*1000);
         const yyyy = ed.getFullYear();
-        const mm = String(ed.getMonth()+1).padStart(2,\"0\");
-        const dd = String(ed.getDate()).padStart(2,\"0\");
+        const mm = String(ed.getMonth()+1).padStart(2,"0");
+        const dd = String(ed.getDate()).padStart(2,"0");
         endInp.value = `${yyyy}-${mm}-${dd}`;
-      } else endInp.value = \"\";
+      } else endInp.value = "";
     }
 if (zoom) zoom.value = pgxZoomOption(pgxGetZoom());
     if (mode) mode.value = pgxGetMode();
@@ -3842,7 +3881,6 @@ if (zoom) zoom.value = pgxZoomOption(pgxGetZoom());
       edit.textContent = editOn ? "EDITANDO" : "EDITAR";
       edit.classList.toggle("primary", editOn);
     }
-    if (fs) fs.style.display = "";
 // Navegación de fechas visible fuera del editor
     [start, weeks, apply].forEach(el=>{ if (el) el.style.display = ""; });
 
@@ -3924,7 +3962,7 @@ if (zoom) zoom.value = pgxZoomOption(pgxGetZoom());
 
     // Respeta el toggle PERSONALIZAR
     const open = !!pgxGetSettingsOpen();
-    if (!open){ wrap.style.display = \"none\"; wrap.innerHTML = \"\"; return; }
+    if (!open){ wrap.style.display = "none"; wrap.innerHTML = ""; return; }
     const active = pgxGetActiveId() || (programs[0]?.id||"");
     const p = programs.find(x=>x.id===active) || programs[0];
     if (!p){ wrap.innerHTML=""; return; }
@@ -3971,11 +4009,11 @@ if (zoom) zoom.value = pgxZoomOption(pgxGetZoom());
         </label>
 
 
-        <label>INICIO PROGRAMA (EDICIÓN)
+        <label class="pgxDateField">INICIO PROGRAMA (EDICIÓN)
           <input id="pgsStartDate" type="date" value="${escapeHtml(String(p.meta?.startDate||""))}"/>
         </label>
 
-        <label>FIN PROGRAMA (EDICIÓN)
+        <label class="pgxDateField">FIN PROGRAMA (EDICIÓN)
           <input id="pgsEndDate" type="date" value="${escapeHtml(String(p.meta?.endDate||""))}"/>
         </label>
 
@@ -4159,9 +4197,7 @@ const tw = pgxTotalWeeks();
 
 
 
-  let PROGRAMA_MATRIX_FULLSCREEN = false;
   let PGX_DEFAULT_MODE_APPLIED = false;
-
 
   function pgxScheduleRelayout(){
     const sc = document.getElementById("pgxScroll");
@@ -4169,44 +4205,17 @@ const tw = pgxTotalWeeks();
     requestAnimationFrame(()=>{
       try{ fitProgramaMatrixHeight(); }catch(e){}
       void sc.offsetHeight;
+      try{ pgxWireHNav(); }catch(e){}
     });
   }
 
   function fitProgramaMatrixHeight(){
-    const host = document.getElementById("pgxMatrixHost");
     const sc = document.getElementById("pgxScroll");
     if (!sc) return;
-    if (host && host.classList.contains("isFullscreen")){
-      const bar = host.querySelector(".pgxMatrixTopBar");
-      const cs = getComputedStyle(host);
-      const pTop = parseFloat(cs.paddingTop||"0") || 0;
-      const pBottom = parseFloat(cs.paddingBottom||"0") || 0;
-      const gap = parseFloat(cs.rowGap || cs.gap || "0") || 0;
-      const barH = bar ? bar.getBoundingClientRect().height : 0;
-      const scrollbarRoom = 18;
-      const usable = Math.max(220, Math.floor(host.clientHeight - pTop - pBottom - barH - (barH ? gap : 0) - scrollbarRoom));
-      sc.style.maxHeight = `${usable}px`;
-      sc.style.height = `${usable}px`;
-      sc.style.width = "100%";
-      sc.style.maxWidth = "100%";
-    } else {
-      sc.style.height = "";
-      sc.style.maxHeight = "calc(100vh - 230px)";
-      sc.style.width = "100%";
-      sc.style.maxWidth = "100%";
-    }
-  }
-
-  function setProgramaMatrixFullscreen(force){
-    const host = document.getElementById("pgxMatrixHost");
-    const tgl = document.getElementById("pgxFsToggle");
-    if (!host || !tgl) return;
-    const next = (typeof force === "boolean") ? force : !PROGRAMA_MATRIX_FULLSCREEN;
-    PROGRAMA_MATRIX_FULLSCREEN = !!next;
-    host.classList.toggle("isFullscreen", PROGRAMA_MATRIX_FULLSCREEN);
-    tgl.textContent = PROGRAMA_MATRIX_FULLSCREEN ? "SALIR PANTALLA COMPLETA" : "PANTALLA COMPLETA";
-    if (!PROGRAMA_MATRIX_FULLSCREEN){ host.scrollTop=0; host.scrollLeft=0; }
-    pgxScheduleRelayout();
+    sc.style.height = "";
+    sc.style.maxHeight = "calc(100vh - 230px)";
+    sc.style.width = "100%";
+    sc.style.maxWidth = "100%";
   }
 
   function pgxNextProgramName(cycle, store){
@@ -4261,8 +4270,6 @@ const tw = pgxTotalWeeks();
         <div class="cardtitle">PROGRAMA</div>
         <div class="controls" style="justify-content:flex-start; gap:10px; flex-wrap:wrap;">
           <button id="pgxEdit" class="btn ghost" type="button">EDITAR</button>
-          <button id="pgxFsToggle" class="hFsBtn" type="button">PANTALLA COMPLETA</button>
-
           <select id="pgxProgram"></select>
 
           <select id="pgxZoom">
@@ -4306,10 +4313,6 @@ const tw = pgxTotalWeeks();
 
       <div class="card panel12">
         <div id="pgxMatrixHost" class="pgxMatrixHost">
-          <div class="pgxMatrixTopBar">
-            <span class="pgxMatrixFsBadge">MODO PANTALLA COMPLETA</span>
-            <button id="pgxFsExit" class="hFsBtn pgxMatrixExit" type="button">SALIR PANTALLA COMPLETA</button>
-          </div>
           <div id="pgxCanvas"></div>
 
           <div id="pgxHNav" class="pgxHNav" aria-label="Desplazamiento horizontal">
@@ -4335,8 +4338,6 @@ const tw = pgxTotalWeeks();
     const btnDates = document.getElementById("pgxDates");
     const btnSave = document.getElementById("pgxSave");
     const btnCreate = document.getElementById("pgxCreate");
-    const fsTgl = document.getElementById("pgxFsToggle");
-    const fsExit = document.getElementById("pgxFsExit");
 
     if (mode) mode.addEventListener("change", ()=>{ pgxSetMode(mode.value); pgxSaveStore(pgxLoadStore()); renderPrograma(); pgxScheduleRelayout(); });
     if (prog) prog.addEventListener("change", ()=>{ pgxSetActiveId(prog.value); pgxSaveStore(pgxLoadStore()); renderPrograma(); pgxScheduleRelayout(); });
@@ -4438,8 +4439,6 @@ const tw = pgxTotalWeeks();
 
     if (btnSave){ btnSave.addEventListener("click", ()=>{ if(!pgxCanEdit()||!pgxGetEditOn()) return; const store=pgxLoadStore(); pgxSaveStore(store); pgxGridState.dirty=false; toast("Guardado."); }); }
     if (btnCreate){ btnCreate.addEventListener("click", pgxCreateProgramFlow); }
-    if (fsTgl) fsTgl.addEventListener("click", ()=>setProgramaMatrixFullscreen());
-    if (fsExit) fsExit.addEventListener("click", ()=>setProgramaMatrixFullscreen(false));
 
     el.dataset.ready="1";
   }
@@ -4777,7 +4776,7 @@ const tw = pgxTotalWeeks();
 
 
     // Panel PERSONALIZAR (solo ADMIN en edición)
-    try{ if (typeof pgxRenderSettings === \"function\") pgxRenderSettings(programs); }catch(e){}
+    try{ if (typeof pgxRenderSettings === "function") pgxRenderSettings(programs); }catch(e){}
     const canvas = document.getElementById("pgxCanvas");
     if (!canvas) return;
 
@@ -4808,9 +4807,11 @@ const tw = pgxTotalWeeks();
           let down=false,sx=0,sy=0,sl=0,st=0;
           sc.addEventListener("mousedown",(ev)=>{
             if (ev.button!==0) return;
+            ev.preventDefault();
             down=true; sc.classList.add("dragging"); sx=ev.pageX; sy=ev.pageY; sl=sc.scrollLeft; st=sc.scrollTop;
+            document.body.classList.add("pgxNoSelect");
           });
-          window.addEventListener("mouseup",()=>{down=false; sc.classList.remove("dragging");});
+          window.addEventListener("mouseup",()=>{down=false; sc.classList.remove("dragging"); document.body.classList.remove("pgxNoSelect");});
           sc.addEventListener("mousemove",(ev)=>{
             if(!down) return;
             ev.preventDefault();
@@ -4837,6 +4838,15 @@ const tw = pgxTotalWeeks();
     const range = document.getElementById("pgxHRange");
     if (!nav || !range) return;
 
+    const syncRange = ()=>{
+      const sc = document.getElementById("pgxScroll");
+      if (!sc) return;
+      const max = Math.max(0, sc.scrollWidth - sc.clientWidth);
+      range.max = String(max);
+      range.value = String(Math.min(max, sc.scrollLeft));
+      range.disabled = (max <= 0);
+    };
+
     // Wiring 1 vez
     if (nav.dataset.wired !== "1"){
       const btnL = document.getElementById("pgxHLeft");
@@ -4852,35 +4862,28 @@ const tw = pgxTotalWeeks();
       if (btnL) btnL.addEventListener("click", ()=>scrollByAmt(-1));
       if (btnR) btnR.addEventListener("click", ()=>scrollByAmt( 1));
 
-      range.addEventListener("input", ()=>{
+      const onRange = ()=>{
         const sc = document.getElementById("pgxScroll");
         if (!sc) return;
         sc.scrollLeft = +range.value || 0;
-      });
+      };
+      range.addEventListener("input", onRange);
+      range.addEventListener("change", onRange);
 
       window.addEventListener("resize", ()=>{ try{ pgxWireHNav(); }catch(e){} }, { passive:true });
 
       nav.dataset.wired = "1";
     }
 
-    const sc = document.getElementById("pgxScroll");
-    if (!sc) return;
-
-    const max = Math.max(0, sc.scrollWidth - sc.clientWidth);
-    range.max = String(max);
-    range.value = String(Math.min(max, sc.scrollLeft));
-    range.disabled = (max <= 0);
+    syncRange();
+    requestAnimationFrame(syncRange);
 
     // Sync del scroll actual
+    const sc = document.getElementById("pgxScroll");
+    if (!sc) return;
     if (sc.dataset.hnavWired !== "1"){
       sc.addEventListener("scroll", ()=>{
-        const sc2 = document.getElementById("pgxScroll");
-        const r = document.getElementById("pgxHRange");
-        if (!sc2 || !r) return;
-        const mx = Math.max(0, sc2.scrollWidth - sc2.clientWidth);
-        r.max = String(mx);
-        r.value = String(Math.min(mx, sc2.scrollLeft));
-        r.disabled = (mx <= 0);
+        syncRange();
       }, { passive:true });
       sc.dataset.hnavWired = "1";
     }
