@@ -2285,7 +2285,36 @@
     cursor:pointer;
   }
   .pgxHBtn:hover{ border-color: rgba(209,11,11,0.35); box-shadow: 0 0 0 3px rgba(209,11,11,0.10); }
-  .pgxHRange{ width:100%; flex:1; }
+  .pgxHRange{
+    width:100%;
+    flex:1;
+    appearance:none;
+    -webkit-appearance:none;
+    height:8px;
+    border-radius:999px;
+    background: linear-gradient(180deg, rgba(15,23,42,0.20), rgba(15,23,42,0.14));
+    outline:none;
+  }
+  .pgxHRange::-webkit-slider-thumb{
+    -webkit-appearance:none;
+    appearance:none;
+    width:18px;
+    height:18px;
+    border-radius:999px;
+    border:1px solid rgba(15,23,42,0.22);
+    background:#fff;
+    box-shadow:0 4px 14px rgba(2,6,23,.22);
+    cursor:pointer;
+  }
+  .pgxHRange::-moz-range-thumb{
+    width:18px;
+    height:18px;
+    border-radius:999px;
+    border:1px solid rgba(15,23,42,0.22);
+    background:#fff;
+    box-shadow:0 4px 14px rgba(2,6,23,.22);
+    cursor:pointer;
+  }
 
   .pgxMatrixHost.isFullscreen .pgxHNav{
     display:flex;
@@ -3821,15 +3850,15 @@ function pgxUpgradeProgram(p, baseWeeks){
     // Calcula FIN solo para visualización (start + weeks)
     const endInp = document.getElementById("pgxEnd");
     if (endInp){
-      const sd = pgxParseDateYMD(String(vStart||\"\"));
+      const sd = pgxParseDateYMD(String(vStart||""));
       const wv = Math.max(1, Math.floor(+vWeeks||baseWeeks));
       if (sd){
         const ed = new Date(sd.getTime() + (wv-1)*7*24*60*60*1000);
         const yyyy = ed.getFullYear();
-        const mm = String(ed.getMonth()+1).padStart(2,\"0\");
-        const dd = String(ed.getDate()).padStart(2,\"0\");
+        const mm = String(ed.getMonth()+1).padStart(2,"0");
+        const dd = String(ed.getDate()).padStart(2,"0");
         endInp.value = `${yyyy}-${mm}-${dd}`;
-      } else endInp.value = \"\";
+      } else endInp.value = "";
     }
 if (zoom) zoom.value = pgxZoomOption(pgxGetZoom());
     if (mode) mode.value = pgxGetMode();
@@ -3924,7 +3953,7 @@ if (zoom) zoom.value = pgxZoomOption(pgxGetZoom());
 
     // Respeta el toggle PERSONALIZAR
     const open = !!pgxGetSettingsOpen();
-    if (!open){ wrap.style.display = \"none\"; wrap.innerHTML = \"\"; return; }
+    if (!open){ wrap.style.display = "none"; wrap.innerHTML = ""; return; }
     const active = pgxGetActiveId() || (programs[0]?.id||"");
     const p = programs.find(x=>x.id===active) || programs[0];
     if (!p){ wrap.innerHTML=""; return; }
@@ -4178,13 +4207,17 @@ const tw = pgxTotalWeeks();
     if (!sc) return;
     if (host && host.classList.contains("isFullscreen")){
       const bar = host.querySelector(".pgxMatrixTopBar");
+      const hNav = host.querySelector("#pgxHNav");
       const cs = getComputedStyle(host);
       const pTop = parseFloat(cs.paddingTop||"0") || 0;
       const pBottom = parseFloat(cs.paddingBottom||"0") || 0;
       const gap = parseFloat(cs.rowGap || cs.gap || "0") || 0;
       const barH = bar ? bar.getBoundingClientRect().height : 0;
+      const navVisible = !!(hNav && getComputedStyle(hNav).display !== "none");
+      const navH = navVisible ? hNav.getBoundingClientRect().height : 0;
+      const gapCount = (barH ? 1 : 0) + (navH ? 1 : 0);
       const scrollbarRoom = 18;
-      const usable = Math.max(220, Math.floor(host.clientHeight - pTop - pBottom - barH - (barH ? gap : 0) - scrollbarRoom));
+      const usable = Math.max(220, Math.floor(host.clientHeight - pTop - pBottom - barH - navH - (gap * gapCount) - scrollbarRoom));
       sc.style.maxHeight = `${usable}px`;
       sc.style.height = `${usable}px`;
       sc.style.width = "100%";
@@ -4777,7 +4810,7 @@ const tw = pgxTotalWeeks();
 
 
     // Panel PERSONALIZAR (solo ADMIN en edición)
-    try{ if (typeof pgxRenderSettings === \"function\") pgxRenderSettings(programs); }catch(e){}
+    try{ if (typeof pgxRenderSettings === "function") pgxRenderSettings(programs); }catch(e){}
     const canvas = document.getElementById("pgxCanvas");
     if (!canvas) return;
 
@@ -4837,6 +4870,15 @@ const tw = pgxTotalWeeks();
     const range = document.getElementById("pgxHRange");
     if (!nav || !range) return;
 
+    const syncRange = ()=>{
+      const sc = document.getElementById("pgxScroll");
+      if (!sc) return;
+      const max = Math.max(0, sc.scrollWidth - sc.clientWidth);
+      range.max = String(max);
+      range.value = String(Math.min(max, sc.scrollLeft));
+      range.disabled = (max <= 0);
+    };
+
     // Wiring 1 vez
     if (nav.dataset.wired !== "1"){
       const btnL = document.getElementById("pgxHLeft");
@@ -4863,24 +4905,15 @@ const tw = pgxTotalWeeks();
       nav.dataset.wired = "1";
     }
 
-    const sc = document.getElementById("pgxScroll");
-    if (!sc) return;
-
-    const max = Math.max(0, sc.scrollWidth - sc.clientWidth);
-    range.max = String(max);
-    range.value = String(Math.min(max, sc.scrollLeft));
-    range.disabled = (max <= 0);
+    syncRange();
+    requestAnimationFrame(syncRange);
 
     // Sync del scroll actual
+    const sc = document.getElementById("pgxScroll");
+    if (!sc) return;
     if (sc.dataset.hnavWired !== "1"){
       sc.addEventListener("scroll", ()=>{
-        const sc2 = document.getElementById("pgxScroll");
-        const r = document.getElementById("pgxHRange");
-        if (!sc2 || !r) return;
-        const mx = Math.max(0, sc2.scrollWidth - sc2.clientWidth);
-        r.max = String(mx);
-        r.value = String(Math.min(mx, sc2.scrollLeft));
-        r.disabled = (mx <= 0);
+        syncRange();
       }, { passive:true });
       sc.dataset.hnavWired = "1";
     }
