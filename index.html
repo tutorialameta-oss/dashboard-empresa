@@ -2260,7 +2260,10 @@
     max-height:none !important;
     height:100% !important;
     min-height:0;
-    overflow:auto;
+    overflow-y:auto;
+    overflow-x:scroll;
+    scrollbar-gutter: stable both-edges;
+    padding-bottom: 6px;
   }
 
   @media (max-width: 900px){
@@ -2962,7 +2965,7 @@ function pgxInsertProgramId(store, newProgram){
   // Ventana visible por programa (para imitar bloques cortos como tu Excel)
   // meta.startWeek / meta.endWeek (1-based, dentro de 1..totalWeeks)
   function pgxProgramWindow(p, totalWeeks){
-    const w = Math.max(1, Math.min(60, +totalWeeks || 16));
+    const w = Math.max(1, Math.floor(+totalWeeks || 16));
     let s = parseInt(p?.meta?.startWeek ?? 1, 10);
     let e = parseInt(p?.meta?.endWeek   ?? w, 10);
     if (!Number.isFinite(s)) s = 1;
@@ -3340,7 +3343,7 @@ function pgxEnsure(){
     return (v && v>0) ? v : 0; // 0 = usar baseWeeks
   }
   function pgxSetViewWeeks(w){
-    const n = Math.max(0, Math.min(60, +w||0));
+    const n = Math.max(0, Math.floor(+w||0));
     pgxSaveStr(PGX_VIEW_WEEKS_KEY, String(n));
   }
 
@@ -3394,7 +3397,7 @@ function pgxUpgradeProgram(p, baseWeeks){
   function pgxTotalWeeks(){
     const store = pgxLoadStore();
     const w = +store.timeline?.weeks || 16;
-    return Math.max(1, Math.min(60, w));
+    return Math.max(1, Math.floor(w));
   }
 
   function pgxTimelineDates(){
@@ -3795,9 +3798,9 @@ function pgxUpgradeProgram(p, baseWeeks){
 
     if (admin){
       // Controles de vista avanzados solo dentro de editar
-      [mode, sel, zoom, fine, fill, btnSave, createType, btnCreate, btnSet].forEach(el=>{ if (el) el.style.display = editOn ? "" : "none"; });
+      [mode, sel, zoom, fine, fill, btnSave, createType, btnCreate, btnSet, btnDel].forEach(el=>{ if (el) el.style.display = editOn ? "" : "none"; });
       // Avanzados escondidos para simplificar
-      [btnNew, btnDel, btnJson, btnDates].forEach(el=>{ if (el) el.style.display = "none"; });
+      [btnNew, btnJson, btnDates].forEach(el=>{ if (el) el.style.display = "none"; });
     } else {
       [mode, sel, zoom].forEach(el=>{ if (el) el.style.display = ""; });
       [fine, fill, btnNew, btnDel, btnJson, btnSet, btnDates, btnSave, createType, btnCreate].forEach(el=>{ if (el) el.style.display = "none"; });
@@ -3942,6 +3945,7 @@ function pgxUpgradeProgram(p, baseWeeks){
         <button id="pgsSave" class="btn ghost" type="button">GUARDAR</button>
         <button id="pgsEtapa" class="btn ghost" type="button">EDITAR ETAPA</button>
         <button id="pgsResetCols" class="btn ghost" type="button">RESET COLORES</button>
+        <button id="pgsDelete" class="btn ghost" type="button">ELIMINAR PROGRAMA</button>
       </div>
 
       <div class="pgxSetTitle" style="margin-top:14px;">NOMBRES DE FILAS</div>
@@ -4038,7 +4042,6 @@ const tw = pgxTotalWeeks();
 
     document.getElementById("pgsResetCols")?.addEventListener("click", ()=>{
       const store = pgxLoadStore();
-    const baseWeeks = pgxTotalWeeks();
       const id = pgxGetActiveId();
       const pp = store.programs[id];
       if (!pp) return;
@@ -4048,6 +4051,27 @@ const tw = pgxTotalWeeks();
       pgxSaveStore(store);
       toast("Colores reseteados.");
       renderPrograma();
+    });
+
+    document.getElementById("pgsDelete")?.addEventListener("click", ()=>{
+      const store = pgxLoadStore();
+      const id = pgxGetActiveId();
+      if (!id || !store.programs[id]) return;
+      const label = String(store.programs[id]?.meta?.name||"PROGRAMA").toUpperCase();
+      if (!confirm(`¿Eliminar programa ${label}?`)) return;
+      delete store.programs[id];
+      store.order = (store.order||[]).filter(x=>x!==id);
+      pgxSaveStore(store);
+      toast("Colores reseteados.");
+      renderPrograma();
+      pgxScheduleRelayout();
+    });
+
+    document.getElementById("pgsName")?.addEventListener("keydown", (e)=>{
+      if (e.key === "Enter"){
+        e.preventDefault();
+        document.getElementById("pgsSave")?.click();
+      }
     });
   }
 
@@ -4164,7 +4188,7 @@ const tw = pgxTotalWeeks();
           <button id="pgxFill" class="btn ghost" type="button">RELLENAR RANGO</button>
 
           <input id="pgxStart" type="date" style="min-width:160px;" />
-          <input id="pgxWeeks" type="number" min="1" max="60" step="1" style="width:110px;" />
+          <input id="pgxWeeks" type="number" min="1" step="1" style="width:110px;" />
           <button id="pgxApply" class="btn ghost" type="button">APLICAR</button>
 
           <button id="pgxNew" class="btn ghost" type="button">+ NUEVO</button>
@@ -4283,7 +4307,7 @@ const tw = pgxTotalWeeks();
     if (btnApply){
       btnApply.addEventListener("click", ()=>{
         const s = String(document.getElementById("pgxStart")?.value||"").trim();
-        const w = Math.max(1, Math.min(60, +document.getElementById("pgxWeeks")?.value||16));
+        const w = Math.max(1, Math.floor(+document.getElementById("pgxWeeks")?.value||16));
         if (!pgxCanEdit() || !pgxGetEditOn()){
           if (s) pgxSetViewStart(s);
           pgxSetViewWeeks(w);
