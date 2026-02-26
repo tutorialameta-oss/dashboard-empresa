@@ -3064,13 +3064,26 @@ function pgxInsertProgramId(store, newProgram){
   async function pgxRemoteSet_(store){ return await lmRemoteSet_(LM_MODULE_PROGRAMA, store); }
 
 
+  function pgxNormalizeStoreShape_(raw){
+    if (!raw || typeof raw !== "object") return null;
+    const timeline = raw.timeline;
+    const programs = (raw.programs && typeof raw.programs === "object")
+      ? raw.programs
+      : ((raw.programa && typeof raw.programa === "object") ? raw.programa : null);
+    if (!timeline || !programs) return null;
+    if (Array.isArray(programs)) return null;
+
+    if (!raw.programs && programs){ raw.programs = programs; }
+    return raw;
+  }
+
   function pgxFindStoredPrograma_(){
     const tried = [PGX_STORE_KEY, ...PGX_LEGACY_STORE_KEYS];
     let sourceKey = "";
     let data = null;
     for (const k of tried){
-      const candidate = pgxLoadJSON(k, null);
-      if (candidate && candidate.timeline && candidate.programs){
+      const candidate = pgxNormalizeStoreShape_(pgxLoadJSON(k, null));
+      if (candidate){
         sourceKey = k;
         data = candidate;
         break;
@@ -4751,6 +4764,8 @@ const tw = pgxTotalWeeks();
 
 
 
+
+
   function renderPrograma(){
     pgxEnsure();
     pgxEnsureProgramaLayout();
@@ -4784,11 +4799,17 @@ const tw = pgxTotalWeeks();
     const prevSL = prevSc ? prevSc.scrollLeft : 0;
     const prevST = prevSc ? prevSc.scrollTop  : 0;
 
-    if (mode === "ONE"){
-      const p = programs.find(x=>x.id===active) || programs[0];
-      canvas.innerHTML = pgxRenderSheet([p], "ONE");
-    } else {
-      canvas.innerHTML = pgxRenderSheet(programs, "ALL");
+    try{
+      if (mode === "ONE"){
+        const p = programs.find(x=>x.id===active) || programs[0];
+        canvas.innerHTML = pgxRenderSheet([p], "ONE");
+      } else {
+        canvas.innerHTML = pgxRenderSheet(programs, "ALL");
+      }
+    }catch(e){
+      console.error("[PGX] render error", e);
+      canvas.innerHTML = `<div class="pgEmpty">No se pudo renderizar PROGRAMA. Verifica estructura de datos.</div>`;
+      return;
     }
 
     // restaurar scroll (evita que vuelva al inicio al re-render)
