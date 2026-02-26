@@ -7911,6 +7911,10 @@ function renderReportes(){
     }
     return -1;
   }
+  function slotRowHeightPx(slot){
+    const mins = Math.max(1, toMinutes(slot.end) - toMinutes(slot.start));
+    return Math.max(12, Math.round(mins * 0.9));
+  }
 
   // “ÁLG 1” / “RV 2” / “FÍS 1” / “G&M 1” / “G&T 2” => 1 sola línea
   function isCodePlusNumber(tokens){
@@ -8089,7 +8093,7 @@ function renderReportes(){
         return `<td class="schEmpty" data-day="${escapeAttr(d)}" data-row="${i}" data-start="${escapeAttr(slot.start)}" data-end="${escapeAttr(slot.end)}" data-course="" data-teacher="" ${allowInlineEdit ? 'data-inline-edit="1"' : ''} data-placeholder="${placeholder ? "1" : "0"}"></td>`;
       }).join("");
 
-      return `<tr>${timeCell}${tds}</tr>`;
+      return `<tr style="height:${slotRowHeightPx(slot)}px;">${timeCell}${tds}</tr>`;
     }).join("");
 
     return `
@@ -8123,6 +8127,14 @@ function renderReportes(){
   // ===================== ORDEN DE HORARIOS =====================
   const LOCAL_ORDER = ["LA MOLINA","SAN MIGUEL","SAN BORJA","VIRTUAL"];
   const UNI_ORDER = ["AGRARIA","U.LIMA","PUCP","ESCOLARES"];
+  const MATRIX_COLS = [
+    { key:"AGRARIA_1", label:"AGRARIA 1" },
+    { key:"AGRARIA_2", label:"AGRARIA 2" },
+    { key:"ULIMA_1",   label:"U.LIMA 1" },
+    { key:"ULIMA_2",   label:"U.LIMA 2" },
+    { key:"PUCP",      label:"PUCP" },
+    { key:"ESCOLARES", label:"ESCOLARES" },
+  ];
 
   function sortSchedules(list){
     const idxLoc = (x)=> {
@@ -8879,17 +8891,6 @@ function ensureHorariosLayout(){
     const rer = ()=>renderHorarios();
     initHorariosCardFilterPanel(rer);
 
-    const emptyBtn = document.getElementById("hToggleEmpty");
-    if (emptyBtn){
-      emptyBtn.textContent = getShowEmptySlots() ? "OCULTAR HORARIOS VACÍOS" : "MOSTRAR HORARIOS VACÍOS";
-      emptyBtn.addEventListener("click", ()=>{
-        const next = !getShowEmptySlots();
-        setShowEmptySlots(next);
-        emptyBtn.textContent = next ? "OCULTAR HORARIOS VACÍOS" : "MOSTRAR HORARIOS VACÍOS";
-        rer();
-      });
-    }
-
     document.getElementById("hViewMode").addEventListener("change", ()=>{
       try{ localStorage.setItem(VM_KEY, document.getElementById("hViewMode").value); }catch(e){}
       rer();
@@ -8971,34 +8972,34 @@ el.dataset.ready = "1";
     });
   }
 
-  const MATRIX_EXPECTED_CARDS = [
-    { prefId:"LA_MOLINA|AGRARIA_1", local:"LA MOLINA", colKey:"AGRARIA_1", uni:"AGRARIA", salon:"AGRARIA 1" },
-    { prefId:"LA_MOLINA|AGRARIA_2", local:"LA MOLINA", colKey:"AGRARIA_2", uni:"AGRARIA", salon:"AGRARIA 2" },
-    { prefId:"LA_MOLINA|ULIMA_1", local:"LA MOLINA", colKey:"ULIMA_1", uni:"U.LIMA", salon:"U.LIMA 1" },
-    { prefId:"LA_MOLINA|ULIMA_2", local:"LA MOLINA", colKey:"ULIMA_2", uni:"U.LIMA", salon:"U.LIMA 2" },
-    { prefId:"LA_MOLINA|PUCP", local:"LA MOLINA", colKey:"PUCP", uni:"PUCP", salon:"PUCP" },
-    { prefId:"LA_MOLINA|ESCOLARES", local:"LA MOLINA", colKey:"ESCOLARES", uni:"AGRARIA", salon:"ESCOLARES" },
+  function colKeyToUni_(k){
+    if (String(k||"").startsWith("AGRARIA")) return "AGRARIA";
+    if (String(k||"").startsWith("ULIMA")) return "U.LIMA";
+    if (k === "PUCP") return "PUCP";
+    return "U.LIMA";
+  }
 
-    { prefId:"SAN_MIGUEL|AGRARIA_1", local:"SAN MIGUEL", colKey:"AGRARIA_1", uni:"AGRARIA", salon:"AGRARIA 1" },
-    { prefId:"SAN_MIGUEL|AGRARIA_2", local:"SAN MIGUEL", colKey:"AGRARIA_2", uni:"AGRARIA", salon:"AGRARIA 2" },
-    { prefId:"SAN_MIGUEL|ULIMA_1", local:"SAN MIGUEL", colKey:"ULIMA_1", uni:"U.LIMA", salon:"U.LIMA 1" },
-    { prefId:"SAN_MIGUEL|ULIMA_2", local:"SAN MIGUEL", colKey:"ULIMA_2", uni:"U.LIMA", salon:"U.LIMA 2" },
-    { prefId:"SAN_MIGUEL|PUCP", local:"SAN MIGUEL", colKey:"PUCP", uni:"PUCP", salon:"PUCP" },
-
-    { prefId:"SAN_BORJA|AGRARIA_1", local:"SAN BORJA", colKey:"AGRARIA_1", uni:"AGRARIA", salon:"AGRARIA 1" },
-    { prefId:"SAN_BORJA|AGRARIA_2", local:"SAN BORJA", colKey:"AGRARIA_2", uni:"AGRARIA", salon:"AGRARIA 2" },
-    { prefId:"SAN_BORJA|ULIMA_1", local:"SAN BORJA", colKey:"ULIMA_1", uni:"U.LIMA", salon:"U.LIMA 1" },
-    { prefId:"SAN_BORJA|ULIMA_2", local:"SAN BORJA", colKey:"ULIMA_2", uni:"U.LIMA", salon:"U.LIMA 2" },
-    { prefId:"SAN_BORJA|PUCP", local:"SAN BORJA", colKey:"PUCP", uni:"PUCP", salon:"PUCP" },
-
-    { prefId:"VIRTUAL|AGRARIA_1", local:"VIRTUAL", colKey:"AGRARIA_1", uni:"AGRARIA", salon:"AGRARIA" },
-    { prefId:"VIRTUAL|ULIMA_1", local:"VIRTUAL", colKey:"ULIMA_1", uni:"U.LIMA", salon:"U.LIMA 1" },
-    { prefId:"VIRTUAL|ULIMA_2", local:"VIRTUAL", colKey:"ULIMA_2", uni:"U.LIMA", salon:"U.LIMA 2" },
-    { prefId:"VIRTUAL|ESCOLARES", local:"VIRTUAL", colKey:"ESCOLARES", uni:"U.LIMA", salon:"ESCOLARES" },
-  ];
+  function getExpectedCardsCatalog(){
+    const locals = LOCAL_ORDER.slice();
+    const cols = MATRIX_COLS.slice();
+    const slug = (x)=>String(x||"").replace(/\s+/g,"_");
+    const list = [];
+    for (const loc of locals){
+      for (const c of cols){
+        list.push({
+          prefId: `${slug(loc)}|${c.key}`,
+          local: loc,
+          colKey: c.key,
+          uni: colKeyToUni_(c.key),
+          salon: c.label
+        });
+      }
+    }
+    return list;
+  }
 
   function expectedCardsForFilters(fLocal, fUni){
-    return MATRIX_EXPECTED_CARDS.filter((x)=>{
+    return getExpectedCardsCatalog().filter((x)=>{
       if (fLocal !== "__ALL__" && x.local !== fLocal) return false;
       if (fUni !== "__ALL__"){
         if (fUni === "AGRARIA" && !x.colKey.startsWith("AGRARIA")) return false;
@@ -9060,8 +9061,9 @@ el.dataset.ready = "1";
 
     const render = ()=>{
       const prefs = loadHorarioCardPrefs();
+      const catalog = getExpectedCardsCatalog();
       hideFin.checked = !!prefs.hideFinished;
-      list.innerHTML = MATRIX_EXPECTED_CARDS.map((x)=>{
+      list.innerHTML = catalog.map((x)=>{
         const vis = !(prefs.hidden && prefs.hidden[x.prefId]);
         const fin = !!(prefs.finished && prefs.finished[x.prefId]);
         return `<label class="hCardFilterItem"><input type="checkbox" class="hCardShow" data-prefid="${escapeAttr(x.prefId)}" ${vis?"checked":""}> ${escapeHtml(x.local)} · ${escapeHtml(x.salon)} <span class="mut">(${escapeHtml(x.colKey)})</span> <input type="checkbox" class="hCardFin" data-prefid="${escapeAttr(x.prefId)}" ${fin?"checked":""}> <span class="mut">finalizada</span></label>`;
@@ -9095,7 +9097,7 @@ el.dataset.ready = "1";
     if (allOff) allOff.addEventListener("click", ()=>{
       const prefs = loadHorarioCardPrefs();
       const hidden = {};
-      MATRIX_EXPECTED_CARDS.forEach(x=>hidden[x.prefId]=true);
+      getExpectedCardsCatalog().forEach(x=>hidden[x.prefId]=true);
       prefs.hidden = hidden;
       saveHorarioCardPrefs(prefs);
       render();
@@ -9189,14 +9191,7 @@ el.dataset.ready = "1";
     }
 
     const LOCS = ["LA MOLINA","SAN MIGUEL","SAN BORJA","VIRTUAL"];
-    const COLS = [
-      { key:"AGRARIA_1", label:"AGRARIA 1" },
-      { key:"AGRARIA_2", label:"AGRARIA 2" },
-      { key:"ULIMA_1",   label:"U.LIMA 1" },
-      { key:"ULIMA_2",   label:"U.LIMA 2" },
-      { key:"PUCP",      label:"PUCP" },
-      { key:"ESCOLARES", label:"ESCOLARES" },
-    ];
+    const COLS = MATRIX_COLS;
 
     const expected = expectedCardsForFilters(fLocal, fUni);
     const prefs = loadHorarioCardPrefs();
@@ -9366,91 +9361,6 @@ el.dataset.ready = "1";
       blocks[hit] = { ...blocks[hit], day:payload.day, start:payload.start, end:payload.end, course:payload.course };
     }else{
       blocks.push({ day: payload.day, start: payload.start, end: payload.end, course: payload.course, teacher:"" });
-    }
-
-    SCHEDULES[i] = { ...sch, blocks };
-    SCHEDULES = sortSchedules(SCHEDULES);
-    saveSchedules();
-    renderHorarios();
-  }
-
-  function wireHorariosInlineEditing(root){
-    if (!root) return;
-    if (root.dataset.inlineWire === "1") return;
-    root.dataset.inlineWire = "1";
-
-    root.addEventListener("dblclick", (e)=>{
-      if (CURRENT_ROLE !== "admin" || !HORARIOS_EDIT_MODE) return;
-      const cell = e.target.closest("td[data-inline-edit='1']");
-      if (!cell) return;
-      const card = cell.closest(".schCard[data-id]");
-      if (!card) return;
-      const sid = card.getAttribute("data-id");
-      if (!sid || sid.startsWith("EMPTY_")) return;
-      startInlineCourseEdit(cell, sid);
-    });
-  }
-
-  function startInlineCourseEdit(cell, scheduleId){
-    if (!cell || cell.dataset.editing === "1") return;
-    const day = cell.getAttribute("data-day");
-    const start = cell.getAttribute("data-start");
-    const end = cell.getAttribute("data-end");
-    if (!day || !start || !end) return;
-
-    cell.dataset.editing = "1";
-    cell.classList.add("isInlineEditing");
-    const prevHtml = cell.innerHTML;
-    const input = document.createElement("input");
-    input.className = "schInlineInput";
-    input.value = cell.getAttribute("data-course") || "";
-    input.placeholder = "Nombre del curso";
-    cell.innerHTML = "";
-    cell.appendChild(input);
-    input.focus();
-    input.select();
-
-    const finish = (save)=>{
-      if (cell.dataset.editing !== "1") return;
-      const newCourse = input.value.trim();
-      cell.dataset.editing = "0";
-      cell.classList.remove("isInlineEditing");
-
-      if (!save){
-        cell.innerHTML = prevHtml;
-        return;
-      }
-
-      applyInlineCourseUpdate(scheduleId, day, start, end, newCourse);
-    };
-
-    input.addEventListener("keydown", (ev)=>{
-      if (ev.key === "Enter"){
-        ev.preventDefault();
-        finish(true);
-      }else if (ev.key === "Escape"){
-        ev.preventDefault();
-        finish(false);
-      }
-    });
-    input.addEventListener("blur", ()=>finish(true));
-  }
-
-  function applyInlineCourseUpdate(scheduleId, day, start, end, course){
-    const i = SCHEDULES.findIndex(x=>x.id===scheduleId);
-    if (i < 0) return;
-    const sch = SCHEDULES[i];
-    const blocks = Array.isArray(sch.blocks) ? sch.blocks.slice() : [];
-    const hit = blocks.findIndex((b)=>normalizeDayKey(b.day)===normalizeDayKey(day) && b.start===start && b.end===end);
-
-    if (hit >= 0){
-      if (!course){
-        blocks.splice(hit, 1);
-      }else{
-        blocks[hit] = { ...blocks[hit], course };
-      }
-    }else if (course){
-      blocks.push({ day: normalizeDayKey(day), start, end, course, teacher:"" });
     }
 
     SCHEDULES[i] = { ...sch, blocks };
