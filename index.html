@@ -768,6 +768,26 @@
       padding: 6px 6px;
     }
     .schEmpty{ background:#fff; }
+    .schEmpty.hasTimeLabel{
+      color: rgba(15,23,42,0.35);
+      font-size:10px;
+      font-weight:800;
+    }
+
+    .schCell.isInlineEditing,
+    .schEmpty.isInlineEditing{
+      outline: 2px solid rgba(209,11,11,.45);
+      outline-offset: -2px;
+    }
+    .schInlineInput{
+      width:100%;
+      border:1px solid rgba(15,23,42,.22);
+      border-radius:8px;
+      padding:6px 8px;
+      font-weight:900;
+      text-transform:uppercase;
+      background:#fff;
+    }
 
     .schTable col.timeCol{ width: 92px; }
 
@@ -7815,6 +7835,22 @@ function renderReportes(){
   })();
   function idxMark(t){ return TIME_MARKS.indexOf(t); }
 
+  const TIME_SLOT_CATALOG = TIME_ROWS.map((row, i)=>({
+    id: `slot_${i+1}`,
+    index: i,
+    start: row.start,
+    end: row.end,
+    label: row.label || `${row.start} - ${row.end}`
+  }));
+
+  const H_EMPTY_SLOT_KEY = "LM_HORARIOS_SHOW_EMPTY_SLOTS_v1";
+  function getShowEmptySlots(){
+    try{ return localStorage.getItem(H_EMPTY_SLOT_KEY) !== "0"; }catch(_){ return true; }
+  }
+  function setShowEmptySlots(v){
+    try{ localStorage.setItem(H_EMPTY_SLOT_KEY, v ? "1" : "0"); }catch(_){ }
+  }
+
   function normalizeDayKey(d){
     const x = String(d||"").trim().toUpperCase();
     if (x==="MIERCOLES") return "MIÉRCOLES";
@@ -7935,7 +7971,8 @@ function renderReportes(){
         rowspan: span,
         block: {
           course: b.course || "",
-          teacher: b.teacher || ""
+          teacher: b.teacher || "",
+          end: b.end || ""
         }
       };
 
@@ -7955,7 +7992,9 @@ function renderReportes(){
     return getCss("--ulima");
   }
 
-  function scheduleToHtmlCard(s){
+  function scheduleToHtmlCard(s, opts={}){
+    const showEmptySlots = (opts.showEmptySlots !== undefined) ? !!opts.showEmptySlots : getShowEmptySlots();
+    const allowInlineEdit = !!opts.allowInlineEdit;
     const dot = uniDotColor(s.uni);
     const matrix = buildScheduleMatrix(s);
 
@@ -7976,20 +8015,29 @@ function renderReportes(){
     `;
 
     const tbody = matrix.map((rowObj, i)=>{
-      const timeLabel = TIME_ROWS[i].label;
+      const slot = TIME_SLOT_CATALOG[i];
+      const rowHasCourse = DAYS.some((d)=>{
+        const k = rowObj[d]?.kind;
+        return k === "start" || k === "skip";
+      });
+      if (!showEmptySlots && !rowHasCourse) return "";
+
+      const timeLabel = slot.label;
       const timeCell = `<td class="timeCell">${escapeHtml(timeLabel)}</td>`;
 
       const tds = DAYS.map(d=>{
         const cell = rowObj[d];
         if (cell.kind === "skip") return "";
         if (cell.kind === "start"){
+          const c = cell.block.course || "";
           return `
-            <td class="schCell" rowspan="${cell.rowspan}">
-              ${renderCell4(cell.block.course, cell.block.teacher)}
+            <td class="schCell" rowspan="${cell.rowspan}" data-day="${escapeAttr(d)}" data-row="${i}" data-start="${escapeAttr(slot.start)}" data-end="${escapeAttr(cell.block.end || slot.end)}" data-course="${escapeAttr(c)}" data-teacher="${escapeAttr(cell.block.teacher||"")}" ${allowInlineEdit ? 'data-inline-edit="1"' : ''}>
+              ${renderCell4(c, cell.block.teacher)}
             </td>
           `;
         }
-        return `<td class="schEmpty"></td>`;
+        const emptyLabel = showEmptySlots ? `<span>${escapeHtml(slot.start)} - ${escapeHtml(slot.end)}</span>` : "";
+        return `<td class="schEmpty ${showEmptySlots ? "hasTimeLabel" : ""}" data-day="${escapeAttr(d)}" data-row="${i}" data-start="${escapeAttr(slot.start)}" data-end="${escapeAttr(slot.end)}" data-course="" data-teacher="" ${allowInlineEdit ? 'data-inline-edit="1"' : ''}>${emptyLabel}</td>`;
       }).join("");
 
       return `<tr>${timeCell}${tds}</tr>`;
@@ -8727,12 +8775,14 @@ function ensureHorariosLayout(){
           <select id="hUni"></select>
           <select id="hSalon"></select>
 
+          <button id="hToggleEmpty" type="button">OCULTAR HORARIOS VACÍOS</button>
+
           ${(CURRENT_ROLE==="admin") ? `<button id="hEditToggle" class="hEditBtn">EDITAR</button><button id="hNewSch" class="hEditBtnGhost" style="display:none;">+ NUEVO</button>` : ``}
 
           <button id="hReset">VER TODO</button>
         </div>
 
-        ${(CURRENT_ROLE==="admin") ? `<div id="hEditBar" class="hEditBar" style="display:none;">Modo edición activo: usa <b>EDITAR</b> en una tarjeta para modificar bloques.</div>` : ``}
+        ${(CURRENT_ROLE==="admin") ? `<div id="hEditBar" class="hEditBar" style="display:none;">Modo edición activo: doble click en una celda para editar curso (Enter guarda / Esc cancela) o usa <b>EDITAR</b> para bloques.</div>` : ``}
 
         <div class="panelHint" style="margin-top:10px;">
           <span class="pill"><span class="dot agraria"></span>AGRARIA</span>
@@ -8769,8 +8819,18 @@ function ensureHorariosLayout(){
 
     rebuildHorariosSalonOptions();
     document.getElementById("hSalon").value = "__ALL__";
-
     const rer = ()=>renderHorarios();
+
+    const emptyBtn = document.getElementById("hToggleEmpty");
+    if (emptyBtn){
+      emptyBtn.textContent = getShowEmptySlots() ? "OCULTAR HORARIOS VACÍOS" : "MOSTRAR HORARIOS VACÍOS";
+      emptyBtn.addEventListener("click", ()=>{
+        const next = !getShowEmptySlots();
+        setShowEmptySlots(next);
+        emptyBtn.textContent = next ? "OCULTAR HORARIOS VACÍOS" : "MOSTRAR HORARIOS VACÍOS";
+        rer();
+      });
+    }
 
     document.getElementById("hViewMode").addEventListener("change", ()=>{
       try{ localStorage.setItem(VM_KEY, document.getElementById("hViewMode").value); }catch(e){}
@@ -8895,7 +8955,7 @@ el.dataset.ready = "1";
         return;
       }
 
-      grid.innerHTML = scheduleToHtmlCard(own);
+      grid.innerHTML = scheduleToHtmlCard(own, { showEmptySlots:getShowEmptySlots(), allowInlineEdit:false });
       if (meta) meta.innerHTML = `
         <span class="pill"><span class="dot" style="background:var(--ok);"></span>${escapeHtml(prof.local)}</span>
         <span class="pill"><span class="dot" style="background:${prof.uni==="AGRARIA" ? "var(--agraria)" : (prof.uni==="PUCP" ? "var(--pucp)" : "var(--ulima)")}"></span>${escapeHtml(prof.uni)}</span>
@@ -8926,7 +8986,8 @@ el.dataset.ready = "1";
 
       if (mx) mx.style.display = "none";
       if (grid) grid.style.display = "";
-      if (grid) grid.innerHTML = list.map(scheduleToHtmlCard).join("");
+      if (grid) grid.innerHTML = list.map(s=>scheduleToHtmlCard(s, { showEmptySlots:getShowEmptySlots(), allowInlineEdit: CURRENT_ROLE==="admin" && HORARIOS_EDIT_MODE })).join("");
+      if (grid) wireHorariosInlineEditing(grid);
       return;
     }
 
@@ -8982,7 +9043,7 @@ el.dataset.ready = "1";
         const key = loc + "||" + c.key;
         const list = sortSchedules((by.get(key) || []).slice());
         const inner = list.length
-          ? list.map(scheduleToHtmlCard).join("")
+          ? list.map(s=>scheduleToHtmlCard(s, { showEmptySlots:getShowEmptySlots(), allowInlineEdit: CURRENT_ROLE==="admin" && HORARIOS_EDIT_MODE })).join("")
           : `<div class="mxEmpty">—</div>`;
         return `<div class="mxCell">${inner}</div>`;
       }).join("");
@@ -8999,7 +9060,93 @@ el.dataset.ready = "1";
       `;
       try{ applyHorariosZoom(); }catch(e){}
       try{ requestAnimationFrame(()=>fitHorariosMatrixHeight()); }catch(e){}
+      wireHorariosInlineEditing(mx);
     }
+  }
+
+  function wireHorariosInlineEditing(root){
+    if (!root) return;
+    if (root.dataset.inlineWire === "1") return;
+    root.dataset.inlineWire = "1";
+
+    root.addEventListener("dblclick", (e)=>{
+      if (CURRENT_ROLE !== "admin" || !HORARIOS_EDIT_MODE) return;
+      const cell = e.target.closest("td[data-inline-edit='1']");
+      if (!cell) return;
+      const card = cell.closest(".schCard[data-id]");
+      if (!card) return;
+      const sid = card.getAttribute("data-id");
+      if (!sid || sid.startsWith("EMPTY_")) return;
+      startInlineCourseEdit(cell, sid);
+    });
+  }
+
+  function startInlineCourseEdit(cell, scheduleId){
+    if (!cell || cell.dataset.editing === "1") return;
+    const day = cell.getAttribute("data-day");
+    const start = cell.getAttribute("data-start");
+    const end = cell.getAttribute("data-end");
+    if (!day || !start || !end) return;
+
+    cell.dataset.editing = "1";
+    cell.classList.add("isInlineEditing");
+    const prevHtml = cell.innerHTML;
+    const input = document.createElement("input");
+    input.className = "schInlineInput";
+    input.value = cell.getAttribute("data-course") || "";
+    input.placeholder = "Nombre del curso";
+    cell.innerHTML = "";
+    cell.appendChild(input);
+    input.focus();
+    input.select();
+
+    const finish = (save)=>{
+      if (cell.dataset.editing !== "1") return;
+      const newCourse = input.value.trim();
+      cell.dataset.editing = "0";
+      cell.classList.remove("isInlineEditing");
+
+      if (!save){
+        cell.innerHTML = prevHtml;
+        return;
+      }
+
+      applyInlineCourseUpdate(scheduleId, day, start, end, newCourse);
+    };
+
+    input.addEventListener("keydown", (ev)=>{
+      if (ev.key === "Enter"){
+        ev.preventDefault();
+        finish(true);
+      }else if (ev.key === "Escape"){
+        ev.preventDefault();
+        finish(false);
+      }
+    });
+    input.addEventListener("blur", ()=>finish(true));
+  }
+
+  function applyInlineCourseUpdate(scheduleId, day, start, end, course){
+    const i = SCHEDULES.findIndex(x=>x.id===scheduleId);
+    if (i < 0) return;
+    const sch = SCHEDULES[i];
+    const blocks = Array.isArray(sch.blocks) ? sch.blocks.slice() : [];
+    const hit = blocks.findIndex((b)=>normalizeDayKey(b.day)===normalizeDayKey(day) && b.start===start && b.end===end);
+
+    if (hit >= 0){
+      if (!course){
+        blocks.splice(hit, 1);
+      }else{
+        blocks[hit] = { ...blocks[hit], course };
+      }
+    }else if (course){
+      blocks.push({ day: normalizeDayKey(day), start, end, course, teacher:"" });
+    }
+
+    SCHEDULES[i] = { ...sch, blocks };
+    SCHEDULES = sortSchedules(SCHEDULES);
+    saveSchedules();
+    renderHorarios();
   }
 
 
