@@ -2749,8 +2749,8 @@ const PGX_STORE_KEY   = "LM_PROGRAMA_SHEET_V1_STORE";
   const PGX_VIEW_WEEKS_KEY = "LM_PROGRAMA_SHEET_V1_VIEW_WEEKS";
 
   const PGX_SETTINGS_KEY = "LM_PROGRAMA_SHEET_V1_SETTINGS"; // panel Personalizar (Admin)
-  const PGX_EDIT_STATE = { anchor:null, dragging:false, activeTd:null, orig:"", clipboard:"" };
-  let PGX_DIAG_LOGGED = false;
+  let PGX_FULLSCREEN = false;
+  const PGX_EDIT_STATE = { anchor:null, dragging:false, ctx:null };
 
   // Toast (mensaje corto)
   function toast(msg){
@@ -4095,6 +4095,13 @@ const tw = pgxTotalWeeks();
   }
 
 
+  function pgxSetFullscreen(on){
+    PGX_FULLSCREEN = !!on;
+    const host = document.getElementById("pgxFsHost");
+    if (!host) return;
+    host.classList.toggle("isFullscreen", PGX_FULLSCREEN);
+  }
+
   function pgxClearSelection(){
     const canvas = document.getElementById("pgxCanvas");
     if (!canvas) return;
@@ -4107,98 +4114,80 @@ const tw = pgxTotalWeeks();
     return Array.from(canvas.querySelectorAll("td.pxEditable.pxSel"));
   }
 
-  function pgxCellMeta(td){
-    return {
-      pgid:String(td.getAttribute("data-pgid")||""),
-      lane:String(td.getAttribute("data-lane")||""),
-      start:+td.getAttribute("data-lstart")||1,
-      span:+td.getAttribute("data-lspan")||1
-    };
+  function pgxUpdateSelInfo(){
+    const el = document.getElementById("pgxCellSelInfo");
+    if (!el) return;
+    const n = pgxSelectedCells().length;
+    el.textContent = n>0 ? `Rango seleccionado: ${n} celdas.` : "Sin selección de rango.";
   }
 
-  function pgxApplyCellValue(meta, value, store){
+  function pgxOpenCellEditor(ctx){
+    PGX_EDIT_STATE.ctx = ctx;
+    const ov = document.getElementById("pgxCellEditOverlay");
+    const meta = document.getElementById("pgxCellEditMeta");
+    const inp = document.getElementById("pgxCellEditValue");
+    if (!ov || !inp || !meta) return;
+    meta.textContent = `${ctx.label} · semanas ${ctx.start}-${ctx.start+ctx.span-1}`;
+    inp.value = String(ctx.value||"");
+    ov.style.display = "flex";
+    pgxUpdateSelInfo();
+    setTimeout(()=>{ inp.focus(); inp.select(); },0);
+  }
+
+  function pgxCloseCellEditor(){
+    const ov = document.getElementById("pgxCellEditOverlay");
+    if (ov) ov.style.display = "none";
+    PGX_EDIT_STATE.ctx = null;
+  }
+
+  function pgxApplyValueToCellMeta(meta, value){
+    const store = pgxLoadStore();
     const p = store.programs[meta.pgid];
-    if (!p) return;
+    if (!p) return false;
     const l = (p.config?.lanes||[]).find(x=>x.key===meta.lane);
-    if (!l || l.type!=="cells") return;
+    if (!l || l.type!=="cells") return false;
     const arr = Array.isArray(l.values) ? l.values : [];
     for (let i=meta.start-1; i<meta.start-1+meta.span; i++){
       if (i>=0 && i<arr.length) arr[i] = String(value||"");
     }
     l.values = arr;
     p.meta.updatedAt = pgxNowISO();
-    store.programs[meta.pgid]=p;
-  }
-
-  function pgxBeginInlineEdit(td){
-    if (!td) return;
-    if (PGX_EDIT_STATE.activeTd && PGX_EDIT_STATE.activeTd !== td){
-      pgxEndInlineEdit(true);
-    }
-    PGX_EDIT_STATE.activeTd = td;
-    PGX_EDIT_STATE.orig = td.textContent || "";
-    td.setAttribute("contenteditable","true");
-    td.focus();
-    try{ document.execCommand('selectAll', false, null); }catch(e){}
-  }
-
-  function pgxEndInlineEdit(save, move){
-    const td = PGX_EDIT_STATE.activeTd;
-    if (!td) return;
-    const original = PGX_EDIT_STATE.orig;
-    const value = (td.textContent||"").trim();
-    td.removeAttribute("contenteditable");
-    PGX_EDIT_STATE.activeTd = null;
-    PGX_EDIT_STATE.orig = "";
-
-    if (!save){
-      td.textContent = original;
-      return;
-    }
-
-    const meta = pgxCellMeta(td);
-    if (!meta.pgid || !meta.lane) return;
-    const store = pgxLoadStore();
-    pgxApplyCellValue(meta, value, store);
+    store.programs[meta.pgid] = p;
     pgxSaveStore(store);
-    renderPrograma();
+    return true;
+  }
 
-    if (move && move.dir){
-      const next = (move.dir === "down")
-        ? pgxFindNextDownCell(meta)
-        : pgxFindNextRightCell(meta);
-      if (next) pgxBeginInlineEdit(next);
+  function pgxSaveCellEditor(){
+    const ctx = PGX_EDIT_STATE.ctx;
+    if (!ctx) return;
+    const v = String(document.getElementById("pgxCellEditValue")?.value||"");
+    if (pgxApplyValueToCellMeta(ctx, v)){
+      pgxCloseCellEditor();
+      renderPrograma();
     }
   }
 
-  function pgxFindNextRightCell(meta){
-    const canvas = document.getElementById("pgxCanvas");
-    if (!canvas) return null;
-    return canvas.querySelector(`td.pxEditable[data-pgid="${meta.pgid}"][data-lane="${meta.lane}"][data-lstart="${meta.start + meta.span}"]`);
-  }
-
-  function pgxFindNextDownCell(meta){
-    const canvas = document.getElementById("pgxCanvas");
-    if (!canvas) return null;
-    const col = String(meta.start);
-    const list = Array.from(canvas.querySelectorAll(`td.pxEditable[data-pgid="${meta.pgid}"][data-lstart="${col}"]`));
-    const i = list.findIndex(td=>String(td.getAttribute("data-lane")||"")===meta.lane);
-    return (i>=0 && i<list.length-1) ? list[i+1] : null;
-  }
-
-  function pgxFillDownFromActive(){
-    const td = PGX_EDIT_STATE.activeTd;
+  function pgxApplyToRange(fillDown){
     const cells = pgxSelectedCells();
-    if (!td || !cells.length) return;
-    const value = (td.textContent||"").trim();
+    if (!cells.length) return;
+    const seed = fillDown ? String(PGX_EDIT_STATE.ctx?.value||"") : String(document.getElementById("pgxCellEditValue")?.value||"");
+    const metas = cells.map(td=>(
+      { pgid:String(td.getAttribute("data-pgid")||""), lane:String(td.getAttribute("data-lane")||""), start:+td.getAttribute("data-lstart")||1, span:+td.getAttribute("data-lspan")||1 }
+    ));
     const store = pgxLoadStore();
-    for (const c of cells){
-      const m = pgxCellMeta(c);
-      pgxApplyCellValue(m, value, store);
+    for (const m of metas){
+      const p = store.programs[m.pgid]; if (!p) continue;
+      const l = (p.config?.lanes||[]).find(x=>x.key===m.lane); if (!l || l.type!=="cells") continue;
+      const arr = Array.isArray(l.values) ? l.values : [];
+      for (let i=m.start-1; i<m.start-1+m.span; i++) if (i>=0 && i<arr.length) arr[i] = seed;
+      l.values = arr;
+      p.meta.updatedAt = pgxNowISO();
+      store.programs[m.pgid] = p;
     }
     pgxSaveStore(store);
     renderPrograma();
   }
+
 
   function pgxEnsureProgramaLayout(){
     const el = document.getElementById("view_programa");
@@ -4296,7 +4285,8 @@ const tw = pgxTotalWeeks();
     const btnJson = document.getElementById("pgxJson");
     const btnSet = document.getElementById("pgxSettingsBtn");
     const btnDates = document.getElementById("pgxDates");
-
+    const btnFs = document.getElementById("pgxFs");
+    const btnFsExit = document.getElementById("pgxFsExit");
   
     if (mode){
       mode.addEventListener("change", ()=>{
@@ -4616,6 +4606,8 @@ const tw = pgxTotalWeeks();
       });
     }
 
+    if (btnFs){ btnFs.addEventListener("click", ()=>pgxSetFullscreen(true)); }
+    if (btnFsExit){ btnFsExit.addEventListener("click", ()=>pgxSetFullscreen(false)); }
 
     if (btnDates){
       btnDates.addEventListener("click", ()=>{
@@ -4685,7 +4677,9 @@ const tw = pgxTotalWeeks();
       if (!pgxCanEdit() || !pgxGetEditOn()) return;
       if (!e.shiftKey) pgxClearSelection();
       td.classList.add("pxSel");
+      PGX_EDIT_STATE.anchor = td;
       PGX_EDIT_STATE.dragging = true;
+      pgxUpdateSelInfo();
     });
 
     canvas.addEventListener("mouseover", (e)=>{
@@ -4693,55 +4687,34 @@ const tw = pgxTotalWeeks();
       const td = e.target?.closest ? e.target.closest("td.pxEditable") : null;
       if (!td) return;
       td.classList.add("pxSel");
+      pgxUpdateSelInfo();
     });
 
     window.addEventListener("mouseup", ()=>{ PGX_EDIT_STATE.dragging = false; });
 
-    canvas.addEventListener("click", (e)=>{
+    canvas.addEventListener("dblclick", (e)=>{
       const td = e.target?.closest ? e.target.closest("td.pxEditable") : null;
       if (!td) return;
       if (!pgxCanEdit() || !pgxGetEditOn()) return;
-      pgxBeginInlineEdit(td);
+      if (!e.shiftKey) pgxClearSelection();
+      td.classList.add("pxSel");
+      PGX_EDIT_STATE.dragging = true;
     });
 
-    canvas.addEventListener("keydown", (e)=>{
-      const td = e.target?.closest ? e.target.closest("td.pxEditable[contenteditable='true']") : null;
-      if (!td) return;
+      const pgid   = String(td.getAttribute("data-pgid")||"");
+      const laneK  = String(td.getAttribute("data-lane")||"");
+      const lstart = +td.getAttribute("data-lstart")||1;
+      const lspan  = +td.getAttribute("data-lspan")||1;
+      if (!pgid || !laneK) return;
 
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase()==='c'){
-        e.preventDefault();
-        PGX_EDIT_STATE.clipboard = (td.textContent||"").trim();
-        return;
-      }
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase()==='v'){
-        e.preventDefault();
-        const val = PGX_EDIT_STATE.clipboard || "";
-        const sels = pgxSelectedCells();
-        const store = pgxLoadStore();
-        if (sels.length){
-          for (const c of sels) pgxApplyCellValue(pgxCellMeta(c), val, store);
-        }else{
-          pgxApplyCellValue(pgxCellMeta(td), val, store);
-        }
-        pgxSaveStore(store);
-        renderPrograma();
-        return;
-      }
+      const store = pgxLoadStore();
+      const p = store.programs[pgid];
+      if (!p) return;
+      const l = (p.config?.lanes||[]).find(x=>x.key===laneK);
+      if (!l || l.type!=="cells") return;
 
-      if (e.key === 'Escape'){
-        e.preventDefault();
-        pgxEndInlineEdit(false);
-        return;
-      }
-      if (e.key === 'Enter'){
-        e.preventDefault();
-        pgxEndInlineEdit(true, { dir:"down" });
-        return;
-      }
-      if (e.key === 'Tab'){
-        e.preventDefault();
-        pgxEndInlineEdit(true, { dir:"right" });
-      }
+      const cur = String((l.values||[])[lstart-1] || "");
+      pgxOpenCellEditor({ pgid, lane:laneK, start:lstart, span:lspan, label:String(l.label||laneK), value:cur });
     });
   }
 
@@ -4756,16 +4729,6 @@ const tw = pgxTotalWeeks();
       pgxSetFullscreen(false);
     }
   });
-
-
-
-
-
-
-
-
-
-
 
 
   function renderPrograma(){
