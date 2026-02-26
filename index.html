@@ -482,34 +482,6 @@
       box-shadow: var(--shadow);
     }
 
-    /* Compact mode encapsulado solo para Horarios */
-    .horariosView .schCard.compactMode{
-      width: min(100%, 640px);
-      max-width: 640px;
-      margin-inline: auto;
-      border-radius: 14px;
-    }
-    .horariosView .schCard.compactMode .schHead{
-      padding:10px 10px 8px;
-      gap:8px;
-    }
-    .horariosView .schCard.compactMode .schHead .loc{ font-size:14px; }
-    .horariosView .schCard.compactMode .schHead .sal{ font-size:11px; }
-    .horariosView .schCard.compactMode .schUniPill{ padding:7px 10px; font-size:11px; gap:6px; }
-    .horariosView .schCard.compactMode .schTableWrap{ padding:0 8px 8px; }
-    .horariosView .schCard.compactMode .schTable{ border-width:1px; }
-    .horariosView .schCard.compactMode .schTable th,
-    .horariosView .schCard.compactMode .schTable td{ padding:1px 4px; }
-    .horariosView .schCard.compactMode .schTable thead th{ font-size:10px; }
-    .horariosView .schCard.compactMode .schTable .timeHead{ font-size:10px; }
-    .horariosView .schCard.compactMode .schTable .timeCell{ font-size:10px; padding-left:6px; }
-    .horariosView .schCard.compactMode .schTable .timeCell.isMicro{ color:transparent; font-size:0; padding-top:0; padding-bottom:0; }
-    .horariosView .schCard.compactMode .schTable .timeCell.isMajor{ color:#334155; font-size:10px; }
-    .horariosView .schCard.compactMode .schTable col.timeCol{ width:72px; }
-    .horariosView .schCard.compactMode .schCell{ padding:3px 3px; }
-    .horariosView .schCard.compactMode .cell4{ row-gap:1px; }
-    .horariosView .schCard.compactMode .cell4 .cLine{ font-size:12px; }
-    .horariosView .schCard.compactMode .cell4 .tLine{ font-size:9px; }
     .schHead{
       padding:14px 14px 10px;
       display:flex;
@@ -599,14 +571,16 @@
 
     .schCardPlaceholder{ opacity:.9; box-shadow:none; border-style:dashed; }
 
-    .hInlineOverlay{ position:fixed; inset:0; background:rgba(2,6,23,.45); display:flex; align-items:center; justify-content:center; z-index:10020; padding:16px; }
-    .hInlineModal{ width:min(620px,96vw); background:#fff; border-radius:16px; border:1px solid rgba(15,23,42,.12); box-shadow:0 26px 80px rgba(2,6,23,.28); }
+    .hInlineOverlay{ position:fixed; inset:0; background:rgba(2,6,23,.45); display:flex; align-items:center; justify-content:center; z-index:10020; padding:16px; overflow-x:hidden; }
+    .hInlineModal{ max-width:720px; width:calc(100% - 32px); box-sizing:border-box; background:#fff; border-radius:16px; border:1px solid rgba(15,23,42,.12); box-shadow:0 26px 80px rgba(2,6,23,.28); }
     .hInlineHead{ display:flex; justify-content:space-between; gap:10px; padding:14px 16px; border-bottom:1px solid rgba(15,23,42,.10); }
     .hInlineTitle{ font-weight:1000; }
     .hInlineSub{ margin-top:4px; color:var(--muted); font-size:12px; font-weight:800; }
-    .hInlineBody{ padding:14px 16px; }
-    .hInlineGrid{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
+    .hInlineBody{ padding:14px 16px; box-sizing:border-box; }
+    .hInlineGrid{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; width:100%; box-sizing:border-box; }
     @media(max-width:720px){ .hInlineGrid{ grid-template-columns:1fr; } }
+    .hInlineModal .hInp{ width:100%; box-sizing:border-box; }
+
 
     .schEdit{
       padding:8px 12px;
@@ -804,6 +778,7 @@
       background: var(--schTimeBg);
       font-weight:950;
       font-size:12px;
+      line-height:1.1;
       text-align:left;
       padding-left:10px;
       white-space:nowrap;
@@ -7940,16 +7915,6 @@ function renderReportes(){
     }
     return -1;
   }
-  function slotRowHeightPx(slot){
-    const mins = Math.max(1, toMinutes(slot.end) - toMinutes(slot.start));
-    return Math.max(8, Math.round(mins * 0.65));
-  }
-  function isMajorTimeSlotLabel(slot){
-    const mins = Math.max(1, toMinutes(slot.end) - toMinutes(slot.start));
-    const st = toMinutes(slot.start);
-    if (mins < 25) return false;
-    return (st % 30) === 0;
-  }
 
   // “ÁLG 1” / “RV 2” / “FÍS 1” / “G&M 1” / “G&T 2” => 1 sola línea
   function isCodePlusNumber(tokens){
@@ -8111,8 +8076,8 @@ function renderReportes(){
 
     const tbody = matrix.map((rowObj, i)=>{
       const slot = TIME_SLOT_CATALOG[i];
-      const timeLabel = isMajorTimeSlotLabel(slot) ? (slot.label || "") : "";
-      const timeCell = `<td class="timeCell ${timeLabel ? "isMajor" : "isMicro"}">${escapeHtml(timeLabel)}</td>`;
+      const timeLabel = slot.label;
+      const timeCell = `<td class="timeCell">${escapeHtml(timeLabel)}</td>`;
 
       const tds = DAYS.map(d=>{
         const cell = rowObj[d];
@@ -8132,7 +8097,7 @@ function renderReportes(){
     }).join("");
 
     return `
-      <div class="schCard compactMode ${placeholder ? "schCardPlaceholder" : ""}" data-id="${escapeHtml(s.id)}" data-local="${escapeHtml(s.local)}" data-uni="${escapeHtml(s.uni)}" data-salon="${escapeHtml(s.salon)}">
+      <div class="schCard ${placeholder ? "schCardPlaceholder" : ""}" data-id="${escapeHtml(s.id)}" data-local="${escapeHtml(s.local)}" data-uni="${escapeHtml(s.uni)}" data-salon="${escapeHtml(s.salon)}">
         <div class="schHead">
           <div class="hLeft">
             <p class="loc">${escapeHtml(s.local)}</p>
