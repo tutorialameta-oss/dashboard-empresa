@@ -2208,7 +2208,7 @@
   .pgxMatrixFsBadge{ display:none; }
   .pgxMatrixHost.isFullscreen{
     position:fixed;
-    inset:10px;
+    inset:0;
     z-index:10035;
     background:#fff;
     border-radius:0;
@@ -2251,8 +2251,8 @@
   }
   .pgxMatrixHost.isFullscreen .pxSheetWrap{height:100%; min-height:0;}
   .pgxMatrixHost.isFullscreen .pxSheetScroll{
-    max-height:calc(100vh - 58px) !important;
-    height:calc(100vh - 58px) !important;
+    max-height:calc(100vh - 52px) !important;
+    height:calc(100vh - 52px) !important;
   }
 
   @media (max-width: 900px){
@@ -3320,8 +3320,8 @@ function pgxEnsure(){
   function pgxGetEditOn(){ return pgxLoadStr(PGX_EDIT_KEY, "0") === "1"; }
   function pgxSetEditOn(on){ pgxSaveStr(PGX_EDIT_KEY, on ? "1":"0"); }
 
-  function pgxGetFineOn(){ return pgxLoadStr(PGX_FINE_KEY, "0") === "1"; }
-  function pgxSetFineOn(on){ pgxSaveStr(PGX_FINE_KEY, on ? "1":"0"); }
+  function pgxGetFineOn(){ return true; }
+  function pgxSetFineOn(on){ /* edición fina siempre activa */ }
 
 
   function pgxGetViewStart(){ return pgxLoadStr(PGX_VIEW_START_KEY, ""); }
@@ -3750,7 +3750,6 @@ function pgxUpgradeProgram(p, baseWeeks){
     const edit  = document.getElementById("pgxEdit");
     const fs    = document.getElementById("pgxFsToggle");
 
-    const fine = document.getElementById("pgxFine");
     const fill = document.getElementById("pgxFill");
     const btnNew = document.getElementById("pgxNew");
     const btnDel = document.getElementById("pgxDel");
@@ -3779,7 +3778,6 @@ function pgxUpgradeProgram(p, baseWeeks){
       edit.classList.toggle("primary", editOn);
     }
     if (fs) fs.style.display = admin ? "" : "none";
-    if (fine) fine.textContent = `EDICIÓN FINA: ${pgxGetFineOn() ? "ON" : "OFF"}`;
 
     // Navegación de fechas visible fuera del editor
     [start, weeks, apply].forEach(el=>{ if (el) el.style.display = ""; });
@@ -3787,14 +3785,13 @@ function pgxUpgradeProgram(p, baseWeeks){
     if (admin){
       // Controles de vista avanzados solo dentro de editar
       [mode, sel, zoom, fill, btnSave, createType, btnCreate, btnSet].forEach(el=>{ if (el) el.style.display = editOn ? "" : "none"; });
-      if (fine) fine.style.display = editOn ? "" : "none";
       // Avanzados escondidos para simplificar
       [btnNew, btnDel, btnJson, btnDates].forEach(el=>{ if (el) el.style.display = "none"; });
     } else {
       if (mode) mode.style.display = "none";
       if (sel) sel.style.display = "none";
       if (zoom) zoom.style.display = "";
-      [fine, fill, btnNew, btnDel, btnJson, btnSet, btnDates, btnSave, createType, btnCreate].forEach(el=>{ if (el) el.style.display = "none"; });
+      [fill, btnNew, btnDel, btnJson, btnSet, btnDates, btnSave, createType, btnCreate].forEach(el=>{ if (el) el.style.display = "none"; });
     }
 
     if (admin && sel && mode) sel.style.display = (mode.value==="ONE") ? "" : "none";
@@ -4132,7 +4129,6 @@ const tw = pgxTotalWeeks();
             <option value="0.70">ZOOM: 70%</option>
           </select>
 
-          <button id="pgxFine" class="btn ghost" type="button">EDICIÓN FINA: OFF</button>
           <button id="pgxFill" class="btn ghost" type="button">RELLENAR RANGO</button>
 
           <input id="pgxStart" type="date" style="min-width:160px;" />
@@ -4174,7 +4170,6 @@ const tw = pgxTotalWeeks();
     const prog = document.getElementById("pgxProgram");
     const zoom = document.getElementById("pgxZoom");
     const edit = document.getElementById("pgxEdit");
-    const fine = document.getElementById("pgxFine");
     const btnFill = document.getElementById("pgxFill");
     const btnApply = document.getElementById("pgxApply");
     const btnNew = document.getElementById("pgxNew");
@@ -4197,7 +4192,6 @@ const tw = pgxTotalWeeks();
         const on = !pgxGetEditOn();
         pgxSetEditOn(on);
         pgxSetSettingsOpen(on);
-        if (!on) pgxSetFineOn(false);
         renderPrograma();
         pgxScheduleRelayout();
       });
@@ -4384,6 +4378,7 @@ const tw = pgxTotalWeeks();
       pgxGridState.range = {r1:pgxGridState.selected.row,c1:pgxGridState.selected.col,r2:ctx.row,c2:ctx.col};
     }
     pgxRefreshSelectionUi();
+    try{ td.scrollIntoView({block:"nearest", inline:"nearest"}); }catch(e){}
   }
 
   function pgxRefreshSelectionUi(){
@@ -4439,6 +4434,27 @@ const tw = pgxTotalWeeks();
       }
     }
     renderPrograma();
+  }
+
+  function pgxEditCellJsonDialog(ctx){
+    if (!ctx) return;
+    const td = pgxFindCellByPos(ctx.row, ctx.col);
+    if (!td) return;
+    const before = String(td.getAttribute('data-value')||'');
+    const seed = JSON.stringify({value: before}, null, 2);
+    const raw = prompt('Editar celda (JSON). Ejemplo: {"value":"SE01"}', seed);
+    if (raw===null) return;
+    let parsed = null;
+    try{ parsed = JSON.parse(String(raw||'{}')); }catch(err){ alert('JSON inválido.'); return; }
+    const after = String((parsed && parsed.value!=null) ? parsed.value : '').trim();
+    if (after === before) return;
+    const store = pgxLoadStore();
+    if (pgxApplyCellValue(store, ctx, after)){
+      pgxPushHistory({cells:[{...ctx,before,after}]});
+      pgxGridState.dirty = true;
+      pgxSaveStore(store);
+      renderPrograma();
+    }
   }
 
   function pgxCellsInRange(){
@@ -4543,13 +4559,18 @@ const tw = pgxTotalWeeks();
       const td = e.target?.closest ? e.target.closest('td.pxEditable') : null;
       if (!td || !pgxCanEdit() || !pgxGetEditOn()) return;
       pgxSetSelectedCell(td, e.shiftKey);
+      if (!e.shiftKey){
+        const ctx = pgxCellCtxFromTd(td);
+        pgxEditCellJsonDialog(ctx);
+      }
     });
 
     canvas.addEventListener('dblclick',(e)=>{
       const td = e.target?.closest ? e.target.closest('td.pxEditable') : null;
       if (!td || !pgxCanEdit() || !pgxGetEditOn()) return;
       pgxSetSelectedCell(td);
-      pgxStartEditing(td);
+      const ctx = pgxCellCtxFromTd(td);
+      pgxEditCellJsonDialog(ctx);
     });
 
     canvas.addEventListener('mousedown',(e)=>{
@@ -4595,8 +4616,7 @@ const tw = pgxTotalWeeks();
 
       if (e.key==='Enter'){
         e.preventDefault();
-        const td = pgxFindCellByPos(sel.row, sel.col);
-        if (td) pgxStartEditing(td);
+        pgxEditCellJsonDialog(sel);
         return;
       }
 
