@@ -2263,7 +2263,7 @@
     overflow-y:auto;
     overflow-x:scroll;
     scrollbar-gutter: stable both-edges;
-    padding-bottom: 16px;
+    padding-bottom: 64px;
   }
   .pgxMatrixHost.isFullscreen .pxSheetScroll::-webkit-scrollbar:horizontal{ height:14px; }
   .pgxMatrixHost.isFullscreen .pxSheetScroll::-webkit-scrollbar-thumb:horizontal{
@@ -2272,6 +2272,37 @@
     border: 3px solid #f8fafc;
   }
 
+
+  /* Barra HORIZONTAL visible en pantalla completa (si el SO oculta scrollbars) */
+  .pgxHNav{ display:none; }
+  .pgxHBtn{
+    width:40px;
+    height:34px;
+    border-radius:999px;
+    border:1px solid rgba(15,23,42,0.14);
+    background:#fff;
+    font-weight:1100;
+    cursor:pointer;
+  }
+  .pgxHBtn:hover{ border-color: rgba(209,11,11,0.35); box-shadow: 0 0 0 3px rgba(209,11,11,0.10); }
+  .pgxHRange{ width:100%; flex:1; }
+
+  .pgxMatrixHost.isFullscreen .pgxHNav{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    position:fixed;
+    left:22px;
+    right:22px;
+    bottom:22px;
+    z-index:10055;
+    padding:10px 12px;
+    border:1px solid rgba(15,23,42,0.14);
+    border-radius:999px;
+    background: rgba(255,255,255,0.92);
+    backdrop-filter: blur(10px);
+    box-shadow:0 12px 30px rgba(2,6,23,.18);
+  }
   @media (max-width: 900px){
     .pxSheetScroll{ max-height: calc(100vh - 160px); }
   }
@@ -3786,7 +3817,21 @@ function pgxUpgradeProgram(p, baseWeeks){
     const vWeeks = pgxGetViewWeeks() || baseWeeks;
     if (start) start.value = String(vStart||"");
     if (weeks) weeks.value = String(vWeeks||baseWeeks);
-    if (zoom) zoom.value = pgxZoomOption(pgxGetZoom());
+    
+    // Calcula FIN solo para visualización (start + weeks)
+    const endInp = document.getElementById("pgxEnd");
+    if (endInp){
+      const sd = pgxParseDateYMD(String(vStart||\"\"));
+      const wv = Math.max(1, Math.floor(+vWeeks||baseWeeks));
+      if (sd){
+        const ed = new Date(sd.getTime() + (wv-1)*7*24*60*60*1000);
+        const yyyy = ed.getFullYear();
+        const mm = String(ed.getMonth()+1).padStart(2,\"0\");
+        const dd = String(ed.getDate()).padStart(2,\"0\");
+        endInp.value = `${yyyy}-${mm}-${dd}`;
+      } else endInp.value = \"\";
+    }
+if (zoom) zoom.value = pgxZoomOption(pgxGetZoom());
     if (mode) mode.value = pgxGetMode();
 
     const admin = pgxCanEdit();
@@ -3797,9 +3842,8 @@ function pgxUpgradeProgram(p, baseWeeks){
       edit.textContent = editOn ? "EDITANDO" : "EDITAR";
       edit.classList.toggle("primary", editOn);
     }
-    if (fs) fs.style.display = admin ? "" : "none";
-
-    // Navegación de fechas visible fuera del editor
+    if (fs) fs.style.display = "";
+// Navegación de fechas visible fuera del editor
     [start, weeks, apply].forEach(el=>{ if (el) el.style.display = ""; });
 
     if (admin){
@@ -3877,6 +3921,10 @@ function pgxUpgradeProgram(p, baseWeeks){
     // En modo edición siempre se muestra el panel
     wrap.style.display = "";
 
+
+    // Respeta el toggle PERSONALIZAR
+    const open = !!pgxGetSettingsOpen();
+    if (!open){ wrap.style.display = \"none\"; wrap.innerHTML = \"\"; return; }
     const active = pgxGetActiveId() || (programs[0]?.id||"");
     const p = programs.find(x=>x.id===active) || programs[0];
     if (!p){ wrap.innerHTML=""; return; }
@@ -4098,7 +4146,8 @@ const tw = pgxTotalWeeks();
       toast("Colores reseteados.");
       renderPrograma();
       pgxScheduleRelayout();
-    });
+    try{ setTimeout(()=>{ try{ pgxWireHNav(); }catch(e){} }, 0); }catch(e){}
+  });
 
     document.getElementById("pgsName")?.addEventListener("keydown", (e)=>{
       if (e.key === "Enter"){
@@ -4230,6 +4279,8 @@ const tw = pgxTotalWeeks();
           <button id="pgxFill" class="btn ghost" type="button">RELLENAR RANGO</button>
 
           <input id="pgxStart" type="date" style="min-width:160px;" />
+                    <input id="pgxEnd" type="date" style="min-width:160px;" />
+
           <input id="pgxWeeks" type="number" min="1" step="1" style="width:110px;" />
           <button id="pgxApply" class="btn ghost" type="button">APLICAR</button>
 
@@ -4260,6 +4311,12 @@ const tw = pgxTotalWeeks();
             <button id="pgxFsExit" class="hFsBtn pgxMatrixExit" type="button">SALIR PANTALLA COMPLETA</button>
           </div>
           <div id="pgxCanvas"></div>
+
+          <div id="pgxHNav" class="pgxHNav" aria-label="Desplazamiento horizontal">
+            <button id="pgxHLeft" class="pgxHBtn" type="button">◀</button>
+            <input id="pgxHRange" class="pgxHRange" type="range" min="0" max="0" value="0" step="1"/>
+            <button id="pgxHRight" class="pgxHBtn" type="button">▶</button>
+          </div>
         </div>
       </div>
     `;
@@ -4350,8 +4407,21 @@ const tw = pgxTotalWeeks();
     if (btnApply){
       btnApply.addEventListener("click", ()=>{
         const s = String(document.getElementById("pgxStart")?.value||"").trim();
-        const w = Math.max(1, Math.floor(+document.getElementById("pgxWeeks")?.value||16));
+        const e = String(document.getElementById("pgxEnd")?.value||"").trim();
+        let w = Math.max(1, Math.floor(+document.getElementById("pgxWeeks")?.value||16));
         if (s) pgxSetViewStart(s);
+        // Si se define FIN (solo visualización), recalcula semanas automáticamente.
+        if (s && e){
+          const sd = pgxParseDateYMD(s);
+          const ed = pgxParseDateYMD(e);
+          if (sd && ed){
+            const diff = Math.max(0, ed.getTime() - sd.getTime());
+            const wk = Math.ceil(diff / (7*24*60*60*1000)) + 1;
+            w = Math.max(1, Math.floor(wk));
+            const wkInp = document.getElementById("pgxWeeks");
+            if (wkInp) wkInp.value = String(w);
+          }
+        }
         pgxSetViewWeeks(w);
         renderPrograma();
         toast("Vista actualizada.");
@@ -4705,6 +4775,9 @@ const tw = pgxTotalWeeks();
     pgxFillProgramSelect(programs);
     pgxApplyHeaderUI();
 
+
+    // Panel PERSONALIZAR (solo ADMIN en edición)
+    try{ if (typeof pgxRenderSettings === \"function\") pgxRenderSettings(programs); }catch(e){}
     const canvas = document.getElementById("pgxCanvas");
     if (!canvas) return;
 
@@ -4745,7 +4818,10 @@ const tw = pgxTotalWeeks();
             sc.scrollTop  = st - (ev.pageY - sy);
           });
         }
-      }catch(e){}
+      
+    try{ pgxWireHNav(); }catch(e){}
+
+    }catch(e){}
     }
 
     pgxWireCellEditing();
@@ -4753,6 +4829,62 @@ const tw = pgxTotalWeeks();
     try{ pgxScheduleRelayout(); }catch(e){}
   }
 
+
+
+  // Sincroniza un control visible para desplazamiento horizontal (modo pantalla completa)
+  function pgxWireHNav(){
+    const nav = document.getElementById("pgxHNav");
+    const range = document.getElementById("pgxHRange");
+    if (!nav || !range) return;
+
+    // Wiring 1 vez
+    if (nav.dataset.wired !== "1"){
+      const btnL = document.getElementById("pgxHLeft");
+      const btnR = document.getElementById("pgxHRight");
+
+      const scrollByAmt = (dir)=>{
+        const sc = document.getElementById("pgxScroll");
+        if (!sc) return;
+        const amt = Math.max(180, Math.floor(sc.clientWidth * 0.75));
+        sc.scrollLeft = Math.max(0, Math.min(sc.scrollWidth, sc.scrollLeft + dir*amt));
+      };
+
+      if (btnL) btnL.addEventListener("click", ()=>scrollByAmt(-1));
+      if (btnR) btnR.addEventListener("click", ()=>scrollByAmt( 1));
+
+      range.addEventListener("input", ()=>{
+        const sc = document.getElementById("pgxScroll");
+        if (!sc) return;
+        sc.scrollLeft = +range.value || 0;
+      });
+
+      window.addEventListener("resize", ()=>{ try{ pgxWireHNav(); }catch(e){} }, { passive:true });
+
+      nav.dataset.wired = "1";
+    }
+
+    const sc = document.getElementById("pgxScroll");
+    if (!sc) return;
+
+    const max = Math.max(0, sc.scrollWidth - sc.clientWidth);
+    range.max = String(max);
+    range.value = String(Math.min(max, sc.scrollLeft));
+    range.disabled = (max <= 0);
+
+    // Sync del scroll actual
+    if (sc.dataset.hnavWired !== "1"){
+      sc.addEventListener("scroll", ()=>{
+        const sc2 = document.getElementById("pgxScroll");
+        const r = document.getElementById("pgxHRange");
+        if (!sc2 || !r) return;
+        const mx = Math.max(0, sc2.scrollWidth - sc2.clientWidth);
+        r.max = String(mx);
+        r.value = String(Math.min(mx, sc2.scrollLeft));
+        r.disabled = (mx <= 0);
+      }, { passive:true });
+      sc.dataset.hnavWired = "1";
+    }
+  }
 
 // ===================== IMPRESIONES (NUEVO) =====================
   const IMPRESIONES_GID = 281158959; // hoja "IMPRESIONES"
@@ -10907,4 +11039,3 @@ window.addEventListener("DOMContentLoaded", () => {
 });</script>
 </body>
 </html>
-
