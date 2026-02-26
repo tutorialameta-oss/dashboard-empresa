@@ -2215,7 +2215,7 @@
     border-radius:0;
     box-shadow:0 24px 70px rgba(2,6,23,.28);
     border:1px solid rgba(15,23,42,0.14);
-    padding:10px 10px 0 10px;
+    padding:10px 10px 12px 10px;
     display:grid;
     grid-template-rows:auto minmax(0,1fr);
     gap:10px;
@@ -2253,7 +2253,7 @@
     z-index:10060;
     box-shadow:0 10px 24px rgba(2,6,23,.22);
   }
-  .pgxMatrixHost.isFullscreen .pxSheetWrap{height:100%; min-height:0; overflow:visible;}
+  .pgxMatrixHost.isFullscreen .pxSheetWrap{height:100%; min-height:0; overflow:hidden;}
   .pgxMatrixHost.isFullscreen .pxSheetScroll{
     width:100%;
     max-width:100%;
@@ -2263,7 +2263,7 @@
     overflow-y:auto;
     overflow-x:scroll;
     scrollbar-gutter: stable both-edges;
-    padding-bottom: 18px;
+    padding-bottom: 16px;
   }
   .pgxMatrixHost.isFullscreen .pxSheetScroll::-webkit-scrollbar:horizontal{ height:14px; }
   .pgxMatrixHost.isFullscreen .pxSheetScroll::-webkit-scrollbar-thumb:horizontal{
@@ -3930,6 +3930,7 @@ function pgxUpgradeProgram(p, baseWeeks){
         <label>FIN PROGRAMA (EDICIÓN)
           <input id="pgsEndDate" type="date" value="${escapeHtml(String(p.meta?.endDate||""))}"/>
         </label>
+
 <label>SEMANA INICIO PROGRAMA
           <input id="pgsStartW" type="number" min="1" max="${totalWeeks}" value="${win.start}"/>
         </label>
@@ -3966,6 +3967,26 @@ function pgxUpgradeProgram(p, baseWeeks){
       </div>
     `;
 
+    // ✅ Auto: al cambiar INICIO/FIN, ajusta SEMANA INICIO/FIN para edición rápida
+    function pgxAutoWeeksFromDates(){
+      const sStr = String(document.getElementById("pgsStartDate")?.value||"").trim();
+      const eStr = String(document.getElementById("pgsEndDate")?.value||"").trim();
+      const sD = pgxParseDateYMD(sStr);
+      const eD = pgxParseDateYMD(eStr);
+      if (!sD || !eD) return;
+      let a = sD, b = eD;
+      if (b.getTime() < a.getTime()){ const t=a; a=b; b=t; }
+      const span = Math.max(1, Math.floor((b.getTime()-a.getTime())/(7*24*60*60*1000)) + 1);
+      const tw = pgxTotalWeeks();
+      const endW = Math.max(1, Math.min(tw, span));
+      const sWEl = document.getElementById("pgsStartW");
+      const eWEl = document.getElementById("pgsEndW");
+      if (sWEl) sWEl.value = "1";
+      if (eWEl) eWEl.value = String(endW);
+    }
+    document.getElementById("pgsStartDate")?.addEventListener("change", pgxAutoWeeksFromDates);
+    document.getElementById("pgsEndDate")?.addEventListener("change", pgxAutoWeeksFromDates);
+
     // wire
     document.getElementById("pgsPick")?.addEventListener("change", (e)=>{
       pgxSetActiveId(String(e.target.value||""));
@@ -3999,18 +4020,6 @@ const tw = pgxTotalWeeks();
       sW = Math.max(1, Math.min(tw, sW));
       eW = Math.max(1, Math.min(tw, eW));
       if (eW < sW){ const tmp=sW; sW=eW; eW=tmp; }
-
-      // ✅ NUEVO: si hay FIN PROGRAMA (fecha), ajusta SEMANA FIN según diferencia (semanas) desde INICIO PROGRAMA.
-      if (ed){
-        const sEff = pgxParseDateYMD(sd) || pgxParseDateYMD(String(store.timeline?.startDate||""));
-        const eEff = pgxParseDateYMD(ed);
-        if (sEff && eEff){
-          let dW = pgxWeekDiff(eEff, sEff);
-          if (dW < 0) dW = -dW;
-          eW = Math.max(1, Math.min(tw, sW + dW));
-          if (eW < sW) eW = sW;
-        }
-      }
       pp.meta.startWeek = sW;
       pp.meta.endWeek = eW;
 
@@ -4102,6 +4111,8 @@ const tw = pgxTotalWeeks();
 
 
   let PROGRAMA_MATRIX_FULLSCREEN = false;
+  let PGX_DEFAULT_MODE_APPLIED = false;
+
 
   function pgxScheduleRelayout(){
     const sc = document.getElementById("pgxScroll");
@@ -4123,7 +4134,8 @@ const tw = pgxTotalWeeks();
       const pBottom = parseFloat(cs.paddingBottom||"0") || 0;
       const gap = parseFloat(cs.rowGap || cs.gap || "0") || 0;
       const barH = bar ? bar.getBoundingClientRect().height : 0;
-      const usable = Math.max(220, Math.floor(host.clientHeight - pTop - pBottom - barH - (barH ? gap : 0)));
+      const scrollbarRoom = 18;
+      const usable = Math.max(220, Math.floor(host.clientHeight - pTop - pBottom - barH - (barH ? gap : 0) - scrollbarRoom));
       sc.style.maxHeight = `${usable}px`;
       sc.style.height = `${usable}px`;
       sc.style.width = "100%";
@@ -4188,6 +4200,12 @@ const tw = pgxTotalWeeks();
   function pgxEnsureProgramaLayout(){
     const el = document.getElementById("view_programa");
     if (!el || el.dataset.ready==="1") return;
+
+    // ✅ Por defecto: SIEMPRE iniciar en "TODOS" (no persiste ONE al recargar)
+    if (!PGX_DEFAULT_MODE_APPLIED){
+      try{ pgxSetMode("ALL"); }catch(e){}
+      PGX_DEFAULT_MODE_APPLIED = true;
+    }
 
     el.innerHTML = `
       <div class="card panel12">
@@ -10889,4 +10907,3 @@ window.addEventListener("DOMContentLoaded", () => {
 });</script>
 </body>
 </html>
-
