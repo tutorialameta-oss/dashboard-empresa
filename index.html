@@ -4197,6 +4197,7 @@ const tw = pgxTotalWeeks();
       });
     }
 
+    if (fine){ fine.addEventListener("click", ()=>{ pgxSetFineOn(!pgxGetFineOn()); renderPrograma(); pgxScheduleRelayout(); }); }
     if (btnFill){
       btnFill.addEventListener("click", ()=>{
         if (!pgxCanEdit() || !pgxGetEditOn()) return;
