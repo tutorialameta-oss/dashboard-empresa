@@ -591,7 +591,7 @@
     }
 
     /* Botón descargar PNG */
-    
+
     .hEditBtn{
       padding:10px 14px;
       border-radius:999px;
@@ -1217,7 +1217,7 @@
       /* SÍLABOS */
       .syWrap{ grid-template-columns: 1fr; }
     }
-  
+
 
     /* ===================== AUTH (ADMIN / TUTOR) ===================== */
     .authOverlay{
@@ -1295,7 +1295,7 @@
       cursor:pointer;
     }
 
-  
+
     /* ======================================================================
        ✅ MODO ALUMNO: Más profesional y dinámico (solo visual)
     ====================================================================== */
@@ -2073,7 +2073,7 @@
     }
 
 
-  
+
 
   /* ===================== PROGRAMA (HOJA) v1 ===================== */
   .pxSheetWrap{ width:100%; }
@@ -2177,9 +2177,19 @@
   .pxWOff{ background:#fff !important; color: transparent; }
 
   .pxCell{ background:#fff; }
-  .pxCellIn{ width:100%; min-width:62px; display:flex; align-items:center; justify-content:center; text-align:center; }
-  .pxEditable{ cursor:pointer; }
+  .pxCellIn{ width:100%; min-width:62px; display:flex; align-items:center; justify-content:center; text-align:center; overflow:hidden; }
+  .pxEditable{ cursor:pointer; position:relative; }
   .pxEditable:hover{ outline:3px solid rgba(209,11,11,0.18); outline-offset:-3px; }
+  .pxCellSelected{ outline:2px solid #2563eb; outline-offset:-2px; z-index:2; }
+  .pxCellRange{ background:rgba(37,99,235,.08) !important; }
+  .pxCellEditing input{
+    width:100%; border:0; outline:none; text-align:center; font-weight:1000;
+    background:transparent; font:inherit;
+  }
+  .pxFillHandle{
+    position:absolute; width:8px; height:8px; right:-1px; bottom:-1px;
+    background:#2563eb; border:1px solid #fff; cursor:crosshair;
+  }
 
   /* Marco negro por programa (estilo Excel) */
   .pxPTop > *{ border-top:2px solid rgba(15,23,42,0.80) !important; }
@@ -2190,6 +2200,53 @@
 
   .pxEtapaCell{ background: rgba(2,6,23,0.04); font-weight:1100; }
   .pxGap td{ border:none !important; height:14px; background:transparent; }
+
+
+  .pgxMatrixHost{ position:relative; }
+  .pgxMatrixTopBar{ display:none; }
+  .pgxMatrixExit{ display:none; }
+  .pgxMatrixFsBadge{ display:none; }
+  .pgxMatrixHost.isFullscreen{
+    position:fixed;
+    inset:10px;
+    z-index:10035;
+    background:#fff;
+    border-radius:0;
+    box-shadow:0 24px 70px rgba(2,6,23,.28);
+    border:1px solid rgba(15,23,42,0.14);
+    padding:10px 10px 0 10px;
+    display:grid;
+    grid-template-rows:auto minmax(0,1fr);
+    gap:10px;
+  }
+  .pgxMatrixHost.isFullscreen .pgxMatrixTopBar{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+    position:sticky;
+    top:0;
+    z-index:3;
+    background:#fff;
+    padding:2px 0;
+  }
+  .pgxMatrixHost.isFullscreen .pgxMatrixFsBadge{
+    display:inline-flex;
+    align-items:center;
+    border-radius:999px;
+    border:1px solid rgba(15,23,42,0.14);
+    background:#f8fafc;
+    padding:6px 10px;
+    font-size:12px;
+    font-weight:900;
+    color:var(--muted);
+  }
+  .pgxMatrixHost.isFullscreen .pgxMatrixExit{ display:inline-flex; }
+  .pgxMatrixHost.isFullscreen .pxSheetWrap{height:100%; min-height:0;}
+  .pgxMatrixHost.isFullscreen .pxSheetScroll{
+    max-height:calc(100vh - 58px) !important;
+    height:calc(100vh - 58px) !important;
+  }
 
   @media (max-width: 900px){
     .pxSheetScroll{ max-height: calc(100vh - 160px); }
@@ -2583,6 +2640,10 @@ if (btnSil) btnSil.style.display = "";
     const pass = document.getElementById("authPass");
     const err = document.getElementById("authErr");
     const btn = document.getElementById("btnLogin");
+    if (!bA || !bT || !bS || !pass || !btn){
+      console.error("AUTH: faltan elementos del formulario de acceso.");
+      return false;
+    }
 
     function pick(r){
       selected = r;
@@ -2637,10 +2698,12 @@ if (btnSil) btnSil.style.display = "";
       }
 
       if (btn){ btn.disabled = true; btn.textContent = "VERIFICANDO…"; }
-
-      const row = await findAlumnoByCredentials(u, p);
-
-      if (btn){ btn.disabled = false; btn.textContent = "ENTRAR"; }
+      let row = null;
+      try{
+        row = await findAlumnoByCredentials(u, p);
+      }finally{
+        if (btn){ btn.disabled = false; btn.textContent = "ENTRAR"; }
+      }
 
       if (!row){
         if (err){ err.textContent = "Usuario o contraseña incorrectos."; err.style.display = "block"; }
@@ -2656,6 +2719,8 @@ if (btnSil) btnSil.style.display = "";
     }
 
     if (btn) btn.addEventListener("click", ()=>{ doLogin(); });
+    if (pass) pass.addEventListener("keydown", (e)=>{ if (e.key === "Enter") doLogin(); });
+    if (user) user.addEventListener("keydown", (e)=>{ if (e.key === "Enter") doLogin(); });
     if (pass) pass.addEventListener("keydown", (e)=>{ if (e.key === "Enter") doLogin(); });
     if (user) user.addEventListener("keydown", (e)=>{ if (e.key === "Enter") doLogin(); });
 
@@ -2693,9 +2758,9 @@ const SALONES = [
 
   const AUTO_REFRESH_MS = 30000;
 
-  
 
-  
+
+
   // ===================== PROGRAMA (HOJA) v1 =====================
   // Objetivo: imitar/optimizar la tabla estilo Excel (PROGRAMACIÓN / FECHA / semanas),
   // con:
@@ -2797,7 +2862,7 @@ const PGX_STORE_KEY   = "LM_PROGRAMA_SHEET_V1_STORE";
     if (t === "AGRARIA") return {bar:getCss("--schHead_AGR"), cell:getCss("--schCell_AGR")};
     if (t === "PUCP")    return {bar:getCss("--schHead_PUCP"), cell:getCss("--schCell_PUCP")};
     if (t === "U.LIMA" || t === "ULIMA") return {bar:getCss("--schHead_UL"), cell:getCss("--schCell_UL")};
-    if (t === "ESCOLARES") return {bar:"#5b21b6", cell:"#ede9fe"};
+    if (t === "ESCOLARES") return {bar:getCss("--schHead_ESC"), cell:getCss("--schCell_ESC")};
     // default
     return {bar:"#64748b", cell:"#f1f5f9"};
   }
@@ -2810,7 +2875,7 @@ const PGX_STORE_KEY   = "LM_PROGRAMA_SHEET_V1_STORE";
     const o = (p && p.meta && p.meta.colors) ? p.meta.colors : {};
     const bar  = String(o?.bar  || base.bar);
     const cell = String(o?.cell || base.cell);
-    const off  = String(o?.off  || "#ffffff"); // semanas fuera de ventana
+    const off  = String(o?.off  || "#ffffff");
     return {bar, cell, off};
   }
 
@@ -3243,7 +3308,7 @@ function pgxEnsure(){
   function pgxSetSettingsOpen(on){ pgxSaveStr(PGX_SETTINGS_KEY, on ? "1":"0"); }
 
 
-  
+
 function pgxUpgradeProgram(p, baseWeeks){
   try{
     if (!p || !p.config || !Array.isArray(p.config.lanes)) return p;
@@ -3351,7 +3416,7 @@ function pgxUpgradeProgram(p, baseWeeks){
     return out;
   }
 
-  
+
   function pgxWeekDiff(a, b){
     // diferencia en semanas (redondeada) entre dos fechas (a - b)
     if (!a || !b) return 0;
@@ -3460,7 +3525,7 @@ function pgxUpgradeProgram(p, baseWeeks){
 
     // ✅ cuerpo por programa
     const colCount = 2 + displayWeeks;
-    const tbodyRows = (programs||[]).map(p=>{
+    const tbodyRows = (programs||[]).map((p,progIdx)=>{
       const name = String(p.meta?.name||"PROGRAMA").toUpperCase();
       const colors = pgxProgramColors(p);
       const win = pgxProgramWindow(p, baseWeeks);
@@ -3538,6 +3603,7 @@ function pgxUpgradeProgram(p, baseWeeks){
       `;
 
       const laneHtml = laneRows.map((l,li)=>{
+        const gridRow = progIdx*100 + li + 1;
         const label = String(l.label||"").trim();
         const isLast = (li === laneRows.length-1);
         const rowCls = "pxPRow" + (isLast ? " pxPBot" : "");
@@ -3585,9 +3651,7 @@ function pgxUpgradeProgram(p, baseWeeks){
           g[gi] = String(vals[lw-1]||"");
         }
 
-        const groups = pgxGroupValues(g, fine);
-
-        const tds = groups.map(gr=>{
+        const tds = (edit ? g.map((txt,idx)=>({text:String(txt||""),span:1,start:idx+1})) : pgxGroupValues(g, fine)).map(gr=>{
           const txt = String(gr.text||"");
           const sp  = +gr.span||1;
           const gStart = +gr.start||1;
@@ -3596,10 +3660,10 @@ function pgxUpgradeProgram(p, baseWeeks){
           const localStart = gStart - off; // 1-based
           const okLocal = (localStart >= 1 && localStart <= baseWeeks);
 
-          const canEdit = edit && !isOut && okLocal;
+          const canEdit = edit && !isOut && okLocal && sp===1;
 
           const data = !canEdit ? "" :
-            `data-pgid="${escapeHtml(p.id)}" data-lane="${escapeHtml(l.key)}" data-lstart="${localStart}" data-lspan="${sp}"`;
+            `data-pgid="${escapeHtml(p.id)}" data-lane="${escapeHtml(l.key)}" data-week="${localStart}" data-gridrow="${gridRow}" data-gridcol="${gStart}" data-value="${escapeHtml(txt)}"`;
 
           const cls = "pxCell" + (canEdit ? " pxEditable" : "") + (isOut ? " pxWOff" : "");
           const content = isOut ? "&nbsp;" : (escapeHtml(txt) || "&nbsp;");
@@ -3647,73 +3711,57 @@ function pgxUpgradeProgram(p, baseWeeks){
   }
 
   function pgxApplyHeaderUI(){
-    const store = pgxLoadStore();
-    const baseWeeks = pgxTotalWeeks();
-
+    const mode  = document.getElementById("pgxMode");
+    const sel   = document.getElementById("pgxProgram");
+    const zoom  = document.getElementById("pgxZoom");
     const start = document.getElementById("pgxStart");
     const weeks = document.getElementById("pgxWeeks");
-    const zoom  = document.getElementById("pgxZoom");
-    const mode  = document.getElementById("pgxMode");
+    const apply = document.getElementById("pgxApply");
     const edit  = document.getElementById("pgxEdit");
-    const fine  = document.getElementById("pgxFine");
+    const fs    = document.getElementById("pgxFsToggle");
 
-    const baseStart = String(store.timeline?.startDate||"");
-    const vStart = pgxGetViewStart() || baseStart;
-    const vWeeks = pgxGetViewWeeks() || baseWeeks;
-
-    if (start) start.value = String(vStart||"");
-    if (weeks) weeks.value = String(vWeeks);
-    if (zoom)  zoom.value  = pgxZoomOption(pgxGetZoom());
-    if (mode)  mode.value  = pgxGetMode();
-    if (edit){
-      edit.style.display = pgxCanEdit() ? "" : "none";
-      edit.textContent = (pgxGetEditOn() ? "EDITANDO" : "EDITAR");
-      edit.classList.toggle("primary", pgxGetEditOn());
-    }
-    if (fine){
-      // visible solo en modo edición (Admin)
-      fine.style.display = (pgxCanEdit() && pgxGetEditOn()) ? "" : "none";
-      fine.textContent = (pgxGetFineOn() ? "EDICIÓN FINA: ON" : "EDICIÓN FINA: OFF");
-      fine.classList.toggle("primary", pgxGetFineOn());
-    }
-
-    // UI limpia: controles avanzados solo para Admin en edición
-    const advIds = ["pgxFill","pgxNew","pgxDel","pgxJson","pgxSettingsBtn","pgxDates"];
-    for (const id of advIds){
-      const el = document.getElementById(id);
-      if (!el) continue;
-      el.style.display = (pgxCanEdit() && pgxGetEditOn()) ? "" : "none";
-    }
-
-    const sel = document.getElementById("pgxProgram");
-    if (sel){
-      sel.style.display = (pgxGetMode()==="ONE") ? "" : "none";
-    }
-
+    const fine = document.getElementById("pgxFine");
+    const fill = document.getElementById("pgxFill");
     const btnNew = document.getElementById("pgxNew");
     const btnDel = document.getElementById("pgxDel");
     const btnJson = document.getElementById("pgxJson");
     const btnSet = document.getElementById("pgxSettingsBtn");
     const btnDates = document.getElementById("pgxDates");
-    const btnFill = document.getElementById("pgxFill");
+    const btnSave = document.getElementById("pgxSave");
+    const btnCreate = document.getElementById("pgxCreate");
 
-    const can = pgxCanEdit();
-    const editOn = can && pgxGetEditOn();
+    const store = pgxLoadStore();
+    const baseWeeks = pgxTotalWeeks();
+    const vStart = pgxGetViewStart() || String(store.timeline?.startDate||"");
+    const vWeeks = pgxGetViewWeeks() || baseWeeks;
+    if (start) start.value = String(vStart||"");
+    if (weeks) weeks.value = String(vWeeks||baseWeeks);
+    if (zoom) zoom.value = pgxZoomOption(pgxGetZoom());
+    if (mode) mode.value = pgxGetMode();
 
-    // Botón principal
-    if (edit) edit.style.display = can ? "" : "none";
+    const admin = pgxCanEdit();
+    const editOn = admin && pgxGetEditOn();
 
-    // Herramientas avanzadas solo cuando el Admin activa EDITAR
-    const advDisp = editOn ? "" : "none";
-    if (fine) fine.style.display = advDisp;
-    if (btnFill) btnFill.style.display = advDisp;
-    if (btnNew) btnNew.style.display = advDisp;
-    if (btnDel) btnDel.style.display = advDisp;
-    if (btnJson) btnJson.style.display = advDisp;
-    if (btnSet) btnSet.style.display = advDisp;
-    if (btnDates) btnDates.style.display = advDisp;
+    if (edit){
+      edit.style.display = admin ? "" : "none";
+      edit.textContent = editOn ? "EDITANDO" : "EDITAR";
+      edit.classList.toggle("primary", editOn);
+    }
+    if (fs) fs.style.display = admin ? "" : "none";
 
-}
+    const mainViewCtrls = [mode, sel, zoom, start, weeks, apply];
+    const editCtrls = [fine, fill, btnNew, btnDel, btnJson, btnSet, btnDates, btnSave, btnCreate];
+
+    if (admin){
+      mainViewCtrls.forEach(el=>{ if (el) el.style.display = editOn ? "" : "none"; });
+      editCtrls.forEach(el=>{ if (el) el.style.display = editOn ? "" : "none"; });
+    } else {
+      mainViewCtrls.forEach(el=>{ if (el) el.style.display = ""; });
+      editCtrls.forEach(el=>{ if (el) el.style.display = "none"; });
+    }
+
+    if (sel) sel.style.display = (mode && mode.value==="ONE") ? "" : "none";
+  }
 
 
   function pgxSegmentsFromPrompt(raw, totalWeeks){
@@ -3819,7 +3867,7 @@ function pgxUpgradeProgram(p, baseWeeks){
           </select>
         </label>
 
-        
+
         <label>FECHA INICIO
           <input id="pgsStartDate" type="date" value="${escapeHtml(String(p.meta?.startDate||""))}"/>
         </label>
@@ -3876,7 +3924,7 @@ function pgxUpgradeProgram(p, baseWeeks){
       pp.meta.scope = String(document.getElementById("pgsScope")?.value||"ALL").trim().toUpperCase();
       pp.meta.theme = String(document.getElementById("pgsTheme")?.value||"AGRARIA").trim().toUpperCase();
 
-      
+
 
       // ✅ NUEVO: fecha inicio independiente por programa (YYYY-MM-DD). Vacío = usa BASE.
       const sd = String(document.getElementById("pgsStartDate")?.value||"").trim();
@@ -3958,6 +4006,72 @@ const tw = pgxTotalWeeks();
   }
 
 
+
+  let PROGRAMA_MATRIX_FULLSCREEN = false;
+
+  function pgxScheduleRelayout(){
+    const sc = document.getElementById("pgxScroll");
+    if (!sc) return;
+    requestAnimationFrame(()=>{
+      try{ fitProgramaMatrixHeight(); }catch(e){}
+      void sc.offsetHeight;
+    });
+  }
+
+  function fitProgramaMatrixHeight(){
+    const host = document.getElementById("pgxMatrixHost");
+    const sc = document.getElementById("pgxScroll");
+    if (!sc) return;
+    if (host && host.classList.contains("isFullscreen")){
+      sc.style.maxHeight = "calc(100vh - 58px)";
+      sc.style.height = "calc(100vh - 58px)";
+    } else {
+      sc.style.height = "";
+      sc.style.maxHeight = "calc(100vh - 230px)";
+    }
+  }
+
+  function setProgramaMatrixFullscreen(force){
+    const host = document.getElementById("pgxMatrixHost");
+    const tgl = document.getElementById("pgxFsToggle");
+    if (!host || !tgl) return;
+    const next = (typeof force === "boolean") ? force : !PROGRAMA_MATRIX_FULLSCREEN;
+    PROGRAMA_MATRIX_FULLSCREEN = !!next;
+    host.classList.toggle("isFullscreen", PROGRAMA_MATRIX_FULLSCREEN);
+    tgl.textContent = PROGRAMA_MATRIX_FULLSCREEN ? "SALIR PANTALLA COMPLETA" : "PANTALLA COMPLETA";
+    if (!PROGRAMA_MATRIX_FULLSCREEN){ host.scrollTop=0; host.scrollLeft=0; }
+    pgxScheduleRelayout();
+  }
+
+  function pgxNextProgramName(cycle, store){
+    const names = (store.order||[]).map(id=>String(store.programs?.[id]?.meta?.name||"").toUpperCase());
+    let maxN = 0;
+    for (const n of names){
+      const m = new RegExp(`^${cycle.replace('.','\.')}\s*(\d+)?$`).exec(n.trim());
+      if (!m) continue;
+      const num = m[1] ? parseInt(m[1],10) : 1;
+      if (num > maxN) maxN = num;
+    }
+    return `${cycle} ${Math.max(2, maxN+1)}`;
+  }
+
+  function pgxCreateProgramFlow(){
+    if (!pgxCanEdit() || !pgxGetEditOn()) return;
+    const kind = String(document.getElementById("pgxCreateType")?.value||"AGRARIA").toUpperCase();
+    const allowed = ["AGRARIA","U.LIMA","PUCP","ESCOLARES"];
+    if (!allowed.includes(kind)) return;
+    const store = pgxLoadStore();
+    const name = pgxNextProgramName(kind, store);
+    const p = pgxDefaultProgram(name, kind, kind);
+    store.programs[p.id]=p;
+    pgxInsertProgramId(store, p);
+    pgxSaveStore(store);
+    pgxSetActiveId(p.id);
+    pgxSetMode("ONE");
+    renderPrograma();
+    toast("Programa creado.");
+  }
+
   function pgxEnsureProgramaLayout(){
     const el = document.getElementById("view_programa");
     if (!el || el.dataset.ready==="1") return;
@@ -3965,10 +4079,10 @@ const tw = pgxTotalWeeks();
     el.innerHTML = `
       <div class="card panel12">
         <div class="cardtitle">PROGRAMA</div>
-        <div style="color:var(--muted); font-weight:900; margin-bottom:10px;">
-        </div>
-
         <div class="controls" style="justify-content:flex-start; gap:10px; flex-wrap:wrap;">
+          <button id="pgxEdit" class="btn ghost" type="button">EDITAR</button>
+          <button id="pgxFsToggle" class="hFsBtn" type="button">PANTALLA COMPLETA</button>
+
           <select id="pgxMode">
             <option value="ALL">VER: TODOS</option>
             <option value="ONE">VER: UNO</option>
@@ -3986,7 +4100,6 @@ const tw = pgxTotalWeeks();
             <option value="0.70">ZOOM: 70%</option>
           </select>
 
-          <button id="pgxEdit" class="btn ghost" type="button">EDITAR</button>
           <button id="pgxFine" class="btn ghost" type="button">EDICIÓN FINA: OFF</button>
           <button id="pgxFill" class="btn ghost" type="button">RELLENAR RANGO</button>
 
@@ -3997,23 +4110,34 @@ const tw = pgxTotalWeeks();
           <button id="pgxNew" class="btn ghost" type="button">+ NUEVO</button>
           <button id="pgxDel" class="btn ghost" type="button">ELIMINAR</button>
           <button id="pgxJson" class="btn ghost" type="button">EDITOR JSON</button>
-
           <button id="pgxSettingsBtn" class="btn ghost" type="button">PERSONALIZAR</button>
           <button id="pgxDates" class="btn ghost" type="button">FECHAS MANUAL</button>
+          <button id="pgxSave" class="btn ghost" type="button">GUARDAR</button>
+
+          <select id="pgxCreateType">
+            <option value="AGRARIA">CICLO: AGRARIA</option>
+            <option value="U.LIMA">CICLO: U.LIMA</option>
+            <option value="PUCP">CICLO: PUCP</option>
+            <option value="ESCOLARES">CICLO: ESCOLARES</option>
+          </select>
+          <button id="pgxCreate" class="btn ghost" type="button">+ CREAR PROGRAMA</button>
         </div>
 
-        <div class="pgHint" id="pgxHint" style="margin-top:8px;">
-        </div>
-      
+        <div class="pgHint" id="pgxHint" style="margin-top:8px;"></div>
         <div id="pgxSettings" class="pgxSettings" style="display:none;"></div>
       </div>
 
       <div class="card panel12">
-        <div id="pgxCanvas"></div>
+        <div id="pgxMatrixHost" class="pgxMatrixHost">
+          <div class="pgxMatrixTopBar">
+            <span class="pgxMatrixFsBadge">MODO PANTALLA COMPLETA</span>
+            <button id="pgxFsExit" class="hFsBtn pgxMatrixExit" type="button">SALIR PANTALLA COMPLETA</button>
+          </div>
+          <div id="pgxCanvas"></div>
+        </div>
       </div>
     `;
 
-    // Events
     const mode = document.getElementById("pgxMode");
     const prog = document.getElementById("pgxProgram");
     const zoom = document.getElementById("pgxZoom");
@@ -4026,128 +4150,67 @@ const tw = pgxTotalWeeks();
     const btnJson = document.getElementById("pgxJson");
     const btnSet = document.getElementById("pgxSettingsBtn");
     const btnDates = document.getElementById("pgxDates");
-  
-    if (mode){
-      mode.addEventListener("change", ()=>{
-        pgxSetMode(mode.value);
-         pgxSaveStore(pgxLoadStore()); // comparte vista (modo) para todos
-        renderPrograma();
-      });
-    }
-    if (prog){
-      prog.addEventListener("change", ()=>{
-        pgxSetActiveId(prog.value);
-         pgxSaveStore(pgxLoadStore()); // comparte vista (programa activo) para todos
-        renderPrograma();
-      });
-    }
-    if (zoom){
-      zoom.addEventListener("change", ()=>{
-        pgxSetZoom(zoom.value);
-        pgxSaveStore(pgxLoadStore()); // comparte vista (zoom) para todos
-        renderPrograma();
-      });
-    }
+    const btnSave = document.getElementById("pgxSave");
+    const btnCreate = document.getElementById("pgxCreate");
+    const fsTgl = document.getElementById("pgxFsToggle");
+    const fsExit = document.getElementById("pgxFsExit");
+
+    if (mode) mode.addEventListener("change", ()=>{ pgxSetMode(mode.value); pgxSaveStore(pgxLoadStore()); renderPrograma(); pgxScheduleRelayout(); });
+    if (prog) prog.addEventListener("change", ()=>{ pgxSetActiveId(prog.value); pgxSaveStore(pgxLoadStore()); renderPrograma(); pgxScheduleRelayout(); });
+    if (zoom) zoom.addEventListener("change", ()=>{ pgxSetZoom(zoom.value); pgxSaveStore(pgxLoadStore()); renderPrograma(); pgxScheduleRelayout(); });
+
     if (edit){
       edit.addEventListener("click", ()=>{
         if (!pgxCanEdit()) return;
         const on = !pgxGetEditOn();
         pgxSetEditOn(on);
-        // en modo profesional: edición = abre panel; vista = limpio
         pgxSetSettingsOpen(on);
         if (!on) pgxSetFineOn(false);
         renderPrograma();
-      });
-    }
-    if (fine){
-      fine.addEventListener("click", ()=>{
-        pgxSetFineOn(!pgxGetFineOn());
-        renderPrograma();
+        pgxScheduleRelayout();
       });
     }
 
+    if (fine){ fine.addEventListener("click", ()=>{ pgxSetFineOn(!pgxGetFineOn()); renderPrograma(); pgxScheduleRelayout(); }); }
     if (btnFill){
       btnFill.addEventListener("click", ()=>{
-        if (!pgxCanEdit()) return;
-
+        if (!pgxCanEdit() || !pgxGetEditOn()) return;
         const store = pgxLoadStore();
-    const baseWeeks = pgxTotalWeeks();
         const pid = pgxGetActiveId();
         const p = store.programs[pid];
         if (!p) return;
-
         const lanes = (p.config?.lanes||[]).filter(l=>l && l.type==="cells");
         const laneKeys = lanes.map(l=>String(l.key||"")).filter(Boolean);
-        const hint =
-          "RELLENAR RANGO (tipo Excel)\\n" +
-          "Formato: LANE, INICIO, FIN, TEXTO\\n" +
-          "• Si TEXTO termina en número, auto-incrementa (SEN1 → SEN2 → SEN3).\\n" +
-          "• Si TEXTO no tiene número, se repite constante (SEPARATAS).\\n" +
-          "Ej: semana,1,3,SEN1\\n" +
-          "Ej: semana,4,16,SE01\\n" +
-          "Ej: reportes,1,3,RN1\\n" +
-          "Ej: materiales,1,3,SEPARATAS\\n\\n" +
-          "LANES disponibles: " + laneKeys.join(", ");
-
-        const raw = prompt(hint, "semana,1,3,SEN1");
-        if (raw === null) return;
-
+        const raw = prompt("RELLENAR RANGO (LANE,INICIO,FIN,TEXTO). LANES: "+laneKeys.join(", "), "semana,1,3,SEN1");
+        if (raw===null) return;
         const parts = String(raw||"").split(",").map(x=>String(x||"").trim());
-        if (parts.length < 4){
-          alert("Formato inválido. Se esperaba: LANE,INICIO,FIN,TEXTO");
-          return;
-        }
+        if (parts.length < 4){ alert("Formato inválido. Usa: LANE,INICIO,FIN,TEXTO"); return; }
         const laneKeyIn = String(parts[0]||"").trim();
-        const startW0 = parseInt(parts[1], 10);
-        const endW0   = parseInt(parts[2], 10);
-        const seed    = parts.slice(3).join(",").trim();
-
-        const lane = lanes.find(l=>String(l.key||"").toLowerCase()===laneKeyIn.toLowerCase())
-                  || lanes.find(l=>String(l.label||"").toLowerCase()===laneKeyIn.toLowerCase());
-        if (!lane){
-          alert("LANE no encontrada: " + laneKeyIn);
-          return;
-        }
-
+        const startW0 = parseInt(parts[1],10);
+        const endW0 = parseInt(parts[2],10);
+        const seed = parts.slice(3).join(",").trim();
+        const lane = lanes.find(l=>String(l.key||"").toLowerCase()===laneKeyIn.toLowerCase()) || lanes.find(l=>String(l.label||"").toLowerCase()===laneKeyIn.toLowerCase());
+        if (!lane){ alert("LANE no encontrada: "+laneKeyIn); return; }
         const tw = pgxTotalWeeks();
-        let a = Number.isFinite(startW0) ? startW0 : 1;
-        let b = Number.isFinite(endW0)   ? endW0   : tw;
-        a = Math.max(1, Math.min(tw, a));
-        b = Math.max(1, Math.min(tw, b));
-        if (b < a){ const tmp=a; a=b; b=tmp; }
-
-        if (!seed){
-          alert("TEXTO vacío.");
-          return;
-        }
-
-        // soporte lista explícita con |
+        let a = Number.isFinite(startW0)?startW0:1;
+        let b = Number.isFinite(endW0)?endW0:tw;
+        a=Math.max(1,Math.min(tw,a)); b=Math.max(1,Math.min(tw,b));
+        if (b<a){ const t=a; a=b; b=t; }
+        if (!seed){ alert("TEXTO vacío."); return; }
         const list = seed.includes("|") ? seed.split("|").map(x=>x.trim()).filter(Boolean) : null;
-
         const m = /^(.+?)(\d+)$/.exec(seed);
         const hasNum = !!m;
-
         const vals = Array.isArray(lane.values) ? lane.values : [];
         const pad = hasNum ? String(m[2]||"").length : 0;
         const baseNum = hasNum ? parseInt(m[2],10) : 0;
         const pref = hasNum ? String(m[1]||"") : seed;
-
         for (let w=a; w<=b; w++){
           let v = seed;
-
-          if (list){
-            const idx = (w - a) % list.length;
-            v = list[idx];
-          } else if (hasNum){
-            v = pref + String(baseNum + (w-a)).padStart(pad, "0");
-          } else {
-            v = pref;
-          }
-
-          const i = w - 1;
-          if (i >= 0 && i < tw) vals[i] = v;
+          if (list){ const idx=(w-a)%list.length; v=list[idx]; }
+          else if (hasNum){ v=pref + String(baseNum+(w-a)).padStart(pad,"0"); }
+          else v=pref;
+          const i=w-1; if (i>=0 && i<tw) vals[i]=v;
         }
-
         lane.values = vals;
         p.meta.updatedAt = pgxNowISO();
         store.programs[pid] = p;
@@ -4157,35 +4220,28 @@ const tw = pgxTotalWeeks();
       });
     }
 
-
     if (btnApply){
       btnApply.addEventListener("click", ()=>{
         const s = String(document.getElementById("pgxStart")?.value||"").trim();
         const w = Math.max(1, Math.min(60, +document.getElementById("pgxWeeks")?.value||16));
-
-        // ✅ Modo vista (Tutor o Admin sin editar): NO modifica datos, solo la ventana visible
         if (!pgxCanEdit() || !pgxGetEditOn()){
           if (s) pgxSetViewStart(s);
           pgxSetViewWeeks(w);
           renderPrograma();
           toast("Vista actualizada.");
-          pgxSaveStore(pgxLoadStore()); // comparte vista (fecha/semanas) para todos
+          pgxSaveStore(pgxLoadStore());
+          pgxScheduleRelayout();
           return;
         }
-
-        // ✅ Modo edición (solo Admin): actualiza timeline base y reajusta arrays
         const store = pgxLoadStore();
-    const baseWeeks = pgxTotalWeeks();
+        const baseWeeks = pgxTotalWeeks();
         if (s) store.timeline.startDate = s;
         store.timeline.weeks = w;
-        // sincroniza vista con timeline
         pgxSetViewStart(String(store.timeline.startDate||""));
         pgxSetViewWeeks(+store.timeline.weeks||0);
-
-        // reajustar arrays de programas a la nueva longitud
         for (const id of store.order){
           let p = store.programs[id];
-      if (p) p = pgxUpgradeProgram(p, baseWeeks);
+          if (p) p = pgxUpgradeProgram(p, baseWeeks);
           if (!p) continue;
           (p.config?.lanes||[]).forEach(l=>{
             if (l.type==="cells"){
@@ -4202,193 +4258,247 @@ const tw = pgxTotalWeeks();
                   const sp=+s2.span||0;
                   if (!sp) continue;
                   if (acc+sp<=w){ out.push(s2); acc+=sp; }
-                  else{
-                    const rem = w-acc;
-                    if (rem>0) out.push({text:s2.text, span:rem});
-                    acc=w; break;
-                  }
+                  else{ const rem = w-acc; if (rem>0) out.push({text:s2.text, span:rem}); acc=w; break; }
                 }
                 l.segments = out;
-              } else {
-                l.segments = seg;
-              }
+              } else l.segments = seg;
             }
           });
           p.meta.updatedAt = pgxNowISO();
         }
-
         pgxSaveStore(store);
         renderPrograma();
         toast("Timeline actualizado.");
+        pgxScheduleRelayout();
       });
     }
 
-    if (btnNew){
-      btnNew.addEventListener("click", ()=>{
-        if (!pgxCanEdit()) return;
-        const name = prompt("Nombre del nuevo programa:", "NUEVO PROGRAMA");
-        if (!name) return;
+    if (btnNew){ btnNew.addEventListener("click", ()=>{ if (!pgxCanEdit()||!pgxGetEditOn()) return; const name = prompt("Nombre del nuevo programa:", "NUEVO PROGRAMA"); if(!name) return; const kind=(prompt("Tipo (AGRARIA / U.LIMA / PUCP / ESCOLARES):", "AGRARIA")||"AGRARIA").toUpperCase(); const allowed=["AGRARIA","U.LIMA","PUCP","ESCOLARES"]; const theme=allowed.includes(kind)?kind:"AGRARIA"; const scope=theme; const store=pgxLoadStore(); const baseWeeks=pgxTotalWeeks(); const p=pgxDefaultProgram(name,scope,theme); const w=baseWeeks; p.config.lanes.forEach(l=>{ if(l.type==="cells") l.values=Array.from({length:w},(_,i)=>String(l.values?.[i]||"")); }); store.programs[p.id]=p; pgxInsertProgramId(store,p); pgxSaveStore(store); pgxSetActiveId(p.id); pgxSetMode("ONE"); renderPrograma(); toast("Programa creado."); pgxScheduleRelayout(); }); }
+    if (btnDel){ btnDel.addEventListener("click", ()=>{ if(!pgxCanEdit()||!pgxGetEditOn()) return; const id=pgxGetActiveId(); if(!id) return; if(!confirm("¿Eliminar este programa?")) return; const store=pgxLoadStore(); delete store.programs[id]; store.order=store.order.filter(x=>x!==id); pgxSaveStore(store); pgxSetActiveId(store.order[0]||""); renderPrograma(); toast("Programa eliminado."); pgxScheduleRelayout(); }); }
+    if (btnJson){ btnJson.addEventListener("click", ()=>{ if(!pgxCanEdit()||!pgxGetEditOn()) return; const id=pgxGetActiveId(); const store=pgxLoadStore(); const baseWeeks=pgxTotalWeeks(); let p=store.programs[id]; if(p) p=pgxUpgradeProgram(p,baseWeeks); if(!p) return; const raw=prompt("Editor JSON (pega JSON válido). Sugerencia: copia primero para respaldo.", JSON.stringify(p,null,2)); if(!raw) return; try{ const obj=JSON.parse(raw); if(!obj||!obj.id) throw new Error(); obj.meta=obj.meta||{}; obj.meta.updatedAt=pgxNowISO(); store.programs[obj.id]=obj; if(!store.order.includes(obj.id)) store.order.push(obj.id); pgxSaveStore(store); pgxSetActiveId(obj.id); renderPrograma(); toast("JSON guardado."); pgxScheduleRelayout(); }catch(e){ alert("JSON inválido. No se guardó."); } }); }
+    if (btnSet){ btnSet.addEventListener("click", ()=>{ if(!pgxCanEdit()||!pgxGetEditOn()) return; pgxSetSettingsOpen(!pgxGetSettingsOpen()); renderPrograma(); pgxScheduleRelayout(); }); }
+    if (btnDates){ btnDates.addEventListener("click", ()=>{ if(!pgxCanEdit()||!pgxGetEditOn()) return; const store=pgxLoadStore(); const baseWeeks=pgxTotalWeeks(); const cur=Array.isArray(store.timeline?.manualDates)?store.timeline.manualDates:[]; const raw=prompt("Pega las FECHAS (dd/mm) separadas por coma para cada semana (total "+baseWeeks+").", cur.join(",")); if(raw===null) return; const t=String(raw||"").trim(); if(!t){ if(store.timeline) delete store.timeline.manualDates; pgxSaveStore(store); toast("Fechas manuales eliminadas."); renderPrograma(); pgxScheduleRelayout(); return; } const parts=t.split(",").map(x=>x.trim()).filter(Boolean); if(parts.length!==baseWeeks){ alert("Cantidad inválida: se esperaban "+baseWeeks+" fechas y recibí "+parts.length+"."); return; } store.timeline.manualDates=parts; pgxSaveStore(store); toast("Fechas manuales guardadas."); renderPrograma(); pgxScheduleRelayout(); }); }
 
-        const kind = (prompt("Tipo (AGRARIA / U.LIMA / PUCP / ESCOLARES):", "AGRARIA") || "AGRARIA").toUpperCase();
-        const allowed = ["AGRARIA","U.LIMA","PUCP","ESCOLARES"];
-        const theme = allowed.includes(kind) ? kind : "AGRARIA";
-        const scope = theme;
-
-        const store = pgxLoadStore();
-        const baseWeeks = pgxTotalWeeks();
-        const p = pgxDefaultProgram(name, scope, theme);
-        // ajusta longitud al timeline actual
-        const progs = (typeof pgxProgramsForRole === "function") ? pgxProgramsForRole() : [];
-        const baseStart0 = pgxParseDateYMD(String(store.timeline?.startDate||""));
-        let baseStart = baseStart0;
-        for (const p of (progs||[])){
-          const sd = pgxParseDateYMD(String(p?.meta?.startDate||""));
-          if (sd && (!baseStart || sd < baseStart)) baseStart = sd;
-        }
-        if (!baseStart) baseStart = new Date();
-        let displayWeeks = baseWeeks;
-        for (const p of (progs||[])){
-          const pStart = pgxParseDateYMD(String(p?.meta?.startDate||"")) || baseStart0 || baseStart;
-          const off = Math.max(0, pgxWeekDiff(pStart, baseStart));
-          displayWeeks = Math.max(displayWeeks, off + baseWeeks);
-        }
-        const w = displayWeeks;
-        p.config.lanes.forEach(l=>{
-          if (l.type==="cells") l.values = Array.from({length:w}, (_,i)=> String(l.values?.[i]||""));
-          if (l.type==="segments"){
-            // normaliza
-            const seg = Array.isArray(l.segments)? l.segments:[];
-            let sum=seg.reduce((a,s)=>a+(+s.span||0),0);
-            if (sum < w) seg.push({text:"", span:(w-sum)});
-            if (sum > w){
-              let acc=0; const out=[];
-              for (const s2 of seg){
-                const sp=+s2.span||0;
-                if (!sp) continue;
-                if (acc+sp<=w){ out.push(s2); acc+=sp; }
-                else{
-                  const rem = w-acc;
-                  if (rem>0) out.push({text:s2.text, span:rem});
-                  acc=w; break;
-                }
-              }
-              l.segments = out;
-            } else l.segments = seg;
-          }
-        });
-
-        store.programs[p.id]=p;
-        pgxInsertProgramId(store, p);
-        pgxSaveStore(store);
-        pgxSetActiveId(p.id);
-        pgxSetMode("ONE");
-        renderPrograma();
-        toast("Programa creado.");
-      });
-    }
-
-    if (btnDel){
-      btnDel.addEventListener("click", ()=>{
-        if (!pgxCanEdit()) return;
-        const id = pgxGetActiveId();
-        if (!id) return;
-        if (!confirm("¿Eliminar este programa?")) return;
-
-        const store = pgxLoadStore();
-    const baseWeeks = pgxTotalWeeks();
-        delete store.programs[id];
-        store.order = store.order.filter(x=>x!==id);
-        pgxSaveStore(store);
-        pgxSetActiveId(store.order[0] || "");
-        renderPrograma();
-        toast("Programa eliminado.");
-      });
-    }
-
-    if (btnJson){
-      btnJson.addEventListener("click", ()=>{
-        if (!pgxCanEdit()) return;
-        const id = pgxGetActiveId();
-        const store = pgxLoadStore();
-    const baseWeeks = pgxTotalWeeks();
-        let p = store.programs[id];
-      if (p) p = pgxUpgradeProgram(p, baseWeeks);
-        if (!p) return;
-
-        const raw = prompt("Editor JSON (pega JSON válido). Sugerencia: copia primero para respaldo.", JSON.stringify(p, null, 2));
-        if (!raw) return;
-        try{
-          const obj = JSON.parse(raw);
-          if (!obj || !obj.id) throw new Error("JSON inválido");
-          obj.meta = obj.meta || {};
-          obj.meta.updatedAt = pgxNowISO();
-          store.programs[obj.id] = obj;
-          if (!store.order.includes(obj.id)) store.order.push(obj.id);
-          pgxSaveStore(store);
-          pgxSetActiveId(obj.id);
-          renderPrograma();
-          toast("JSON guardado.");
-        }catch(e){
-          alert("JSON inválido. No se guardó.");
-        }
-      });
-    }
-    if (btnSet){
-      btnSet.addEventListener("click", ()=>{
-        if (!pgxCanEdit()) return;
-        pgxSetSettingsOpen(!pgxGetSettingsOpen());
-        renderPrograma();
-      });
-    }
-
-    if (btnDates){
-      btnDates.addEventListener("click", ()=>{
-        if (!pgxCanEdit()) return;
-        const store = pgxLoadStore();
-        const baseWeeks = pgxTotalWeeks();
-        const progs = (typeof pgxProgramsForRole === "function") ? pgxProgramsForRole() : [];
-        const baseStart0 = pgxParseDateYMD(String(store.timeline?.startDate||""));
-        let baseStart = baseStart0;
-        for (const p of (progs||[])){
-          const sd = pgxParseDateYMD(String(p?.meta?.startDate||""));
-          if (sd && (!baseStart || sd < baseStart)) baseStart = sd;
-        }
-        if (!baseStart) baseStart = new Date();
-        let displayWeeks = baseWeeks;
-        for (const p of (progs||[])){
-          const pStart = pgxParseDateYMD(String(p?.meta?.startDate||"")) || baseStart0 || baseStart;
-          const off = Math.max(0, pgxWeekDiff(pStart, baseStart));
-          displayWeeks = Math.max(displayWeeks, off + baseWeeks);
-        }
-        const w = displayWeeks;
-        const cur = Array.isArray(store.timeline?.manualDates) ? store.timeline.manualDates : [];
-        const hint = "Pega las FECHAS (dd/mm) separadas por coma para cada semana (total "+w+").\nEj: 09/02,16/02,23/02,...\n\nDeja vacío y acepta para borrar modo manual.";
-        const raw = prompt(hint, cur.join(","));
-        if (raw===null) return;
-        const s = String(raw||"").trim();
-        if (!s){
-          if (store.timeline) delete store.timeline.manualDates;
-          pgxSaveStore(store);
-          toast("Fechas manuales eliminadas.");
-          renderPrograma();
-          return;
-        }
-        const parts = s.split(",").map(x=>x.trim()).filter(Boolean);
-        if (parts.length !== w){
-          alert("Cantidad inválida: se esperaban "+w+" fechas y recibí "+parts.length+".");
-          return;
-        }
-        store.timeline.manualDates = parts;
-        pgxSaveStore(store);
-        toast("Fechas manuales guardadas.");
-        renderPrograma();
-      });
-    }
-
-
-    
+    if (btnSave){ btnSave.addEventListener("click", ()=>{ if(!pgxCanEdit()||!pgxGetEditOn()) return; const store=pgxLoadStore(); pgxSaveStore(store); pgxGridState.dirty=false; toast("Guardado."); }); }
+    if (btnCreate){ btnCreate.addEventListener("click", pgxCreateProgramFlow); }
+    if (fsTgl) fsTgl.addEventListener("click", ()=>setProgramaMatrixFullscreen());
+    if (fsExit) fsExit.addEventListener("click", ()=>setProgramaMatrixFullscreen(false));
 
     el.dataset.ready="1";
+  }
+
+
+  const pgxGridState = {
+    selected:null,
+    range:null,
+    editing:null,
+    dragFill:null,
+    history:[],
+    redo:[],
+    dirty:false,
+  };
+
+  function pgxPushHistory(change){
+    if (!change) return;
+    pgxGridState.history.push(change);
+    if (pgxGridState.history.length > 200) pgxGridState.history.shift();
+    pgxGridState.redo = [];
+  }
+
+  function pgxApplyCellValue(store, cell, value){
+    if (!cell) return false;
+    const p = store.programs[cell.pgid];
+    if (!p) return false;
+    const lane = (p.config?.lanes||[]).find(x=>String(x.key||"")===cell.lane);
+    if (!lane || lane.type!=="cells") return false;
+    const arr = Array.isArray(lane.values) ? lane.values : [];
+    const idx = cell.week - 1;
+    if (idx < 0 || idx >= arr.length) return false;
+    arr[idx] = String(value||"");
+    lane.values = arr;
+    p.meta = p.meta || {};
+    p.meta.updatedAt = pgxNowISO();
+    store.programs[cell.pgid] = p;
+    return true;
+  }
+
+  function pgxCellCtxFromTd(td){
+    if (!td) return null;
+    const pgid = String(td.getAttribute("data-pgid")||"");
+    const lane = String(td.getAttribute("data-lane")||"");
+    const week = +td.getAttribute("data-week")||0;
+    const row = +td.getAttribute("data-gridrow")||0;
+    const col = +td.getAttribute("data-gridcol")||0;
+    if (!pgid || !lane || !week) return null;
+    return {pgid,lane,week,row,col};
+  }
+
+  function pgxGetEditableCells(){
+    return Array.from(document.querySelectorAll('#pgxCanvas td.pxEditable'));
+  }
+
+  function pgxFindCellByPos(row,col){
+    return document.querySelector(`#pgxCanvas td.pxEditable[data-gridrow="${row}"][data-gridcol="${col}"]`);
+  }
+
+  function pgxSetSelectedCell(td, extend=false){
+    if (!td) return;
+    const ctx = pgxCellCtxFromTd(td);
+    if (!ctx) return;
+    if (!extend || !pgxGridState.selected){
+      pgxGridState.selected = ctx;
+      pgxGridState.range = {r1:ctx.row,c1:ctx.col,r2:ctx.row,c2:ctx.col};
+    } else {
+      pgxGridState.range = {r1:pgxGridState.selected.row,c1:pgxGridState.selected.col,r2:ctx.row,c2:ctx.col};
+    }
+    pgxRefreshSelectionUi();
+  }
+
+  function pgxRefreshSelectionUi(){
+    const all = pgxGetEditableCells();
+    all.forEach(td=>{ td.classList.remove('pxCellSelected','pxCellRange'); td.querySelector('.pxFillHandle')?.remove(); });
+    const rg = pgxGridState.range;
+    if (rg){
+      const rMin = Math.min(rg.r1, rg.r2), rMax = Math.max(rg.r1, rg.r2);
+      const cMin = Math.min(rg.c1, rg.c2), cMax = Math.max(rg.c1, rg.c2);
+      all.forEach(td=>{
+        const r = +td.getAttribute('data-gridrow')||0;
+        const c = +td.getAttribute('data-gridcol')||0;
+        if (r>=rMin && r<=rMax && c>=cMin && c<=cMax) td.classList.add('pxCellRange');
+      });
+    }
+    const sel = pgxGridState.selected ? pgxFindCellByPos(pgxGridState.selected.row, pgxGridState.selected.col) : null;
+    if (sel){
+      sel.classList.add('pxCellSelected');
+      const h = document.createElement('span');
+      h.className = 'pxFillHandle';
+      h.title = 'Arrastrar para rellenar';
+      sel.appendChild(h);
+    }
+  }
+
+  function pgxStartEditing(td){
+    const ctx = pgxCellCtxFromTd(td);
+    if (!ctx) return;
+    pgxGridState.editing = ctx;
+    const cur = td.getAttribute('data-value') || td.textContent || '';
+    td.classList.add('pxCellEditing');
+    td.innerHTML = `<input type="text" value="${escapeHtml(cur)}" />`;
+    const inp = td.querySelector('input');
+    if (!inp) return;
+    inp.focus(); inp.select();
+  }
+
+  function pgxCommitEditing(save){
+    const ed = pgxGridState.editing;
+    if (!ed) return;
+    const td = pgxFindCellByPos(ed.row, ed.col);
+    if (!td) { pgxGridState.editing = null; return; }
+    const inp = td.querySelector('input');
+    const nextVal = inp ? String(inp.value||'') : '';
+    const prevVal = String(td.getAttribute('data-value')||'');
+    pgxGridState.editing = null;
+    if (save && nextVal !== prevVal){
+      const store = pgxLoadStore();
+      if (pgxApplyCellValue(store, ed, nextVal)){
+        pgxPushHistory({cells:[{...ed,before:prevVal,after:nextVal}]});
+        pgxGridState.dirty = true;
+        pgxSaveStore(store);
+      }
+    }
+    renderPrograma();
+  }
+
+  function pgxCellsInRange(){
+    const rg = pgxGridState.range;
+    if (!rg) return [];
+    const rMin = Math.min(rg.r1, rg.r2), rMax = Math.max(rg.r1, rg.r2);
+    const cMin = Math.min(rg.c1, rg.c2), cMax = Math.max(rg.c1, rg.c2);
+    const out=[];
+    for (let r=rMin;r<=rMax;r++) for (let c=cMin;c<=cMax;c++){
+      const td = pgxFindCellByPos(r,c); if (td) out.push(td);
+    }
+    return out;
+  }
+
+  function pgxCopySelection(){
+    const cells = pgxCellsInRange();
+    if (!cells.length) return '';
+    const rows = new Map();
+    cells.forEach(td=>{
+      const r = +td.getAttribute('data-gridrow')||0;
+      const c = +td.getAttribute('data-gridcol')||0;
+      if (!rows.has(r)) rows.set(r, new Map());
+      rows.get(r).set(c, String(td.getAttribute('data-value')||''));
+    });
+    return Array.from(rows.keys()).sort((a,b)=>a-b).map(r=>{
+      const cols = rows.get(r);
+      return Array.from(cols.keys()).sort((a,b)=>a-b).map(c=>cols.get(c)||'').join('\t');
+    }).join('\n');
+  }
+
+  function pgxPasteTSV(text){
+    if (!pgxGridState.selected) return;
+    const rows = String(text||'').replace(/\r/g,'').split('\n').filter((_,i,a)=>!(i===a.length-1 && a[i]==='')).map(r=>r.split('\t'));
+    if (!rows.length) return;
+    const base = pgxGridState.selected;
+    const store = pgxLoadStore();
+    const changes=[];
+    rows.forEach((cols,ri)=>{
+      cols.forEach((val,ci)=>{
+        const td = pgxFindCellByPos(base.row+ri, base.col+ci);
+        const ctx = pgxCellCtxFromTd(td);
+        if (!ctx) return;
+        const before = String(td.getAttribute('data-value')||'');
+        const after = String(val||'');
+        if (before===after) return;
+        if (pgxApplyCellValue(store, ctx, after)) changes.push({...ctx,before,after});
+      });
+    });
+    if (!changes.length) return;
+    pgxPushHistory({cells:changes});
+    pgxGridState.dirty = true;
+    pgxSaveStore(store);
+    renderPrograma();
+  }
+
+  function pgxApplyFill(fromCtx,toCtx){
+    if (!fromCtx || !toCtx) return;
+    const td = pgxFindCellByPos(fromCtx.row, fromCtx.col);
+    if (!td) return;
+    const seed = String(td.getAttribute('data-value')||'');
+    const rMin = Math.min(fromCtx.row,toCtx.row), rMax=Math.max(fromCtx.row,toCtx.row);
+    const cMin = Math.min(fromCtx.col,toCtx.col), cMax=Math.max(fromCtx.col,toCtx.col);
+    const store = pgxLoadStore();
+    const changes=[];
+    for (let r=rMin;r<=rMax;r++) for (let c=cMin;c<=cMax;c++){
+      const cellTd = pgxFindCellByPos(r,c);
+      const ctx = pgxCellCtxFromTd(cellTd);
+      if (!ctx) continue;
+      const before = String(cellTd.getAttribute('data-value')||'');
+      if (before===seed) continue;
+      if (pgxApplyCellValue(store, ctx, seed)) changes.push({...ctx,before,after:seed});
+    }
+    if (!changes.length) return;
+    pgxPushHistory({cells:changes});
+    pgxGridState.dirty = true;
+    pgxSaveStore(store);
+    renderPrograma();
+  }
+
+  function pgxUndoRedo(isRedo){
+    const from = isRedo ? pgxGridState.redo : pgxGridState.history;
+    const to = isRedo ? pgxGridState.history : pgxGridState.redo;
+    const entry = from.pop();
+    if (!entry) return;
+    const store = pgxLoadStore();
+    for (const cell of entry.cells||[]){
+      pgxApplyCellValue(store, cell, isRedo ? cell.after : cell.before);
+    }
+    to.push(entry);
+    pgxGridState.dirty = true;
+    pgxSaveStore(store);
+    renderPrograma();
   }
 
   function pgxWireCellEditing(){
@@ -4397,39 +4507,84 @@ const tw = pgxTotalWeeks();
     if (canvas.dataset.editWired==="1") return;
     canvas.dataset.editWired="1";
 
-    canvas.addEventListener("click", (e)=>{
-      const td = e.target?.closest ? e.target.closest("td.pxEditable") : null;
+    canvas.addEventListener('click',(e)=>{
+      const td = e.target?.closest ? e.target.closest('td.pxEditable') : null;
+      if (!td || !pgxCanEdit() || !pgxGetEditOn()) return;
+      pgxSetSelectedCell(td, e.shiftKey);
+    });
+
+    canvas.addEventListener('dblclick',(e)=>{
+      const td = e.target?.closest ? e.target.closest('td.pxEditable') : null;
+      if (!td || !pgxCanEdit() || !pgxGetEditOn()) return;
+      pgxSetSelectedCell(td);
+      pgxStartEditing(td);
+    });
+
+    canvas.addEventListener('mousedown',(e)=>{
+      const handle = e.target?.closest ? e.target.closest('.pxFillHandle') : null;
+      if (!handle || !pgxGridState.selected) return;
+      e.preventDefault();
+      pgxGridState.dragFill = {...pgxGridState.selected};
+    });
+
+    canvas.addEventListener('mouseover',(e)=>{
+      if (!pgxGridState.dragFill) return;
+      const td = e.target?.closest ? e.target.closest('td.pxEditable') : null;
       if (!td) return;
-      if (!pgxCanEdit() || !pgxGetEditOn()) return;
+      pgxSetSelectedCell(td, true);
+    });
 
-      const pgid   = String(td.getAttribute("data-pgid")||"");
-      const laneK  = String(td.getAttribute("data-lane")||"");
-      const lstart = +td.getAttribute("data-lstart")||1;  // ✅ local (programa)
-      const lspan  = +td.getAttribute("data-lspan")||1;   // ✅ local span
-      if (!pgid || !laneK) return;
+    window.addEventListener('mouseup',()=>{
+      if (!pgxGridState.dragFill || !pgxGridState.selected) return;
+      pgxApplyFill(pgxGridState.dragFill, pgxGridState.selected);
+      pgxGridState.dragFill = null;
+    });
 
-      const store = pgxLoadStore();
-    const baseWeeks = pgxTotalWeeks();
-      const p = store.programs[pgid];
-      if (!p) return;
+    document.addEventListener('keydown',(e)=>{
+      if (!pgxCanEdit() || !pgxGetEditOn() || state.view !== 'programa') return;
+      const sel = pgxGridState.selected;
+      if (!sel) return;
 
-      const l = (p.config?.lanes||[]).find(x=>x.key===laneK);
-      if (!l || l.type!=="cells") return;
-
-      const cur = String((l.values||[])[lstart-1] || "");
-      const nv = prompt(`Editar ${l.label} (semanas ${lstart}-${lstart+lspan-1})`, cur);
-      if (nv===null) return;
-
-      const arr = Array.isArray(l.values) ? l.values : [];
-      for (let i=lstart-1;i<lstart-1+lspan;i++){
-        if (i>=0 && i<arr.length) arr[i] = String(nv||"");
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase()==='c'){
+        const t = pgxCopySelection();
+        if (t) navigator.clipboard?.writeText(t);
+        e.preventDefault();
+        return;
       }
-      l.values = arr;
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase()==='v') return;
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase()==='z'){ e.preventDefault(); pgxUndoRedo(false); return; }
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase()==='y'){ e.preventDefault(); pgxUndoRedo(true); return; }
 
-      p.meta.updatedAt = pgxNowISO();
-      store.programs[pgid]=p;
-      pgxSaveStore(store);
-      renderPrograma();
+      if (pgxGridState.editing){
+        if (e.key==='Enter'){ e.preventDefault(); pgxCommitEditing(true); }
+        if (e.key==='Escape'){ e.preventDefault(); pgxCommitEditing(false); }
+        return;
+      }
+
+      if (e.key==='Enter'){
+        e.preventDefault();
+        const td = pgxFindCellByPos(sel.row, sel.col);
+        if (td) pgxStartEditing(td);
+        return;
+      }
+
+      const next = {row:sel.row,col:sel.col};
+      if (e.key==='ArrowUp') next.row--;
+      else if (e.key==='ArrowDown') next.row++;
+      else if (e.key==='ArrowLeft') next.col--;
+      else if (e.key==='ArrowRight') next.col++;
+      else return;
+      e.preventDefault();
+      const td = pgxFindCellByPos(next.row, next.col);
+      if (td) pgxSetSelectedCell(td, e.shiftKey);
+    });
+
+    canvas.addEventListener('paste',(e)=>{
+      if (!pgxCanEdit() || !pgxGetEditOn()) return;
+      const txt = e.clipboardData?.getData('text/plain');
+      if (!txt) return;
+      e.preventDefault();
+      pgxPasteTSV(txt);
     });
   }
 
@@ -4452,8 +4607,6 @@ const tw = pgxTotalWeeks();
 
     pgxFillProgramSelect(programs);
     pgxApplyHeaderUI();
-
-    pgxRenderSettings(programs);
 
     const canvas = document.getElementById("pgxCanvas");
     if (!canvas) return;
@@ -4499,6 +4652,8 @@ const tw = pgxTotalWeeks();
     }
 
     pgxWireCellEditing();
+    if (pgxCanEdit() && pgxGetEditOn()) pgxRefreshSelectionUi();
+    try{ pgxScheduleRelayout(); }catch(e){}
   }
 
 
@@ -6445,7 +6600,7 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
     });
   }
 
-  
+
   function renderEvalList(evals){
     const wrap = document.getElementById("evList");
     const work = document.getElementById("evWork");
@@ -7606,7 +7761,7 @@ const LISTAS_LOCAL_ORDER = ["LA MOLINA","SAN MIGUEL","SAN BORJA","VIRTUAL"];
 
 function sortListasByLocalOrder(values){
   return values.slice().sort((a,b)=>{
-    const ia = LISTAS_LOCAL_ORDER.indexOf(a); 
+    const ia = LISTAS_LOCAL_ORDER.indexOf(a);
     const ib = LISTAS_LOCAL_ORDER.indexOf(b);
     return (ia<0?999:ia) - (ib<0?999:ib);
   });
@@ -8700,7 +8855,7 @@ function renderReportes(){
     },
   ]);
 
-  
+
 
   // ===================== HORARIOS (PERSISTENCIA) =====================
   const SCHEDULES_KEY = "LM_SCHEDULES_v1";
@@ -9005,11 +9160,11 @@ function ensureHorariosLayout(){
       }catch(e){ HORARIOS_EDIT_MODE = false; }
       applyEditUi();
     }
-    
+
     // UX: ajustar altura y habilitar drag-to-scroll en matriz
     try{
       // se ejecuta después de que el DOM ya esté armado
-      setTimeout(()=>{ 
+      setTimeout(()=>{
         enableHorariosDragScroll();
         fitHorariosMatrixHeight();
       }, 0);
@@ -9881,9 +10036,9 @@ el.dataset.ready = "1";
   });
 
   // ===================== RENDER =====================
-  
+
   // ===================== INICIO (ALUMNOS) =====================
-  
+
 function ensureInicioAlumnoLayout(){
     const el = document.getElementById("view_inicio_alumno");
     if (!el || el.dataset.ready === "1") return;
@@ -10273,7 +10428,7 @@ if (state.view==="impresiones") renderImpresiones();
     }
 
     if (bestIdx === -1 || bestScore < 6){
-      return { salon, rows: [], error: "No se encontró un encabezado válido (NOMBRES/ESTADO/MODALIDAD/DNI/CORREO...)."}; 
+      return { salon, rows: [], error: "No se encontró un encabezado válido (NOMBRES/ESTADO/MODALIDAD/DNI/CORREO...)."};
     }
 
     const headerIdx = bestIdx;
