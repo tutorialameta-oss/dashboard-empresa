@@ -790,6 +790,26 @@
       padding: 6px 6px;
     }
     .schEmpty{ background:#fff; }
+    .schEmpty.hasTimeLabel{
+      color: rgba(15,23,42,0.35);
+      font-size:10px;
+      font-weight:800;
+    }
+
+    .schCell.isInlineEditing,
+    .schEmpty.isInlineEditing{
+      outline: 2px solid rgba(209,11,11,.45);
+      outline-offset: -2px;
+    }
+    .schInlineInput{
+      width:100%;
+      border:1px solid rgba(15,23,42,.22);
+      border-radius:8px;
+      padding:6px 8px;
+      font-weight:900;
+      text-transform:uppercase;
+      background:#fff;
+    }
 
     .schTable col.timeCol{ width: 92px; }
 
@@ -8073,7 +8093,7 @@ function renderReportes(){
         return `<td class="schEmpty" data-day="${escapeAttr(d)}" data-row="${i}" data-start="${escapeAttr(slot.start)}" data-end="${escapeAttr(slot.end)}" data-course="" data-teacher="" ${allowInlineEdit ? 'data-inline-edit="1"' : ''} data-placeholder="${placeholder ? "1" : "0"}"></td>`;
       }).join("");
 
-      return `<tr>${timeCell}${tds}</tr>`;
+      return `<tr style="height:${slotRowHeightPx(slot)}px;">${timeCell}${tds}</tr>`;
     }).join("");
 
     return `
@@ -8765,6 +8785,7 @@ function renderReportes(){
 
 function ensureHorariosLayout(){
     const el = document.getElementById("view_horarios");
+    if (el) el.classList.add("horariosView");
     if (el.dataset.ready === "1") return;
 
     // Entorno alumno: solo su horario
