@@ -3211,7 +3211,8 @@ function pgxInsertProgramId(store, newProgram){
 function pgxEnsure(){
     const store = pgxLoadStore();
     const baseWeeks = pgxTotalWeeks();
-    if (!store.order.length && pgxCanEdit()){
+    const validCount = (store.order||[]).filter(id=>!!store.programs?.[id]).length;
+    if ((validCount===0) && pgxCanEdit()){
       const p1 = pgxDefaultProgram("AG REGULAR 1", "AGRARIA", "AGRARIA");
       p1.meta.startWeek = 1;
       p1.meta.endWeek = store.timeline.weeks;
@@ -4646,7 +4647,18 @@ const tw = pgxTotalWeeks();
     pgxEnsureProgramaLayout();
 
     const mode = (!pgxCanEdit() || !pgxGetEditOn()) ? "ALL" : pgxGetMode();
-    const programs = pgxProgramsForRole();
+    let programs = pgxProgramsForRole();
+    if (!programs.length && pgxCanEdit()){
+      try{
+        const storeFix = pgxLoadStore();
+        const ids = Object.keys(storeFix.programs||{});
+        if (ids.length){
+          storeFix.order = ids;
+          pgxSaveStore(storeFix);
+          programs = pgxProgramsForRole();
+        }
+      }catch(e){}
+    }
     if (!programs.length){
       const canvas = document.getElementById("pgxCanvas");
       if (canvas) canvas.innerHTML = `<div class="pgEmpty">No hay programas configurados.</div>`;
