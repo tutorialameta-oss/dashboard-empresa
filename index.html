@@ -4613,11 +4613,12 @@ const tw = pgxTotalWeeks();
   }
 
 
+  let PGX_INIT_RENDER_DONE = false;
+
   function renderPrograma(){
     pgxEnsure();
     pgxEnsureProgramaLayout();
 
-    const mode = pgxGetMode();
     const programs = pgxProgramsForRole();
     if (!programs.length){
       const canvas = document.getElementById("pgxCanvas");
@@ -4625,7 +4626,14 @@ const tw = pgxTotalWeeks();
       return;
     }
 
-    // Active
+    // Al iniciar: mostrar TODOS por defecto (sin filtro de programa único)
+    if (!PGX_INIT_RENDER_DONE){
+      pgxSetMode("ALL");
+      PGX_INIT_RENDER_DONE = true;
+    }
+    const mode = pgxGetMode();
+
+    // Active (solo para selects/edición, no para filtrar al inicio)
     const active = pgxGetActiveId() || programs[0].id;
     if (!pgxGetActiveId()) pgxSetActiveId(active);
 
