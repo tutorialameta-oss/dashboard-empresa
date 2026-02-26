@@ -3528,7 +3528,7 @@ function pgxUpgradeProgram(p, baseWeeks){
 
       // normaliza lanes (longitud baseWeeks)
       const lanes0 = (p.config?.lanes||[]).slice();
-      const laneRows = lanes0.filter(l=>l && l.key && l.label);
+      const laneRows = lanes0.filter(l=>l && l.key && l.label && String(l.key||"").toLowerCase()!=="eventos");
 
       laneRows.forEach(l=>{
         if (l.type==="cells"){
@@ -3890,19 +3890,8 @@ function pgxUpgradeProgram(p, baseWeeks){
         <button id="pgsResetCols" class="btn ghost" type="button">RESET COLORES</button>
       </div>
 
-      <div class="pgxSetTitle" style="margin-top:14px;">NOMBRES DE FILAS</div>
-      <div class="pgxLaneWrap" id="pgsLaneWrap">${laneHtml}</div>
 
-      <div style="margin-top:10px; color:var(--muted); font-weight:900;">
-        Tip: “EDITAR ETAPA” usa formato <b>TEXTO:SPAN|TEXTO:SPAN</b>. Ej: NIVELACIÓN:3|AVANCE TEÓRICO:10|REPASO:3
-      </div>
-    `;
-
-    // wire
-    document.getElementById("pgsPick")?.addEventListener("change", (e)=>{
-      pgxSetActiveId(String(e.target.value||""));
-      renderPrograma();
-    });
+  let PROGRAMA_MATRIX_FULLSCREEN = false;
 
     document.getElementById("pgsSave")?.addEventListener("click", ()=>{
       const store = pgxLoadStore();
@@ -3955,46 +3944,39 @@ const tw = pgxTotalWeeks();
       renderPrograma();
     });
 
-    document.getElementById("pgsEtapa")?.addEventListener("click", ()=>{
-      const store = pgxLoadStore();
-    const baseWeeks = pgxTotalWeeks();
-      const id = pgxGetActiveId();
-      const pp = store.programs[id];
-      if (!pp) return;
+  function setProgramaMatrixFullscreen(force){
+    const host = document.getElementById("pgxMatrixHost");
+    const tgl = document.getElementById("pgxFsToggle");
+    if (!host || !tgl) return;
+    const next = (typeof force === "boolean") ? force : !PROGRAMA_MATRIX_FULLSCREEN;
+    PROGRAMA_MATRIX_FULLSCREEN = !!next;
+    host.classList.toggle("isFullscreen", PROGRAMA_MATRIX_FULLSCREEN);
+    tgl.textContent = PROGRAMA_MATRIX_FULLSCREEN ? "SALIR PANTALLA COMPLETA" : "PANTALLA COMPLETA";
+    if (!PROGRAMA_MATRIX_FULLSCREEN){ host.scrollTop=0; host.scrollLeft=0; }
+    try{ fitProgramaMatrixHeight(); }catch(e){}
+  }
 
-      const tw = pgxTotalWeeks();
-      const curSeg = (pp.config?.lanes||[]).find(x=>x.key==="etapa")?.segments || [];
-      const curStr = curSeg.map(s=>`${String(s.text||"").trim()}:${+s.span||0}`).join("|");
-      const raw = prompt("Editar ETAPA (TEXTO:SPAN|...). Suma debe ser "+tw+".", curStr);
-      if (raw===null) return;
-      const seg = pgxSegmentsFromPrompt(raw, tw);
-      if (!seg){ alert("Formato inválido."); return; }
+  function pgxCreateProgramFlow(){
+    if (!pgxCanEdit()) return;
+    const cycles = ["AGRARIA","U.LIMA","PUCP","ESCOLARES"];
+    const kindRaw = prompt("Selecciona ciclo: AGRARIA / U.LIMA / PUCP / ESCOLARES", "AGRARIA");
+    if (kindRaw===null) return;
+    const cycle = String(kindRaw||"").trim().toUpperCase();
+    if (!cycles.includes(cycle)){ alert("Ciclo inválido. Solo: AGRARIA, U.LIMA, PUCP, ESCOLARES."); return; }
+    const nameRaw = prompt("Nombre del nuevo programa:", cycle);
+    if (nameRaw===null) return;
+    const name = String(nameRaw||"").trim().toUpperCase();
+    if (!name){ alert("El nombre es obligatorio."); return; }
 
-      const lane = (pp.config?.lanes||[]).find(x=>x.key==="etapa");
-      if (lane){
-        lane.segments = seg;
-        pp.config.etapaSegments = seg;
-      }
-      pp.meta.updatedAt = pgxNowISO();
-      store.programs[id]=pp;
-      pgxSaveStore(store);
-      toast("Etapa actualizada.");
-      renderPrograma();
-    });
-
-    document.getElementById("pgsResetCols")?.addEventListener("click", ()=>{
-      const store = pgxLoadStore();
-    const baseWeeks = pgxTotalWeeks();
-      const id = pgxGetActiveId();
-      const pp = store.programs[id];
-      if (!pp) return;
-      if (pp.meta) delete pp.meta.colors;
-      pp.meta.updatedAt = pgxNowISO();
-      store.programs[id]=pp;
-      pgxSaveStore(store);
-      toast("Colores reseteados.");
-      renderPrograma();
-    });
+    const store = pgxLoadStore();
+    const p = pgxDefaultProgram(name, cycle, cycle);
+    if (p.meta && p.meta.colors) delete p.meta.colors;
+    store.programs[p.id] = p;
+    pgxInsertProgramId(store, p); // respeta orden fijo + inserta debajo del último de su ciclo
+    pgxSaveStore(store);
+    pgxSetActiveId(p.id);
+    renderPrograma();
+    toast("Programa creado.");
   }
 
 
@@ -4585,7 +4567,7 @@ const tw = pgxTotalWeeks();
     pgxEnsure();
     pgxEnsureProgramaLayout();
 
-    const mode = pgxGetMode();
+    const mode = "ALL";
     const programs = pgxProgramsForRole();
     if (!programs.length){
       const canvas = document.getElementById("pgxCanvas");
