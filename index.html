@@ -623,14 +623,8 @@
     }
     .hUniBadges{ margin-top:10px; }
     .hUniBadge{
-      cursor:pointer;
+      cursor:default;
       user-select:none;
-      transition:all .15s ease;
-    }
-    .hUniBadge.active{
-      border-color: rgba(15,23,42,0.35);
-      box-shadow: 0 2px 10px rgba(15,23,42,.10);
-      transform: translateY(-1px);
     }
 
     .schEdit{
@@ -8967,21 +8961,6 @@ function ensureHorariosLayout(){
       syncHorariosUniBadges();
       rer();
     });
-    const uniBadges = document.getElementById("hUniBadges");
-    if (uniBadges){
-      uniBadges.addEventListener("click", (e)=>{
-        const b = e.target.closest(".hUniBadge");
-        if (!b) return;
-        const uni = b.getAttribute("data-uni") || "__ALL__";
-        const sel = document.getElementById("hUni");
-        if (!sel) return;
-        sel.value = (sel.value === uni) ? "__ALL__" : uni;
-        rebuildHorariosSalonOptions();
-        syncHorariosUniBadges();
-        rer();
-      });
-    }
-    syncHorariosUniBadges();
 
     const fsTgl = document.getElementById("hFsToggle");
     const fsExit = document.getElementById("hFsExit");
@@ -9048,6 +9027,133 @@ el.dataset.ready = "1";
 
     const salones = uniq(base.map(s=>s.salon)).sort((a,b)=>a.localeCompare(b,"es"));
     fillSelectKeep("hSalon", salones, "SALÓN: TODOS");
+  }
+  let HORARIOS_MATRIX_FULLSCREEN = false;
+
+  function setHorariosMatrixFullscreen(force){
+    const host = document.getElementById("hMatrixHost");
+    const tgl = document.getElementById("hFsToggle");
+    if (!host || !tgl) return;
+    const next = (typeof force === "boolean") ? force : !HORARIOS_MATRIX_FULLSCREEN;
+    HORARIOS_MATRIX_FULLSCREEN = !!next;
+    host.classList.toggle("isFullscreen", HORARIOS_MATRIX_FULLSCREEN);
+    tgl.textContent = HORARIOS_MATRIX_FULLSCREEN ? "SALIR PANTALLA COMPLETA" : "PANTALLA COMPLETA";
+    if (!HORARIOS_MATRIX_FULLSCREEN){
+      host.scrollTop = 0;
+      host.scrollLeft = 0;
+    }
+    try{ fitHorariosMatrixHeight(); }catch(e){}
+  }
+
+  function localCodeFromName(local){
+    if (local === "LA MOLINA") return "LM";
+    if (local === "SAN MIGUEL") return "SM";
+    if (local === "SAN BORJA") return "SB";
+    return "VIRT";
+  }
+
+  function baseColumnKeyForSchedule(sch){
+    if (sch.uni === "AGRARIA"){
+      if (String(sch.salon||"").toUpperCase().includes("ESCOLAR")) return "ESCOLARES";
+      if (sch.id === "AGR_LM_2" || String(sch.salon||"").includes(" 2") || String(sch.salon||"").includes("LM 2")) return "AGRARIA_2";
+      return "AGRARIA_1";
+    }
+    if (sch.uni === "U.LIMA"){
+      const id = String(sch.id||"");
+      const sal = String(sch.salon||"");
+      if (sal.toUpperCase().includes("ESC") || id.includes("UL_ESC")) return "ESCOLARES";
+      if (id.endsWith("_2") || sal.includes(" 2") || id.includes("_SM_2") || id.includes("_SB_2") || id.includes("_VIRT_2")) return "ULIMA_2";
+      return "ULIMA_1";
+    }
+    if (sch.uni === "PUCP") return "PUCP";
+    return "ESCOLARES";
+  }
+
+  function expandColKeyForLocal(local, baseKey){
+    const lc = localCodeFromName(local);
+    if (baseKey === "AGRARIA_1") return `AGRARIA_${lc}_1`;
+    if (baseKey === "AGRARIA_2") return `AGRARIA_${lc}_2`;
+    if (baseKey === "ULIMA_1") return `ULIMA_${lc}_1`;
+    if (baseKey === "ULIMA_2") return `ULIMA_${lc}_2`;
+    if (baseKey === "PUCP") return `PUCP_${lc}`;
+    if (baseKey === "ESCOLARES") return `ESCOLARES_${lc}`;
+    return `${baseKey}_${lc}`;
+  }
+
+  function matrixColumnKeyForSchedule(sch){
+    return expandColKeyForLocal(sch.local, baseColumnKeyForSchedule(sch));
+  }
+
+  function scheduleCardKey(local, colKey){
+    return `${local}||${colKey}`;
+  }
+
+  function cycleTypeFromColKey(colKey){
+    const c = String(colKey||"").toUpperCase();
+    if (c.startsWith("AGRARIA_")) return "AGRARIA";
+    if (c.startsWith("ULIMA_")) return "U.LIMA";
+    if (c.startsWith("PUCP_")) return "PUCP";
+    if (c.startsWith("ESCOLARES_")) return "ESCOLARES";
+    if (c === "AGRARIA" || c === "U.LIMA" || c === "PUCP" || c === "ESCOLARES") return c;
+    return "AGRARIA";
+  }
+
+  function inferSalonByCardKey(local, colKey, fallback){
+    const t = cycleTypeFromColKey(colKey);
+    const lc = localCodeFromName(local);
+    if (t === "AGRARIA") return `AGRARIA ${lc}${String(colKey).endsWith("_2") ? " 2" : " 1"}`;
+    if (t === "U.LIMA") return `ULIMA ${lc}${String(colKey).endsWith("_2") ? " 2" : " 1"}`;
+    if (t === "PUCP") return `PUCP ${lc}`;
+    if (t === "ESCOLARES") return `ESCOLARES ${lc}`;
+    return fallback || `${t} ${lc}`;
+  }
+
+  function buildPlaceholderSchedule(local, colKey, colLabel){
+    const fullColKey = expandColKeyForLocal(local, colKey);
+    return {
+      id: `__PH__${fullColKey}`,
+      local,
+      uni: cycleTypeFromColKey(fullColKey),
+      salon: inferSalonByCardKey(local, fullColKey, colLabel),
+      blocks: [],
+      __isPlaceholder: true,
+      __colKey: fullColKey,
+      __cardKey: scheduleCardKey(local, fullColKey)
+    };
+  }
+
+  function scheduleIdentityFromCardKey(cardKey){
+    const parts = String(cardKey||"").split("||");
+    const local = parts[0] || "VIRTUAL";
+    const colKey = parts[1] || expandColKeyForLocal(local, "ESCOLARES");
+    const uni = cycleTypeFromColKey(colKey);
+    const lc = localCodeFromName(local);
+    const id = `SCH_${String(colKey).replace(/[^A-Z0-9_]+/g,"_")}`;
+    return { id, local, uni, salon: inferSalonByCardKey(local, colKey, ""), colKey, cardKey: scheduleCardKey(local, colKey) };
+  }
+
+  function scheduleCardHtmlWithMeta(s){
+    const colKey = String(s.__colKey || matrixColumnKeyForSchedule(s));
+    const cardKey = String(s.__cardKey || scheduleCardKey(s.local, colKey));
+    const uniType = cycleTypeFromColKey(colKey);
+    const view = Object.assign({}, s, {
+      uni: uniType,
+      salon: inferSalonByCardKey(s.local, colKey, s.salon),
+      cornerLabel: getCornerLabelByCycle(colKey)
+    });
+    let html = scheduleToHtmlCard(view);
+    html = html.replace('<div class="schCard"', `<div class="schCard" data-cycle="${escapeAttr(colKey)}" data-colkey="${escapeAttr(colKey)}" data-cardkey="${escapeAttr(cardKey)}"`);
+    if (s.__isPlaceholder){
+      const identity = scheduleIdentityFromCardKey(cardKey);
+      html = html
+        .replace('data-id="'+escapeHtml(s.id)+'"', `data-id="${escapeHtml(identity.id)}"`)
+        .replace('data-uni="'+escapeHtml(view.uni)+'"', `data-uni="${escapeHtml(identity.uni)}"`)
+        .replace('data-salon="'+escapeHtml(view.salon)+'"', `data-salon="${escapeHtml(identity.salon)}"`)
+        .replace('data-local="'+escapeHtml(view.local)+'"', `data-local="${escapeHtml(identity.local)}"`)
+        .replace('<div class="schCard"', `<div class="schCard" data-placeholder="1"`)
+        .replace(/data-sid="[^"]*"/g, `data-sid="${escapeAttr(identity.id)}"`);
+    }
+    return html;
   }
 
   function syncHorariosUniBadges(){
