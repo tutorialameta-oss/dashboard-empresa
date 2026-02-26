@@ -2664,11 +2664,26 @@ if (btnSil) btnSil.style.display = "";
       }
     }
 
-    if (bA) bA.addEventListener("click", ()=>pick("admin"));
-    if (bT) bT.addEventListener("click", ()=>pick("tutor"));
-    if (bS) bS.addEventListener("click", ()=>pick("alumno"));
+    function inferSelectedRole(){
+      if (selected) return selected;
+      if (bA?.classList.contains("active")) return "admin";
+      if (bT?.classList.contains("active")) return "tutor";
+      if (bS?.classList.contains("active")) return "alumno";
+      return null;
+    }
+
+    const bindRole = (el, role)=>{
+      if (!el) return;
+      const cb = (ev)=>{ ev.preventDefault(); pick(role); };
+      el.addEventListener("click", cb);
+      el.addEventListener("touchstart", cb, { passive:false });
+    };
+    bindRole(bA, "admin");
+    bindRole(bT, "tutor");
+    bindRole(bS, "alumno");
 
     async function doLogin(){
+      selected = inferSelectedRole();
       if (!selected){
         if (err){ err.textContent = "Seleccione un rol."; err.style.display = "block"; }
         return;
@@ -2724,8 +2739,21 @@ if (btnSil) btnSil.style.display = "";
     if (pass) pass.addEventListener("keydown", (e)=>{ if (e.key === "Enter") doLogin(); });
     if (user) user.addEventListener("keydown", (e)=>{ if (e.key === "Enter") doLogin(); });
 
+    const overlay = document.getElementById("authOverlay");
+    if (overlay && !overlay.dataset.authDelegated){
+      overlay.dataset.authDelegated = "1";
+      overlay.addEventListener("click", (ev)=>{
+        const t = ev.target?.closest ? ev.target.closest("#roleAdmin,#roleTutor,#roleAlumno,#btnLogin") : null;
+        if (!t) return;
+        if (t.id === "roleAdmin") return pick("admin");
+        if (t.id === "roleTutor") return pick("tutor");
+        if (t.id === "roleAlumno") return pick("alumno");
+        if (t.id === "btnLogin") return doLogin();
+      }, true);
+    }
+
     // Por defecto
-    pick("tutor");
+    pick("admin");
     return false;
   }
 
@@ -3987,6 +4015,72 @@ const tw = pgxTotalWeeks();
     toast("Programa creado.");
   }
 
+
+
+  let PROGRAMA_MATRIX_FULLSCREEN = false;
+
+  function pgxScheduleRelayout(){
+    const sc = document.getElementById("pgxScroll");
+    if (!sc) return;
+    requestAnimationFrame(()=>{
+      try{ fitProgramaMatrixHeight(); }catch(e){}
+      void sc.offsetHeight;
+    });
+  }
+
+  function fitProgramaMatrixHeight(){
+    const host = document.getElementById("pgxMatrixHost");
+    const sc = document.getElementById("pgxScroll");
+    if (!sc) return;
+    if (host && host.classList.contains("isFullscreen")){
+      sc.style.maxHeight = "calc(100vh - 58px)";
+      sc.style.height = "calc(100vh - 58px)";
+    } else {
+      sc.style.height = "";
+      sc.style.maxHeight = "calc(100vh - 230px)";
+    }
+  }
+
+  function setProgramaMatrixFullscreen(force){
+    const host = document.getElementById("pgxMatrixHost");
+    const tgl = document.getElementById("pgxFsToggle");
+    if (!host || !tgl) return;
+    const next = (typeof force === "boolean") ? force : !PROGRAMA_MATRIX_FULLSCREEN;
+    PROGRAMA_MATRIX_FULLSCREEN = !!next;
+    host.classList.toggle("isFullscreen", PROGRAMA_MATRIX_FULLSCREEN);
+    tgl.textContent = PROGRAMA_MATRIX_FULLSCREEN ? "SALIR PANTALLA COMPLETA" : "PANTALLA COMPLETA";
+    if (!PROGRAMA_MATRIX_FULLSCREEN){ host.scrollTop=0; host.scrollLeft=0; }
+    pgxScheduleRelayout();
+  }
+
+  function pgxNextProgramName(cycle, store){
+    const names = (store.order||[]).map(id=>String(store.programs?.[id]?.meta?.name||"").toUpperCase());
+    let maxN = 0;
+    for (const n of names){
+      const m = new RegExp(`^${cycle.replace('.','\.')}\s*(\d+)?$`).exec(n.trim());
+      if (!m) continue;
+      const num = m[1] ? parseInt(m[1],10) : 1;
+      if (num > maxN) maxN = num;
+    }
+    return `${cycle} ${Math.max(2, maxN+1)}`;
+  }
+
+  function pgxCreateProgramFlow(){
+    if (!pgxCanEdit() || !pgxGetEditOn()) return;
+    const kind = String(document.getElementById("pgxCreateType")?.value||"AGRARIA").toUpperCase();
+    const allowed = ["AGRARIA","U.LIMA","PUCP","ESCOLARES"];
+    if (!allowed.includes(kind)) return;
+    const store = pgxLoadStore();
+    const name = pgxNextProgramName(kind, store);
+    const p = pgxDefaultProgram(name, kind, kind);
+    store.programs[p.id]=p;
+    pgxInsertProgramId(store, p);
+    pgxSaveStore(store);
+    pgxSetActiveId(p.id);
+    pgxSetMode("ONE");
+    renderPrograma();
+    toast("Programa creado.");
+  }
 
 
   let PROGRAMA_MATRIX_FULLSCREEN = false;
