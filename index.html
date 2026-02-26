@@ -2731,6 +2731,13 @@ const SALONES = [
   // - Bloques por programa con etiqueta vertical (AGRARIA / U.LIMA / PUCP / etc.)
   // - Edición (Admin): click para editar celdas; Edición fina (por semana) / normal (merge por texto)
 const PGX_STORE_KEY   = "LM_PROGRAMA_SHEET_V1_STORE";
+  const PGX_LEGACY_STORE_KEYS = [
+    "LM_PROGRAMA_SHEET_STORE",
+    "LM_PROGRAMA_STORE",
+    "LM_SHARED_PROGRAMA_STORE_V1_LOCAL",
+    "LM_PROGRAMA_SHEET_V1_STORE_BAK",
+    "LM_PROGRAMA_SHEET_V1_BACKUP"
+  ];
   const PGX_SYNC_URL   = "https://script.google.com/macros/s/AKfycbxLUjS66__D_zFIq7N34cFXGm1CfiQg4n-N-3leue8ulLmEg-3J_iho5VyBw7aY_afTGw/exec";
 
   const PGX_ACTIVE_KEY  = "LM_PROGRAMA_SHEET_V1_ACTIVE";
@@ -3057,9 +3064,84 @@ function pgxInsertProgramId(store, newProgram){
   async function pgxRemoteSet_(store){ return await lmRemoteSet_(LM_MODULE_PROGRAMA, store); }
 
 
+  function pgxNormalizeStoreShape_(raw){
+    if (!raw || typeof raw !== "object") return null;
+    const timeline = raw.timeline;
+    const programs = (raw.programs && typeof raw.programs === "object")
+      ? raw.programs
+      : ((raw.programa && typeof raw.programa === "object") ? raw.programa : null);
+    if (!timeline || !programs) return null;
+    if (Array.isArray(programs)) return null;
+
+    if (!raw.programs && programs){ raw.programs = programs; }
+    return raw;
+  }
+
+  function pgxFindStoredPrograma_(){
+    const tried = [PGX_STORE_KEY, ...PGX_LEGACY_STORE_KEYS];
+    let sourceKey = "";
+    let data = null;
+    for (const k of tried){
+      const candidate = pgxNormalizeStoreShape_(pgxLoadJSON(k, null));
+      if (candidate){
+        sourceKey = k;
+        data = candidate;
+        break;
+      }
+    }
+    return { sourceKey, data, tried };
+  }
+
+  function pgxDiagStore_(meta){
+    if (PGX_DIAG_LOGGED) return;
+    PGX_DIAG_LOGGED = true;
+    try{
+      const info = meta || {};
+      console.info("[PGX] store load", {
+        sourceKey: info.sourceKey || "none",
+        triedKeys: info.tried || [],
+        programs: +(info.programCount || 0),
+        order: +(info.orderCount || 0)
+      });
+    }catch(_){ }
+  }
+
   function pgxLoadStore(){
-    const st = pgxLoadJSON(PGX_STORE_KEY, null);
-    if (st && st.timeline && st.programs && st.order) return st;
+    const found = pgxFindStoredPrograma_();
+    const st = found.data;
+    if (st && st.timeline && st.programs){
+      st.timeline = st.timeline || {};
+      st.timeline.weeks = Math.max(1, Math.min(60, +st.timeline.weeks || 16));
+      st.timeline.startDate = String(st.timeline.startDate || "");
+
+      const programs = (st.programs && typeof st.programs === "object") ? st.programs : {};
+      st.programs = programs;
+
+      const allIds = Object.keys(programs);
+      const fromOrder = Array.isArray(st.order)
+        ? st.order.map(id=>String(id||"")).filter(id=>id && programs[id])
+        : [];
+
+      // conserva orden válido y añade faltantes (evita vistas en blanco por order corrupto)
+      const seen = new Set(fromOrder);
+      for (const id of allIds){ if (!seen.has(id)) fromOrder.push(id); }
+      st.order = fromOrder;
+
+      if (found.sourceKey && found.sourceKey !== PGX_STORE_KEY){
+        // migra silenciosamente para no perder datos de versiones previas/backup.
+        pgxSaveJSON(PGX_STORE_KEY, st);
+      }
+
+      pgxDiagStore_({
+        sourceKey: found.sourceKey,
+        tried: found.tried,
+        programCount: allIds.length,
+        orderCount: st.order.length
+      });
+
+      return st;
+    }
+    pgxDiagStore_({ sourceKey:"none", tried: found.tried, programCount:0, orderCount:0 });
     return pgxDefaultStore();
   }
 
@@ -3106,6 +3188,8 @@ function pgxInsertProgramId(store, newProgram){
   // Si no hay store local válido, aplica remoto
   if (!local || !local.timeline || !local.programs || !local.order){
     shouldApply = true;
+  } else if (Array.isArray(local.order) && local.order.length > 0 && Array.isArray(remote.order) && remote.order.length === 0){
+    shouldApply = false;
   } else if (rrev > lrev){
     shouldApply = true;
   } else if (rrev && rrev === lrev){
@@ -3142,7 +3226,13 @@ function pgxInsertProgramId(store, newProgram){
 function pgxEnsure(){
     const store = pgxLoadStore();
     const baseWeeks = pgxTotalWeeks();
-    if (!store.order.length && pgxCanEdit()){
+
+    if ((!Array.isArray(store.order) || !store.order.length) && Object.keys(store.programs||{}).length){
+      store.order = Object.keys(store.programs||{});
+      pgxSaveStore(store);
+    }
+
+    if ((!store.order.length && !Object.keys(store.programs||{}).length) && pgxCanEdit()){
       const p1 = pgxDefaultProgram("AG REGULAR 1", "AGRARIA", "AGRARIA");
       p1.meta.startWeek = 1;
       p1.meta.endWeek = store.timeline.weeks;
@@ -3195,6 +3285,18 @@ function pgxEnsure(){
       pgxSaveStr(PGX_EDIT_KEY, "0");
       pgxSaveStr(PGX_FINE_KEY, "0");
       pgxSaveStr(PGX_SETTINGS_KEY, "0");
+    }
+
+    if (pgxCanEdit()){
+      const hasEsc = (store.order||[]).some(id=>String(store.programs?.[id]?.meta?.theme||"").toUpperCase()==="ESCOLARES");
+      if (!hasEsc){
+        const p4 = pgxDefaultProgram("ESCOLARES", "ESCOLARES", "ESCOLARES");
+        p4.meta.startWeek = 1;
+        p4.meta.endWeek = store.timeline.weeks;
+        store.programs[p4.id]=p4;
+        store.order = Array.isArray(store.order) ? store.order.concat([p4.id]) : [p4.id];
+        pgxSaveStore(store);
+      }
     }
   }
 
@@ -3298,7 +3400,10 @@ function pgxUpgradeProgram(p, baseWeeks){
     const uni = (role==="alumno") ? String((getAlumnoProfile()||{}).uni||"").toUpperCase() : "";
 
     const out = [];
-    for (const id of store.order){
+    const ids = (Array.isArray(store.order) && store.order.length)
+      ? store.order
+      : Object.keys(store.programs||{});
+    for (const id of ids){
       let p = store.programs[id];
       if (p) p = pgxUpgradeProgram(p, baseWeeks);
       if (!p) continue;
@@ -3672,7 +3777,8 @@ function pgxUpgradeProgram(p, baseWeeks){
       const sc = String(p.meta?.scope||"ALL").toUpperCase();
       return `<option value="${escapeHtml(p.id)}">${escapeHtml(nm)}</option>`;
     }).join("");
-    sel.value = active;
+    const exists = programs.some(p=>String(p.id)===String(active));
+    sel.value = exists ? active : (programs[0]?.id||"");
   }
 
   function pgxApplyHeaderUI(){
@@ -4113,7 +4219,7 @@ const tw = pgxTotalWeeks();
 
           <button id="pgxEdit" class="btn ghost" type="button">EDITAR</button>
           <button id="pgxFine" class="btn ghost" type="button">EDICIÓN FINA: OFF</button>
-          <button id="pgxFill" class="btn ghost" type="button">RELLENAR RANGO</button>
+          <button id="pgxFill" class="btn ghost" type="button">RELLENAR ABAJO</button>
 
           <input id="pgxStart" type="date" style="min-width:160px;" />
           <input id="pgxWeeks" type="number" min="1" max="60" step="1" style="width:110px;" />
@@ -4224,6 +4330,10 @@ const tw = pgxTotalWeeks();
     if (btnFill){
       btnFill.addEventListener("click", ()=>{
         if (!pgxCanEdit()) return;
+        if (pgxGetEditOn() && PGX_EDIT_STATE.activeTd && pgxSelectedCells().length){
+          pgxFillDownFromActive();
+          return;
+        }
 
         const store = pgxLoadStore();
     const baseWeeks = pgxTotalWeeks();
@@ -4586,6 +4696,10 @@ const tw = pgxTotalWeeks();
       const td = e.target?.closest ? e.target.closest("td.pxEditable") : null;
       if (!td) return;
       if (!pgxCanEdit() || !pgxGetEditOn()) return;
+      if (!e.shiftKey) pgxClearSelection();
+      td.classList.add("pxSel");
+      PGX_EDIT_STATE.dragging = true;
+    });
 
       const pgid   = String(td.getAttribute("data-pgid")||"");
       const laneK  = String(td.getAttribute("data-lane")||"");
@@ -4618,11 +4732,20 @@ const tw = pgxTotalWeeks();
 
 
   function renderPrograma(){
-    pgxEnsure();
-    pgxEnsureProgramaLayout();
+    let mode = "ALL";
+    let programs = [];
+    try{
+      pgxEnsure();
+      pgxEnsureProgramaLayout();
+      mode = pgxGetMode();
+      programs = pgxProgramsForRole();
+    }catch(e){
+      console.error("[PGX] init/render precheck error", e);
+      const canvas0 = document.getElementById("pgxCanvas");
+      if (canvas0) canvas0.innerHTML = `<div class="pgEmpty">No se pudo cargar PROGRAMA. Revisa los datos guardados.</div>`;
+      return;
+    }
 
-    const mode = pgxGetMode();
-    const programs = pgxProgramsForRole();
     if (!programs.length){
       const canvas = document.getElementById("pgxCanvas");
       if (canvas) canvas.innerHTML = `<div class="pgEmpty">No hay programas configurados.</div>`;
@@ -4630,13 +4753,21 @@ const tw = pgxTotalWeeks();
     }
 
     // Active
-    const active = pgxGetActiveId() || programs[0].id;
-    if (!pgxGetActiveId()) pgxSetActiveId(active);
+    let active = pgxGetActiveId() || programs[0].id;
+    if (!programs.some(p=>p.id===active)){
+      active = programs[0].id;
+      pgxSetActiveId(active);
+    } else if (!pgxGetActiveId()){
+      pgxSetActiveId(active);
+    }
 
-    pgxFillProgramSelect(programs);
-    pgxApplyHeaderUI();
-
-    pgxRenderSettings(programs);
+    try{
+      pgxFillProgramSelect(programs);
+      pgxApplyHeaderUI();
+      pgxRenderSettings(programs);
+    }catch(e){
+      console.error("[PGX] header/settings error", e);
+    }
 
     const canvas = document.getElementById("pgxCanvas");
     if (!canvas) return;
@@ -4645,11 +4776,17 @@ const tw = pgxTotalWeeks();
     const prevSL = prevSc ? prevSc.scrollLeft : 0;
     const prevST = prevSc ? prevSc.scrollTop  : 0;
 
-    if (mode === "ONE"){
-      const p = programs.find(x=>x.id===active) || programs[0];
-      canvas.innerHTML = pgxRenderSheet([p], "ONE");
-    } else {
-      canvas.innerHTML = pgxRenderSheet(programs, "ALL");
+    try{
+      if (mode === "ONE"){
+        const p = programs.find(x=>x.id===active) || programs[0];
+        canvas.innerHTML = pgxRenderSheet([p], "ONE");
+      } else {
+        canvas.innerHTML = pgxRenderSheet(programs, "ALL");
+      }
+    }catch(e){
+      console.error("[PGX] render error", e);
+      canvas.innerHTML = `<div class="pgEmpty">No se pudo renderizar PROGRAMA. Verifica estructura de datos.</div>`;
+      return;
     }
 
     // restaurar scroll (evita que vuelva al inicio al re-render)
@@ -9150,6 +9287,7 @@ function ensureHorariosLayout(){
     });
     document.getElementById("hUni").addEventListener("change", ()=>{
       rebuildHorariosSalonOptions();
+      syncHorariosUniBadges();
       rer();
     });
 
