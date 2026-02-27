@@ -2396,8 +2396,8 @@
     accent-color: var(--ok);
     cursor:pointer;
   }
-  .mcTableWrap input[type="checkbox"]:disabled{
-    opacity:.55;
+  .mcTableWrap input[type="checkbox"].mcChkReadOnly{
+    pointer-events:none;
     cursor:not-allowed;
   }
 
@@ -8032,7 +8032,8 @@ ${canWork ? `<button id="mcEditBtn" class="btn ${matEditOn?'primary':'ghost'}" t
     const wkPct  = Math.round(((+rec + +dia + +imp)/3)*100);
     const semClass = (wkPct>=100)?"s100":(wkPct>=67)?"s67":(wkPct>=33)?"s33":"s0";
 
-    const dis = (canWork && matEditOn) ? "" : "disabled";
+    const disCls = (canWork && matEditOn) ? "" : "mcChkReadOnly";
+    const roAttr = (canWork && matEditOn) ? "" : "data-ro='1' tabindex='-1'";
     rows.push(`
       <tr>
         <td style="font-weight:950;">${idx}</td>
@@ -8041,9 +8042,9 @@ ${canWork ? `<button id="mcEditBtn" class="btn ${matEditOn?'primary':'ghost'}" t
 
         <td><span class="semBadge ${semClass}"><span class="semDot"></span>${wkPct}%</span></td>
 
-        <td class="mcChkCell"><input type="checkbox" ${dis} data-code="${escapeHtml(code)}" data-field="rec" ${rec?"checked":""}></td>
-        <td class="mcChkCell"><input type="checkbox" ${dis} data-code="${escapeHtml(code)}" data-field="dia" ${dia?"checked":""}></td>
-        <td class="mcChkCell"><input type="checkbox" ${dis} data-code="${escapeHtml(code)}" data-field="imp" ${imp?"checked":""}></td>
+        <td class="mcChkCell"><input type="checkbox" class="${disCls}" ${roAttr} data-code="${escapeHtml(code)}" data-field="rec" ${rec?"checked":""}></td>
+        <td class="mcChkCell"><input type="checkbox" class="${disCls}" ${roAttr} data-code="${escapeHtml(code)}" data-field="dia" ${dia?"checked":""}></td>
+        <td class="mcChkCell"><input type="checkbox" class="${disCls}" ${roAttr} data-code="${escapeHtml(code)}" data-field="imp" ${imp?"checked":""}></td>
       </tr>
     `);
   }
@@ -8081,6 +8082,10 @@ ${canWork ? `<button id="mcEditBtn" class="btn ${matEditOn?'primary':'ghost'}" t
   // wire checkboxes
   body.querySelectorAll('input[type=checkbox][data-code][data-field]').forEach(ch=>{
     ch.addEventListener("change", ()=>{
+      if (ch.dataset.ro === "1"){
+        renderMateriales();
+        return;
+      }
       const code = String(ch.getAttribute("data-code")||"");
       const field = String(ch.getAttribute("data-field")||"");
       const st2 = mcLoadStore();
