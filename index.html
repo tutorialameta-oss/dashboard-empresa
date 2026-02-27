@@ -857,8 +857,7 @@
     .schTable{
       width:100%;
       border-collapse:collapse;
-      table-layout:fixed;
-      border:2px solid rgba(15,23,42,0.18);
+        border:2px solid rgba(15,23,42,0.18);
       border-radius: 14px;
       overflow:hidden;
       min-width: 0;
@@ -2382,18 +2381,14 @@
     width:100%;
     min-width:520px;
     border-collapse:collapse;
-    table-layout:fixed;
     font-weight:900;
   }
   .mcTable th, .mcTable td{
     padding:5px 3px;
     border-bottom:1px solid var(--border);
   }
-  .mcStatusCol{ width:38px; text-align:center; font-size:9px; letter-spacing:0; white-space:nowrap; }
-  .mcIdxCol{ width:30px; }
-  .mcDateCol{ width:58px; }
-  .mcWeekCol{ width:60px; }
-  .mcPctCol{ width:64px; }
+  .mcStatusCol{ width:34px; text-align:center; font-size:9px; letter-spacing:0; white-space:nowrap; }
+  .mcColStatus{ width:34px; }
   .mcChkCell{ text-align:center; }
   .mcTableWrap input[type="checkbox"]{
     width:13px;
@@ -8063,12 +8058,16 @@ ${canWork ? `<button id="mcEditBtn" class="btn ${matEditOn?'primary':'ghost'}" t
 
     <div class="mcTableWrap">
       <table class="mcTable">
+        <colgroup>
+          <col><col><col><col>
+          <col class="mcColStatus"><col class="mcColStatus"><col class="mcColStatus">
+        </colgroup>
         <thead>
           <tr style="background:#f1f5f9;">
-            <th class="mcIdxCol">#</th>
-            <th class="mcDateCol">FECHA</th>
-            <th class="mcWeekCol">SEMANA</th>
-            <th class="mcPctCol">SEM%</th>
+            <th>#</th>
+            <th>FECHA</th>
+            <th>SEMANA</th>
+            <th>SEM%</th>
             <th class="mcStatusCol">RECIBIDO</th>
             <th class="mcStatusCol">DIAGRAMADO</th>
             <th class="mcStatusCol">IMPRESO</th>
