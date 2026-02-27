@@ -6060,9 +6060,10 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
 
   function inferUniFromSalonLabel(label){
     const s = String(label||"").toUpperCase();
+    if (s.includes("ESCOLAR")) return "ESCOLARES";
     if (s.includes("AGRARIA")) return "AGRARIA";
-    if (s.includes("PUCP")) return "PUCP";
     if (s.includes("U.LIMA") || s.includes("U LIMA") || s.includes("ULIMA")) return "U.LIMA";
+    if (s.includes("PUCP")) return "PUCP";
     return "OTRO";
   }
 
@@ -6071,15 +6072,15 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
    * 1) Quitar "ACTUALIZADO" (ya no se muestra en UI)
    * 2) OTRO: punto ROJO + número ROJO (mismo color)
    * 3) PARALELO: mostrar etiqueta "U.LIMA" pero en ROJO (no naranja)
-   * 4) Orden fijo en cada local: VERDE (AGRARIA) -> AZUL (PUCP) -> NARANJA (U.LIMA) -> ROJO (OTRO/PARALELO)
+   * 4) Orden fijo en cada local: AGRARIA -> U.LIMA -> PUCP -> ESCOLARES -> ADELANTO/PARALELO
    */
   function imprMetaFromSalon(salon){
     const s = String(salon||"").toUpperCase();
 
-    // Caso especial: PARALELO -> etiqueta U.LIMA pero ROJO
+    // Caso especial: PARALELO/ADELANTO -> etiqueta ADELANTO / PARALELO en rojo
     if (s.includes("PARALELO") || s.includes("ADELANTO")){
       const red = getCss("--accent2");
-      return { group: 3, label: "U.LIMA", dot: red, num: red };
+      return { group: 4, label: "ADELANTO / PARALELO", dot: red, num: red };
     }
 
     const uni = inferUniFromSalonLabel(salon);
@@ -6088,18 +6089,22 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
       const c = getCss("--agraria");
       return { group: 0, label: "AGRARIA", dot: c, num: c };
     }
-    if (uni === "PUCP"){
-      const c = getCss("--pucp");
-      return { group: 1, label: "PUCP", dot: c, num: c };
-    }
     if (uni === "U.LIMA"){
       const c = getCss("--ulima");
-      return { group: 2, label: "U.LIMA", dot: c, num: c };
+      return { group: 1, label: "U.LIMA", dot: c, num: c };
+    }
+    if (uni === "PUCP"){
+      const c = getCss("--pucp");
+      return { group: 2, label: "PUCP", dot: c, num: c };
+    }
+    if (uni === "ESCOLARES"){
+      const c = getCss("--schHead_ESC");
+      return { group: 3, label: "ESCOLARES", dot: c, num: c };
     }
 
     // OTRO (ej: ADELANTO): punto ROJO + número ROJO
     const red = getCss("--accent2");
-    return { group: 3, label: "OTRO", dot: red, num: red };
+    return { group: 4, label: "OTRO", dot: red, num: red };
   }
 
   function parseImpresionesCSV(csvText){
@@ -6166,8 +6171,9 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
         </div>
         <div class="panelHint" style="margin-top:10px;">
           <span class="pill"><span class="dot agraria"></span>AGRARIA</span>
-          <span class="pill"><span class="dot pucp"></span>PUCP</span>
           <span class="pill"><span class="dot ulima"></span>U.LIMA</span>
+          <span class="pill"><span class="dot pucp"></span>PUCP</span>
+          <span class="pill"><span class="dot escolares"></span>ESCOLARES</span>
           <span class="pill"><span class="dot" style="background:${getCss("--accent2")};"></span>ADELANTO / PARALELO</span>
         </div>
       </div>
@@ -6224,7 +6230,7 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
     });
 
     // Orden de tarjetas dentro de cada local:
-    // AGRARIA (0) -> PUCP (1) -> U.LIMA (2) -> ROJO (3)
+    // AGRARIA (0) -> U.LIMA (1) -> PUCP (2) -> ESCOLARES (3) -> ADELANTO/PARALELO (4)
     function itemSortKey(it){
       const meta = imprMetaFromSalon(it.salon);
       return [meta.group, String(it.salon||"").toUpperCase()];
