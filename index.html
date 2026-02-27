@@ -4898,6 +4898,7 @@ const tw = pgxTotalWeeks();
     "U.LIMA": getCss("--ulima"),
     "AGRARIA": getCss("--agraria"),
     "ESCOLARES": getCss("--schHead_ESC"),
+    "ADELANTO/PARALELO": getCss("--accent2"),
   };
 
   function getCss(varName){
@@ -5714,6 +5715,7 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
             <span class="dot ulima"></span>U.LIMA
             <span class="dot pucp"></span>PUCP
             <span class="dot escolares"></span>ESCOLARES
+            <span class="dot" style="background:var(--accent2);"></span>ADELANTO / PARALELO
           </div>
         </div>
         <div class="chartBoxTall"><canvas id="loc_activos_salon"></canvas></div>
@@ -5919,6 +5921,7 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
 
   function uniDisplayForControlSedes(salon, ciclo){
     const raw = `${String(ciclo||"")} ${String(salon||"")}`.toUpperCase();
+    if (raw.includes("ADELANTO") || raw.includes("PARALELO")) return "ADELANTO/PARALELO";
     if (raw.includes("ESCOLAR") || raw.includes("ESC.")) return "ESCOLARES";
     if (raw.includes("AGRARIA")) return "AGRARIA";
     if (raw.includes("PUCP")) return "PUCP";
