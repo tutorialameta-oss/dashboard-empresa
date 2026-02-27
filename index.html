@@ -1971,7 +1971,7 @@
     .pgDateCell{
       background:#f1f5f9;
       text-align:center;
-      padding:7px 6px;
+      padding:6px 4px;
       font-weight:900;
       border-right:1px solid rgba(15,23,42,0.12);
       border-top:1px solid rgba(15,23,42,0.12);
@@ -1979,14 +1979,14 @@
     }
     .pgWeekCell{
       text-align:center;
-      padding:7px 6px;
+      padding:6px 4px;
       font-weight:1000;
       border-right:1px solid rgba(15,23,42,0.12);
       border-top:1px solid rgba(15,23,42,0.12);
     }
     .pgCell{
       text-align:center;
-      padding:7px 6px;
+      padding:6px 4px;
       font-weight:1000;
       border-right:1px solid rgba(15,23,42,0.12);
       border-top:1px solid rgba(15,23,42,0.12);
@@ -1994,13 +1994,13 @@
     }
     .pgMergeCell{
       text-align:center;
-      padding:7px 6px;
+      padding:6px 4px;
       font-weight:1000;
       border-right:1px solid rgba(15,23,42,0.12);
       border-top:1px solid rgba(15,23,42,0.12);
     }
     .pgEvt{
-      padding:7px 6px;
+      padding:6px 4px;
       border-right:1px solid rgba(15,23,42,0.12);
       border-top:1px solid rgba(15,23,42,0.12);
       font-size:11px;
@@ -2364,6 +2364,42 @@
   .mrLink{ font-weight:1000; text-decoration:none; }
   .mrLink.disabled{ pointer-events:none; opacity:.45; }
   .mrBtn.disabled{ pointer-events:none; opacity:.45; }
+
+  .mcBarsCompact{
+    display:grid;
+    grid-template-columns: repeat(3, minmax(110px, 1fr));
+    gap:10px;
+    margin-bottom:12px;
+  }
+  .mcTableWrap{
+    border:1px solid var(--border);
+    border-radius:14px;
+    overflow-x:scroll;
+    overflow-y:hidden;
+    padding-bottom:4px;
+  }
+  .mcTable{
+    width:100%;
+    min-width:620px;
+    border-collapse:collapse;
+    font-weight:900;
+  }
+  .mcTable th, .mcTable td{
+    padding:6px 4px;
+    border-bottom:1px solid var(--border);
+  }
+  .mcStatusCol{ width:52px; text-align:center; font-size:11px; }
+  .mcChkCell{ text-align:center; }
+  .mcTableWrap input[type="checkbox"]{
+    width:14px;
+    height:14px;
+    accent-color: var(--ok);
+    cursor:pointer;
+  }
+  .mcTableWrap input[type="checkbox"].mcChkReadOnly{
+    pointer-events:none;
+    cursor:not-allowed;
+  }
 
 </style>
 </head>
@@ -4897,6 +4933,8 @@ const tw = pgxTotalWeeks();
     "PUCP": getCss("--pucp"),
     "U.LIMA": getCss("--ulima"),
     "AGRARIA": getCss("--agraria"),
+    "ESCOLARES": getCss("--schHead_ESC"),
+    "ADELANTO/PARALELO": getCss("--accent2"),
   };
 
   function getCss(varName){
@@ -5710,8 +5748,10 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
           ACTIVOS POR SALÓN (LOCAL)
           <div class="panelHint">
             <span class="dot agraria"></span>AGRARIA
-            <span class="dot pucp"></span>PUCP
             <span class="dot ulima"></span>U.LIMA
+            <span class="dot pucp"></span>PUCP
+            <span class="dot escolares"></span>ESCOLARES
+            <span class="dot" style="background:var(--accent2);"></span>ADELANTO / PARALELO
           </div>
         </div>
         <div class="chartBoxTall"><canvas id="loc_activos_salon"></canvas></div>
@@ -5896,6 +5936,34 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
     state.ch_over_uni_stack.update("none");
   }
 
+  function cycleOrderRankForControlSedes(salon, ciclo){
+    const raw = `${String(ciclo||"")} ${String(salon||"")}`.toUpperCase();
+    if (raw.includes("ADELANTO") || raw.includes("PARALELO")) return 4;
+    if (raw.includes("ESCOLAR") || raw.includes("ESC.")) return 3;
+    if (raw.includes("AGRARIA")) return 0;
+    if (raw.includes("U.LIMA") || raw.includes("U LIMA") || raw.includes("ULIMA")) return 1;
+    if (raw.includes("PUCP")) return 2;
+    return 5;
+  }
+
+  function localOrderRankForControlSedes(local){
+    const t = String(local||"").toUpperCase();
+    if (t === "LA MOLINA") return 0;
+    if (t === "SAN MIGUEL") return 1;
+    if (t === "SAN BORJA") return 2;
+    if (t === "VIRTUAL") return 3;
+    return 9;
+  }
+
+  function uniDisplayForControlSedes(salon, ciclo){
+    const raw = `${String(ciclo||"")} ${String(salon||"")}`.toUpperCase();
+    if (raw.includes("ADELANTO") || raw.includes("PARALELO")) return "ADELANTO/PARALELO";
+    if (raw.includes("ESCOLAR") || raw.includes("ESC.")) return "ESCOLARES";
+    if (raw.includes("AGRARIA")) return "AGRARIA";
+    if (raw.includes("PUCP")) return "PUCP";
+    return "U.LIMA";
+  }
+
   function renderLocal(){
     ensureLocalLayout();
 
@@ -5907,6 +5975,21 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
       .filter(s => (fLocal==="__ALL__" ? true : s.local === fLocal))
       .map(s => s.salon);
     salonesLocal = uniq(salonesLocal);
+
+    salonesLocal.sort((a,b)=>{
+      const ca = SALONES.find(x => x.salon===a && (fLocal==="__ALL__" ? true : x.local===fLocal));
+      const cb = SALONES.find(x => x.salon===b && (fLocal==="__ALL__" ? true : x.local===fLocal));
+
+      const la = localOrderRankForControlSedes(ca?.local || "");
+      const lb = localOrderRankForControlSedes(cb?.local || "");
+      if (la !== lb) return la - lb;
+
+      const ra = cycleOrderRankForControlSedes(a, ca?.ciclo || "");
+      const rb = cycleOrderRankForControlSedes(b, cb?.ciclo || "");
+      if (ra !== rb) return ra - rb;
+
+      return String(a||"").localeCompare(String(b||""), "es");
+    });
 
     // local = matrícula dedupe (sin cambios)
     let baseMat = state.canonical;
@@ -5942,7 +6025,7 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
     const activosPorSalon = salonesLocal.map(s => baseMat.filter(r=>r.salon===s && r.estado==="ACTIVO").length);
     const activosColors = salonesLocal.map(s=>{
       const conf = SALONES.find(x => x.salon===s && (fLocal==="__ALL__" ? true : x.local===fLocal));
-      const uni = conf ? uniGroupFromCiclo(conf.ciclo) : "U.LIMA";
+      const uni = uniDisplayForControlSedes(s, conf?.ciclo || "");
       return UNI_COLORS[uni] || UNI_COLORS["AGRARIA"];
     });
 
@@ -5960,7 +6043,7 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
       const t = a + r;
 
       const conf = SALONES.find(x => x.salon === s && (fLocal==="__ALL__" ? true : x.local===fLocal));
-      const uni = conf ? uniGroupFromCiclo(conf.ciclo) : (rs[0] ? uniGroupFromCiclo(rs[0].ciclo) : "");
+      const uni = uniDisplayForControlSedes(s, conf?.ciclo || rs[0]?.ciclo || "");
 
       const c = uniq(baseCam.filter(x=>x.salon===s).map(x=>low(x.nombre))).filter(Boolean).length;
       const loc = (fLocal==="__ALL__" ? (conf?.local || rs[0]?.local || "") : fLocal);
@@ -6060,9 +6143,10 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
 
   function inferUniFromSalonLabel(label){
     const s = String(label||"").toUpperCase();
+    if (s.includes("ESCOLAR")) return "ESCOLARES";
     if (s.includes("AGRARIA")) return "AGRARIA";
-    if (s.includes("PUCP")) return "PUCP";
     if (s.includes("U.LIMA") || s.includes("U LIMA") || s.includes("ULIMA")) return "U.LIMA";
+    if (s.includes("PUCP")) return "PUCP";
     return "OTRO";
   }
 
@@ -6071,15 +6155,15 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
    * 1) Quitar "ACTUALIZADO" (ya no se muestra en UI)
    * 2) OTRO: punto ROJO + número ROJO (mismo color)
    * 3) PARALELO: mostrar etiqueta "U.LIMA" pero en ROJO (no naranja)
-   * 4) Orden fijo en cada local: VERDE (AGRARIA) -> AZUL (PUCP) -> NARANJA (U.LIMA) -> ROJO (OTRO/PARALELO)
+   * 4) Orden fijo en cada local: AGRARIA -> U.LIMA -> PUCP -> ESCOLARES -> ADELANTO/PARALELO
    */
   function imprMetaFromSalon(salon){
     const s = String(salon||"").toUpperCase();
 
-    // Caso especial: PARALELO -> etiqueta U.LIMA pero ROJO
+    // Caso especial: PARALELO/ADELANTO -> etiqueta ADELANTO / PARALELO en rojo
     if (s.includes("PARALELO") || s.includes("ADELANTO")){
       const red = getCss("--accent2");
-      return { group: 3, label: "U.LIMA", dot: red, num: red };
+      return { group: 4, label: "ADELANTO / PARALELO", dot: red, num: red };
     }
 
     const uni = inferUniFromSalonLabel(salon);
@@ -6088,18 +6172,22 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
       const c = getCss("--agraria");
       return { group: 0, label: "AGRARIA", dot: c, num: c };
     }
-    if (uni === "PUCP"){
-      const c = getCss("--pucp");
-      return { group: 1, label: "PUCP", dot: c, num: c };
-    }
     if (uni === "U.LIMA"){
       const c = getCss("--ulima");
-      return { group: 2, label: "U.LIMA", dot: c, num: c };
+      return { group: 1, label: "U.LIMA", dot: c, num: c };
+    }
+    if (uni === "PUCP"){
+      const c = getCss("--pucp");
+      return { group: 2, label: "PUCP", dot: c, num: c };
+    }
+    if (uni === "ESCOLARES"){
+      const c = getCss("--schHead_ESC");
+      return { group: 3, label: "ESCOLARES", dot: c, num: c };
     }
 
     // OTRO (ej: ADELANTO): punto ROJO + número ROJO
     const red = getCss("--accent2");
-    return { group: 3, label: "OTRO", dot: red, num: red };
+    return { group: 4, label: "OTRO", dot: red, num: red };
   }
 
   function parseImpresionesCSV(csvText){
@@ -6166,8 +6254,9 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
         </div>
         <div class="panelHint" style="margin-top:10px;">
           <span class="pill"><span class="dot agraria"></span>AGRARIA</span>
-          <span class="pill"><span class="dot pucp"></span>PUCP</span>
           <span class="pill"><span class="dot ulima"></span>U.LIMA</span>
+          <span class="pill"><span class="dot pucp"></span>PUCP</span>
+          <span class="pill"><span class="dot escolares"></span>ESCOLARES</span>
           <span class="pill"><span class="dot" style="background:${getCss("--accent2")};"></span>ADELANTO / PARALELO</span>
         </div>
       </div>
@@ -6224,7 +6313,7 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
     });
 
     // Orden de tarjetas dentro de cada local:
-    // AGRARIA (0) -> PUCP (1) -> U.LIMA (2) -> ROJO (3)
+    // AGRARIA (0) -> U.LIMA (1) -> PUCP (2) -> ESCOLARES (3) -> ADELANTO/PARALELO (4)
     function itemSortKey(it){
       const meta = imprMetaFromSalon(it.salon);
       return [meta.group, String(it.salon||"").toUpperCase()];
@@ -6336,7 +6425,9 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
 
   function uniDot(uni){
     if (uni==="AGRARIA") return getCss("--agraria");
+    if (uni==="U.LIMA") return getCss("--ulima");
     if (uni==="PUCP") return getCss("--pucp");
+    if (uni==="ESCOLARES") return getCss("--schHead_ESC");
     return getCss("--ulima");
   }
 
@@ -6396,8 +6487,9 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
         </div>
         <div class="panelHint" style="margin-top:10px;">
           <span class="pill"><span class="dot agraria"></span>AGRARIA</span>
-          <span class="pill"><span class="dot pucp"></span>PUCP</span>
           <span class="pill"><span class="dot ulima"></span>U.LIMA</span>
+          <span class="pill"><span class="dot pucp"></span>PUCP</span>
+          <span class="pill"><span class="dot escolares"></span>ESCOLARES</span>
         </div>
         <div class="panelHint" style="margin-top:8px; color:var(--muted);">
         </div>
@@ -6408,7 +6500,7 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
           <div class="cardtitle" style="margin:0;">RESUMEN GENERAL</div>
           <div class="syKpis">
             <span class="syKpiPill">CURSOS: <b id="sTotal">0</b></span>
-            <span class="syKpiPill">UNIVERSIDADES: <b id="sUnis">3</b></span>
+            <span class="syKpiPill">UNIVERSIDADES: <b id="sUnis">4</b></span>
           </div>
         </div>
       </div>
@@ -7290,9 +7382,10 @@ function mkQuestionRow(qi, draft, disabled){
 
 // ===================== MATERIALES (NUEVO) =====================
 const MATERIALES = [
-  { uni:"AGRARIA", url:"https://drive.google.com/drive/folders/1pDEZ0rG3l27snsgp4UGo0qaS5irT2f2d?usp=sharing" },
-  { uni:"PUCP",    url:"https://drive.google.com/drive/folders/1FfUL4GEiHALYEOhBHTJA3SzHVotRGv0k?usp=sharing" },
-  { uni:"U.LIMA",  url:"https://drive.google.com/drive/folders/1bFR0PRaSJFGnSJy6Ii6jU8SvHKCJrC9n" },
+  { uni:"AGRARIA",   url:"https://drive.google.com/drive/folders/1pDEZ0rG3l27snsgp4UGo0qaS5irT2f2d?usp=sharing" },
+  { uni:"U.LIMA",    url:"https://drive.google.com/drive/folders/1bFR0PRaSJFGnSJy6Ii6jU8SvHKCJrC9n" },
+  { uni:"PUCP",      url:"https://drive.google.com/drive/folders/1FfUL4GEiHALYEOhBHTJA3SzHVotRGv0k?usp=sharing" },
+  { uni:"ESCOLARES", url:"" },
 ];
 
 // ===================== NOTAS GENERALES (NUEVO) =====================
@@ -7328,7 +7421,22 @@ function renderNotasGenerales(){
   const grid = document.getElementById("notasGrid");
   if (!grid) return;
 
-  grid.innerHTML = NOTAS_GENERALES.map(x => {
+  const notasOrdered = NOTAS_GENERALES.slice().sort((a,b)=>{
+    const rank = (u)=>{
+      const t = String(u||"").toUpperCase();
+      if (t.includes("AGRARIA")) return 0;
+      if (t.includes("U.LIMA") || t.includes("ULIMA")) return 1;
+      if (t.includes("PUCP")) return 2;
+      if (t.includes("ESCOLAR")) return 3;
+      return 9;
+    };
+    const ra = rank(a.uni);
+    const rb = rank(b.uni);
+    if (ra !== rb) return ra - rb;
+    return String(a.label||"").localeCompare(String(b.label||""), "es");
+  });
+
+  grid.innerHTML = notasOrdered.map(x => {
     const dot =
       x.uni === "AGRARIA" ? getCss("--agraria") :
       x.uni === "PUCP"    ? getCss("--pucp") :
@@ -7608,25 +7716,37 @@ function renderMateriales(){
   // ===== tarjetas de carpetas (accesos directos) =====
   const grid = document.getElementById("matGrid");
   if (grid){
-    grid.innerHTML = (MATERIALES||[]).map(x=>{
+    const MAT_UNI_ORDER = ["AGRARIA","U.LIMA","PUCP","ESCOLARES"];
+    const MAT_UNI_COLOR = {
+      "AGRARIA": getCss("--agraria"),
+      "U.LIMA": getCss("--ulima"),
+      "PUCP": getCss("--pucp"),
+      "ESCOLARES": getCss("--schHead_ESC")
+    };
+
+    const orderedMaterials = MAT_UNI_ORDER.map(u=>{
+      const found = (MATERIALES||[]).find(x=>String(x.uni||"").toUpperCase()===u);
+      return found || { uni:u, url:"" };
+    });
+
+    grid.innerHTML = orderedMaterials.map(x=>{
       const u = String(x.uni||"").toUpperCase();
-      const dot =
-        u === "AGRARIA"   ? getCss("--agraria") :
-        u === "PUCP"      ? getCss("--pucp") :
-        u === "U.LIMA"    ? getCss("--ulima") :
-        u === "ESCOLARES" ? "#7c3aed" :
-                            getCss("--accent");
+      const dot = MAT_UNI_COLOR[u] || getCss("--accent");
+      const href = String(x.url||"").trim();
+      const isReady = !!href;
+      const caption = isReady ? "ABRIR CARPETA" : "CARPETA PENDIENTE";
+
       return `
-        <a class="iItem" href="${escapeHtml(x.url)}" target="_blank" rel="noopener"
+        <a class="iItem${isReady ? "" : " disabled"}" href="${escapeHtml(isReady ? href : "#")}" target="_blank" rel="noopener"
            style="text-decoration:none; color:inherit;">
           <div class="iLeft">
             <div class="iSalon">${escapeHtml(u)}</div>
             <div class="iMeta">
               <span class="dot" style="background:${dot};"></span>
-              <span>ABRIR CARPETA</span>
+              <span>${caption}</span>
             </div>
           </div>
-          <div class="iNum" style="color:${dot};">⟶</div>
+          <div class="iNum" style="color:${dot};">${isReady ? "⟶" : "—"}</div>
         </a>
       `;
     }).join("");
@@ -7738,6 +7858,20 @@ function renderMateriales(){
   }
 
 
+  const uniBtnColor = (u)=>{
+    const uc = String(u||"").toUpperCase();
+    if (uc === "AGRARIA") return getCss("--agraria");
+    if (uc === "U.LIMA") return getCss("--ulima");
+    if (uc === "PUCP") return getCss("--pucp");
+    return getCss("--schHead_ESC");
+  };
+  const uniButtonsHtml = allowedUni.map(u=>{
+    const c = uniBtnColor(u);
+    const active = (u === uni);
+    const bg = active ? `${c}1A` : "#fff";
+    return `<button class="btn ${active?"primary":"ghost"}" type="button" data-uni="${escapeHtml(u)}" style="border-color:${c}; color:${c}; background:${bg};">${escapeHtml(u)}</button>`;
+  }).join("");
+
   // build UI
   card.innerHTML = `
     <div class="cardtitle">CONTROL DE MATERIALES</div>
@@ -7748,7 +7882,7 @@ function renderMateriales(){
 
     <div class="mrTop" style="gap:10px;">
       <div class="mrSelRow" style="flex-wrap:wrap;">
-        ${allowedUni.map(u=>`<button class="btn ${u===uni?"primary":"ghost"}" type="button" data-uni="${escapeHtml(u)}">${escapeHtml(u)}</button>`).join("")}
+        ${uniButtonsHtml}
       </div>
 
       <div class="mrSelRow" style="flex-wrap:wrap;">
@@ -7864,7 +7998,7 @@ ${canWork ? `<button id="mcEditBtn" class="btn ${matEditOn?'primary':'ghost'}" t
   const pr = mcProgressRange(st, pid, cid, codes, range.first, range.last);
 
   const progBars = `
-    <div style="display:grid; grid-template-columns: repeat(3, minmax(180px, 1fr)); gap:10px; margin-bottom:12px;">
+    <div class="mcBarsCompact">
       ${[
         {k:"rec", t:"RECIBIDO", v:pr.recPct},
         {k:"dia", t:"DIAGRAMADO", v:pr.diaPct},
@@ -7898,7 +8032,8 @@ ${canWork ? `<button id="mcEditBtn" class="btn ${matEditOn?'primary':'ghost'}" t
     const wkPct  = Math.round(((+rec + +dia + +imp)/3)*100);
     const semClass = (wkPct>=100)?"s100":(wkPct>=67)?"s67":(wkPct>=33)?"s33":"s0";
 
-    const dis = (canWork && matEditOn) ? "" : "disabled";
+    const disCls = (canWork && matEditOn) ? "" : "mcChkReadOnly";
+    const roAttr = (canWork && matEditOn) ? "" : "data-ro='1' tabindex='-1'";
     rows.push(`
       <tr>
         <td style="font-weight:950;">${idx}</td>
@@ -7907,9 +8042,9 @@ ${canWork ? `<button id="mcEditBtn" class="btn ${matEditOn?'primary':'ghost'}" t
 
         <td><span class="semBadge ${semClass}"><span class="semDot"></span>${wkPct}%</span></td>
 
-        <td><input type="checkbox" ${dis} data-code="${escapeHtml(code)}" data-field="rec" ${rec?"checked":""}></td>
-        <td><input type="checkbox" ${dis} data-code="${escapeHtml(code)}" data-field="dia" ${dia?"checked":""}></td>
-        <td><input type="checkbox" ${dis} data-code="${escapeHtml(code)}" data-field="imp" ${imp?"checked":""}></td>
+        <td class="mcChkCell"><input type="checkbox" class="${disCls}" ${roAttr} data-code="${escapeHtml(code)}" data-field="rec" ${rec?"checked":""}></td>
+        <td class="mcChkCell"><input type="checkbox" class="${disCls}" ${roAttr} data-code="${escapeHtml(code)}" data-field="dia" ${dia?"checked":""}></td>
+        <td class="mcChkCell"><input type="checkbox" class="${disCls}" ${roAttr} data-code="${escapeHtml(code)}" data-field="imp" ${imp?"checked":""}></td>
       </tr>
     `);
   }
@@ -7921,17 +8056,17 @@ ${canWork ? `<button id="mcEditBtn" class="btn ${matEditOn?'primary':'ghost'}" t
 
     ${progBars}
 
-    <div style="border:1px solid var(--border); border-radius:14px; overflow:hidden;">
-      <table style="width:100%; border-collapse:collapse; font-weight:900;">
+    <div class="mcTableWrap">
+      <table class="mcTable">
         <thead>
           <tr style="background:#f1f5f9;">
-            <th style="padding:10px; border-bottom:1px solid var(--border);">#</th>
-            <th style="padding:10px; border-bottom:1px solid var(--border);">FECHA</th>
-            <th style="padding:10px; border-bottom:1px solid var(--border);">SEMANA</th>
-            <th style="padding:10px; border-bottom:1px solid var(--border);">SEM%</th>
-            <th style="padding:10px; border-bottom:1px solid var(--border);">RECIBIDO</th>
-            <th style="padding:10px; border-bottom:1px solid var(--border);">DIAGRAMADO</th>
-            <th style="padding:10px; border-bottom:1px solid var(--border);">IMPRESO</th>
+            <th>#</th>
+            <th>FECHA</th>
+            <th>SEMANA</th>
+            <th>SEM%</th>
+            <th class="mcStatusCol">RECIBIDO</th>
+            <th class="mcStatusCol">DIAGRAMADO</th>
+            <th class="mcStatusCol">IMPRESO</th>
           </tr>
         </thead>
         <tbody>
@@ -7947,6 +8082,10 @@ ${canWork ? `<button id="mcEditBtn" class="btn ${matEditOn?'primary':'ghost'}" t
   // wire checkboxes
   body.querySelectorAll('input[type=checkbox][data-code][data-field]').forEach(ch=>{
     ch.addEventListener("change", ()=>{
+      if (ch.dataset.ro === "1"){
+        renderMateriales();
+        return;
+      }
       const code = String(ch.getAttribute("data-code")||"");
       const field = String(ch.getAttribute("data-field")||"");
       const st2 = mcLoadStore();
@@ -8043,10 +8182,10 @@ function ensureListasLayout(){
 function listaMetaFromName(name){
   const s = String(name || "").toUpperCase();
 
-  // Paralelo / Adelanto => rojo al final
+  // Caso atípico: ADELANTO / PARALELO => rojizo diferenciado al final
   if (s.includes("PARALELO") || s.includes("ADELANTO")){
     const red = getCss("--accent2");
-    return { group: 3, dot: red, label: "PARALELO / ADELANTO" };
+    return { group: 4, dot: red, label: "ADELANTO / PARALELO" };
   }
 
   // AGRARIA => verde
@@ -8055,21 +8194,27 @@ function listaMetaFromName(name){
     return { group: 0, dot: c, label: "AGRARIA" };
   }
 
+  // ESCOLARES => color escolar
+  if (s.includes("ESCOLAR") || s.includes("ESC.")){
+    const c = getCss("--schHead_ESC");
+    return { group: 3, dot: c, label: "ESCOLARES" };
+  }
+
+  // U.LIMA => naranja
+  if (s.includes("U.LIMA") || s.includes("U LIMA") || s.includes("ULIMA") || s.includes("LIMA")){
+    const c = getCss("--ulima");
+    return { group: 1, dot: c, label: "U.LIMA" };
+  }
+
   // PUCP => azul
   if (s.includes("PUCP")){
     const c = getCss("--pucp");
-    return { group: 1, dot: c, label: "PUCP" };
+    return { group: 2, dot: c, label: "PUCP" };
   }
 
-  // U.LIMA / LIMA / ESCOLAR => naranja
-  if (s.includes("U.LIMA") || s.includes("U LIMA") || s.includes("ULIMA") || s.includes("LIMA") || s.includes("ESCOLAR")){
-    const c = getCss("--ulima");
-    return { group: 2, dot: c, label: "U.LIMA" };
-  }
-
-  // Si algo no calza, lo mandamos al final en rojo
+  // Si algo no calza, lo mandamos al final en rojizo
   const red = getCss("--accent2");
-  return { group: 3, dot: red, label: "OTRO" };
+  return { group: 5, dot: red, label: "OTRO" };
 }
 
 function renderListas(){
@@ -8156,7 +8301,7 @@ const items = list.map(it=>{
 
 // ===================== REPORTES (NUEVO) =====================
 // ✅ Pega tus enlaces en el campo reporte y carpeta (deja "" si aún no tienes el link).
-// ✅ Se mantiene el mismo ORDEN y COLORES que en LISTAS (AGRARIA verde, PUCP azul, U.LIMA/ESCOLAR naranja, ADELANTO/PARALELO rojo).
+// ✅ Se mantiene el ORDEN solicitado: AGRARIA, U.LIMA, PUCP, ESCOLARES y luego ADELANTO/PARALELO.
 const REPORTES = [
   // ================= LA MOLINA =================
   { local:"LA MOLINA", name:"AGRARIA LM 1",      reporte:"https://colab.research.google.com/drive/1JRbVPMcHo11e5Q3xmBvF4ZGJUJ3-PMbe?usp=drive_link" , carpeta:"https://drive.google.com/drive/folders/1HL2DJaMf2vT_DbLzBjGzV84UstzWyzLn?usp=drive_link" },
