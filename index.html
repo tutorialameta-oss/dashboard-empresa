@@ -7384,7 +7384,22 @@ function renderNotasGenerales(){
   const grid = document.getElementById("notasGrid");
   if (!grid) return;
 
-  grid.innerHTML = NOTAS_GENERALES.map(x => {
+  const notasOrdered = NOTAS_GENERALES.slice().sort((a,b)=>{
+    const rank = (u)=>{
+      const t = String(u||"").toUpperCase();
+      if (t.includes("AGRARIA")) return 0;
+      if (t.includes("U.LIMA") || t.includes("ULIMA")) return 1;
+      if (t.includes("PUCP")) return 2;
+      if (t.includes("ESCOLAR")) return 3;
+      return 9;
+    };
+    const ra = rank(a.uni);
+    const rb = rank(b.uni);
+    if (ra !== rb) return ra - rb;
+    return String(a.label||"").localeCompare(String(b.label||""), "es");
+  });
+
+  grid.innerHTML = notasOrdered.map(x => {
     const dot =
       x.uni === "AGRARIA" ? getCss("--agraria") :
       x.uni === "PUCP"    ? getCss("--pucp") :
@@ -8099,10 +8114,10 @@ function ensureListasLayout(){
 function listaMetaFromName(name){
   const s = String(name || "").toUpperCase();
 
-  // Paralelo / Adelanto => rojo al final
+  // Caso atípico: ADELANTO / PARALELO => rojizo diferenciado al final
   if (s.includes("PARALELO") || s.includes("ADELANTO")){
     const red = getCss("--accent2");
-    return { group: 3, dot: red, label: "PARALELO / ADELANTO" };
+    return { group: 4, dot: red, label: "ADELANTO / PARALELO" };
   }
 
   // AGRARIA => verde
@@ -8111,21 +8126,27 @@ function listaMetaFromName(name){
     return { group: 0, dot: c, label: "AGRARIA" };
   }
 
+  // ESCOLARES => color escolar
+  if (s.includes("ESCOLAR") || s.includes("ESC.")){
+    const c = getCss("--schHead_ESC");
+    return { group: 3, dot: c, label: "ESCOLARES" };
+  }
+
+  // U.LIMA => naranja
+  if (s.includes("U.LIMA") || s.includes("U LIMA") || s.includes("ULIMA") || s.includes("LIMA")){
+    const c = getCss("--ulima");
+    return { group: 1, dot: c, label: "U.LIMA" };
+  }
+
   // PUCP => azul
   if (s.includes("PUCP")){
     const c = getCss("--pucp");
-    return { group: 1, dot: c, label: "PUCP" };
+    return { group: 2, dot: c, label: "PUCP" };
   }
 
-  // U.LIMA / LIMA / ESCOLAR => naranja
-  if (s.includes("U.LIMA") || s.includes("U LIMA") || s.includes("ULIMA") || s.includes("LIMA") || s.includes("ESCOLAR")){
-    const c = getCss("--ulima");
-    return { group: 2, dot: c, label: "U.LIMA" };
-  }
-
-  // Si algo no calza, lo mandamos al final en rojo
+  // Si algo no calza, lo mandamos al final en rojizo
   const red = getCss("--accent2");
-  return { group: 3, dot: red, label: "OTRO" };
+  return { group: 5, dot: red, label: "OTRO" };
 }
 
 function renderListas(){
@@ -8212,7 +8233,7 @@ const items = list.map(it=>{
 
 // ===================== REPORTES (NUEVO) =====================
 // ✅ Pega tus enlaces en el campo reporte y carpeta (deja "" si aún no tienes el link).
-// ✅ Se mantiene el mismo ORDEN y COLORES que en LISTAS (AGRARIA verde, PUCP azul, U.LIMA/ESCOLAR naranja, ADELANTO/PARALELO rojo).
+// ✅ Se mantiene el ORDEN solicitado: AGRARIA, U.LIMA, PUCP, ESCOLARES y luego ADELANTO/PARALELO.
 const REPORTES = [
   // ================= LA MOLINA =================
   { local:"LA MOLINA", name:"AGRARIA LM 1",      reporte:"https://colab.research.google.com/drive/1JRbVPMcHo11e5Q3xmBvF4ZGJUJ3-PMbe?usp=drive_link" , carpeta:"https://drive.google.com/drive/folders/1HL2DJaMf2vT_DbLzBjGzV84UstzWyzLn?usp=drive_link" },
