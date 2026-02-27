@@ -6342,7 +6342,9 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
 
   function uniDot(uni){
     if (uni==="AGRARIA") return getCss("--agraria");
+    if (uni==="U.LIMA") return getCss("--ulima");
     if (uni==="PUCP") return getCss("--pucp");
+    if (uni==="ESCOLARES") return getCss("--schHead_ESC");
     return getCss("--ulima");
   }
 
@@ -6402,8 +6404,9 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
         </div>
         <div class="panelHint" style="margin-top:10px;">
           <span class="pill"><span class="dot agraria"></span>AGRARIA</span>
-          <span class="pill"><span class="dot pucp"></span>PUCP</span>
           <span class="pill"><span class="dot ulima"></span>U.LIMA</span>
+          <span class="pill"><span class="dot pucp"></span>PUCP</span>
+          <span class="pill"><span class="dot escolares"></span>ESCOLARES</span>
         </div>
         <div class="panelHint" style="margin-top:8px; color:var(--muted);">
         </div>
@@ -6414,7 +6417,7 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
           <div class="cardtitle" style="margin:0;">RESUMEN GENERAL</div>
           <div class="syKpis">
             <span class="syKpiPill">CURSOS: <b id="sTotal">0</b></span>
-            <span class="syKpiPill">UNIVERSIDADES: <b id="sUnis">3</b></span>
+            <span class="syKpiPill">UNIVERSIDADES: <b id="sUnis">4</b></span>
           </div>
         </div>
       </div>
