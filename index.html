@@ -8036,11 +8036,11 @@ ${canWork ? `<button id="mcEditBtn" class="btn ${matEditOn?'primary':'ghost'}" t
     const roAttr = (canWork && matEditOn) ? "" : "data-ro='1' tabindex='-1'";
     rows.push(`
       <tr>
-        <td style="font-weight:950;">${idx}</td>
-        <td>${escapeHtml(date)}</td>
-        <td style="font-weight:950;">${escapeHtml(code)}</td>
+        <td class="mcIdxCol" style="font-weight:950;">${idx}</td>
+        <td class="mcDateCol">${escapeHtml(date)}</td>
+        <td class="mcWeekCol" style="font-weight:950;">${escapeHtml(code)}</td>
 
-        <td><span class="semBadge ${semClass}"><span class="semDot"></span>${wkPct}%</span></td>
+        <td class="mcPctCol"><span class="semBadge ${semClass}"><span class="semDot"></span>${wkPct}%</span></td>
 
         <td class="mcChkCell"><input type="checkbox" class="${disCls}" ${roAttr} data-code="${escapeHtml(code)}" data-field="rec" ${rec?"checked":""}></td>
         <td class="mcChkCell"><input type="checkbox" class="${disCls}" ${roAttr} data-code="${escapeHtml(code)}" data-field="dia" ${dia?"checked":""}></td>
