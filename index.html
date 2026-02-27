@@ -7822,6 +7822,20 @@ function renderMateriales(){
   }
 
 
+  const uniBtnColor = (u)=>{
+    const uc = String(u||"").toUpperCase();
+    if (uc === "AGRARIA") return getCss("--agraria");
+    if (uc === "U.LIMA") return getCss("--ulima");
+    if (uc === "PUCP") return getCss("--pucp");
+    return getCss("--schHead_ESC");
+  };
+  const uniButtonsHtml = allowedUni.map(u=>{
+    const c = uniBtnColor(u);
+    const active = (u === uni);
+    const bg = active ? `${c}1A` : "#fff";
+    return `<button class="btn ${active?"primary":"ghost"}" type="button" data-uni="${escapeHtml(u)}" style="border-color:${c}; color:${c}; background:${bg};">${escapeHtml(u)}</button>`;
+  }).join("");
+
   // build UI
   card.innerHTML = `
     <div class="cardtitle">CONTROL DE MATERIALES</div>
@@ -7832,7 +7846,7 @@ function renderMateriales(){
 
     <div class="mrTop" style="gap:10px;">
       <div class="mrSelRow" style="flex-wrap:wrap;">
-        ${allowedUni.map(u=>{ const uc=String(u||"").toUpperCase(); const c=(uc==="AGRARIA"?getCss("--agraria"):(uc==="U.LIMA"?getCss("--ulima"):(uc==="PUCP"?getCss("--pucp"):getCss("--schHead_ESC"))); const active=(u===uni); const bg=active?`${c}1A`:"#fff"; return `<button class="btn ${active?"primary":"ghost"}" type="button" data-uni="${escapeHtml(u)}" style="border-color:${c}; color:${c}; background:${bg};">${escapeHtml(u)}</button>`; }).join("")}
+        ${uniButtonsHtml}
       </div>
 
       <div class="mrSelRow" style="flex-wrap:wrap;">
