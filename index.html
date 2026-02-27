@@ -2380,15 +2380,20 @@
   }
   .mcTable{
     width:100%;
-    min-width:560px;
+    min-width:520px;
     border-collapse:collapse;
+    table-layout:fixed;
     font-weight:900;
   }
   .mcTable th, .mcTable td{
     padding:5px 3px;
     border-bottom:1px solid var(--border);
   }
-  .mcStatusCol{ width:44px; text-align:center; font-size:10px; letter-spacing:0; }
+  .mcStatusCol{ width:38px; text-align:center; font-size:9px; letter-spacing:0; white-space:nowrap; }
+  .mcIdxCol{ width:30px; }
+  .mcDateCol{ width:58px; }
+  .mcWeekCol{ width:60px; }
+  .mcPctCol{ width:64px; }
   .mcChkCell{ text-align:center; }
   .mcTableWrap input[type="checkbox"]{
     width:13px;
@@ -8036,11 +8041,11 @@ ${canWork ? `<button id="mcEditBtn" class="btn ${matEditOn?'primary':'ghost'}" t
     const roAttr = (canWork && matEditOn) ? "" : "data-ro='1' tabindex='-1'";
     rows.push(`
       <tr>
-        <td style="font-weight:950;">${idx}</td>
-        <td>${escapeHtml(date)}</td>
-        <td style="font-weight:950;">${escapeHtml(code)}</td>
+        <td class="mcIdxCol" style="font-weight:950;">${idx}</td>
+        <td class="mcDateCol">${escapeHtml(date)}</td>
+        <td class="mcWeekCol" style="font-weight:950;">${escapeHtml(code)}</td>
 
-        <td><span class="semBadge ${semClass}"><span class="semDot"></span>${wkPct}%</span></td>
+        <td class="mcPctCol"><span class="semBadge ${semClass}"><span class="semDot"></span>${wkPct}%</span></td>
 
         <td class="mcChkCell"><input type="checkbox" class="${disCls}" ${roAttr} data-code="${escapeHtml(code)}" data-field="rec" ${rec?"checked":""}></td>
         <td class="mcChkCell"><input type="checkbox" class="${disCls}" ${roAttr} data-code="${escapeHtml(code)}" data-field="dia" ${dia?"checked":""}></td>
@@ -8060,10 +8065,10 @@ ${canWork ? `<button id="mcEditBtn" class="btn ${matEditOn?'primary':'ghost'}" t
       <table class="mcTable">
         <thead>
           <tr style="background:#f1f5f9;">
-            <th>#</th>
-            <th>FECHA</th>
-            <th>SEMANA</th>
-            <th>SEM%</th>
+            <th class="mcIdxCol">#</th>
+            <th class="mcDateCol">FECHA</th>
+            <th class="mcWeekCol">SEMANA</th>
+            <th class="mcPctCol">SEM%</th>
             <th class="mcStatusCol">RECIBIDO</th>
             <th class="mcStatusCol">DIAGRAMADO</th>
             <th class="mcStatusCol">IMPRESO</th>
