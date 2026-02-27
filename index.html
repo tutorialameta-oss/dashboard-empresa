@@ -7602,6 +7602,7 @@ function mcCoursesForProgram(programId){
     { id:"ECO",       name:"ECONOMÍA" },
     { id:"HIS",       name:"HISTORIA" },
     { id:"GEOG",      name:"GEOGRAFÍA" },
+    { id:"SIM",       name:"SIMULACROS" },
     { id:"REF_MAT",   name:"REFORZAMIENTO DE MATEMÁTICAS" },
   ];
 }
@@ -7651,6 +7652,114 @@ function mcSetFlag(st, pid, cid, code, field, val){
   const map = mcEnsureStatus(st, pid, cid);
   if (!map[code]) map[code] = {rec:false, dia:false, imp:false};
   map[code][field] = !!val;
+}
+
+const RESPONSABLES = {
+  AGRARIA: {
+    default: "IVANA",
+    overrides: {
+      "SIMULACROS": "FERNANDO",
+      "REFORZAMIENTO DE MATEMÁTICAS": "FERNANDO"
+    }
+  }
+};
+
+const IMPRESION_LOCAL_HUB = {
+  "LA MOLINA": "LA MOLINA",
+  "SAN BORJA": "LA MOLINA",
+  "SAN MIGUEL": "SAN MIGUEL"
+};
+
+const IMPRESION_CONFIG = {
+  AGRARIA: {
+    globalPrinter: "FERNANDO",
+    exceptions: {
+      courses: ["SIMULACROS", "REFORZAMIENTO DE MATEMÁTICAS"],
+      fallbackByLocal: {
+        "LA MOLINA": "FERNANDO",
+        "SAN BORJA": "FERNANDO",
+        "SAN MIGUEL": "KATI"
+      }
+    }
+  },
+  PUCP: {
+    byLocal: {
+      "LA MOLINA": "FERNANDO",
+      "SAN BORJA": "FERNANDO",
+      "SAN MIGUEL": "KATI"
+    }
+  }
+};
+
+function mcNormLabel(v){
+  return String(v || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim()
+    .toUpperCase();
+}
+
+function mcResponsableFor(uni, course){
+  const keyUni = mcNormLabel(uni);
+  const keyCourse = mcNormLabel(course);
+  const cfg = RESPONSABLES[keyUni];
+  if (!cfg) return "";
+
+  for (const [rawCourse, person] of Object.entries(cfg.overrides || {})){
+    if (mcNormLabel(rawCourse) === keyCourse) return person;
+  }
+  return String(cfg.default || "");
+}
+
+function mcCurrentUserName(){
+  try{
+    const profile = (typeof getAlumnoProfile === "function") ? getAlumnoProfile() : null;
+    const fromProfile = String(profile?.nombre || profile?.usuario || "").trim();
+    if (fromProfile) return fromProfile;
+  }catch(_){ }
+  try{
+    const fromLs = String(localStorage.getItem("lameta_user_name") || "").trim();
+    if (fromLs) return fromLs;
+  }catch(_){ }
+  return String(CURRENT_ROLE || "").trim();
+}
+
+function mcProgramLocal(program){
+  const raw = [program?.meta?.local, program?.meta?.name, program?.id]
+    .map(v=>String(v || ""))
+    .join(" ");
+  const v = mcNormLabel(raw);
+
+  if (!v) return "";
+  if (v.includes("LA MOLINA") || /(^|\W)LM(\W|$)/.test(v)) return "LA MOLINA";
+  if (v.includes("SAN BORJA") || /(^|\W)SB(\W|$)/.test(v)) return "SAN BORJA";
+  if (v.includes("SAN MIGUEL") || /(^|\W)SM(\W|$)/.test(v)) return "SAN MIGUEL";
+  return "";
+}
+
+function mcPrettyName(v){
+  const s = String(v || "").trim().toLowerCase();
+  return s ? (s.charAt(0).toUpperCase() + s.slice(1)) : "—";
+}
+
+function mcPrinterFor(uni, course, local){
+  const u = mcNormLabel(uni);
+  const c = mcNormLabel(course);
+  const loc = mcNormLabel(local);
+  const hub = IMPRESION_LOCAL_HUB[loc] || loc;
+  const cfg = IMPRESION_CONFIG[u];
+  if (!cfg) return "";
+
+  if (cfg.globalPrinter){
+    const exc = cfg.exceptions || {};
+    const excSet = new Set((exc.courses || []).map(mcNormLabel));
+    if (!excSet.has(c)) return String(cfg.globalPrinter || "");
+    const byLocal = exc.fallbackByLocal || {};
+    return String(byLocal[loc] || byLocal[hub] || cfg.globalPrinter || "");
+  }
+
+  const byLocal = cfg.byLocal || {};
+  return String(byLocal[loc] || byLocal[hub] || "");
 }
 
 function mcProgress(stOrPid, pidOrCid, cidOrNull, codesOrNull){
@@ -7772,7 +7881,7 @@ function renderMateriales(){
   const COURSES = {
     "AGRARIA":[
       "Razonamiento Verbal","Textos","Razonamiento Matemático","Álgebra","Geometría","Trigonometría","Aritmética",
-      "Física","Química","Biología","Economía","Historia","Geografía","Reforzamiento de Matemáticas"
+      "Física","Química","Biología","Economía","Historia","Geografía","Simulacros","Reforzamiento de Matemáticas"
     ],
     "U.LIMA":["(Definir cursos U.LIMA)"],
     "PUCP":[  "Habilidad Operativa",
@@ -7987,6 +8096,13 @@ ${canWork ? `<button id="mcEditBtn" class="btn ${matEditOn?'primary':'ghost'}" t
 
   const pid = prog.id;
   const cid = String(selC?.value||"");
+  const responsable = mcResponsableFor(uni, cid);
+  const localMat = mcProgramLocal(prog);
+  const impresor = mcPrinterFor(uni, cid, localMat);
+  const canEditByResponsable = canWork && (roleLower === "admin" || mcNormLabel(mcCurrentUserName()) === mcNormLabel(responsable));
+  const canEditImpreso = canWork && (roleLower === "admin" || mcNormLabel(mcCurrentUserName()) === mcNormLabel(impresor));
+  const roMsg = "Solo editable por el responsable";
+  const roImpMsg = "Solo editable por quien imprime";
 
   // dates per program
   const pStart = pgxParseDateYMD(String(prog?.meta?.startDate||"")) || pgxParseDateYMD(String(store.timeline?.startDate||"")) || new Date();
@@ -8032,8 +8148,12 @@ ${canWork ? `<button id="mcEditBtn" class="btn ${matEditOn?'primary':'ghost'}" t
     const wkPct  = Math.round(((+rec + +dia + +imp)/3)*100);
     const semClass = (wkPct>=100)?"s100":(wkPct>=67)?"s67":(wkPct>=33)?"s33":"s0";
 
-    const disCls = (canWork && matEditOn) ? "" : "mcChkReadOnly";
-    const roAttr = (canWork && matEditOn) ? "" : "data-ro='1' tabindex='-1'";
+    const editableRow = (canEditByResponsable && matEditOn);
+    const editableImp = (canEditImpreso && matEditOn);
+    const disCls = editableRow ? "" : "mcChkReadOnly";
+    const disClsImp = editableImp ? "" : "mcChkReadOnly";
+    const roAttr = editableRow ? "" : `data-ro='1' tabindex='-1' title='${escapeHtml(roMsg)}'`;
+    const roImpAttr = editableImp ? "" : `data-ro='1' tabindex='-1' title='${escapeHtml(roImpMsg)}'`;
     rows.push(`
       <tr>
         <td class="mcIdxCol" style="font-weight:950;">${idx}</td>
@@ -8044,7 +8164,12 @@ ${canWork ? `<button id="mcEditBtn" class="btn ${matEditOn?'primary':'ghost'}" t
 
         <td class="mcChkCell"><input type="checkbox" class="${disCls}" ${roAttr} data-code="${escapeHtml(code)}" data-field="rec" ${rec?"checked":""}></td>
         <td class="mcChkCell"><input type="checkbox" class="${disCls}" ${roAttr} data-code="${escapeHtml(code)}" data-field="dia" ${dia?"checked":""}></td>
-        <td class="mcChkCell"><input type="checkbox" class="${disCls}" ${roAttr} data-code="${escapeHtml(code)}" data-field="imp" ${imp?"checked":""}></td>
+        <td class="mcChkCell">
+          <div style="display:flex; flex-direction:column; align-items:center; gap:4px;">
+            <input type="checkbox" class="${disClsImp}" ${roImpAttr} data-code="${escapeHtml(code)}" data-field="imp" ${imp?"checked":""}>
+            <span style="display:inline-flex; max-width:94px; justify-content:center; border:1px solid var(--border); border-radius:999px; padding:2px 7px; font-size:10px; line-height:1; font-weight:900; color:var(--muted); background:#fff;">Imprime: ${escapeHtml(mcPrettyName(impresor))}</span>
+          </div>
+        </td>
       </tr>
     `);
   }
@@ -8052,6 +8177,7 @@ ${canWork ? `<button id="mcEditBtn" class="btn ${matEditOn?'primary':'ghost'}" t
   body.innerHTML = `
     <div class="mrTop" style="margin:0;">
       <div class="mrKpi">${escapeHtml(String(prog.meta?.name||"PROGRAMA").toUpperCase())} · <b>${escapeHtml(String(cid||"CURSO").toUpperCase())}</b> · Inicio: <b>${escapeHtml(fmtDM(pgxAddDays(pStart,(range.first-1)*7)))}</b> · Fin: <b>${escapeHtml(fmtDM(pgxAddDays(pStart,(range.last-1)*7)))}</b></div>
+      <div style="margin-top:6px;"><span style="display:inline-flex; align-items:center; border:1px solid var(--border); border-radius:999px; padding:4px 10px; font-weight:900; font-size:12px; color:var(--muted); background:#fff;">Responsable: ${escapeHtml(responsable || "—")}</span></div>
     </div>
 
     ${progBars}
