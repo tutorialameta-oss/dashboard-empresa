@@ -2365,6 +2365,42 @@
   .mrLink.disabled{ pointer-events:none; opacity:.45; }
   .mrBtn.disabled{ pointer-events:none; opacity:.45; }
 
+  .mcBarsCompact{
+    display:grid;
+    grid-template-columns: repeat(3, minmax(150px, 1fr));
+    gap:10px;
+    margin-bottom:12px;
+  }
+  .mcTableWrap{
+    border:1px solid var(--border);
+    border-radius:14px;
+    overflow-x:scroll;
+    overflow-y:hidden;
+    padding-bottom:4px;
+  }
+  .mcTable{
+    width:100%;
+    min-width:860px;
+    border-collapse:collapse;
+    font-weight:900;
+  }
+  .mcTable th, .mcTable td{
+    padding:9px 8px;
+    border-bottom:1px solid var(--border);
+  }
+  .mcStatusCol{ width:94px; text-align:center; }
+  .mcChkCell{ text-align:center; }
+  .mcTableWrap input[type="checkbox"]{
+    width:18px;
+    height:18px;
+    accent-color: var(--ok);
+    cursor:pointer;
+  }
+  .mcTableWrap input[type="checkbox"]:disabled{
+    opacity:.55;
+    cursor:not-allowed;
+  }
+
 </style>
 </head>
 
@@ -7962,7 +7998,7 @@ ${canWork ? `<button id="mcEditBtn" class="btn ${matEditOn?'primary':'ghost'}" t
   const pr = mcProgressRange(st, pid, cid, codes, range.first, range.last);
 
   const progBars = `
-    <div style="display:grid; grid-template-columns: repeat(3, minmax(180px, 1fr)); gap:10px; margin-bottom:12px;">
+    <div class="mcBarsCompact">
       ${[
         {k:"rec", t:"RECIBIDO", v:pr.recPct},
         {k:"dia", t:"DIAGRAMADO", v:pr.diaPct},
@@ -8005,9 +8041,9 @@ ${canWork ? `<button id="mcEditBtn" class="btn ${matEditOn?'primary':'ghost'}" t
 
         <td><span class="semBadge ${semClass}"><span class="semDot"></span>${wkPct}%</span></td>
 
-        <td><input type="checkbox" ${dis} data-code="${escapeHtml(code)}" data-field="rec" ${rec?"checked":""}></td>
-        <td><input type="checkbox" ${dis} data-code="${escapeHtml(code)}" data-field="dia" ${dia?"checked":""}></td>
-        <td><input type="checkbox" ${dis} data-code="${escapeHtml(code)}" data-field="imp" ${imp?"checked":""}></td>
+        <td class="mcChkCell"><input type="checkbox" ${dis} data-code="${escapeHtml(code)}" data-field="rec" ${rec?"checked":""}></td>
+        <td class="mcChkCell"><input type="checkbox" ${dis} data-code="${escapeHtml(code)}" data-field="dia" ${dia?"checked":""}></td>
+        <td class="mcChkCell"><input type="checkbox" ${dis} data-code="${escapeHtml(code)}" data-field="imp" ${imp?"checked":""}></td>
       </tr>
     `);
   }
@@ -8019,17 +8055,17 @@ ${canWork ? `<button id="mcEditBtn" class="btn ${matEditOn?'primary':'ghost'}" t
 
     ${progBars}
 
-    <div style="border:1px solid var(--border); border-radius:14px; overflow:hidden;">
-      <table style="width:100%; border-collapse:collapse; font-weight:900;">
+    <div class="mcTableWrap">
+      <table class="mcTable">
         <thead>
           <tr style="background:#f1f5f9;">
-            <th style="padding:10px; border-bottom:1px solid var(--border);">#</th>
-            <th style="padding:10px; border-bottom:1px solid var(--border);">FECHA</th>
-            <th style="padding:10px; border-bottom:1px solid var(--border);">SEMANA</th>
-            <th style="padding:10px; border-bottom:1px solid var(--border);">SEM%</th>
-            <th style="padding:10px; border-bottom:1px solid var(--border);">RECIBIDO</th>
-            <th style="padding:10px; border-bottom:1px solid var(--border);">DIAGRAMADO</th>
-            <th style="padding:10px; border-bottom:1px solid var(--border);">IMPRESO</th>
+            <th>#</th>
+            <th>FECHA</th>
+            <th>SEMANA</th>
+            <th>SEM%</th>
+            <th class="mcStatusCol">RECIBIDO</th>
+            <th class="mcStatusCol">DIAGRAMADO</th>
+            <th class="mcStatusCol">IMPRESO</th>
           </tr>
         </thead>
         <tbody>
