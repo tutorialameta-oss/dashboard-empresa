@@ -7346,9 +7346,10 @@ function mkQuestionRow(qi, draft, disabled){
 
 // ===================== MATERIALES (NUEVO) =====================
 const MATERIALES = [
-  { uni:"AGRARIA", url:"https://drive.google.com/drive/folders/1pDEZ0rG3l27snsgp4UGo0qaS5irT2f2d?usp=sharing" },
-  { uni:"PUCP",    url:"https://drive.google.com/drive/folders/1FfUL4GEiHALYEOhBHTJA3SzHVotRGv0k?usp=sharing" },
-  { uni:"U.LIMA",  url:"https://drive.google.com/drive/folders/1bFR0PRaSJFGnSJy6Ii6jU8SvHKCJrC9n" },
+  { uni:"AGRARIA",   url:"https://drive.google.com/drive/folders/1pDEZ0rG3l27snsgp4UGo0qaS5irT2f2d?usp=sharing" },
+  { uni:"U.LIMA",    url:"https://drive.google.com/drive/folders/1bFR0PRaSJFGnSJy6Ii6jU8SvHKCJrC9n" },
+  { uni:"PUCP",      url:"https://drive.google.com/drive/folders/1FfUL4GEiHALYEOhBHTJA3SzHVotRGv0k?usp=sharing" },
+  { uni:"ESCOLARES", url:"" },
 ];
 
 // ===================== NOTAS GENERALES (NUEVO) =====================
@@ -7679,25 +7680,37 @@ function renderMateriales(){
   // ===== tarjetas de carpetas (accesos directos) =====
   const grid = document.getElementById("matGrid");
   if (grid){
-    grid.innerHTML = (MATERIALES||[]).map(x=>{
+    const MAT_UNI_ORDER = ["AGRARIA","U.LIMA","PUCP","ESCOLARES"];
+    const MAT_UNI_COLOR = {
+      "AGRARIA": getCss("--agraria"),
+      "U.LIMA": getCss("--ulima"),
+      "PUCP": getCss("--pucp"),
+      "ESCOLARES": getCss("--schHead_ESC")
+    };
+
+    const orderedMaterials = MAT_UNI_ORDER.map(u=>{
+      const found = (MATERIALES||[]).find(x=>String(x.uni||"").toUpperCase()===u);
+      return found || { uni:u, url:"" };
+    });
+
+    grid.innerHTML = orderedMaterials.map(x=>{
       const u = String(x.uni||"").toUpperCase();
-      const dot =
-        u === "AGRARIA"   ? getCss("--agraria") :
-        u === "PUCP"      ? getCss("--pucp") :
-        u === "U.LIMA"    ? getCss("--ulima") :
-        u === "ESCOLARES" ? "#7c3aed" :
-                            getCss("--accent");
+      const dot = MAT_UNI_COLOR[u] || getCss("--accent");
+      const href = String(x.url||"").trim();
+      const isReady = !!href;
+      const caption = isReady ? "ABRIR CARPETA" : "CARPETA PENDIENTE";
+
       return `
-        <a class="iItem" href="${escapeHtml(x.url)}" target="_blank" rel="noopener"
+        <a class="iItem${isReady ? "" : " disabled"}" href="${escapeHtml(isReady ? href : "#")}" target="_blank" rel="noopener"
            style="text-decoration:none; color:inherit;">
           <div class="iLeft">
             <div class="iSalon">${escapeHtml(u)}</div>
             <div class="iMeta">
               <span class="dot" style="background:${dot};"></span>
-              <span>ABRIR CARPETA</span>
+              <span>${caption}</span>
             </div>
           </div>
-          <div class="iNum" style="color:${dot};">⟶</div>
+          <div class="iNum" style="color:${dot};">${isReady ? "⟶" : "—"}</div>
         </a>
       `;
     }).join("");
@@ -7819,7 +7832,7 @@ function renderMateriales(){
 
     <div class="mrTop" style="gap:10px;">
       <div class="mrSelRow" style="flex-wrap:wrap;">
-        ${allowedUni.map(u=>`<button class="btn ${u===uni?"primary":"ghost"}" type="button" data-uni="${escapeHtml(u)}">${escapeHtml(u)}</button>`).join("")}
+        ${allowedUni.map(u=>{ const uc=String(u||"").toUpperCase(); const c=(uc==="AGRARIA"?getCss("--agraria"):(uc==="U.LIMA"?getCss("--ulima"):(uc==="PUCP"?getCss("--pucp"):getCss("--schHead_ESC"))); const active=(u===uni); const bg=active?`${c}1A`:"#fff"; return `<button class="btn ${active?"primary":"ghost"}" type="button" data-uni="${escapeHtml(u)}" style="border-color:${c}; color:${c}; background:${bg};">${escapeHtml(u)}</button>`; }).join("")}
       </div>
 
       <div class="mrSelRow" style="flex-wrap:wrap;">
