@@ -7774,17 +7774,7 @@ const IMPRESO_CONFIG = {
 };
 
 function mcPrinterBySpace(uni, course, space){
-  const u = mcNormLabel(uni);
-  const c = mcNormLabel(course);
-  const sid = String(space||"").toUpperCase();
-  const cfg = IMPRESO_CONFIG[u];
-  if (!cfg) return "";
-
-  const ex = cfg.exceptions || {};
-  const exSet = new Set((ex.courses || []).map(mcNormLabel));
-  if (!exSet.has(c)) return String(cfg.defaultPrinter || "");
-
-  return String((ex.bySpace || {})[sid] || cfg.defaultPrinter || "");
+  return "FERNANDO";
 }
 
 function mcNormLabel(v){
@@ -8227,7 +8217,7 @@ ${canWork ? `<button id="mcEditBtn" class="btn ${matEditOn?'primary':'ghost'}" t
   const isTutor = (roleLower === "tutor");
   const isSanBorja = (mcNormLabel(space) === "SAN_BORJA");
   const canEditRecibido = (roleLower === "admin") && !isSanBorja && (mcNormLabel(space) === "EDITOR");
-  const canEditImpreso = canWork && !isSanBorja && (isTutor || roleLower === "admin" || mcNormLabel(mcCurrentUserName()) === mcNormLabel(impresor));
+  const canEditImpreso = isSanBorja ? canWork : (canWork && (isTutor || roleLower === "admin" || mcNormLabel(mcCurrentUserName()) === mcNormLabel(impresor)));
   const isAgraria = (mcNormLabel(uni) === "AGRARIA");
   const canEditDiagramado = canWork && !isSanBorja && (
     (isAgraria && diaRule)
