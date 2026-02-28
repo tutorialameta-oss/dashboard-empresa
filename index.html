@@ -8226,7 +8226,7 @@ ${canWork ? `<button id="mcEditBtn" class="btn ${matEditOn?'primary':'ghost'}" t
   const canEditByResponsable = canWork && (roleLower === "admin" || mcNormLabel(mcCurrentUserName()) === mcNormLabel(mcResponsableFor(uni, cid)));
   const isTutor = (roleLower === "tutor");
   const isSanBorja = (mcNormLabel(space) === "SAN_BORJA");
-  const canEditRecibido = canWork && !isSanBorja && (isTutor || mcNormLabel(space) === "EDITOR");
+  const canEditRecibido = (roleLower === "admin") && !isSanBorja && (mcNormLabel(space) === "EDITOR");
   const canEditImpreso = canWork && !isSanBorja && (isTutor || roleLower === "admin" || mcNormLabel(mcCurrentUserName()) === mcNormLabel(impresor));
   const canEditDiagramado = canWork && !isSanBorja && (
     isTutor
@@ -8313,9 +8313,9 @@ ${canWork ? `<button id="mcEditBtn" class="btn ${matEditOn?'primary':'ghost'}" t
     <div class="mrTop" style="margin:0;">
       <div class="mrKpi">${escapeHtml(String(prog.meta?.name||"PROGRAMA").toUpperCase())} · <b>${escapeHtml(String(cid||"CURSO").toUpperCase())}</b> · Inicio: <b>${escapeHtml(fmtDM(pgxAddDays(pStart,(range.first-1)*7)))}</b> · Fin: <b>${escapeHtml(fmtDM(pgxAddDays(pStart,(range.last-1)*7)))}</b></div>
       <div style="margin-top:6px; display:flex; flex-wrap:wrap; gap:6px;">
+        <span style="display:inline-flex; align-items:center; border:1px solid var(--border); border-radius:999px; padding:4px 10px; font-weight:900; font-size:12px; color:var(--muted); background:#fff;">Recibe: PEDRO</span>
         <span style="display:inline-flex; align-items:center; border:1px solid var(--border); border-radius:999px; padding:4px 10px; font-weight:900; font-size:12px; color:var(--muted); background:#fff;">DIAGRAMA: ${escapeHtml(diagramaLabel || "—")}</span>
         <span style="display:inline-flex; align-items:center; border:1px solid var(--border); border-radius:999px; padding:4px 10px; font-weight:900; font-size:12px; color:var(--muted); background:#fff;">Imprime: ${escapeHtml(impresor || "—")}</span>
-        <span style="display:inline-flex; align-items:center; border:1px solid var(--border); border-radius:999px; padding:4px 10px; font-weight:900; font-size:12px; color:var(--muted); background:#fff;">Recibe: PEDRO</span>
       </div>
     </div>
 
