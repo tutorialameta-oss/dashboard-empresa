@@ -7752,6 +7752,15 @@ function mcSyncDiagramadoByRule(st, pid, cid, code, val, rule){
   }
 }
 
+function mcPrinterBySpace(space){
+  const bySpace = {
+    "LA_MOLINA": "FERNANDO",
+    "SAN_BORJA": "FERNANDO",
+    "SAN_MIGUEL": "KATI"
+  };
+  return String(bySpace[String(space||"").toUpperCase()] || "");
+}
+
 function mcNormLabel(v){
   return String(v || "")
     .normalize("NFD")
@@ -8185,15 +8194,15 @@ ${canWork ? `<button id="mcEditBtn" class="btn ${matEditOn?'primary':'ghost'}" t
   const cid = String(selC?.value||"");
   const statusCid = mcStatusCid(cid, space);
   const responsable = (space === "EDITOR") ? "PEDRO" : mcResponsableFor(uni, cid);
-  const localMat = mcProgramLocal(prog);
-  const impresor = mcPrinterFor(uni, cid, localMat);
+  const impresor = mcPrinterBySpace(space);
   const diaRule = mcDiagramadoRule(uni, cid);
   const canEditByResponsable = canWork && (roleLower === "admin" || mcNormLabel(mcCurrentUserName()) === mcNormLabel(responsable));
+  const canEditRecibido = canWork && (mcNormLabel(space) === "EDITOR");
   const canEditImpreso = canWork && (roleLower === "admin" || mcNormLabel(mcCurrentUserName()) === mcNormLabel(impresor));
   const canEditDiagramado = diaRule
     ? (canWork && (roleLower === "admin" || (mcNormLabel(mcCurrentUserName()) === mcNormLabel(diaRule.owner) && mcNormLabel(space) === mcNormLabel(diaRule.sourceSpace))))
     : canEditByResponsable;
-  const roMsg = "Solo editable por el responsable";
+  const roMsg = "Solo editable por el editor";
   const roDiaMsg = "Solo editable por diagramación";
   const roImpMsg = "Solo editable por quien imprime";
 
@@ -8241,7 +8250,7 @@ ${canWork ? `<button id="mcEditBtn" class="btn ${matEditOn?'primary':'ghost'}" t
     const wkPct  = Math.round(((+rec + +dia + +imp)/3)*100);
     const semClass = (wkPct>=100)?"s100":(wkPct>=67)?"s67":(wkPct>=33)?"s33":"s0";
 
-    const editableRec = (canEditByResponsable && matEditOn);
+    const editableRec = (canEditRecibido && matEditOn);
     const editableDia = (canEditDiagramado && matEditOn);
     const editableImp = (canEditImpreso && matEditOn);
     const disClsRec = editableRec ? "" : "mcChkReadOnly";
