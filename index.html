@@ -7732,6 +7732,13 @@ const DIAGRAMADO_CONFIG = {
         mirrorTo: ["SAN_MIGUEL", "SAN_BORJA"]
       }
     }
+  },
+  PUCP: {
+    default: {
+      owner: "FERNANDO",
+      sourceSpace: "LA_MOLINA",
+      mirrorTo: ["SAN_MIGUEL", "SAN_BORJA"]
+    }
   }
 };
 
@@ -7788,8 +7795,14 @@ const IMPRESO_CONFIG = {
 };
 
 function mcPrinterBySpace(uni, course, space){
+  const u = mcNormLabel(uni);
   const sid = String(space||"").toUpperCase();
   const c = mcNormLabel(course);
+
+  if (u === "PUCP"){
+    return sid === "SAN_MIGUEL" ? "KATI" : "FERNANDO";
+  }
+
   const smExceptions = new Set(["SIMULACROS", "REFORZAMIENTO DE MATEMATICAS"]);
   if (sid === "SAN_MIGUEL" && smExceptions.has(c)) return "KATI";
   return "FERNANDO";
@@ -8229,18 +8242,18 @@ ${canWork ? `<button id="mcEditBtn" class="btn ${matEditOn?'primary':'ghost'}" t
   const cid = String(selC?.value||"");
   const statusCid = mcStatusCid(cid, space);
   const diaRule = mcDiagramadoRule(uni, cid);
-  const diagramaLabel = String((mcNormLabel(uni)==="AGRARIA" && diaRule?.owner) ? diaRule.owner : (DIAGRAMA_SPACE_LABEL[String(space||"").toUpperCase()] || "—"));
+  const diagramaLabel = String(diaRule?.owner || DIAGRAMA_SPACE_LABEL[String(space||"").toUpperCase()] || "—");
   const impresor = mcPrinterBySpace(uni, cid, space);
   const canEditByResponsable = canWork && (roleLower === "admin" || mcNormLabel(mcCurrentUserName()) === mcNormLabel(mcResponsableFor(uni, cid)));
   const isTutor = (roleLower === "tutor");
   const isSanBorja = (mcNormLabel(space) === "SAN_BORJA");
   const canEditRecibido = (roleLower === "admin") && !isSanBorja && (mcNormLabel(space) === "EDITOR");
-  const canEditImpreso = isSanBorja ? canWork : (canWork && (isTutor || roleLower === "admin" || mcNormLabel(mcCurrentUserName()) === mcNormLabel(impresor)));
-  const isAgraria = (mcNormLabel(uni) === "AGRARIA");
+  const isPucp = (mcNormLabel(uni) === "PUCP");
+  const canEditImpreso = (isPucp && isSanBorja) ? false : (isSanBorja ? canWork : (canWork && (isTutor || roleLower === "admin" || mcNormLabel(mcCurrentUserName()) === mcNormLabel(impresor))));
   const canEditDiagramado = canWork && !isSanBorja && (
-    (isAgraria && diaRule)
+    diaRule
       ? (mcNormLabel(space) === mcNormLabel(diaRule.sourceSpace))
-      : (isTutor || roleLower === "admin" || (diaRule ? (mcNormLabel(mcCurrentUserName()) === mcNormLabel(diaRule.owner) && mcNormLabel(space) === mcNormLabel(diaRule.sourceSpace)) : canEditByResponsable))
+      : (isTutor || roleLower === "admin" || canEditByResponsable)
   );
   const roMsg = "Solo editable por el editor";
   const roDiaMsg = "Solo editable en espacio de diagramación";
