@@ -7602,6 +7602,7 @@ function mcCoursesForProgram(programId){
     { id:"ECO",       name:"ECONOMÍA" },
     { id:"HIS",       name:"HISTORIA" },
     { id:"GEOG",      name:"GEOGRAFÍA" },
+    { id:"SIM",       name:"SIMULACROS" },
     { id:"REF_MAT",   name:"REFORZAMIENTO DE MATEMÁTICAS" },
   ];
 }
@@ -7651,6 +7652,210 @@ function mcSetFlag(st, pid, cid, code, field, val){
   const map = mcEnsureStatus(st, pid, cid);
   if (!map[code]) map[code] = {rec:false, dia:false, imp:false};
   map[code][field] = !!val;
+}
+
+const RESPONSABLES = {
+  AGRARIA: {
+    default: "IVANA",
+    overrides: {
+      "SIMULACROS": "FERNANDO",
+      "REFORZAMIENTO DE MATEMÁTICAS": "FERNANDO"
+    }
+  }
+};
+
+const IMPRESION_LOCAL_HUB = {
+  "LA MOLINA": "LA MOLINA",
+  "SAN BORJA": "LA MOLINA",
+  "SAN MIGUEL": "SAN MIGUEL"
+};
+
+const IMPRESION_CONFIG = {
+  AGRARIA: {
+    globalPrinter: "FERNANDO",
+    exceptions: {
+      courses: ["SIMULACROS", "REFORZAMIENTO DE MATEMÁTICAS"],
+      fallbackByLocal: {
+        "LA MOLINA": "FERNANDO",
+        "SAN BORJA": "FERNANDO",
+        "SAN MIGUEL": "KATI"
+      }
+    }
+  },
+  PUCP: {
+    byLocal: {
+      "LA MOLINA": "FERNANDO",
+      "SAN BORJA": "FERNANDO",
+      "SAN MIGUEL": "KATI"
+    }
+  }
+};
+
+const MC_SPACES = [
+  { id:"EDITOR", label:"EDITOR" },
+  { id:"LA_MOLINA", label:"LA MOLINA" },
+  { id:"SAN_MIGUEL", label:"SAN MIGUEL" },
+  { id:"SAN_BORJA", label:"SAN BORJA" }
+];
+const MC_SPACE_LOCALS = ["LA_MOLINA","SAN_MIGUEL","SAN_BORJA"];
+
+const DIAGRAMADO_CONFIG = {
+  AGRARIA: {
+    default: {
+      owner: "IVANA",
+      sourceSpace: "SAN_MIGUEL",
+      mirrorTo: ["LA_MOLINA", "SAN_BORJA"]
+    },
+    overrides: {
+      "SIMULACROS": {
+        owner: "FERNANDO",
+        sourceSpace: "LA_MOLINA",
+        mirrorTo: ["SAN_MIGUEL", "SAN_BORJA"]
+      },
+      "REFORZAMIENTO DE MATEMATICAS": {
+        owner: "FERNANDO",
+        sourceSpace: "LA_MOLINA",
+        mirrorTo: ["SAN_MIGUEL", "SAN_BORJA"]
+      }
+    }
+  }
+};
+
+const DIAGRAMA_SPACE_LABEL = {
+  "EDITOR": "PEDRO",
+  "LA_MOLINA": "FERNANDO",
+  "SAN_MIGUEL": "IVANA",
+  "SAN_BORJA": "AUTO"
+};
+
+function mcStatusCid(cid, spaceId){
+  return `${String(cid||"")}@@${String(spaceId||"EDITOR")}`;
+}
+
+function mcSyncRecibidoFromEditor(st, pid, cid, code, val){
+  for (const sid of MC_SPACE_LOCALS){
+    mcSetFlag(st, pid, mcStatusCid(cid, sid), code, "rec", !!val);
+  }
+}
+
+function mcDiagramadoRule(uni, course){
+  const u = mcNormLabel(uni);
+  const c = mcNormLabel(course);
+  const cfg = DIAGRAMADO_CONFIG[u];
+  if (!cfg) return null;
+
+  for (const [rawCourse, rule] of Object.entries(cfg.overrides || {})){
+    if (mcNormLabel(rawCourse) === c) return rule;
+  }
+  return cfg.default || null;
+}
+
+function mcSyncDiagramadoByRule(st, pid, cid, code, val, rule){
+  if (!rule) return;
+  const targets = [rule.sourceSpace, ...(Array.isArray(rule.mirrorTo) ? rule.mirrorTo : [])];
+  const uniq = Array.from(new Set(targets.map(x=>String(x||"").toUpperCase()).filter(Boolean)));
+  for (const sid of uniq){
+    mcSetFlag(st, pid, mcStatusCid(cid, sid), code, "dia", !!val);
+  }
+}
+
+const IMPRESO_CONFIG = {
+  AGRARIA: {
+    defaultPrinter: "FERNANDO",
+    exceptions: {
+      courses: ["SIMULACROS", "REFORZAMIENTO DE MATEMATICAS"],
+      bySpace: {
+        "LA_MOLINA": "FERNANDO",
+        "SAN_BORJA": "FERNANDO",
+        "SAN_MIGUEL": "KATI"
+      }
+    }
+  }
+};
+
+function mcPrinterBySpace(uni, course, space){
+  const u = mcNormLabel(uni);
+  const c = mcNormLabel(course);
+  const sid = String(space||"").toUpperCase();
+  const cfg = IMPRESO_CONFIG[u];
+  if (!cfg) return "";
+
+  const ex = cfg.exceptions || {};
+  const exSet = new Set((ex.courses || []).map(mcNormLabel));
+  if (!exSet.has(c)) return String(cfg.defaultPrinter || "");
+
+  return String((ex.bySpace || {})[sid] || cfg.defaultPrinter || "");
+}
+
+function mcNormLabel(v){
+  return String(v || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim()
+    .toUpperCase();
+}
+
+function mcResponsableFor(uni, course){
+  const keyUni = mcNormLabel(uni);
+  const keyCourse = mcNormLabel(course);
+  const cfg = RESPONSABLES[keyUni];
+  if (!cfg) return "";
+
+  for (const [rawCourse, person] of Object.entries(cfg.overrides || {})){
+    if (mcNormLabel(rawCourse) === keyCourse) return person;
+  }
+  return String(cfg.default || "");
+}
+
+function mcCurrentUserName(){
+  try{
+    const profile = (typeof getAlumnoProfile === "function") ? getAlumnoProfile() : null;
+    const fromProfile = String(profile?.nombre || profile?.usuario || "").trim();
+    if (fromProfile) return fromProfile;
+  }catch(_){ }
+  try{
+    const fromLs = String(localStorage.getItem("lameta_user_name") || "").trim();
+    if (fromLs) return fromLs;
+  }catch(_){ }
+  return String(CURRENT_ROLE || "").trim();
+}
+
+function mcProgramLocal(program){
+  const raw = [program?.meta?.local, program?.meta?.name, program?.id]
+    .map(v=>String(v || ""))
+    .join(" ");
+  const v = mcNormLabel(raw);
+
+  if (!v) return "";
+  if (v.includes("LA MOLINA") || /(^|\W)LM(\W|$)/.test(v)) return "LA MOLINA";
+  if (v.includes("SAN BORJA") || /(^|\W)SB(\W|$)/.test(v)) return "SAN BORJA";
+  if (v.includes("SAN MIGUEL") || /(^|\W)SM(\W|$)/.test(v)) return "SAN MIGUEL";
+  return "";
+}
+
+function mcPrettyName(v){
+  const s = String(v || "").trim().toLowerCase();
+  return s ? (s.charAt(0).toUpperCase() + s.slice(1)) : "—";
+}
+
+function mcPrinterFor(uni, course, local){
+  const u = mcNormLabel(uni);
+  const c = mcNormLabel(course);
+  const loc = mcNormLabel(local);
+  const hub = IMPRESION_LOCAL_HUB[loc] || loc;
+  const cfg = IMPRESION_CONFIG[u];
+  if (!cfg) return "";
+
+  if (cfg.globalPrinter){
+    const exc = cfg.exceptions || {};
+    const excSet = new Set((exc.courses || []).map(mcNormLabel));
+    if (!excSet.has(c)) return String(cfg.globalPrinter || "");
+    const byLocal = exc.fallbackByLocal || {};
+    return String(byLocal[loc] || byLocal[hub] || cfg.globalPrinter || "");
+  }
+
+  const byLocal = cfg.byLocal || {};
+  return String(byLocal[loc] || byLocal[hub] || "");
 }
 
 function mcProgress(stOrPid, pidOrCid, cidOrNull, codesOrNull){
@@ -7758,7 +7963,7 @@ function renderMateriales(){
 
   const allowedUni = ["AGRARIA","U.LIMA","PUCP","ESCOLARES"];
   const roleLower = String(CURRENT_ROLE||"").toLowerCase();
-  const canEdit = (roleLower === "admin"); // edición de estructura (solo Admin)
+  const canEditRole = (roleLower === "admin"); // links: solo Admin en espacio Editor
   const canWork = (roleLower === "admin" || roleLower === "tutor"); // marcar estados (Tutor/Admin)
   const MAT_EDIT_KEY = "LM_MAT_EDIT_MODE";
   const matEditDefault = (roleLower === "tutor");
@@ -7772,7 +7977,7 @@ function renderMateriales(){
   const COURSES = {
     "AGRARIA":[
       "Razonamiento Verbal","Textos","Razonamiento Matemático","Álgebra","Geometría","Trigonometría","Aritmética",
-      "Física","Química","Biología","Economía","Historia","Geografía","Reforzamiento de Matemáticas"
+      "Física","Química","Biología","Economía","Historia","Geografía","Simulacros","Reforzamiento de Matemáticas"
     ],
     "U.LIMA":["(Definir cursos U.LIMA)"],
     "PUCP":[  "Habilidad Operativa",
@@ -7787,6 +7992,7 @@ function renderMateriales(){
   const UNI_KEY="LM_MAT_UI_UNI";
   const PROG_KEY="LM_MAT_UI_PROG";
   const COURSE_KEY="LM_MAT_UI_COURSE";
+  const SPACE_KEY="LM_MAT_UI_SPACE";
 
   const curUni = (localStorage.getItem(UNI_KEY) || "AGRARIA").toUpperCase();
   const uni = allowedUni.includes(curUni) ? curUni : "AGRARIA";
@@ -7798,6 +8004,16 @@ function renderMateriales(){
   const courses = COURSES[uni] || [];
   const savedCourse = localStorage.getItem(COURSE_KEY) || "";
   const course = courses.includes(savedCourse) ? savedCourse : (courses[0]||"");
+
+  const availableSpaces = (roleLower === "admin")
+    ? MC_SPACES
+    : MC_SPACES.filter(x=>x.id !== "EDITOR");
+  const defaultSpace = (roleLower === "admin") ? "EDITOR" : "LA_MOLINA";
+  const savedSpace = String(localStorage.getItem(SPACE_KEY) || defaultSpace).toUpperCase();
+  const space = availableSpaces.find(x=>x.id===savedSpace)
+    ? savedSpace
+    : (availableSpaces[0]?.id || defaultSpace);
+  const canEdit = (canEditRole && space === "EDITOR");
 
   // helpers
   function fmtDM(d){
@@ -7872,6 +8088,11 @@ function renderMateriales(){
     return `<button class="btn ${active?"primary":"ghost"}" type="button" data-uni="${escapeHtml(u)}" style="border-color:${c}; color:${c}; background:${bg};">${escapeHtml(u)}</button>`;
   }).join("");
 
+  const spaceButtonsHtml = availableSpaces.map(sp=>{
+    const active = (sp.id === space);
+    return `<button class="btn ${active?"primary":"ghost"}" type="button" data-space="${escapeHtml(sp.id)}" style="${active?"box-shadow:0 0 0 2px rgba(185,28,28,.25); transform:translateY(-1px);":""}">${escapeHtml(sp.label)}</button>`;
+  }).join("");
+
   // build UI
   card.innerHTML = `
     <div class="cardtitle">CONTROL DE MATERIALES</div>
@@ -7883,6 +8104,10 @@ function renderMateriales(){
     <div class="mrTop" style="gap:10px;">
       <div class="mrSelRow" style="flex-wrap:wrap;">
         ${uniButtonsHtml}
+      </div>
+      <div class="mrSelRow" style="flex-wrap:wrap; align-items:center; gap:8px;">
+        <span style="font-weight:950; color:var(--muted);">ESPACIO</span>
+        ${spaceButtonsHtml}
       </div>
 
       <div class="mrSelRow" style="flex-wrap:wrap;">
@@ -7918,6 +8143,13 @@ ${canWork ? `<button id="mcEditBtn" class="btn ${matEditOn?'primary':'ghost'}" t
     });
   });
 
+  card.querySelectorAll("button[data-space]").forEach(b=>{
+    b.addEventListener("click", ()=>{
+      localStorage.setItem(SPACE_KEY, String(b.getAttribute("data-space")||"EDITOR"));
+      renderMateriales();
+    });
+  });
+
   // set selects values
   const selP = card.querySelector("#mcP2");
   const selC = card.querySelector("#mcC2");
@@ -7949,7 +8181,7 @@ ${canWork ? `<button id="mcEditBtn" class="btn ${matEditOn?'primary':'ghost'}" t
   if (linkInp) linkInp.value = curUrl;
 
   saveBtn?.addEventListener("click", ()=>{
-    if (!canEdit) return toast("Solo Admin puede configurar links.");
+    if (!canEdit) return toast("Solo Editor puede configurar links.");
     const url = String(linkInp?.value||"").trim();
     const st = mcLoadStore();
     if (!st.links) st.links = {};
@@ -7987,6 +8219,24 @@ ${canWork ? `<button id="mcEditBtn" class="btn ${matEditOn?'primary':'ghost'}" t
 
   const pid = prog.id;
   const cid = String(selC?.value||"");
+  const statusCid = mcStatusCid(cid, space);
+  const diaRule = mcDiagramadoRule(uni, cid);
+  const diagramaLabel = String((mcNormLabel(uni)==="AGRARIA" && diaRule?.owner) ? diaRule.owner : (DIAGRAMA_SPACE_LABEL[String(space||"").toUpperCase()] || "—"));
+  const impresor = mcPrinterBySpace(uni, cid, space);
+  const canEditByResponsable = canWork && (roleLower === "admin" || mcNormLabel(mcCurrentUserName()) === mcNormLabel(mcResponsableFor(uni, cid)));
+  const isTutor = (roleLower === "tutor");
+  const isSanBorja = (mcNormLabel(space) === "SAN_BORJA");
+  const canEditRecibido = (roleLower === "admin") && !isSanBorja && (mcNormLabel(space) === "EDITOR");
+  const canEditImpreso = canWork && !isSanBorja && (isTutor || roleLower === "admin" || mcNormLabel(mcCurrentUserName()) === mcNormLabel(impresor));
+  const isAgraria = (mcNormLabel(uni) === "AGRARIA");
+  const canEditDiagramado = canWork && !isSanBorja && (
+    (isAgraria && diaRule)
+      ? (mcNormLabel(space) === mcNormLabel(diaRule.sourceSpace))
+      : (isTutor || roleLower === "admin" || (diaRule ? (mcNormLabel(mcCurrentUserName()) === mcNormLabel(diaRule.owner) && mcNormLabel(space) === mcNormLabel(diaRule.sourceSpace)) : canEditByResponsable))
+  );
+  const roMsg = "Solo editable por el editor";
+  const roDiaMsg = "Solo editable en espacio de diagramación";
+  const roImpMsg = "Solo editable por quien imprime";
 
   // dates per program
   const pStart = pgxParseDateYMD(String(prog?.meta?.startDate||"")) || pgxParseDateYMD(String(store.timeline?.startDate||"")) || new Date();
@@ -7995,7 +8245,7 @@ ${canWork ? `<button id="mcEditBtn" class="btn ${matEditOn?'primary':'ghost'}" t
 
   // progress
   const st = mcLoadStore();
-  const pr = mcProgressRange(st, pid, cid, codes, range.first, range.last);
+  const pr = mcProgressRange(st, pid, statusCid, codes, range.first, range.last);
 
   const progBars = `
     <div class="mcBarsCompact">
@@ -8024,16 +8274,23 @@ ${canWork ? `<button id="mcEditBtn" class="btn ${matEditOn?'primary':'ghost'}" t
   for (let i=range.first-1, idx=1; i<=range.last-1; i++, idx++){
     const code = String(codes[i] || `SEM${i+1}`);
     const date = fmtDM(pgxAddDays(pStart, i*7));
-    const rec = !!mcGetFlag(st, pid, cid, code, "rec");
-    const dia = !!mcGetFlag(st, pid, cid, code, "dia");
-    const imp = !!mcGetFlag(st, pid, cid, code, "imp");
+    const rec = !!mcGetFlag(st, pid, statusCid, code, "rec");
+    const dia = !!mcGetFlag(st, pid, statusCid, code, "dia");
+    const imp = !!mcGetFlag(st, pid, statusCid, code, "imp");
 
     const wkDone = (rec && dia && imp);
     const wkPct  = Math.round(((+rec + +dia + +imp)/3)*100);
     const semClass = (wkPct>=100)?"s100":(wkPct>=67)?"s67":(wkPct>=33)?"s33":"s0";
 
-    const disCls = (canWork && matEditOn) ? "" : "mcChkReadOnly";
-    const roAttr = (canWork && matEditOn) ? "" : "data-ro='1' tabindex='-1'";
+    const editableRec = (canEditRecibido && matEditOn);
+    const editableDia = (canEditDiagramado && matEditOn);
+    const editableImp = (canEditImpreso && matEditOn);
+    const disClsRec = editableRec ? "" : "mcChkReadOnly";
+    const disClsDia = editableDia ? "" : "mcChkReadOnly";
+    const disClsImp = editableImp ? "" : "mcChkReadOnly";
+    const roRecAttr = editableRec ? "" : `data-ro='1' tabindex='-1' title='${escapeHtml(roMsg)}'`;
+    const roDiaAttr = editableDia ? "" : `data-ro='1' tabindex='-1' title='${escapeHtml(roDiaMsg)}'`;
+    const roImpAttr = editableImp ? "" : `data-ro='1' tabindex='-1' title='${escapeHtml(roImpMsg)}'`;
     rows.push(`
       <tr>
         <td class="mcIdxCol" style="font-weight:950;">${idx}</td>
@@ -8042,9 +8299,13 @@ ${canWork ? `<button id="mcEditBtn" class="btn ${matEditOn?'primary':'ghost'}" t
 
         <td class="mcPctCol"><span class="semBadge ${semClass}"><span class="semDot"></span>${wkPct}%</span></td>
 
-        <td class="mcChkCell"><input type="checkbox" class="${disCls}" ${roAttr} data-code="${escapeHtml(code)}" data-field="rec" ${rec?"checked":""}></td>
-        <td class="mcChkCell"><input type="checkbox" class="${disCls}" ${roAttr} data-code="${escapeHtml(code)}" data-field="dia" ${dia?"checked":""}></td>
-        <td class="mcChkCell"><input type="checkbox" class="${disCls}" ${roAttr} data-code="${escapeHtml(code)}" data-field="imp" ${imp?"checked":""}></td>
+        <td class="mcChkCell"><input type="checkbox" class="${disClsRec}" ${roRecAttr} data-code="${escapeHtml(code)}" data-field="rec" ${rec?"checked":""}></td>
+        <td class="mcChkCell"><input type="checkbox" class="${disClsDia}" ${roDiaAttr} data-code="${escapeHtml(code)}" data-field="dia" ${dia?"checked":""}></td>
+        <td class="mcChkCell">
+          <div style="display:flex; flex-direction:column; align-items:center; gap:4px;">
+            <input type="checkbox" class="${disClsImp}" ${roImpAttr} data-code="${escapeHtml(code)}" data-field="imp" ${imp?"checked":""}>
+          </div>
+        </td>
       </tr>
     `);
   }
@@ -8052,6 +8313,11 @@ ${canWork ? `<button id="mcEditBtn" class="btn ${matEditOn?'primary':'ghost'}" t
   body.innerHTML = `
     <div class="mrTop" style="margin:0;">
       <div class="mrKpi">${escapeHtml(String(prog.meta?.name||"PROGRAMA").toUpperCase())} · <b>${escapeHtml(String(cid||"CURSO").toUpperCase())}</b> · Inicio: <b>${escapeHtml(fmtDM(pgxAddDays(pStart,(range.first-1)*7)))}</b> · Fin: <b>${escapeHtml(fmtDM(pgxAddDays(pStart,(range.last-1)*7)))}</b></div>
+      <div style="margin-top:6px; display:flex; flex-wrap:wrap; gap:6px;">
+        <span style="display:inline-flex; align-items:center; border:1px solid var(--border); border-radius:999px; padding:4px 10px; font-weight:900; font-size:12px; color:var(--muted); background:#fff;">Recibe: PEDRO</span>
+        <span style="display:inline-flex; align-items:center; border:1px solid var(--border); border-radius:999px; padding:4px 10px; font-weight:900; font-size:12px; color:var(--muted); background:#fff;">DIAGRAMA: ${escapeHtml(diagramaLabel || "—")}</span>
+        <span style="display:inline-flex; align-items:center; border:1px solid var(--border); border-radius:999px; padding:4px 10px; font-weight:900; font-size:12px; color:var(--muted); background:#fff;">Imprime: ${escapeHtml(impresor || "—")}</span>
+      </div>
     </div>
 
     ${progBars}
@@ -8093,7 +8359,13 @@ ${canWork ? `<button id="mcEditBtn" class="btn ${matEditOn?'primary':'ghost'}" t
       const code = String(ch.getAttribute("data-code")||"");
       const field = String(ch.getAttribute("data-field")||"");
       const st2 = mcLoadStore();
-      mcSetFlag(st2, pid, cid, code, field, !!ch.checked);
+      mcSetFlag(st2, pid, statusCid, code, field, !!ch.checked);
+      if (space === "EDITOR" && field === "rec"){
+        mcSyncRecibidoFromEditor(st2, pid, cid, code, !!ch.checked);
+      }
+      if (field === "dia" && diaRule){
+        mcSyncDiagramadoByRule(st2, pid, cid, code, !!ch.checked, diaRule);
+      }
       mcSaveStore(st2);
       renderMateriales();
     });
