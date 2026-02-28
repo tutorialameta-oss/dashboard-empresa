@@ -8248,8 +8248,7 @@ ${canWork ? `<button id="mcEditBtn" class="btn ${matEditOn?'primary':'ghost'}" t
   const isTutor = (roleLower === "tutor");
   const isSanBorja = (mcNormLabel(space) === "SAN_BORJA");
   const canEditRecibido = (roleLower === "admin") && !isSanBorja && (mcNormLabel(space) === "EDITOR");
-  const isPucp = (mcNormLabel(uni) === "PUCP");
-  const canEditImpreso = (isPucp && isSanBorja) ? false : (isSanBorja ? canWork : (canWork && (isTutor || roleLower === "admin" || mcNormLabel(mcCurrentUserName()) === mcNormLabel(impresor))));
+  const canEditImpreso = isSanBorja ? canWork : (canWork && (isTutor || roleLower === "admin" || mcNormLabel(mcCurrentUserName()) === mcNormLabel(impresor)));
   const canEditDiagramado = canWork && !isSanBorja && (
     diaRule
       ? (mcNormLabel(space) === mcNormLabel(diaRule.sourceSpace))
@@ -8283,7 +8282,7 @@ ${canWork ? `<button id="mcEditBtn" class="btn ${matEditOn?'primary':'ghost'}" t
             <div style="height:10px; width:${o.v}%; background:linear-gradient(90deg,var(--accent2),var(--accent));"></div>
           </div>
           <div style="margin-top:6px; color:var(--muted); font-weight:850; font-size:12px;">
-            ${o.k==="imp" ? "Estado final del material." : "Progreso intermedio."}
+            ${o.k==="imp" ? "Estado final del material." : "Progreso inicial."}
           </div>
         </div>
       `).join("")}
