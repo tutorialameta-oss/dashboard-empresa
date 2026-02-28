@@ -8228,13 +8228,14 @@ ${canWork ? `<button id="mcEditBtn" class="btn ${matEditOn?'primary':'ghost'}" t
   const isSanBorja = (mcNormLabel(space) === "SAN_BORJA");
   const canEditRecibido = (roleLower === "admin") && !isSanBorja && (mcNormLabel(space) === "EDITOR");
   const canEditImpreso = canWork && !isSanBorja && (isTutor || roleLower === "admin" || mcNormLabel(mcCurrentUserName()) === mcNormLabel(impresor));
+  const isAgraria = (mcNormLabel(uni) === "AGRARIA");
   const canEditDiagramado = canWork && !isSanBorja && (
-    isTutor
-    || roleLower === "admin"
-    || (diaRule ? (mcNormLabel(mcCurrentUserName()) === mcNormLabel(diaRule.owner) && mcNormLabel(space) === mcNormLabel(diaRule.sourceSpace)) : canEditByResponsable)
+    (isAgraria && diaRule)
+      ? (mcNormLabel(space) === mcNormLabel(diaRule.sourceSpace))
+      : (isTutor || roleLower === "admin" || (diaRule ? (mcNormLabel(mcCurrentUserName()) === mcNormLabel(diaRule.owner) && mcNormLabel(space) === mcNormLabel(diaRule.sourceSpace)) : canEditByResponsable))
   );
   const roMsg = "Solo editable por el editor";
-  const roDiaMsg = "Solo editable por diagramación";
+  const roDiaMsg = "Solo editable en espacio de diagramación";
   const roImpMsg = "Solo editable por quien imprime";
 
   // dates per program
