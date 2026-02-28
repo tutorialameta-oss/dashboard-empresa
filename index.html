@@ -7752,13 +7752,32 @@ function mcSyncDiagramadoByRule(st, pid, cid, code, val, rule){
   }
 }
 
-function mcPrinterBySpace(space){
-  const bySpace = {
-    "LA_MOLINA": "FERNANDO",
-    "SAN_BORJA": "FERNANDO",
-    "SAN_MIGUEL": "KATI"
-  };
-  return String(bySpace[String(space||"").toUpperCase()] || "");
+const IMPRESO_CONFIG = {
+  AGRARIA: {
+    defaultPrinter: "FERNANDO",
+    exceptions: {
+      courses: ["SIMULACROS", "REFORZAMIENTO DE MATEMATICAS"],
+      bySpace: {
+        "LA_MOLINA": "FERNANDO",
+        "SAN_BORJA": "FERNANDO",
+        "SAN_MIGUEL": "KATI"
+      }
+    }
+  }
+};
+
+function mcPrinterBySpace(uni, course, space){
+  const u = mcNormLabel(uni);
+  const c = mcNormLabel(course);
+  const sid = String(space||"").toUpperCase();
+  const cfg = IMPRESO_CONFIG[u];
+  if (!cfg) return "";
+
+  const ex = cfg.exceptions || {};
+  const exSet = new Set((ex.courses || []).map(mcNormLabel));
+  if (!exSet.has(c)) return String(cfg.defaultPrinter || "");
+
+  return String((ex.bySpace || {})[sid] || cfg.defaultPrinter || "");
 }
 
 function mcNormLabel(v){
@@ -8063,7 +8082,7 @@ function renderMateriales(){
 
   const spaceButtonsHtml = availableSpaces.map(sp=>{
     const active = (sp.id === space);
-    return `<button class="btn ${active?"primary":"ghost"}" type="button" data-space="${escapeHtml(sp.id)}">${escapeHtml(sp.label)}</button>`;
+    return `<button class="btn ${active?"primary":"ghost"}" type="button" data-space="${escapeHtml(sp.id)}" style="${active?"box-shadow:0 0 0 2px rgba(185,28,28,.25); transform:translateY(-1px);":""}">${escapeHtml(sp.label)}</button>`;
   }).join("");
 
   // build UI
@@ -8194,7 +8213,7 @@ ${canWork ? `<button id="mcEditBtn" class="btn ${matEditOn?'primary':'ghost'}" t
   const cid = String(selC?.value||"");
   const statusCid = mcStatusCid(cid, space);
   const responsable = (space === "EDITOR") ? "PEDRO" : mcResponsableFor(uni, cid);
-  const impresor = mcPrinterBySpace(space);
+  const impresor = mcPrinterBySpace(uni, cid, space);
   const diaRule = mcDiagramadoRule(uni, cid);
   const canEditByResponsable = canWork && (roleLower === "admin" || mcNormLabel(mcCurrentUserName()) === mcNormLabel(responsable));
   const canEditRecibido = canWork && (mcNormLabel(space) === "EDITOR");
@@ -8284,6 +8303,7 @@ ${canWork ? `<button id="mcEditBtn" class="btn ${matEditOn?'primary':'ghost'}" t
       <div style="margin-top:6px; display:flex; flex-wrap:wrap; gap:6px;">
         <span style="display:inline-flex; align-items:center; border:1px solid var(--border); border-radius:999px; padding:4px 10px; font-weight:900; font-size:12px; color:var(--muted); background:#fff;">Responsable: ${escapeHtml(responsable || "—")}</span>
         <span style="display:inline-flex; align-items:center; border:1px solid var(--border); border-radius:999px; padding:4px 10px; font-weight:900; font-size:12px; color:var(--muted); background:#fff;">Espacio: ${escapeHtml((MC_SPACES.find(x=>x.id===space)?.label)||"EDITOR")}</span>
+        <span style="display:inline-flex; align-items:center; border:1px solid var(--border); border-radius:999px; padding:4px 10px; font-weight:900; font-size:12px; color:var(--muted); background:#fff;">Imprime: ${escapeHtml(impresor || "—")}</span>
       </div>
     </div>
 
