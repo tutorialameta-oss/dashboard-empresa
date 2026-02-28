@@ -2387,6 +2387,9 @@
     padding:5px 3px;
     border-bottom:1px solid var(--border);
   }
+  .mcTable tbody tr.mcCurrentWeekRow td{
+    background: rgba(34,197,94,0.16);
+  }
   .mcStatusCol{ width:34px; text-align:center; white-space:nowrap; }
   .mcColStatus{ width:34px; }
   .mcChkCell{ text-align:center; }
@@ -7738,6 +7741,13 @@ const DIAGRAMADO_CONFIG = {
       owner: "FERNANDO",
       sourceSpace: "LA_MOLINA",
       mirrorTo: ["SAN_MIGUEL", "SAN_BORJA"]
+    },
+    overrides: {
+      "TEXTOS": {
+        owner: "IVANA",
+        sourceSpace: "SAN_MIGUEL",
+        mirrorTo: ["LA_MOLINA", "SAN_BORJA"]
+      }
     }
   }
 };
@@ -8291,9 +8301,15 @@ ${canWork ? `<button id="mcEditBtn" class="btn ${matEditOn?'primary':'ghost'}" t
 
   const rows = [];
   const totalW = Math.max(0, (range.last - range.first + 1));
+  const today = new Date();
+  today.setHours(0,0,0,0);
   for (let i=range.first-1, idx=1; i<=range.last-1; i++, idx++){
     const code = String(codes[i] || `SEM${i+1}`);
-    const date = fmtDM(pgxAddDays(pStart, i*7));
+    const weekStart = pgxAddDays(pStart, i*7);
+    weekStart.setHours(0,0,0,0);
+    const weekEnd = pgxAddDays(weekStart, 6);
+    const isCurrentWeek = (today >= weekStart && today <= weekEnd);
+    const date = fmtDM(weekStart);
     const rec = !!mcGetFlag(st, pid, statusCid, code, "rec");
     const dia = !!mcGetFlag(st, pid, statusCid, code, "dia");
     const imp = !!mcGetFlag(st, pid, statusCid, code, "imp");
@@ -8312,7 +8328,7 @@ ${canWork ? `<button id="mcEditBtn" class="btn ${matEditOn?'primary':'ghost'}" t
     const roDiaAttr = editableDia ? "" : `data-ro='1' tabindex='-1' title='${escapeHtml(roDiaMsg)}'`;
     const roImpAttr = editableImp ? "" : `data-ro='1' tabindex='-1' title='${escapeHtml(roImpMsg)}'`;
     rows.push(`
-      <tr>
+      <tr class="${isCurrentWeek ? "mcCurrentWeekRow" : ""}">
         <td class="mcIdxCol" style="font-weight:950;">${idx}</td>
         <td class="mcDateCol">${escapeHtml(date)}</td>
         <td class="mcWeekCol" style="font-weight:950;">${escapeHtml(code)}</td>
