@@ -7691,6 +7691,24 @@ const IMPRESION_CONFIG = {
   }
 };
 
+const MC_SPACES = [
+  { id:"EDITOR", label:"EDITOR" },
+  { id:"LA_MOLINA", label:"LA MOLINA" },
+  { id:"SAN_MIGUEL", label:"SAN MIGUEL" },
+  { id:"SAN_BORJA", label:"SAN BORJA" }
+];
+const MC_SPACE_LOCALS = ["LA_MOLINA","SAN_MIGUEL","SAN_BORJA"];
+
+function mcStatusCid(cid, spaceId){
+  return `${String(cid||"")}@@${String(spaceId||"EDITOR")}`;
+}
+
+function mcSyncRecibidoFromEditor(st, pid, cid, code, val){
+  for (const sid of MC_SPACE_LOCALS){
+    mcSetFlag(st, pid, mcStatusCid(cid, sid), code, "rec", !!val);
+  }
+}
+
 function mcNormLabel(v){
   return String(v || "")
     .normalize("NFD")
@@ -7896,6 +7914,7 @@ function renderMateriales(){
   const UNI_KEY="LM_MAT_UI_UNI";
   const PROG_KEY="LM_MAT_UI_PROG";
   const COURSE_KEY="LM_MAT_UI_COURSE";
+  const SPACE_KEY="LM_MAT_UI_SPACE";
 
   const curUni = (localStorage.getItem(UNI_KEY) || "AGRARIA").toUpperCase();
   const uni = allowedUni.includes(curUni) ? curUni : "AGRARIA";
@@ -7907,6 +7926,9 @@ function renderMateriales(){
   const courses = COURSES[uni] || [];
   const savedCourse = localStorage.getItem(COURSE_KEY) || "";
   const course = courses.includes(savedCourse) ? savedCourse : (courses[0]||"");
+
+  const savedSpace = String(localStorage.getItem(SPACE_KEY) || "EDITOR").toUpperCase();
+  const space = MC_SPACES.find(x=>x.id===savedSpace) ? savedSpace : "EDITOR";
 
   // helpers
   function fmtDM(d){
@@ -7981,6 +8003,11 @@ function renderMateriales(){
     return `<button class="btn ${active?"primary":"ghost"}" type="button" data-uni="${escapeHtml(u)}" style="border-color:${c}; color:${c}; background:${bg};">${escapeHtml(u)}</button>`;
   }).join("");
 
+  const spaceButtonsHtml = MC_SPACES.map(sp=>{
+    const active = (sp.id === space);
+    return `<button class="btn ${active?"primary":"ghost"}" type="button" data-space="${escapeHtml(sp.id)}">${escapeHtml(sp.label)}</button>`;
+  }).join("");
+
   // build UI
   card.innerHTML = `
     <div class="cardtitle">CONTROL DE MATERIALES</div>
@@ -7992,6 +8019,10 @@ function renderMateriales(){
     <div class="mrTop" style="gap:10px;">
       <div class="mrSelRow" style="flex-wrap:wrap;">
         ${uniButtonsHtml}
+      </div>
+      <div class="mrSelRow" style="flex-wrap:wrap; align-items:center; gap:8px;">
+        <span style="font-weight:950; color:var(--muted);">ESPACIO</span>
+        ${spaceButtonsHtml}
       </div>
 
       <div class="mrSelRow" style="flex-wrap:wrap;">
@@ -8023,6 +8054,13 @@ ${canWork ? `<button id="mcEditBtn" class="btn ${matEditOn?'primary':'ghost'}" t
       localStorage.setItem(UNI_KEY, String(b.getAttribute("data-uni")||"AGRARIA"));
       localStorage.removeItem(PROG_KEY);
       localStorage.removeItem(COURSE_KEY);
+      renderMateriales();
+    });
+  });
+
+  card.querySelectorAll("button[data-space]").forEach(b=>{
+    b.addEventListener("click", ()=>{
+      localStorage.setItem(SPACE_KEY, String(b.getAttribute("data-space")||"EDITOR"));
       renderMateriales();
     });
   });
@@ -8096,6 +8134,7 @@ ${canWork ? `<button id="mcEditBtn" class="btn ${matEditOn?'primary':'ghost'}" t
 
   const pid = prog.id;
   const cid = String(selC?.value||"");
+  const statusCid = mcStatusCid(cid, space);
   const responsable = mcResponsableFor(uni, cid);
   const localMat = mcProgramLocal(prog);
   const impresor = mcPrinterFor(uni, cid, localMat);
@@ -8111,7 +8150,7 @@ ${canWork ? `<button id="mcEditBtn" class="btn ${matEditOn?'primary':'ghost'}" t
 
   // progress
   const st = mcLoadStore();
-  const pr = mcProgressRange(st, pid, cid, codes, range.first, range.last);
+  const pr = mcProgressRange(st, pid, statusCid, codes, range.first, range.last);
 
   const progBars = `
     <div class="mcBarsCompact">
@@ -8140,9 +8179,9 @@ ${canWork ? `<button id="mcEditBtn" class="btn ${matEditOn?'primary':'ghost'}" t
   for (let i=range.first-1, idx=1; i<=range.last-1; i++, idx++){
     const code = String(codes[i] || `SEM${i+1}`);
     const date = fmtDM(pgxAddDays(pStart, i*7));
-    const rec = !!mcGetFlag(st, pid, cid, code, "rec");
-    const dia = !!mcGetFlag(st, pid, cid, code, "dia");
-    const imp = !!mcGetFlag(st, pid, cid, code, "imp");
+    const rec = !!mcGetFlag(st, pid, statusCid, code, "rec");
+    const dia = !!mcGetFlag(st, pid, statusCid, code, "dia");
+    const imp = !!mcGetFlag(st, pid, statusCid, code, "imp");
 
     const wkDone = (rec && dia && imp);
     const wkPct  = Math.round(((+rec + +dia + +imp)/3)*100);
@@ -8177,7 +8216,10 @@ ${canWork ? `<button id="mcEditBtn" class="btn ${matEditOn?'primary':'ghost'}" t
   body.innerHTML = `
     <div class="mrTop" style="margin:0;">
       <div class="mrKpi">${escapeHtml(String(prog.meta?.name||"PROGRAMA").toUpperCase())} · <b>${escapeHtml(String(cid||"CURSO").toUpperCase())}</b> · Inicio: <b>${escapeHtml(fmtDM(pgxAddDays(pStart,(range.first-1)*7)))}</b> · Fin: <b>${escapeHtml(fmtDM(pgxAddDays(pStart,(range.last-1)*7)))}</b></div>
-      <div style="margin-top:6px;"><span style="display:inline-flex; align-items:center; border:1px solid var(--border); border-radius:999px; padding:4px 10px; font-weight:900; font-size:12px; color:var(--muted); background:#fff;">Responsable: ${escapeHtml(responsable || "—")}</span></div>
+      <div style="margin-top:6px; display:flex; flex-wrap:wrap; gap:6px;">
+        <span style="display:inline-flex; align-items:center; border:1px solid var(--border); border-radius:999px; padding:4px 10px; font-weight:900; font-size:12px; color:var(--muted); background:#fff;">Responsable: ${escapeHtml(responsable || "—")}</span>
+        <span style="display:inline-flex; align-items:center; border:1px solid var(--border); border-radius:999px; padding:4px 10px; font-weight:900; font-size:12px; color:var(--muted); background:#fff;">Espacio: ${escapeHtml((MC_SPACES.find(x=>x.id===space)?.label)||"EDITOR")}</span>
+      </div>
     </div>
 
     ${progBars}
@@ -8219,7 +8261,10 @@ ${canWork ? `<button id="mcEditBtn" class="btn ${matEditOn?'primary':'ghost'}" t
       const code = String(ch.getAttribute("data-code")||"");
       const field = String(ch.getAttribute("data-field")||"");
       const st2 = mcLoadStore();
-      mcSetFlag(st2, pid, cid, code, field, !!ch.checked);
+      mcSetFlag(st2, pid, statusCid, code, field, !!ch.checked);
+      if (space === "EDITOR" && field === "rec"){
+        mcSyncRecibidoFromEditor(st2, pid, cid, code, !!ch.checked);
+      }
       mcSaveStore(st2);
       renderMateriales();
     });
