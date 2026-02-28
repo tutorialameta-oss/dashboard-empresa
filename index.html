@@ -7927,8 +7927,14 @@ function renderMateriales(){
   const savedCourse = localStorage.getItem(COURSE_KEY) || "";
   const course = courses.includes(savedCourse) ? savedCourse : (courses[0]||"");
 
-  const savedSpace = String(localStorage.getItem(SPACE_KEY) || "EDITOR").toUpperCase();
-  const space = MC_SPACES.find(x=>x.id===savedSpace) ? savedSpace : "EDITOR";
+  const availableSpaces = (roleLower === "admin")
+    ? MC_SPACES
+    : MC_SPACES.filter(x=>x.id !== "EDITOR");
+  const defaultSpace = (roleLower === "admin") ? "EDITOR" : "LA_MOLINA";
+  const savedSpace = String(localStorage.getItem(SPACE_KEY) || defaultSpace).toUpperCase();
+  const space = availableSpaces.find(x=>x.id===savedSpace)
+    ? savedSpace
+    : (availableSpaces[0]?.id || defaultSpace);
 
   // helpers
   function fmtDM(d){
@@ -8003,7 +8009,7 @@ function renderMateriales(){
     return `<button class="btn ${active?"primary":"ghost"}" type="button" data-uni="${escapeHtml(u)}" style="border-color:${c}; color:${c}; background:${bg};">${escapeHtml(u)}</button>`;
   }).join("");
 
-  const spaceButtonsHtml = MC_SPACES.map(sp=>{
+  const spaceButtonsHtml = availableSpaces.map(sp=>{
     const active = (sp.id === space);
     return `<button class="btn ${active?"primary":"ghost"}" type="button" data-space="${escapeHtml(sp.id)}">${escapeHtml(sp.label)}</button>`;
   }).join("");
@@ -8135,7 +8141,7 @@ ${canWork ? `<button id="mcEditBtn" class="btn ${matEditOn?'primary':'ghost'}" t
   const pid = prog.id;
   const cid = String(selC?.value||"");
   const statusCid = mcStatusCid(cid, space);
-  const responsable = mcResponsableFor(uni, cid);
+  const responsable = (space === "EDITOR") ? "PEDRO" : mcResponsableFor(uni, cid);
   const localMat = mcProgramLocal(prog);
   const impresor = mcPrinterFor(uni, cid, localMat);
   const canEditByResponsable = canWork && (roleLower === "admin" || mcNormLabel(mcCurrentUserName()) === mcNormLabel(responsable));
@@ -8206,7 +8212,6 @@ ${canWork ? `<button id="mcEditBtn" class="btn ${matEditOn?'primary':'ghost'}" t
         <td class="mcChkCell">
           <div style="display:flex; flex-direction:column; align-items:center; gap:4px;">
             <input type="checkbox" class="${disClsImp}" ${roImpAttr} data-code="${escapeHtml(code)}" data-field="imp" ${imp?"checked":""}>
-            <span style="display:inline-flex; max-width:94px; justify-content:center; border:1px solid var(--border); border-radius:999px; padding:2px 7px; font-size:10px; line-height:1; font-weight:900; color:var(--muted); background:#fff;">Imprime: ${escapeHtml(mcPrettyName(impresor))}</span>
           </div>
         </td>
       </tr>
