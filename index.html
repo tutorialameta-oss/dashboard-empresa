@@ -7780,17 +7780,6 @@ function mcSyncDiagramadoByRule(st, pid, cid, code, val, rule){
   }
 }
 
-function mcSyncImpresoAgrariaFromLM(st, pid, cid, code, val, uni, course, space){
-  if (mcNormLabel(uni) !== "AGRARIA") return;
-  if (String(space||"").toUpperCase() !== "LA_MOLINA") return;
-
-  const c = mcNormLabel(course);
-  const noSyncCourses = new Set(["SIMULACROS", "REFORZAMIENTO DE MATEMATICAS"]);
-  if (noSyncCourses.has(c)) return;
-
-  mcSetFlag(st, pid, mcStatusCid(cid, "SAN_MIGUEL"), code, "imp", !!val);
-}
-
 const IMPRESO_CONFIG = {
   AGRARIA: {
     defaultPrinter: "FERNANDO",
@@ -8396,9 +8385,6 @@ ${canWork ? `<button id="mcEditBtn" class="btn ${matEditOn?'primary':'ghost'}" t
       }
       if (field === "dia" && diaRule){
         mcSyncDiagramadoByRule(st2, pid, cid, code, !!ch.checked, diaRule);
-      }
-      if (field === "imp"){
-        mcSyncImpresoAgrariaFromLM(st2, pid, cid, code, !!ch.checked, uni, cid, space);
       }
       mcSaveStore(st2);
       renderMateriales();
