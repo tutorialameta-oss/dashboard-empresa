@@ -7550,15 +7550,18 @@ function ensureMaterialesLayout(){
 
 // --- Store (curso x semana x estado)
 const MC_STORE_KEY = "LM_MAT_CURSOS_V1";
+let mcLastLocalWriteAt = 0;
 
 function mcLoadStore(){
   try{ return JSON.parse(localStorage.getItem(MC_STORE_KEY) || '{"links":{},"status":{}}'); }
   catch(e){ return {links:{}, status:{}}; }
 }
 function mcSaveStore(st){
-  try{ localStorage.setItem(MC_STORE_KEY, JSON.stringify(st||{links:{},status:{}})); }catch(e){}
+  const payload = st||{links:{},status:{}};
+  try{ localStorage.setItem(MC_STORE_KEY, JSON.stringify(payload)); }catch(e){}
+  mcLastLocalWriteAt = Date.now();
   // push a store compartido
-  mcSyncPush_(st||{links:{},status:{}});
+  mcSyncPush_(payload);
 }
 
 
@@ -7566,11 +7569,22 @@ function mcSaveStore(st){
 async function mcSyncPullOnce_(){
   const remote = await lmRemoteGet_(LM_MODULE_MATERIALES);
   if (!remote || typeof remote !== "object") return;
+
+  // Evita sobrescribir interacción local reciente (latencia de sincronización)
+  if ((Date.now() - mcLastLocalWriteAt) < 3500) return;
+
+  let changed = false;
   try{
-    localStorage.setItem(MC_STORE_KEY, JSON.stringify(remote));
+    const localRaw = localStorage.getItem(MC_STORE_KEY) || '{"links":{},"status":{}}';
+    const remoteRaw = JSON.stringify(remote);
+    if (localRaw !== remoteRaw){
+      localStorage.setItem(MC_STORE_KEY, remoteRaw);
+      changed = true;
+    }
   }catch(_){}
-  // si está abierta la vista materiales, repinta
-  if (typeof state !== "undefined" && state && state.view === "materiales" && typeof renderMateriales === "function"){
+
+  // si está abierta la vista materiales, repinta solo si cambió
+  if (changed && typeof state !== "undefined" && state && state.view === "materiales" && typeof renderMateriales === "function"){
     renderMateriales();
   }
 }
@@ -7774,6 +7788,10 @@ const IMPRESO_CONFIG = {
 };
 
 function mcPrinterBySpace(uni, course, space){
+  const sid = String(space||"").toUpperCase();
+  const c = mcNormLabel(course);
+  const smExceptions = new Set(["SIMULACROS", "REFORZAMIENTO DE MATEMATICAS"]);
+  if (sid === "SAN_MIGUEL" && smExceptions.has(c)) return "KATI";
   return "FERNANDO";
 }
 
