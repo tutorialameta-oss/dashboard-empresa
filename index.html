@@ -7699,6 +7699,28 @@ const MC_SPACES = [
 ];
 const MC_SPACE_LOCALS = ["LA_MOLINA","SAN_MIGUEL","SAN_BORJA"];
 
+const DIAGRAMADO_CONFIG = {
+  AGRARIA: {
+    default: {
+      owner: "IVANA",
+      sourceSpace: "SAN_MIGUEL",
+      mirrorTo: ["LA_MOLINA", "SAN_BORJA"]
+    },
+    overrides: {
+      "SIMULACROS": {
+        owner: "FERNANDO",
+        sourceSpace: "LA_MOLINA",
+        mirrorTo: ["SAN_MIGUEL", "SAN_BORJA"]
+      },
+      "REFORZAMIENTO DE MATEMATICAS": {
+        owner: "FERNANDO",
+        sourceSpace: "LA_MOLINA",
+        mirrorTo: ["SAN_MIGUEL", "SAN_BORJA"]
+      }
+    }
+  }
+};
+
 function mcStatusCid(cid, spaceId){
   return `${String(cid||"")}@@${String(spaceId||"EDITOR")}`;
 }
@@ -7706,6 +7728,27 @@ function mcStatusCid(cid, spaceId){
 function mcSyncRecibidoFromEditor(st, pid, cid, code, val){
   for (const sid of MC_SPACE_LOCALS){
     mcSetFlag(st, pid, mcStatusCid(cid, sid), code, "rec", !!val);
+  }
+}
+
+function mcDiagramadoRule(uni, course){
+  const u = mcNormLabel(uni);
+  const c = mcNormLabel(course);
+  const cfg = DIAGRAMADO_CONFIG[u];
+  if (!cfg) return null;
+
+  for (const [rawCourse, rule] of Object.entries(cfg.overrides || {})){
+    if (mcNormLabel(rawCourse) === c) return rule;
+  }
+  return cfg.default || null;
+}
+
+function mcSyncDiagramadoByRule(st, pid, cid, code, val, rule){
+  if (!rule) return;
+  const targets = [rule.sourceSpace, ...(Array.isArray(rule.mirrorTo) ? rule.mirrorTo : [])];
+  const uniq = Array.from(new Set(targets.map(x=>String(x||"").toUpperCase()).filter(Boolean)));
+  for (const sid of uniq){
+    mcSetFlag(st, pid, mcStatusCid(cid, sid), code, "dia", !!val);
   }
 }
 
@@ -8144,9 +8187,14 @@ ${canWork ? `<button id="mcEditBtn" class="btn ${matEditOn?'primary':'ghost'}" t
   const responsable = (space === "EDITOR") ? "PEDRO" : mcResponsableFor(uni, cid);
   const localMat = mcProgramLocal(prog);
   const impresor = mcPrinterFor(uni, cid, localMat);
+  const diaRule = mcDiagramadoRule(uni, cid);
   const canEditByResponsable = canWork && (roleLower === "admin" || mcNormLabel(mcCurrentUserName()) === mcNormLabel(responsable));
   const canEditImpreso = canWork && (roleLower === "admin" || mcNormLabel(mcCurrentUserName()) === mcNormLabel(impresor));
+  const canEditDiagramado = diaRule
+    ? (canWork && (roleLower === "admin" || (mcNormLabel(mcCurrentUserName()) === mcNormLabel(diaRule.owner) && mcNormLabel(space) === mcNormLabel(diaRule.sourceSpace))))
+    : canEditByResponsable;
   const roMsg = "Solo editable por el responsable";
+  const roDiaMsg = "Solo editable por diagramación";
   const roImpMsg = "Solo editable por quien imprime";
 
   // dates per program
@@ -8193,11 +8241,14 @@ ${canWork ? `<button id="mcEditBtn" class="btn ${matEditOn?'primary':'ghost'}" t
     const wkPct  = Math.round(((+rec + +dia + +imp)/3)*100);
     const semClass = (wkPct>=100)?"s100":(wkPct>=67)?"s67":(wkPct>=33)?"s33":"s0";
 
-    const editableRow = (canEditByResponsable && matEditOn);
+    const editableRec = (canEditByResponsable && matEditOn);
+    const editableDia = (canEditDiagramado && matEditOn);
     const editableImp = (canEditImpreso && matEditOn);
-    const disCls = editableRow ? "" : "mcChkReadOnly";
+    const disClsRec = editableRec ? "" : "mcChkReadOnly";
+    const disClsDia = editableDia ? "" : "mcChkReadOnly";
     const disClsImp = editableImp ? "" : "mcChkReadOnly";
-    const roAttr = editableRow ? "" : `data-ro='1' tabindex='-1' title='${escapeHtml(roMsg)}'`;
+    const roRecAttr = editableRec ? "" : `data-ro='1' tabindex='-1' title='${escapeHtml(roMsg)}'`;
+    const roDiaAttr = editableDia ? "" : `data-ro='1' tabindex='-1' title='${escapeHtml(roDiaMsg)}'`;
     const roImpAttr = editableImp ? "" : `data-ro='1' tabindex='-1' title='${escapeHtml(roImpMsg)}'`;
     rows.push(`
       <tr>
@@ -8207,8 +8258,8 @@ ${canWork ? `<button id="mcEditBtn" class="btn ${matEditOn?'primary':'ghost'}" t
 
         <td class="mcPctCol"><span class="semBadge ${semClass}"><span class="semDot"></span>${wkPct}%</span></td>
 
-        <td class="mcChkCell"><input type="checkbox" class="${disCls}" ${roAttr} data-code="${escapeHtml(code)}" data-field="rec" ${rec?"checked":""}></td>
-        <td class="mcChkCell"><input type="checkbox" class="${disCls}" ${roAttr} data-code="${escapeHtml(code)}" data-field="dia" ${dia?"checked":""}></td>
+        <td class="mcChkCell"><input type="checkbox" class="${disClsRec}" ${roRecAttr} data-code="${escapeHtml(code)}" data-field="rec" ${rec?"checked":""}></td>
+        <td class="mcChkCell"><input type="checkbox" class="${disClsDia}" ${roDiaAttr} data-code="${escapeHtml(code)}" data-field="dia" ${dia?"checked":""}></td>
         <td class="mcChkCell">
           <div style="display:flex; flex-direction:column; align-items:center; gap:4px;">
             <input type="checkbox" class="${disClsImp}" ${roImpAttr} data-code="${escapeHtml(code)}" data-field="imp" ${imp?"checked":""}>
@@ -8269,6 +8320,9 @@ ${canWork ? `<button id="mcEditBtn" class="btn ${matEditOn?'primary':'ghost'}" t
       mcSetFlag(st2, pid, statusCid, code, field, !!ch.checked);
       if (space === "EDITOR" && field === "rec"){
         mcSyncRecibidoFromEditor(st2, pid, cid, code, !!ch.checked);
+      }
+      if (field === "dia" && diaRule){
+        mcSyncDiagramadoByRule(st2, pid, cid, code, !!ch.checked, diaRule);
       }
       mcSaveStore(st2);
       renderMateriales();
