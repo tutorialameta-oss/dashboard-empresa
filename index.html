@@ -6045,19 +6045,31 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
     }
     const cambiosUnique = uniq(baseCam.map(r=>low(r.nombre))).filter(Boolean).length;
 
+    // Para CONTROL DE SEDES por salón, usar filas reales (sin dedupe por nombre)
+    // para que el conteo coincida con la lista de cada salón.
+    let baseMatBySalon = state.rawRows.filter(r => r.estado==="ACTIVO" || r.estado==="RETIRO");
+    if (fLocal!=="__ALL__") baseMatBySalon = baseMatBySalon.filter(r=>r.local===fLocal);
+    if (fMod!=="__ALL__") baseMatBySalon = baseMatBySalon.filter(r=>r.modalidad===fMod);
+    if (q){
+      baseMatBySalon = baseMatBySalon.filter(r=>{
+        const blob = low([r.nombre, r.local, r.ciclo, r.salon, r.modalidad, r.estado].join(" | "));
+        return blob.includes(q);
+      });
+    }
+
     document.getElementById("lk_total").textContent = total.toLocaleString("es-PE");
     document.getElementById("lk_act").textContent = act.toLocaleString("es-PE");
     document.getElementById("lk_ret").textContent = ret.toLocaleString("es-PE");
     document.getElementById("lk_cam").textContent = cambiosUnique.toLocaleString("es-PE");
 
-    const activosPorSalon = salonesLocal.map(s => baseMat.filter(r=>r.salon===s && r.estado==="ACTIVO").length);
+    const activosPorSalon = salonesLocal.map(s => baseMatBySalon.filter(r=>r.salon===s && r.estado==="ACTIVO").length);
     const activosColors = salonesLocal.map(s=>{
       const conf = SALONES.find(x => x.salon===s && (fLocal==="__ALL__" ? true : x.local===fLocal));
       const uni = uniDisplayForControlSedes(s, conf?.ciclo || "");
       return UNI_COLORS[uni] || UNI_COLORS["AGRARIA"];
     });
 
-    const retirosPorSalon = salonesLocal.map(s => baseMat.filter(r=>r.salon===s && r.estado==="RETIRO").length);
+    const retirosPorSalon = salonesLocal.map(s => baseMatBySalon.filter(r=>r.salon===s && r.estado==="RETIRO").length);
     const retirosColors = salonesLocal.map(_ => "#dc2626");
 
     setChartData(state.ch_loc_activos_salon, salonesLocal, activosPorSalon, activosColors);
@@ -6065,7 +6077,7 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
 
     const tbody = document.getElementById("loc_table_salon");
     tbody.innerHTML = salonesLocal.map(s=>{
-      const rs = baseMat.filter(r=>r.salon===s);
+      const rs = baseMatBySalon.filter(r=>r.salon===s);
       const a = rs.filter(r=>r.estado==="ACTIVO").length;
       const r = rs.filter(r=>r.estado==="RETIRO").length;
       const t = a + r;
