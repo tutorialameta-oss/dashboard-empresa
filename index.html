@@ -5063,10 +5063,11 @@ const tw = pgxTotalWeeks();
 
   function normalizeEstado(x){
     const s = low(x);
-    if (s.includes("reti") || s.includes("retir")) return "RETIRO";
-    if (s.includes("cambi")) return "CAMBIO";
-    if (s.includes("activ")) return "ACTIVO";
-    return "CAMBIO";
+    if (!s) return "ACTIVO";
+    if (s.includes("reti") || s.includes("retir") || s.includes("baja")) return "RETIRO";
+    if (s.includes("cambi") || s.includes("traslad")) return "CAMBIO";
+    if (s.includes("activ") || s.includes("matric") || s.includes("inscrit") || s.includes("regular")) return "ACTIVO";
+    return "ACTIVO";
   }
 
   function normalizeModalidad(x, localFallback){
@@ -11122,6 +11123,7 @@ if (state.view==="impresiones") renderImpresiones();
 
     // 1) Detectar la FILA real de encabezados (evitar falsos positivos)
     const NAME_KEYS = [HEAD.NOMBRES_A, HEAD.NOMBRES_B, HEAD.NOMBRES_C, "NOMBRES", "APELLIDOS"];
+    const STATUS_KEYS = ["ESTADO", "SITUACION", "SITUACIÓN", "CONDICION", "CONDICIÓN", "STATUS"];
     let bestIdx = -1;
     let bestScore = -1;
     let bestHeader = null;
@@ -11132,13 +11134,14 @@ if (state.view==="impresiones") renderImpresiones();
       const keysAll = cells.map(headKey);
       const keys = keysAll.filter(Boolean);
 
-      // Debe tener alguna columna de nombre + ESTADO
+      // Debe tener alguna columna de nombre + columna equivalente a estado
       if (!hasAny(keys, NAME_KEYS)) continue;
-      if (!keys.includes("ESTADO")) continue;
+      if (!hasAny(keys, STATUS_KEYS)) continue;
 
       let score = 0;
       if (hasAny(keys, [HEAD.NOMBRES_A, HEAD.NOMBRES_B, HEAD.NOMBRES_C, "NOMBRES"])) score += 5;
       if (keys.includes("APELLIDOS")) score += 2;
+      if (hasAny(keys, STATUS_KEYS)) score += 3;
       if (keys.includes("MODALIDAD")) score += 3;
       if (keys.includes("DNI")) score += 2;
       if (keys.includes("CORREO")) score += 2;
@@ -11228,7 +11231,7 @@ if (state.view==="impresiones") renderImpresiones();
 
     // Modalidad / Estado
     const iMod = pickFirst(["MODALIDAD"]);
-    const iEst = pickFirst(["ESTADO"]);
+    const iEst = pickFirst(["ESTADO", "SITUACIÓN", "SITUACION", "CONDICIÓN", "CONDICION", "STATUS"]);
 
     // Apoderado
     let iNombreApo = pickFirst(["PADRE O APODERADO","PADRE/APODERADO","APODERADO","NOMBRE DEL APODERADO"]);
