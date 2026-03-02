@@ -11158,7 +11158,14 @@ if (state.view==="impresiones") renderImpresiones();
     const iDniAl    = (dniIdxs.length ? dniIdxs[0] : -1);
     const iCelAl    = (celIdxs.length ? celIdxs[0] : -1);
 
-    const iCorreoApo = (correoIdxs.length>1) ? correoIdxs[correoIdxs.length-1] : pickFirst(["CORREO APODERADO","CORREO DEL APODERADO"]);
+    const iCorreoApo = (correoIdxs.length>1)
+      ? correoIdxs[correoIdxs.length-1]
+      : pickFirst([
+          "CORREO APODERADO",
+          "CORREO DEL APODERADO",
+          "CORREO PADRE O APODERADO",
+          "CORREO DEL PADRE O APODERADO"
+        ]);
     const iDniApo2   = (dniIdxs.length>1) ? dniIdxs[dniIdxs.length-1] : pickFirst(["DNI APODERADO","DNI DEL APODERADO"]);
     const iCelApoDup = (celIdxs.length>1) ? celIdxs[celIdxs.length-1] : -1;
 
@@ -11192,7 +11199,14 @@ if (state.view==="impresiones") renderImpresiones();
     const iEst = pickFirst(["ESTADO"]);
 
     // Apoderado
-    let iNombreApo = pickFirst(["PADRE O APODERADO","PADRE/APODERADO","APODERADO","NOMBRE DEL APODERADO"]);
+    let iNombreApo = pickFirst([
+      "PADRE O APODERADO",
+      "PADRE/APODERADO",
+      "APODERADO",
+      "NOMBRE DEL APODERADO",
+      "NOMBRES Y APELLIDOS DEL APODERADO",
+      "NOMBRE Y APELLIDO DEL APODERADO"
+    ]);
     if (iNombreApo < 0){
       // fallback legacy: si hay varios "NOMBRE COMPLETO", el último suele ser apoderado
       const nc = idxs("NOMBRE COMPLETO");
@@ -11204,8 +11218,16 @@ if (state.view==="impresiones") renderImpresiones();
     if (iCelApo < 0){
       const cels = idxs("CEL");
       if (cels.length) iCelApo = cels[cels.length-1];
-      else iCelApo = pickFirst(["CEL APODERADO","CELULAR APODERADO"]);
+      else iCelApo = pickFirst([
+        "CEL APODERADO",
+        "CELULAR APODERADO",
+        "CEL PADRE O APODERADO",
+        "CELULAR PADRE O APODERADO"
+      ]);
     }
+
+    const usuarioIdxs = idxs("USUARIO");
+    const iUsuarioApo = (usuarioIdxs.length>1) ? usuarioIdxs[usuarioIdxs.length-1] : -1;
 
     const get = (cells, idx)=> (idx>=0 ? norm(cells[idx]||"") : "");
 
@@ -11293,7 +11315,7 @@ const edad = get(cells, iEdad);
       const nombre_apo = get(cells, iNombreApo);
       const cel_apo    = get(cells, iCelApo);
       const dni_apo    = get(cells, iDniApo2);
-      const correo_apo = get(cells, iCorreoApo);
+      const correo_apo = get(cells, iCorreoApo) || get(cells, iUsuarioApo);
 
       out.push({
         // claves generales
