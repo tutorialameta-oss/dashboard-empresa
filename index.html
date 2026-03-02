@@ -2891,8 +2891,20 @@ if (btnSil) btnSil.style.display = "";
   }
 
 const SALONES = [
-    { local:"LA MOLINA", ciclo:"AGRARIA",  salon:"AGRARIA LM 1", gid:818929525 },
-    { local:"LA MOLINA", ciclo:"AGRARIA",  salon:"AGRARIA LM 2", gid:1323349050 },
+    {
+      local:"LA MOLINA",
+      ciclo:"AGRARIA",
+      salon:"AGRARIA LM 1",
+      gid:818929525,
+      sourceUrl:"https://docs.google.com/spreadsheets/d/1DaCwdvXjHWK5u24aObF9YFBaO2M65_ANj2XOgc2hJxg/edit?usp=drive_link"
+    },
+    {
+      local:"LA MOLINA",
+      ciclo:"AGRARIA",
+      salon:"AGRARIA LM 2",
+      gid:1323349050,
+      sourceUrl:"https://docs.google.com/spreadsheets/d/1FcnFfoCuukv7_juMSUiYFzEm644WaZ5QCOcpukRtMYg/edit?usp=drive_link"
+    },
     { local:"LA MOLINA", ciclo:"AGRARIA",  salon:"AGRARIA ESCOLAR", gid:938671284 },
     { local:"LA MOLINA", ciclo:"PUCP",     salon:"PUCP LM",     gid:1037962332 },
     { local:"LA MOLINA", ciclo:"U.LIMA",   salon:"U.LIMA LM",   gid:877886853 },
@@ -4988,6 +5000,19 @@ const tw = pgxTotalWeeks();
 
   function csvUrl(gid){
     return `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/export?format=csv&gid=${gid}`;
+  }
+
+  function csvUrlFromSource(salon){
+    const source = String(salon?.sourceUrl || "").trim();
+    if (!source) return csvUrl(salon.gid);
+
+    const idMatch = source.match(/\/d\/([^/]+)/i);
+    const sheetId = idMatch ? idMatch[1] : "";
+    if (!sheetId) return csvUrl(salon.gid);
+
+    const gidMatch = source.match(/[?&#]gid=(\d+)/i);
+    const gid = gidMatch ? gidMatch[1] : "0";
+    return `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&gid=${gid}`;
   }
 
   function parseCSVLine(line){
@@ -11063,7 +11088,9 @@ if (state.view==="impresiones") renderImpresiones();
 
   // ===================== LOAD DATA MATRÍCULA =====================
     async function loadOneSalon(salon){
-    const url = csvUrl(salon.gid) + "&v=" + Date.now();
+    const baseCsvUrl = csvUrlFromSource(salon);
+    const joiner = baseCsvUrl.includes("?") ? "&" : "?";
+    const url = baseCsvUrl + joiner + "v=" + Date.now();
     const res = await fetch(url, { cache:"no-store" });
     if (!res.ok) throw new Error(`HTTP ${res.status} (${salon.local} / ${salon.ciclo} / ${salon.salon})`);
 
