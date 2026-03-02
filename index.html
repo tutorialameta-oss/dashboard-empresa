@@ -11134,14 +11134,16 @@ if (state.view==="impresiones") renderImpresiones();
       const keysAll = cells.map(headKey);
       const keys = keysAll.filter(Boolean);
 
-      // Debe tener alguna columna de nombre + estado (con variantes)
+      // Debe tener alguna columna de nombre + (estado o columnas de identidad)
       if (!hasAny(keys, NAME_KEYS)) continue;
-      if (!hasAny(keys, STATUS_KEYS)) continue;
+      const hasEstadoCol = hasAny(keys, STATUS_KEYS);
+      const hasIdentityCols = keys.includes("DNI") || keys.includes("CORREO") || keys.includes("USUARIO") || keys.includes("CELULAR");
+      if (!hasEstadoCol && !hasIdentityCols) continue;
 
       let score = 0;
       if (hasAny(keys, [HEAD.NOMBRES_A, HEAD.NOMBRES_B, HEAD.NOMBRES_C, "NOMBRES"])) score += 5;
       if (keys.includes("APELLIDOS")) score += 2;
-      if (hasAny(keys, STATUS_KEYS)) score += 3;
+      if (hasEstadoCol) score += 3;
       if (keys.includes("MODALIDAD")) score += 3;
       if (keys.includes("DNI")) score += 2;
       if (keys.includes("CORREO")) score += 2;
@@ -11292,7 +11294,8 @@ if (state.view==="impresiones") renderImpresiones();
       if (!nombre) continue;
 
       const modalidad = normalizeModalidad(get(cells, iMod), salon.local);
-      const estado = normalizeEstado(get(cells, iEst));
+      const estadoRaw = get(cells, iEst);
+      const estado = normalizeEstado(estadoRaw || "ACTIVO");
 
       // Filtro anti-basura: solo filas con estado reconocido o con identidad (DNI/correo/usuario)
       const correo_al  = get(cells, iCorreoAl);
