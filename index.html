@@ -2891,8 +2891,20 @@ if (btnSil) btnSil.style.display = "";
   }
 
 const SALONES = [
-    { local:"LA MOLINA", ciclo:"AGRARIA",  salon:"AGRARIA LM 1", gid:818929525 },
-    { local:"LA MOLINA", ciclo:"AGRARIA",  salon:"AGRARIA LM 2", gid:1323349050 },
+    {
+      local:"LA MOLINA",
+      ciclo:"AGRARIA",
+      salon:"AGRARIA LM 1",
+      gid:818929525,
+      sourceUrl:"https://docs.google.com/spreadsheets/d/1DaCwdvXjHWK5u24aObF9YFBaO2M65_ANj2XOgc2hJxg/edit?usp=drive_link"
+    },
+    {
+      local:"LA MOLINA",
+      ciclo:"AGRARIA",
+      salon:"AGRARIA LM 2",
+      gid:1323349050,
+      sourceUrl:"https://docs.google.com/spreadsheets/d/1FcnFfoCuukv7_juMSUiYFzEm644WaZ5QCOcpukRtMYg/edit?usp=drive_link"
+    },
     { local:"LA MOLINA", ciclo:"AGRARIA",  salon:"AGRARIA ESCOLAR", gid:938671284 },
     { local:"LA MOLINA", ciclo:"PUCP",     salon:"PUCP LM",     gid:1037962332 },
     { local:"LA MOLINA", ciclo:"U.LIMA",   salon:"U.LIMA LM",   gid:877886853 },
@@ -4990,6 +5002,19 @@ const tw = pgxTotalWeeks();
     return `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/export?format=csv&gid=${gid}`;
   }
 
+  function csvUrlFromSource(salon){
+    const source = String(salon?.sourceUrl || "").trim();
+    if (!source) return csvUrl(salon.gid);
+
+    const idMatch = source.match(/\/d\/([^/]+)/i);
+    const sheetId = idMatch ? idMatch[1] : "";
+    if (!sheetId) return csvUrl(salon.gid);
+
+    const gidMatch = source.match(/[?&#]gid=(\d+)/i);
+    const gid = gidMatch ? gidMatch[1] : "0";
+    return `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&gid=${gid}`;
+  }
+
   function parseCSVLine(line){
     const out = [];
     let cur = "", inQ = false;
@@ -5038,10 +5063,11 @@ const tw = pgxTotalWeeks();
 
   function normalizeEstado(x){
     const s = low(x);
-    if (s.includes("reti") || s.includes("retir")) return "RETIRO";
-    if (s.includes("cambi")) return "CAMBIO";
-    if (s.includes("activ")) return "ACTIVO";
-    return "CAMBIO";
+    if (!s) return "ACTIVO";
+    if (s.includes("reti") || s.includes("retir") || s.includes("baja")) return "RETIRO";
+    if (s.includes("cambi") || s.includes("traslad")) return "CAMBIO";
+    if (s.includes("activ") || s.includes("matric") || s.includes("inscrit") || s.includes("regular")) return "ACTIVO";
+    return "ACTIVO";
   }
 
   function normalizeModalidad(x, localFallback){
@@ -6020,19 +6046,31 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
     }
     const cambiosUnique = uniq(baseCam.map(r=>low(r.nombre))).filter(Boolean).length;
 
+    // Para CONTROL DE SEDES por salón, usar filas reales (sin dedupe por nombre)
+    // para que el conteo coincida con la lista de cada salón.
+    let baseMatBySalon = state.rawRows.filter(r => r.estado==="ACTIVO" || r.estado==="RETIRO");
+    if (fLocal!=="__ALL__") baseMatBySalon = baseMatBySalon.filter(r=>r.local===fLocal);
+    if (fMod!=="__ALL__") baseMatBySalon = baseMatBySalon.filter(r=>r.modalidad===fMod);
+    if (q){
+      baseMatBySalon = baseMatBySalon.filter(r=>{
+        const blob = low([r.nombre, r.local, r.ciclo, r.salon, r.modalidad, r.estado].join(" | "));
+        return blob.includes(q);
+      });
+    }
+
     document.getElementById("lk_total").textContent = total.toLocaleString("es-PE");
     document.getElementById("lk_act").textContent = act.toLocaleString("es-PE");
     document.getElementById("lk_ret").textContent = ret.toLocaleString("es-PE");
     document.getElementById("lk_cam").textContent = cambiosUnique.toLocaleString("es-PE");
 
-    const activosPorSalon = salonesLocal.map(s => baseMat.filter(r=>r.salon===s && r.estado==="ACTIVO").length);
+    const activosPorSalon = salonesLocal.map(s => baseMatBySalon.filter(r=>r.salon===s && r.estado==="ACTIVO").length);
     const activosColors = salonesLocal.map(s=>{
       const conf = SALONES.find(x => x.salon===s && (fLocal==="__ALL__" ? true : x.local===fLocal));
       const uni = uniDisplayForControlSedes(s, conf?.ciclo || "");
       return UNI_COLORS[uni] || UNI_COLORS["AGRARIA"];
     });
 
-    const retirosPorSalon = salonesLocal.map(s => baseMat.filter(r=>r.salon===s && r.estado==="RETIRO").length);
+    const retirosPorSalon = salonesLocal.map(s => baseMatBySalon.filter(r=>r.salon===s && r.estado==="RETIRO").length);
     const retirosColors = salonesLocal.map(_ => "#dc2626");
 
     setChartData(state.ch_loc_activos_salon, salonesLocal, activosPorSalon, activosColors);
@@ -6040,7 +6078,7 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
 
     const tbody = document.getElementById("loc_table_salon");
     tbody.innerHTML = salonesLocal.map(s=>{
-      const rs = baseMat.filter(r=>r.salon===s);
+      const rs = baseMatBySalon.filter(r=>r.salon===s);
       const a = rs.filter(r=>r.estado==="ACTIVO").length;
       const r = rs.filter(r=>r.estado==="RETIRO").length;
       const t = a + r;
@@ -11063,7 +11101,9 @@ if (state.view==="impresiones") renderImpresiones();
 
   // ===================== LOAD DATA MATRÍCULA =====================
     async function loadOneSalon(salon){
-    const url = csvUrl(salon.gid) + "&v=" + Date.now();
+    const baseCsvUrl = csvUrlFromSource(salon);
+    const joiner = baseCsvUrl.includes("?") ? "&" : "?";
+    const url = baseCsvUrl + joiner + "v=" + Date.now();
     const res = await fetch(url, { cache:"no-store" });
     if (!res.ok) throw new Error(`HTTP ${res.status} (${salon.local} / ${salon.ciclo} / ${salon.salon})`);
 
