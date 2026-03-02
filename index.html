@@ -11134,7 +11134,7 @@ if (state.view==="impresiones") renderImpresiones();
       const keysAll = cells.map(headKey);
       const keys = keysAll.filter(Boolean);
 
-      // Debe tener alguna columna de nombre + columna equivalente a estado
+      // Debe tener alguna columna de nombre + estado (con variantes)
       if (!hasAny(keys, NAME_KEYS)) continue;
       if (!hasAny(keys, STATUS_KEYS)) continue;
 
