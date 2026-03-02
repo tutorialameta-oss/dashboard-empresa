@@ -11287,11 +11287,15 @@ if (state.view==="impresiones") renderImpresiones();
       const hasStrongId = looksDni(dni_al) || looksEmail(correo_al) || looksEmail(usuario);
       const hasIdentity = hasStrongId || looksPhone(celular_al);
 
-      // ✅ Regla dura: si no hay identidad, NO es alumno
-      if (!hasIdentity) continue;
+      // ✅ Fallback solicitado: si completó la columna D (NOMBRES COMPLETOS), también se considera alumno.
+      const nombreColD = norm(cells[3] || "");
+      const hasNombreColD = !!nombreColD;
 
-      // ✅ Regla adicional: si el "nombre" parece texto (frases largas) y no hay DNI/correo, descartarlo
-      if (!looksPersonName(nombre) && !hasStrongId) continue;
+      // Evitar basura: exigir identidad o nombre válido (especialmente para casos sin DNI/correo en AGRARIA LM 2).
+      if (!hasIdentity && !hasNombreColD) continue;
+
+      // ✅ Regla adicional: si el "nombre" parece texto (frases largas) y no hay identidad ni col D, descartarlo
+      if (!looksPersonName(nombre) && !hasStrongId && !hasNombreColD) continue;
 const edad = get(cells, iEdad);
       const provincia = get(cells, iProvincia);
       const distrito = get(cells, iDistrito);
