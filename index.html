@@ -2893,28 +2893,36 @@ if (btnSil) btnSil.style.display = "";
 const SALONES = [
     { local:"LA MOLINA", ciclo:"AGRARIA",  salon:"AGRARIA LM 1", gid:818929525 },
     { local:"LA MOLINA", ciclo:"AGRARIA",  salon:"AGRARIA LM 2", gid:1323349050 },
-    { local:"LA MOLINA", ciclo:"AGRARIA",  salon:"AGRARIA ESCOLAR", gid:938671284 },
     { local:"LA MOLINA", ciclo:"PUCP",     salon:"PUCP LM",     gid:876641694 },
-    { local:"LA MOLINA", ciclo:"U.LIMA",   salon:"U.LIMA LM",   gid:877886853 },
+    { local:"LA MOLINA", ciclo:"U.LIMA",   salon:"U.LIMA LM",   gid:479676259 },
     { local:"LA MOLINA", ciclo:"ADELANTO", salon:"ADELANTO LM", gid:1271606284 },
     { local:"LA MOLINA", ciclo:"PARALELO", salon:"PARALELO LM", gid:1863430245 },
 
     { local:"SAN BORJA", ciclo:"AGRARIA", salon:"AGRARIA SB",  gid:1870866968 },
     { local:"SAN BORJA", ciclo:"PUCP",    salon:"PUCP SB",     gid:96974048 },
-    { local:"SAN BORJA", ciclo:"U.LIMA",  salon:"U.LIMA SB 1", gid:670800187 },
-    { local:"SAN BORJA", ciclo:"U.LIMA",  salon:"U.LIMA SB 2", gid:1856014712 },
+    { local:"SAN BORJA", ciclo:"U.LIMA",  salon:"U.LIMA SB 1", gid:626603572 },
+   //{ local:"SAN BORJA", ciclo:"U.LIMA",  salon:"U.LIMA SB 2", gid:1856014712 },
 
     { local:"SAN MIGUEL", ciclo:"AGRARIA",  salon:"AGRARIA SM",  gid:511460041 },
     { local:"SAN MIGUEL", ciclo:"PUCP",     salon:"PUCP SM",     gid:213782657 },
-    { local:"SAN MIGUEL", ciclo:"U.LIMA",   salon:"U.LIMA SM 1", gid:1080962628 },
-    { local:"SAN MIGUEL", ciclo:"U.LIMA",   salon:"U.LIMA SM 2", gid:679583464 },
+    { local:"SAN MIGUEL", ciclo:"U.LIMA",   salon:"U.LIMA SM 1", gid:1004521782 },
+    //{ local:"SAN MIGUEL", ciclo:"U.LIMA",   salon:"U.LIMA SM 2", gid:679583464 },
     { local:"SAN MIGUEL", ciclo:"ADELANTO", salon:"ADELANTO SM", gid:2120250792 },
     { local:"SAN MIGUEL", ciclo:"PARALELO", salon:"PARALELO SM", gid:721468852 },
 
     { local:"VIRTUAL", ciclo:"AGRARIA",     salon:"AGRARIA VIRTUAL", gid:1850115978 },
-    { local:"VIRTUAL", ciclo:"ESC. U.LIMA", salon:"U.LIMA ESCOLAR",  gid:315999969 },
-    { local:"VIRTUAL", ciclo:"U.LIMA",      salon:"U.LIMA VIRTUAL 1",  gid:1667430860 },
-    { local:"VIRTUAL", ciclo:"U.LIMA",      salon:"U.LIMA VIRTUAL 2",  gid:951960453 },
+    //{ local:"VIRTUAL", ciclo:"ESC. U.LIMA", salon:"U.LIMA ESCOLAR",  gid:315999969 },
+    { local:"VIRTUAL", ciclo:"U.LIMA",      salon:"U.LIMA VIRTUAL 1",  gid:410241457 },
+    //{ local:"VIRTUAL", ciclo:"U.LIMA",      salon:"U.LIMA VIRTUAL 2",  gid:951960453 },
+
+    { local:"LA MOLINA", ciclo:"ESCOLAR",  salon:"ESC AGRARIA", gid:671896523 },
+    { local:"LA MOLINA", ciclo:"ESCOLAR",  salon:"ESC U.LIMA", gid:296505417 },
+    { local:"LA MOLINA", ciclo:"ESCOLAR",  salon:"ESC PUCP", gid:834587672 },
+    { local:"SAN MIGUEL", ciclo:"ESCOLAR",  salon:"ESC AGRARIA", gid:925828148 },
+    { local:"SAN MIGUEL", ciclo:"ESCOLAR",  salon:"ESC U.LIMA", gid:1232911274 },
+    { local:"SAN MIGUEL", ciclo:"ESCOLAR",  salon:"ESC PUCP", gid:908838578 },
+    { local:"SAN BORJA", ciclo:"ESCOLAR",  salon:"ESCOLAR", gid:313159348 },
+
   ];
 
   const AUTO_REFRESH_MS = 30000;
@@ -6414,15 +6422,13 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
       { name:"HABILIDAD OPERATIVA", url:"https://docs.google.com/spreadsheets/d/1guIMTzQJqhfyfcl46NxF-zcPuO37m-TM3U4EsNGN_4k/edit?usp=drive_link" },
     ],
     "U.LIMA": [
-      { name:"RAZ. MATEMÁTICO", url:"https://docs.google.com/spreadsheets/d/12Z20sVKqSanxX2sw9cQ_jT0HroEV-fzz4RWLEKvVQYY/edit?gid=11988891#gid=11988891" },
-      { name:"ÁLGEBRA", url:"https://docs.google.com/spreadsheets/d/1SXpr5vnKQaEnxBpiauxBTyBzN_iSnAso1A7EpVOXy1E/edit" },
-      { name:"GEOMETRÍA Y TRIGONOMETRÍA", url:"https://docs.google.com/spreadsheets/d/1PX97aFUQy_yzugcQ7c4Fgpg3-xHA-Eb7VFOK-MFUcc0/edit?gid=11988891#gid=11988891" },
-      { name:"ARITMÉTICA", url:"https://docs.google.com/spreadsheets/d/1N_eSBLRHiUcE5EevFw4pnnC-4tV_pPmm1bp7o8DtE04/edit" },
-      { name:"RAZ. VERBAL", url:"https://docs.google.com/spreadsheets/d/10akBiiuoasqVOMfv7g1uHiMKBJ_PHYUjR98fQMqzyQA/edit" },
-      { name:"TEXTOS", url:"https://docs.google.com/spreadsheets/d/1vgmeTjdoPPfzauwUhqWcCdr6j7UWodDSWhtmX9P-lG0/edit" },
-      { name:"LENGUAJE", url:"https://docs.google.com/spreadsheets/d/1e79bVVbVYL7QdFLiMWFMdDGYQrz1ye9FQAHVxcPUyUU/edit" },
-      { name:"PROCESOS", url:"https://docs.google.com/spreadsheets/d/1ISwc2A8G-jISa5ni-oebxF6D8C2l0O0QJkD8eKTPcjI/edit" },
-      { name:"HABILIDAD OPERATIVA", url:"https://docs.google.com/spreadsheets/d/1SebdIqWuN8y1Rt9ypqu5Q3TZfh91_EpP6RwAV5i8oCw/edit" },
+      { name:"RAZ. MATEMÁTICO", url:"https://docs.google.com/spreadsheets/d/1u-Y8dvVsuQ9zCqX3SNHZgGZgW_j8QJSMmbNwh8qxtS0/edit?gid=11988891#gid=11988891" },
+      { name:"ÁLGEBRA", url:"https://docs.google.com/spreadsheets/d/18_38udXwAgCbA3ysr1R9cpWVY0Z_nIaOdXzYVPV8_D8/edit?gid=11988891#gid=11988891" },
+      { name:"GEOMETRÍA Y TRIGONOMETRÍA", url:"https://docs.google.com/spreadsheets/d/1-aWi7hmJcCkrZAIy8E5riX6jFFTvEn5qnuwqC5cGF2o/edit?gid=11988891#gid=11988891" },
+      { name:"ARITMÉTICA", url:"https://docs.google.com/spreadsheets/d/1VvgKuQHSuU1j-HVWCojynMw6N3b5LwBBgymTq_K_6Ck/edit?gid=11988891#gid=11988891" },
+      { name:"TEXTOS", url:"https://docs.google.com/spreadsheets/d/1ILTmyKaVYUDhTv3KOit67iOh3MlgsCVtSi0ri2ejPgU/edit?gid=11988891#gid=11988891" },
+      { name:"LENGUAJE", url:"https://docs.google.com/spreadsheets/d/1-CucKZAZHYKPu3Z2FxZc6iz0hiWpptb2xJh_UwjTi2o/edit?gid=11988891#gid=11988891" },
+      { name:"HABILIDAD OPERATIVA", url:"https://docs.google.com/spreadsheets/d/1GrTdfQVKnTjor-e6sso2s1ydN9nh0DbF8uj1VY9ZbVQ/edit?gid=11988891#gid=11988891" },
     ]
   };
 
@@ -7394,10 +7400,10 @@ const MATERIALES = [
 // ===================== NOTAS GENERALES (NUEVO) =====================
 const NOTAS_GENERALES = [
   // ✅ PUCP
-  { id:"PUCP",   uni:"PUCP",   label:"NOTAS GENERALES PUCP",   url:"https://docs.google.com/spreadsheets/d/1FF_AIzA4cEKk1p9nWd0DziIyHx5XDzoY3luP7wlRweU/edit?usp=drive_link" },
+  { id:"PUCP",   uni:"PUCP",   label:"NOTAS GENERALES PUCP",   url:"https://docs.google.com/spreadsheets/d/1ocBp2agEOpgkmveUJkFDmDjMvf6Zp4kPlXtfMlPmgY0/edit?usp=drive_link" },
 
   // ✅ U.LIMA
-  { id:"ULIMA",  uni:"U.LIMA", label:"NOTAS GENERALES U.LIMA", url:"https://docs.google.com/spreadsheets/d/1iEGRZBKnuS32i1wdZKMy5EPKJNE0hrgD2-2cISZn5cI/edit?usp=drive_link" },
+  { id:"ULIMA",  uni:"U.LIMA", label:"NOTAS GENERALES U.LIMA", url:"https://docs.google.com/spreadsheets/d/1jHx33yKbl9LFVbX9fB7pacnvhF7UmTbd9Z5t8qyPfWM/edit?usp=drive_link" },
 
   // ⏳ AGRARIA (pendiente: cuando exista, pega aquí el enlace)
   { id:"AGRARIA", uni:"AGRARIA", label:"NOTAS GENERALES AGRARIA", url:"https://docs.google.com/spreadsheets/d/1q5PWgltXQBVcwQpwFqvkxtjGKP8HDlfWzZFs8zByFCo/edit?usp=drive_link" },
@@ -8417,27 +8423,35 @@ const LISTAS = [
   { local:"LA MOLINA", name:"AGRARIA 2", url:"https://docs.google.com/spreadsheets/d/1FcnFfoCuukv7_juMSUiYFzEm644WaZ5QCOcpukRtMYg/edit?usp=drive_link" },
   { local:"LA MOLINA", name:"AGRARIA ESCOLAR", url:"" },
   { local:"LA MOLINA", name:"PUCP",      url:"https://docs.google.com/spreadsheets/d/1mFBSS8VcFJYelnTSvRfxWuoKOwuq1KT_EuLsqh2DZlI/edit?usp=drive_link" },
-  { local:"LA MOLINA", name:"U.LIMA 1",    url:"https://docs.google.com/spreadsheets/d/1y3hfwo3NYmrShRNBOdwLCwM9AUd9Aj2YoJtfgvlZrOY/edit?usp=drive_web&ouid=109996193497961946614" },
+  { local:"LA MOLINA", name:"U.LIMA 1",    url:"https://docs.google.com/spreadsheets/d/1fYzJ4UguJ35DnKFEOWkuM2fkiCe8WuSEcRKGUwR3OCw/edit?usp=drive_link" },
   { local:"LA MOLINA", name:"PARALELO",  url:"https://docs.google.com/spreadsheets/d/1uqJMpS3_QY6DmvnDjatf8tWcArf8kCtyYjIt7mSpJXU/edit?usp=drive_web&ouid=109996193497961946614" },
   { local:"LA MOLINA", name:"ADELANTO",  url:"https://docs.google.com/spreadsheets/d/1k6oglFw7pd-XqFyv4NZf5xl0MM7PYZ507vuSFkp6uFU/edit?gid=1104164959#gid=1104164959" },
+  { local:"LA MOLINA", name:"ESC AGRARIA",  url:"https://docs.google.com/spreadsheets/d/1EIIMX9B75KyoyER6mlyri9Y8IuQftwnAD0loSPz_Kko/edit?usp=drive_link },
+  { local:"LA MOLINA", name:"ESC U.LIMA",  url:"https://docs.google.com/spreadsheets/d/1rGK12tRwjL8YcBc9ZzvjMCga4tTvB9cTHuInUIOFpbE/edit?usp=drive_link },  
+  { local:"LA MOLINA", name:"ESC PUCP",  url:"https://docs.google.com/spreadsheets/d/1K2-ULgNvhBZ3EcNpjoSrRkDjH4QFGPmDiYBWCiEJeWo/edit?usp=drive_link },
 
   // ================= SAN MIGUEL =================
   { local:"SAN MIGUEL", name:"AGRARIA 1",   url:"https://docs.google.com/spreadsheets/d/1NuFkT0EX-gPqbblJbFV7sNVGiJyhurZ-Yj120ocqaHc/edit?usp=drive_link" },
   { local:"SAN MIGUEL", name:"PUCP",      url:"https://docs.google.com/spreadsheets/d/1VSZ61cmo8reCfTp9jwNrzf8RtLwT2z6L2WKKYD7L854/edit?usp=drive_link" },
-  { local:"SAN MIGUEL", name:"U.LIMA 1",  url:"https://docs.google.com/spreadsheets/d/1epSbc_HEN0VfVQXE581x6uU-QcuDZ0kESwL5WlRwYgU/edit?usp=drive_web&ouid=109996193497961946614" },
-  { local:"SAN MIGUEL", name:"U.LIMA 2",  url:"https://docs.google.com/spreadsheets/d/1--AqnIDhIdZvbeIUjYC_BPwdHHHOAhSIqOnmIODNUkU/edit?usp=drive_web&ouid=109996193497961946614" },
+  { local:"SAN MIGUEL", name:"U.LIMA 1",  url:"https://docs.google.com/spreadsheets/d/18JB0MzoorXlb1I9U9ByUkTeR9dst-Lv3KBczZ1Al010/edit?usp=drive_link" },
+  //{ local:"SAN MIGUEL", name:"U.LIMA 2",  url:"https://docs.google.com/spreadsheets/d/1--AqnIDhIdZvbeIUjYC_BPwdHHHOAhSIqOnmIODNUkU/edit?usp=drive_web&ouid=109996193497961946614" },
   { local:"SAN MIGUEL", name:"PARALELO",  url:"https://docs.google.com/spreadsheets/d/1KlFuLnC99juHJoI7VT9Ez6cVN3c-X76eZzcZS17IXqM/edit?gid=1104164959#gid=1104164959" },
   { local:"SAN MIGUEL", name:"ADELANTO",  url:"https://docs.google.com/spreadsheets/d/1SrjJdlBjeNf12I0XFZ0FuripltmSNNmPOa_bTD0pZa8/edit?usp=drive_web&ouid=109996193497961946614" },
+  { local:"SAN MIGUEL", name:"ESC AGRARIA",  url:"https://docs.google.com/spreadsheets/d/1w2A6j_mwX5xN88rMZ6__k-rx7uvq9TWoHqLcl2mSBBY/edit?usp=drive_link },
+  { local:"SAN MIGUEL", name:"ESC U.LIMA",  url:"https://docs.google.com/spreadsheets/d/1pyNYrBOSbjZY5W6oqzNgszpmipWBVO9FLxfCeQCBn8A/edit?usp=drive_link },  
+  { local:"SAN MIGUEL", name:"ESC PUCP",  url:"https://docs.google.com/spreadsheets/d/1rGDx2nDfLM0vaQe_gYSV7YaHCDTFPCmQ9R8BzPsEBZA/edit?usp=drive_link},
+
 
   // ================= SAN BORJA =================
   { local:"SAN BORJA", name:"AGRARIA 1",   url:"https://docs.google.com/spreadsheets/d/1YLu1uP2kR1SwjVPWPKSgcbSKomCkdlItLn5AyAP3j8A/edit?usp=drive_link" },
   { local:"SAN BORJA", name:"PUCP",      url:"https://docs.google.com/spreadsheets/d/1oCJc6BNpAnbpLZbMFIPZ_GBwgiKbHhUh92hyTAGdio8/edit?usp=drive_link" },
-  { local:"SAN BORJA", name:"U.LIMA 1",  url:"https://docs.google.com/spreadsheets/d/1yPhbG38WC0tl97qQ5LXahAS2L6jqSdga6u3vAkuneC0/edit?usp=drive_web&ouid=109996193497961946614" },
-  { local:"SAN BORJA", name:"U.LIMA 2",  url:"https://docs.google.com/spreadsheets/d/1BJSLmUr2ECAfanxuI2py0R2Yi_eqovmkHuLcUNgMFSw/edit?usp=drive_web&ouid=109996193497961946614" },
+  { local:"SAN BORJA", name:"U.LIMA 1",  url:"https://docs.google.com/spreadsheets/d/1-NMJf7AV7xUDEr8azb8UUCiqFjNSsqwc25ifUrCwfX0/edit?usp=drive_link" },
+//  { local:"SAN BORJA", name:"U.LIMA 2",  url:"https://docs.google.com/spreadsheets/d/1BJSLmUr2ECAfanxuI2py0R2Yi_eqovmkHuLcUNgMFSw/edit?usp=drive_web&ouid=109996193497961946614" },
+  { local:"SAN BORJA", name:"ESCOLAR",  url:"https://docs.google.com/spreadsheets/d/1hKYufMBq_ObOjmP4BpDVgTRq-aqOwQET-TZIsz36iC8/edit?usp=drive_link},
 
   // ================= VIRTUAL =================
   { local:"VIRTUAL", name:"AGRARIA",   url:"https://docs.google.com/spreadsheets/d/1A06U7wDDHBmRrxnlai4hm5shaNJcF9qjWRa8xcusZVg/edit?usp=drive_link" },
-    { local:"VIRTUAL", name:"U.LIMA 1",  url:"https://docs.google.com/spreadsheets/d/1o22eorhLJWwKU3gyZgkB204MBVZX5tQ11jP3p73ll3s/edit?gid=1104164959#gid=1104164959" },
+    { local:"VIRTUAL", name:"U.LIMA 1",  url:"https://docs.google.com/spreadsheets/d/1RleTyLMWqwMstCBRvG1UvTcR1XyqeTlY7TkWkaajmqs/edit?usp=drive_link" },
   { local:"VIRTUAL", name:"U.LIMA 2",  url:"https://docs.google.com/spreadsheets/d/1KGhDGI2tKrXs2sf29m2_y0ft6P7VtKyq4rNU_rWTMSE/edit?gid=1104164959#gid=1104164959" },
   { local:"VIRTUAL", name:"ESCOLAR",   url:"https://docs.google.com/spreadsheets/d/15JJwUgf7WARdS4yBjUPAxkUigrPXm3LjTqrFJBI1mxE/edit?usp=drive_web&ouid=109996193497961946614" },
 ];
