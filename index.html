@@ -2581,7 +2581,7 @@
     try { localStorage.setItem(STUDENT_USER_KEY, usuario); } catch(e){}
 
     const uniFromSheet = row?.uni_sheet || "";
-    const uni = uniKey(uniFromSheet) || uniKey(uniGroupFromCiclo(row?.ciclo || ""));
+    const uni = uniKey(uniFromSheet) || uniGroupFromRow(row);
 
     const profile = {
       usuario,
@@ -4964,10 +4964,7 @@ const tw = pgxTotalWeeks();
   };
 
   function uniGroupFromCiclo(ciclo){
-    const c = String(ciclo||"").trim().toUpperCase();
-    if (c === "AGRARIA") return "AGRARIA";
-    if (c === "PUCP") return "PUCP";
-    return "U.LIMA";
+    return uniKey(ciclo) || "U.LIMA";
   }
 
 
@@ -4979,12 +4976,23 @@ const tw = pgxTotalWeeks();
     if (u.includes("PUCP")) return "PUCP";
     if (u.includes("AGRARIA") || u.includes("UNALM")) return "AGRARIA";
     if (u.includes("ULIMA")) return "U.LIMA";
+    if (u.includes("ESCOLAR") || u === "ESC" || u.startsWith("ESC")) return "ESCOLARES";
     // fallback razonable
     if (u0.includes("U.LIMA")) return "U.LIMA";
     if (u0.includes("AGRARIA")) return "AGRARIA";
     if (u0.includes("UNALM")) return "AGRARIA";
     if (u0.includes("PUCP")) return "PUCP";
+    if (u0.includes("ESCOLAR") || u0 === "ESC") return "ESCOLARES";
     return u0;
+  }
+
+  function uniGroupFromRow(row){
+    return (
+      uniKey(row?.uni_sheet || "") ||
+      uniKey(row?.ciclo || "") ||
+      uniKey(row?.salon || "") ||
+      "U.LIMA"
+    );
   }
   const HEAD = {
     NOMBRES_A: "NOMBRES COMPLETOS",
@@ -5586,7 +5594,7 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
 
     let base = getBaseForCurrentView();
     if (fLocal !== "__ALL__") base = base.filter(r=>r.local===fLocal);
-    if (fUni !== "__ALL__") base = base.filter(r=>uniGroupFromCiclo(r.ciclo)===fUni);
+    if (fUni !== "__ALL__") base = base.filter(r=>uniGroupFromRow(r)===fUni);
 
     const salones = uniq(base.map(r=>r.salon)).sort();
     fillSelectKeep("fSalon", salones, "SALÓN: TODOS");
@@ -5603,7 +5611,7 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
 
     base = base.filter(r=>{
       if (fLocal!=="__ALL__" && r.local!==fLocal) return false;
-      if (fUni!=="__ALL__" && uniGroupFromCiclo(r.ciclo)!==fUni) return false;
+      if (fUni!=="__ALL__" && uniGroupFromRow(r)!==fUni) return false;
       if (fSalon!=="__ALL__" && r.salon!==fSalon) return false;
       if (fMod!=="__ALL__" && r.modalidad!==fMod) return false;
 
@@ -5700,6 +5708,17 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
               <div class="nums">
                 <span class="pill" style="border-color:rgba(255,153,0,0.55); background:rgba(255,153,0,0.12);">Activos: <b id="uL_act">0</b></span>
                 <span class="pill">Retiros: <b id="uL_ret">0</b></span>
+              </div>
+            </div>
+          </div>
+
+          <div class="uniCard">
+            <img src="logo_escolares.png" alt="ESCOLARES" onerror="this.style.display='none'">
+            <div class="t">
+              <div class="name">ESCOLARES</div>
+              <div class="nums">
+                <span class="pill" style="border-color:rgba(212,162,0,0.55); background:rgba(212,162,0,0.12);">Activos: <b id="uE_act">0</b></span>
+                <span class="pill">Retiros: <b id="uE_ret">0</b></span>
               </div>
             </div>
           </div>
@@ -5899,7 +5918,7 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
 
     let cambiosBase = state.cambiosRows;
     if (fLocal!=="__ALL__") cambiosBase = cambiosBase.filter(r=>r.local===fLocal);
-    if (fUni!=="__ALL__") cambiosBase = cambiosBase.filter(r=>uniGroupFromCiclo(r.ciclo)===fUni);
+    if (fUni!=="__ALL__") cambiosBase = cambiosBase.filter(r=>uniGroupFromRow(r)===fUni);
     if (fSalon!=="__ALL__") cambiosBase = cambiosBase.filter(r=>r.salon===fSalon);
     if (fMod!=="__ALL__") cambiosBase = cambiosBase.filter(r=>r.modalidad===fMod);
     if (q){
@@ -5924,14 +5943,17 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
     state.ch_over_modalidad.data.datasets[0].data = [pres, virt];
     state.ch_over_modalidad.update("none");
 
-    const aAct = rows.filter(r=>uniGroupFromCiclo(r.ciclo)==="AGRARIA" && r.estado==="ACTIVO").length;
-    const aRet = rows.filter(r=>uniGroupFromCiclo(r.ciclo)==="AGRARIA" && r.estado==="RETIRO").length;
+    const aAct = rows.filter(r=>uniGroupFromRow(r)==="AGRARIA" && r.estado==="ACTIVO").length;
+    const aRet = rows.filter(r=>uniGroupFromRow(r)==="AGRARIA" && r.estado==="RETIRO").length;
 
-    const pAct = rows.filter(r=>uniGroupFromCiclo(r.ciclo)==="PUCP" && r.estado==="ACTIVO").length;
-    const pRet = rows.filter(r=>uniGroupFromCiclo(r.ciclo)==="PUCP" && r.estado==="RETIRO").length;
+    const pAct = rows.filter(r=>uniGroupFromRow(r)==="PUCP" && r.estado==="ACTIVO").length;
+    const pRet = rows.filter(r=>uniGroupFromRow(r)==="PUCP" && r.estado==="RETIRO").length;
 
-    const lAct = rows.filter(r=>uniGroupFromCiclo(r.ciclo)==="U.LIMA" && r.estado==="ACTIVO").length;
-    const lRet = rows.filter(r=>uniGroupFromCiclo(r.ciclo)==="U.LIMA" && r.estado==="RETIRO").length;
+    const lAct = rows.filter(r=>uniGroupFromRow(r)==="U.LIMA" && r.estado==="ACTIVO").length;
+    const lRet = rows.filter(r=>uniGroupFromRow(r)==="U.LIMA" && r.estado==="RETIRO").length;
+
+    const eAct = rows.filter(r=>uniGroupFromRow(r)==="ESCOLARES" && r.estado==="ACTIVO").length;
+    const eRet = rows.filter(r=>uniGroupFromRow(r)==="ESCOLARES" && r.estado==="RETIRO").length;
 
     document.getElementById("uA_act").textContent = aAct;
     document.getElementById("uA_ret").textContent = aRet;
@@ -5942,8 +5964,11 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
     document.getElementById("uL_act").textContent = lAct;
     document.getElementById("uL_ret").textContent = lRet;
 
-    state.ch_over_uni_stack.data.datasets[0].data = [aAct, pAct, lAct];
-    state.ch_over_uni_stack.data.datasets[1].data = [aRet, pRet, lRet];
+    document.getElementById("uE_act").textContent = eAct;
+    document.getElementById("uE_ret").textContent = eRet;
+
+    state.ch_over_uni_stack.data.datasets[0].data = [aAct, lAct, pAct, eAct];
+    state.ch_over_uni_stack.data.datasets[1].data = [aRet, lRet, pRet, eRet];
     state.ch_over_uni_stack.update("none");
   }
 
@@ -6087,7 +6112,7 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
         <tr>
           <td>${escapeHtml(r.nombre)}</td>
           <td>${escapeHtml(r.local)}</td>
-          <td>${escapeHtml(uniGroupFromCiclo(r.ciclo))}</td>
+          <td>${escapeHtml(uniGroupFromRow(r))}</td>
           <td>${escapeHtml(r.salon)}</td>
           <td>${escapeHtml(r.modalidad)}</td>
           <td>${escapeHtml(r.estado)}</td>
@@ -6100,7 +6125,7 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
 
         // ADMIN: mostrar estructura nueva (si falta un campo, queda vacío)
     tbody.innerHTML = rows.slice(0,1200).map(r=>{
-      const uni = r.uni_sheet || uniGroupFromCiclo(r.ciclo);
+      const uni = uniGroupFromRow(r);
       return `
       <tr>
         <td>${escapeHtml(r.nombres || "")}</td>
@@ -8426,9 +8451,9 @@ const LISTAS = [
   { local:"LA MOLINA", name:"U.LIMA 1",    url:"https://docs.google.com/spreadsheets/d/1fYzJ4UguJ35DnKFEOWkuM2fkiCe8WuSEcRKGUwR3OCw/edit?usp=drive_link" },
   { local:"LA MOLINA", name:"PARALELO",  url:"https://docs.google.com/spreadsheets/d/1uqJMpS3_QY6DmvnDjatf8tWcArf8kCtyYjIt7mSpJXU/edit?usp=drive_web&ouid=109996193497961946614" },
   { local:"LA MOLINA", name:"ADELANTO",  url:"https://docs.google.com/spreadsheets/d/1k6oglFw7pd-XqFyv4NZf5xl0MM7PYZ507vuSFkp6uFU/edit?gid=1104164959#gid=1104164959" },
-  { local:"LA MOLINA", name:"ESC AGRARIA",  url:"https://docs.google.com/spreadsheets/d/1EIIMX9B75KyoyER6mlyri9Y8IuQftwnAD0loSPz_Kko/edit?usp=drive_link },
-  { local:"LA MOLINA", name:"ESC U.LIMA",  url:"https://docs.google.com/spreadsheets/d/1rGK12tRwjL8YcBc9ZzvjMCga4tTvB9cTHuInUIOFpbE/edit?usp=drive_link },  
-  { local:"LA MOLINA", name:"ESC PUCP",  url:"https://docs.google.com/spreadsheets/d/1K2-ULgNvhBZ3EcNpjoSrRkDjH4QFGPmDiYBWCiEJeWo/edit?usp=drive_link },
+  { local:"LA MOLINA", name:"ESC AGRARIA",  url:"https://docs.google.com/spreadsheets/d/1EIIMX9B75KyoyER6mlyri9Y8IuQftwnAD0loSPz_Kko/edit?usp=drive_link" },
+  { local:"LA MOLINA", name:"ESC U.LIMA",  url:"https://docs.google.com/spreadsheets/d/1rGK12tRwjL8YcBc9ZzvjMCga4tTvB9cTHuInUIOFpbE/edit?usp=drive_link" },  
+  { local:"LA MOLINA", name:"ESC PUCP",  url:"https://docs.google.com/spreadsheets/d/1K2-ULgNvhBZ3EcNpjoSrRkDjH4QFGPmDiYBWCiEJeWo/edit?usp=drive_link" },
 
   // ================= SAN MIGUEL =================
   { local:"SAN MIGUEL", name:"AGRARIA 1",   url:"https://docs.google.com/spreadsheets/d/1NuFkT0EX-gPqbblJbFV7sNVGiJyhurZ-Yj120ocqaHc/edit?usp=drive_link" },
@@ -8437,9 +8462,9 @@ const LISTAS = [
   //{ local:"SAN MIGUEL", name:"U.LIMA 2",  url:"https://docs.google.com/spreadsheets/d/1--AqnIDhIdZvbeIUjYC_BPwdHHHOAhSIqOnmIODNUkU/edit?usp=drive_web&ouid=109996193497961946614" },
   { local:"SAN MIGUEL", name:"PARALELO",  url:"https://docs.google.com/spreadsheets/d/1KlFuLnC99juHJoI7VT9Ez6cVN3c-X76eZzcZS17IXqM/edit?gid=1104164959#gid=1104164959" },
   { local:"SAN MIGUEL", name:"ADELANTO",  url:"https://docs.google.com/spreadsheets/d/1SrjJdlBjeNf12I0XFZ0FuripltmSNNmPOa_bTD0pZa8/edit?usp=drive_web&ouid=109996193497961946614" },
-  { local:"SAN MIGUEL", name:"ESC AGRARIA",  url:"https://docs.google.com/spreadsheets/d/1w2A6j_mwX5xN88rMZ6__k-rx7uvq9TWoHqLcl2mSBBY/edit?usp=drive_link },
-  { local:"SAN MIGUEL", name:"ESC U.LIMA",  url:"https://docs.google.com/spreadsheets/d/1pyNYrBOSbjZY5W6oqzNgszpmipWBVO9FLxfCeQCBn8A/edit?usp=drive_link },  
-  { local:"SAN MIGUEL", name:"ESC PUCP",  url:"https://docs.google.com/spreadsheets/d/1rGDx2nDfLM0vaQe_gYSV7YaHCDTFPCmQ9R8BzPsEBZA/edit?usp=drive_link},
+  { local:"SAN MIGUEL", name:"ESC AGRARIA",  url:"https://docs.google.com/spreadsheets/d/1w2A6j_mwX5xN88rMZ6__k-rx7uvq9TWoHqLcl2mSBBY/edit?usp=drive_link" },
+  { local:"SAN MIGUEL", name:"ESC U.LIMA",  url:"https://docs.google.com/spreadsheets/d/1pyNYrBOSbjZY5W6oqzNgszpmipWBVO9FLxfCeQCBn8A/edit?usp=drive_link" },  
+  { local:"SAN MIGUEL", name:"ESC PUCP",  url:"https://docs.google.com/spreadsheets/d/1rGDx2nDfLM0vaQe_gYSV7YaHCDTFPCmQ9R8BzPsEBZA/edit?usp=drive_link"},
 
 
   // ================= SAN BORJA =================
@@ -8447,7 +8472,7 @@ const LISTAS = [
   { local:"SAN BORJA", name:"PUCP",      url:"https://docs.google.com/spreadsheets/d/1oCJc6BNpAnbpLZbMFIPZ_GBwgiKbHhUh92hyTAGdio8/edit?usp=drive_link" },
   { local:"SAN BORJA", name:"U.LIMA 1",  url:"https://docs.google.com/spreadsheets/d/1-NMJf7AV7xUDEr8azb8UUCiqFjNSsqwc25ifUrCwfX0/edit?usp=drive_link" },
 //  { local:"SAN BORJA", name:"U.LIMA 2",  url:"https://docs.google.com/spreadsheets/d/1BJSLmUr2ECAfanxuI2py0R2Yi_eqovmkHuLcUNgMFSw/edit?usp=drive_web&ouid=109996193497961946614" },
-  { local:"SAN BORJA", name:"ESCOLAR",  url:"https://docs.google.com/spreadsheets/d/1hKYufMBq_ObOjmP4BpDVgTRq-aqOwQET-TZIsz36iC8/edit?usp=drive_link},
+  { local:"SAN BORJA", name:"ESCOLAR",  url:"https://docs.google.com/spreadsheets/d/1hKYufMBq_ObOjmP4BpDVgTRq-aqOwQET-TZIsz36iC8/edit?usp=drive_link"},
 
   // ================= VIRTUAL =================
   { local:"VIRTUAL", name:"AGRARIA",   url:"https://docs.google.com/spreadsheets/d/1A06U7wDDHBmRrxnlai4hm5shaNJcF9qjWRa8xcusZVg/edit?usp=drive_link" },
@@ -10922,7 +10947,7 @@ function alumnoUniFromProfile(prof){
     if (!prof) return "";
     const u = uniKey(prof.uni || prof.uni_sheet || "");
     if (u) return u;
-    return uniKey(uniGroupFromCiclo(prof.ciclo || ""));
+    return uniGroupFromRow(prof);
   }
 
   function getAlumnoSchedule(prof){
