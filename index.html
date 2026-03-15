@@ -6196,7 +6196,7 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
 
   function inferUniFromSalonLabel(label){
     const s = String(label||"").toUpperCase();
-    if (s.includes("ESCOLAR")) return "ESCOLARES";
+    if (isEscolaresSalonLabel(s)) return "ESCOLARES";
     if (s.includes("AGRARIA")) return "AGRARIA";
     if (s.includes("U.LIMA") || s.includes("U LIMA") || s.includes("ULIMA")) return "U.LIMA";
     if (s.includes("PUCP")) return "PUCP";
@@ -8555,16 +8555,16 @@ function listaMetaFromName(name){
     return { group: 4, dot: red, label: "ADELANTO / PARALELO" };
   }
 
+  // ESCOLARES: prioridad sobre AGRARIA/PUCP/U.LIMA cuando el nombre inicia con ESC...
+  if (isEscolaresSalonLabel(s)){
+    const c = getCss("--schHead_ESC");
+    return { group: 3, dot: c, label: "ESCOLARES" };
+  }
+
   // AGRARIA => verde
   if (s.includes("AGRARIA")){
     const c = getCss("--agraria");
     return { group: 0, dot: c, label: "AGRARIA" };
-  }
-
-  // ESCOLARES => color escolar
-  if (s.includes("ESCOLAR") || s.includes("ESC.")){
-    const c = getCss("--schHead_ESC");
-    return { group: 3, dot: c, label: "ESCOLARES" };
   }
 
   // U.LIMA => naranja
@@ -8698,6 +8698,20 @@ const REPORTES = [
   { local:"VIRTUAL",    name:"U.LIMA ESCOLAR",   reporte:"https://colab.research.google.com/drive/1Wmj0Py2AdOihL_hXZCT-kfbj2ezqvbDe" , carpeta:"https://drive.google.com/drive/folders/19kY1ivbtRcFLSXlox_2mlnsoCjxKlHp4?usp=drive_link" },
 ];
 
+function getReportesCatalog(){
+  const base = REPORTES.slice();
+  const seen = new Set(base.map(x=>`${x.local}||${x.name}`));
+
+  for (const it of LISTAS){
+    const key = `${it.local}||${it.name}`;
+    if (seen.has(key)) continue;
+    base.push({ local: it.local, name: it.name, reporte:"", carpeta:"" });
+    seen.add(key);
+  }
+
+  return base;
+}
+
 function ensureReportesLayout(){
   const el = document.getElementById("view_reportes");
   if (el.dataset.ready === "1") return;
@@ -8725,7 +8739,7 @@ function ensureReportesLayout(){
     <div class="panel12" id="rBlocks"></div>
   `;
 
-  const locals = uniq(REPORTES.map(x=>x.local));
+  const locals = uniq(getReportesCatalog().map(x=>x.local));
   fillSelectKeep("rLocal", sortListasByLocalOrder(locals), "LOCAL: TODOS");
 
   document.getElementById("rReset").addEventListener("click", ()=>{
@@ -8745,7 +8759,7 @@ function renderReportes(){
   const fLocal = document.getElementById("rLocal").value;
   const q = low(document.getElementById("rQ").value);
 
-  let base = REPORTES.slice();
+  let base = getReportesCatalog();
   if (fLocal !== "__ALL__") base = base.filter(x=>x.local===fLocal);
   if (q) base = base.filter(x => low(x.name).includes(q) || low(x.local).includes(q));
 
