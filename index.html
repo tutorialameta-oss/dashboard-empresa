@@ -8698,17 +8698,8 @@ const REPORTES = [
 ];
 
 function getReportesCatalog(){
-  const base = REPORTES.slice();
-  const seen = new Set(base.map(x=>`${x.local}||${x.name}`));
-
-  for (const it of LISTAS){
-    const key = `${it.local}||${it.name}`;
-    if (seen.has(key)) continue;
-    base.push({ local: it.local, name: it.name, reporte:"", carpeta:"" });
-    seen.add(key);
-  }
-
-  return base;
+  // En REPORTES solo se muestra el catálogo manual definido arriba.
+  return REPORTES.slice();
 }
 
 function ensureReportesLayout(){
