@@ -5842,6 +5842,7 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
         <th>NOMBRE</th>
         <th>LOCAL</th>
         <th>UNIVERSIDAD</th>
+        <th>CICLO</th>
         <th>SALÓN</th>
         <th>MODALIDAD</th>
         <th>ESTADO</th>
@@ -5857,6 +5858,7 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
         <th>NOMBRES COMPLETOS</th>
         <th>LOCAL</th>
         <th>UNIVERSIDAD</th>
+        <th>CICLO</th>
         <th>SALÓN</th>
         <th>MODALIDAD</th>
         <th>ESTADO</th>
@@ -6124,6 +6126,7 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
         <tr>
           <td>${escapeHtml(r.nombre)}</td>
           <td>${escapeHtml(r.local)}</td>
+          <td>${escapeHtml(r.uni_sheet || "")}</td>
           <td>${escapeHtml(uniGroupFromRow(r))}</td>
           <td>${escapeHtml(r.salon)}</td>
           <td>${escapeHtml(r.modalidad)}</td>
@@ -6137,14 +6140,16 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
 
         // ADMIN: mostrar estructura nueva (si falta un campo, queda vacío)
     tbody.innerHTML = rows.slice(0,1200).map(r=>{
-      const uni = uniGroupFromRow(r);
+      const uniRaw = r.uni_sheet || "";
+      const cicloStd = uniGroupFromRow(r);
       return `
       <tr>
         <td>${escapeHtml(r.nombres || "")}</td>
         <td>${escapeHtml(r.apellidos || "")}</td>
         <td>${escapeHtml(r.nombres_completos || r.nombre || "")}</td>
         <td>${escapeHtml(r.local)}</td>
-        <td>${escapeHtml(uni)}</td>
+        <td>${escapeHtml(uniRaw)}</td>
+        <td>${escapeHtml(cicloStd)}</td>
         <td>${escapeHtml(r.salon)}</td>
         <td>${escapeHtml(r.modalidad)}</td>
         <td>${escapeHtml(r.estado)}</td>
