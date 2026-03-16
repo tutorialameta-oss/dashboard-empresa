@@ -704,8 +704,7 @@
     }
     .schCard.hEditEnabled .hCellEditable{ cursor:pointer; }
     .schCard.hEditEnabled .hCellEditable:hover{ outline:2px solid rgba(220,38,38,0.18); outline-offset:-2px; }
-    .schCard[data-placeholder="1"] .schDl,
-    .schCard[data-placeholder="1"] .schEdit{ display:none !important; }
+    .schCard[data-placeholder="1"] .schDl{ display:none !important; }
 
     /* Modal editor */
     .hEditorOverlay{
@@ -10846,6 +10845,22 @@ el.dataset.ready = "1";
     if (CURRENT_ROLE !== "admin") return;
     const sid = btn.getAttribute("data-sid");
     if (!sid) return;
+
+    const card = btn.closest(".schCard");
+    const isPlaceholder = !!card && card.getAttribute("data-placeholder") === "1";
+    if (isPlaceholder && !SCHEDULES.some(x=>x.id===sid)){
+      SCHEDULES.push({
+        id: sid,
+        local: card.getAttribute("data-local") || "LA MOLINA",
+        uni: card.getAttribute("data-uni") || "AGRARIA",
+        salon: card.getAttribute("data-salon") || "NUEVO SALON",
+        blocks: []
+      });
+      SCHEDULES = sortSchedules(SCHEDULES);
+      saveSchedules();
+      renderHorarios();
+    }
+
     openHorariosEditor(sid, false);
   });
 
