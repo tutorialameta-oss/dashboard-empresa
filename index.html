@@ -7857,7 +7857,7 @@ function mcPrinterBySpace(uni, course, space){
   const sid = String(space||"").toUpperCase();
   const c = mcNormLabel(course);
 
-  if (u === "PUCP"){
+  if (u === "PUCP" || u === "U.LIMA"){
     return sid === "SAN_MIGUEL" ? "KATI" : "FERNANDO";
   }
 
@@ -8058,7 +8058,9 @@ function renderMateriales(){
       "Razonamiento Verbal","Textos","Razonamiento Matemático","Álgebra","Geometría","Trigonometría","Aritmética",
       "Física","Química","Biología","Economía","Historia","Geografía","Simulacros","Reforzamiento de Matemáticas"
     ],
-    "U.LIMA":["(Definir cursos U.LIMA)"],
+    "U.LIMA":[
+      "Razonamiento Matemático","Álgebra","Geometría y Trigonometría","Aritmética","Textos","Lenguaje","Habilidad operativa","Simulacros"
+    ],
     "PUCP":[  "Habilidad Operativa",
   "Estadística",
   "Geometría y Medida",
@@ -8300,7 +8302,10 @@ ${canWork ? `<button id="mcEditBtn" class="btn ${matEditOn?'primary':'ghost'}" t
   const cid = String(selC?.value||"");
   const statusCid = mcStatusCid(cid, space);
   const diaRule = mcDiagramadoRule(uni, cid);
-  const diagramaLabel = String(diaRule?.owner || DIAGRAMA_SPACE_LABEL[String(space||"").toUpperCase()] || "—");
+  const isLocalSpace = ["LA_MOLINA","SAN_MIGUEL","SAN_BORJA"].includes(String(space||"").toUpperCase());
+  const diagramaLabel = (mcNormLabel(uni) === "U.LIMA" && isLocalSpace)
+    ? "FERNANDO"
+    : String(diaRule?.owner || DIAGRAMA_SPACE_LABEL[String(space||"").toUpperCase()] || "—");
   const impresor = mcPrinterBySpace(uni, cid, space);
   const canEditByResponsable = canWork && (roleLower === "admin" || mcNormLabel(mcCurrentUserName()) === mcNormLabel(mcResponsableFor(uni, cid)));
   const isTutor = (roleLower === "tutor");
@@ -8698,17 +8703,8 @@ const REPORTES = [
 ];
 
 function getReportesCatalog(){
-  const base = REPORTES.slice();
-  const seen = new Set(base.map(x=>`${x.local}||${x.name}`));
-
-  for (const it of LISTAS){
-    const key = `${it.local}||${it.name}`;
-    if (seen.has(key)) continue;
-    base.push({ local: it.local, name: it.name, reporte:"", carpeta:"" });
-    seen.add(key);
-  }
-
-  return base;
+  // En REPORTES solo se muestra el catálogo manual definido arriba.
+  return REPORTES.slice();
 }
 
 function ensureReportesLayout(){
