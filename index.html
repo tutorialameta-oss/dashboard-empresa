@@ -465,8 +465,8 @@
     .schMatrix{
       display:grid;
       /* Columna de locales más angosta (porque el texto va vertical) */
-      grid-template-columns: 72px repeat(6, minmax(520px, 1fr));
-      min-width: calc(72px + 6*520px);
+      grid-template-columns: 72px repeat(var(--mxCols, 6), minmax(520px, 1fr));
+      min-width: calc(72px + (var(--mxCols, 6) * 520px));
       background:#fff;
     }
     .mxCorner{
@@ -10239,7 +10239,7 @@ el.dataset.ready = "1";
 
     if (mx){
       mx.innerHTML = `
-        <div class="schMatrix">
+        <div class="schMatrix" style="--mxCols:${COLS.length};">
           <div class="mxCorner"></div>
           ${headCells}
           ${rows}
