@@ -465,8 +465,8 @@
     .schMatrix{
       display:grid;
       /* Columna de locales más angosta (porque el texto va vertical) */
-      grid-template-columns: 72px repeat(6, minmax(520px, 1fr));
-      min-width: calc(72px + 6*520px);
+      grid-template-columns: 72px repeat(var(--mxCols, 6), minmax(520px, 1fr));
+      min-width: calc(72px + (var(--mxCols, 6) * 520px));
       background:#fff;
     }
     .mxCorner{
@@ -4589,6 +4589,13 @@ const tw = pgxTotalWeeks();
     td.innerHTML = `<input type="text" value="${escapeHtml(cur)}" />`;
     const inp = td.querySelector('input');
     if (!inp) return;
+    inp.addEventListener('blur', ()=>{
+      if (pgxGridState.editing &&
+          pgxGridState.editing.row === ctx.row &&
+          pgxGridState.editing.col === ctx.col){
+        pgxCommitEditing(true);
+      }
+    });
     inp.focus(); inp.select();
   }
 
@@ -4713,12 +4720,20 @@ const tw = pgxTotalWeeks();
     canvas.addEventListener('click',(e)=>{
       const td = e.target?.closest ? e.target.closest('td.pxEditable') : null;
       if (!td || !pgxCanEdit() || !pgxGetEditOn()) return;
+      if (pgxGridState.editing){
+        const editingTd = pgxFindCellByPos(pgxGridState.editing.row, pgxGridState.editing.col);
+        if (editingTd !== td) pgxCommitEditing(true);
+      }
       pgxSetSelectedCell(td, e.shiftKey);
     });
 
     canvas.addEventListener('dblclick',(e)=>{
       const td = e.target?.closest ? e.target.closest('td.pxEditable') : null;
       if (!td || !pgxCanEdit() || !pgxGetEditOn()) return;
+      if (pgxGridState.editing){
+        const editingTd = pgxFindCellByPos(pgxGridState.editing.row, pgxGridState.editing.col);
+        if (editingTd !== td) pgxCommitEditing(true);
+      }
       pgxSetSelectedCell(td);
       pgxStartEditing(td);
     });
@@ -9997,6 +10012,15 @@ el.dataset.ready = "1";
     return "VIRT";
   }
 
+  function isEscolaresIntegralesSchedule(sch){
+    const raw = [
+      String(sch?.id || ""),
+      String(sch?.salon || ""),
+      String(sch?.uni || "")
+    ].join(" ").toUpperCase();
+    return raw.includes("INTEGRAL");
+  }
+
   function baseColumnKeyForSchedule(sch){
     if (sch.uni === "AGRARIA"){
       if (String(sch.salon||"").toUpperCase().includes("ESCOLAR")) return "ESCOLARES";
@@ -10011,7 +10035,8 @@ el.dataset.ready = "1";
       return "ULIMA_1";
     }
     if (sch.uni === "PUCP") return "PUCP";
-    return "ESCOLARES";
+    if (sch.uni === "ESCOLARES") return isEscolaresIntegralesSchedule(sch) ? "ESCOLARES_INTEGRALES" : "ESCOLARES";
+    return isEscolaresIntegralesSchedule(sch) ? "ESCOLARES_INTEGRALES" : "ESCOLARES";
   }
 
   function expandColKeyForLocal(local, baseKey){
@@ -10022,6 +10047,7 @@ el.dataset.ready = "1";
     if (baseKey === "ULIMA_2") return `ULIMA_${lc}_2`;
     if (baseKey === "PUCP") return `PUCP_${lc}`;
     if (baseKey === "ESCOLARES") return `ESCOLARES_${lc}`;
+    if (baseKey === "ESCOLARES_INTEGRALES") return `ESCOLARES_INTEGRALES_${lc}`;
     return `${baseKey}_${lc}`;
   }
 
@@ -10049,7 +10075,10 @@ el.dataset.ready = "1";
     if (t === "AGRARIA") return `AGRARIA ${lc}${String(colKey).endsWith("_2") ? " 2" : " 1"}`;
     if (t === "U.LIMA") return `ULIMA ${lc}${String(colKey).endsWith("_2") ? " 2" : " 1"}`;
     if (t === "PUCP") return `PUCP ${lc}`;
-    if (t === "ESCOLARES") return `ESCOLARES ${lc}`;
+    if (t === "ESCOLARES"){
+      if (String(colKey||"").toUpperCase().startsWith("ESCOLARES_INTEGRALES_")) return `ESCOLARES INTEGRALES ${lc}`;
+      return `ESCOLARES ${lc}`;
+    }
     return fallback || `${t} ${lc}`;
   }
 
@@ -10183,6 +10212,7 @@ el.dataset.ready = "1";
       { key:"ULIMA_2",   label:"U.LIMA 2" },
       { key:"PUCP",      label:"PUCP" },
       { key:"ESCOLARES", label:"ESCOLARES" },
+      { key:"ESCOLARES_INTEGRALES", label:"ESCOLARES INTEGRALES" },
     ];
 
     // index
@@ -10209,7 +10239,7 @@ el.dataset.ready = "1";
 
     if (mx){
       mx.innerHTML = `
-        <div class="schMatrix">
+        <div class="schMatrix" style="--mxCols:${COLS.length};">
           <div class="mxCorner"></div>
           ${headCells}
           ${rows}
