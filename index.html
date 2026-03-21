@@ -4589,6 +4589,13 @@ const tw = pgxTotalWeeks();
     td.innerHTML = `<input type="text" value="${escapeHtml(cur)}" />`;
     const inp = td.querySelector('input');
     if (!inp) return;
+    inp.addEventListener('blur', ()=>{
+      if (pgxGridState.editing &&
+          pgxGridState.editing.row === ctx.row &&
+          pgxGridState.editing.col === ctx.col){
+        pgxCommitEditing(true);
+      }
+    });
     inp.focus(); inp.select();
   }
 
@@ -4713,12 +4720,20 @@ const tw = pgxTotalWeeks();
     canvas.addEventListener('click',(e)=>{
       const td = e.target?.closest ? e.target.closest('td.pxEditable') : null;
       if (!td || !pgxCanEdit() || !pgxGetEditOn()) return;
+      if (pgxGridState.editing){
+        const editingTd = pgxFindCellByPos(pgxGridState.editing.row, pgxGridState.editing.col);
+        if (editingTd !== td) pgxCommitEditing(true);
+      }
       pgxSetSelectedCell(td, e.shiftKey);
     });
 
     canvas.addEventListener('dblclick',(e)=>{
       const td = e.target?.closest ? e.target.closest('td.pxEditable') : null;
       if (!td || !pgxCanEdit() || !pgxGetEditOn()) return;
+      if (pgxGridState.editing){
+        const editingTd = pgxFindCellByPos(pgxGridState.editing.row, pgxGridState.editing.col);
+        if (editingTd !== td) pgxCommitEditing(true);
+      }
       pgxSetSelectedCell(td);
       pgxStartEditing(td);
     });
