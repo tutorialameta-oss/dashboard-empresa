@@ -10076,7 +10076,7 @@ el.dataset.ready = "1";
     if (t === "U.LIMA") return `ULIMA ${lc}${String(colKey).endsWith("_2") ? " 2" : " 1"}`;
     if (t === "PUCP") return `PUCP ${lc}`;
     if (t === "ESCOLARES"){
-      if (String(colKey||"").toUpperCase().startsWith("ESCOLARES_INTEGRALES_")) return `ESCOLARES INTEGRALES ${lc}`;
+      if (String(colKey||"").toUpperCase().startsWith("ESCOLARES_INTEGRALES_")) return `ESCOLARES ${lc}`;
       return `ESCOLARES ${lc}`;
     }
     return fallback || `${t} ${lc}`;
@@ -10212,7 +10212,7 @@ el.dataset.ready = "1";
       { key:"ULIMA_2",   label:"U.LIMA 2" },
       { key:"PUCP",      label:"PUCP" },
       { key:"ESCOLARES", label:"ESCOLARES" },
-      { key:"ESCOLARES_INTEGRALES", label:"ESCOLARES" },
+      { key:"ESCOLARES_INTEGRALES", label:"ESCOLARES INTEGRAL" },
     ];
 
     // index
