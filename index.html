@@ -10012,6 +10012,15 @@ el.dataset.ready = "1";
     return "VIRT";
   }
 
+  function isEscolaresIntegralesSchedule(sch){
+    const raw = [
+      String(sch?.id || ""),
+      String(sch?.salon || ""),
+      String(sch?.uni || "")
+    ].join(" ").toUpperCase();
+    return raw.includes("INTEGRAL");
+  }
+
   function baseColumnKeyForSchedule(sch){
     if (sch.uni === "AGRARIA"){
       if (String(sch.salon||"").toUpperCase().includes("ESCOLAR")) return "ESCOLARES";
@@ -10026,7 +10035,8 @@ el.dataset.ready = "1";
       return "ULIMA_1";
     }
     if (sch.uni === "PUCP") return "PUCP";
-    return "ESCOLARES";
+    if (sch.uni === "ESCOLARES") return isEscolaresIntegralesSchedule(sch) ? "ESCOLARES_INTEGRALES" : "ESCOLARES";
+    return isEscolaresIntegralesSchedule(sch) ? "ESCOLARES_INTEGRALES" : "ESCOLARES";
   }
 
   function expandColKeyForLocal(local, baseKey){
@@ -10037,6 +10047,7 @@ el.dataset.ready = "1";
     if (baseKey === "ULIMA_2") return `ULIMA_${lc}_2`;
     if (baseKey === "PUCP") return `PUCP_${lc}`;
     if (baseKey === "ESCOLARES") return `ESCOLARES_${lc}`;
+    if (baseKey === "ESCOLARES_INTEGRALES") return `ESCOLARES_INTEGRALES_${lc}`;
     return `${baseKey}_${lc}`;
   }
 
@@ -10064,7 +10075,10 @@ el.dataset.ready = "1";
     if (t === "AGRARIA") return `AGRARIA ${lc}${String(colKey).endsWith("_2") ? " 2" : " 1"}`;
     if (t === "U.LIMA") return `ULIMA ${lc}${String(colKey).endsWith("_2") ? " 2" : " 1"}`;
     if (t === "PUCP") return `PUCP ${lc}`;
-    if (t === "ESCOLARES") return `ESCOLARES ${lc}`;
+    if (t === "ESCOLARES"){
+      if (String(colKey||"").toUpperCase().startsWith("ESCOLARES_INTEGRALES_")) return `ESCOLARES INTEGRALES ${lc}`;
+      return `ESCOLARES ${lc}`;
+    }
     return fallback || `${t} ${lc}`;
   }
 
@@ -10198,6 +10212,7 @@ el.dataset.ready = "1";
       { key:"ULIMA_2",   label:"U.LIMA 2" },
       { key:"PUCP",      label:"PUCP" },
       { key:"ESCOLARES", label:"ESCOLARES" },
+      { key:"ESCOLARES_INTEGRALES", label:"ESCOLARES INTEGRALES" },
     ];
 
     // index
