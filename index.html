@@ -8076,7 +8076,14 @@ function renderMateriales(){
   const store = pgxLoadStore();
     const baseWeeks = pgxTotalWeeks();
   const programsAll = (typeof pgxProgramsForRole==="function") ? pgxProgramsForRole() : [];
-  const byUni = (uni)=> programsAll.filter(p=>String(p?.meta?.scope||"ALL").toUpperCase()===uni);
+  const byUni = (uni)=> {
+    const target = mcNormLabel(uni);
+    return programsAll.filter(p=>{
+      const scope = mcNormLabel(p?.meta?.scope || "");
+      const theme = mcNormLabel(p?.meta?.theme || "");
+      return scope === target || theme === target;
+    });
+  };
 
   const COURSES = {
     "AGRARIA":[
