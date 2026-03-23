@@ -465,8 +465,8 @@
     .schMatrix{
       display:grid;
       /* Columna de locales más angosta (porque el texto va vertical) */
-      grid-template-columns: 72px repeat(6, minmax(520px, 1fr));
-      min-width: calc(72px + 6*520px);
+      grid-template-columns: 72px repeat(var(--mxCols, 6), minmax(520px, 1fr));
+      min-width: calc(72px + (var(--mxCols, 6) * 520px));
       background:#fff;
     }
     .mxCorner{
@@ -4589,6 +4589,13 @@ const tw = pgxTotalWeeks();
     td.innerHTML = `<input type="text" value="${escapeHtml(cur)}" />`;
     const inp = td.querySelector('input');
     if (!inp) return;
+    inp.addEventListener('blur', ()=>{
+      if (pgxGridState.editing &&
+          pgxGridState.editing.row === ctx.row &&
+          pgxGridState.editing.col === ctx.col){
+        pgxCommitEditing(true);
+      }
+    });
     inp.focus(); inp.select();
   }
 
@@ -4713,12 +4720,20 @@ const tw = pgxTotalWeeks();
     canvas.addEventListener('click',(e)=>{
       const td = e.target?.closest ? e.target.closest('td.pxEditable') : null;
       if (!td || !pgxCanEdit() || !pgxGetEditOn()) return;
+      if (pgxGridState.editing){
+        const editingTd = pgxFindCellByPos(pgxGridState.editing.row, pgxGridState.editing.col);
+        if (editingTd !== td) pgxCommitEditing(true);
+      }
       pgxSetSelectedCell(td, e.shiftKey);
     });
 
     canvas.addEventListener('dblclick',(e)=>{
       const td = e.target?.closest ? e.target.closest('td.pxEditable') : null;
       if (!td || !pgxCanEdit() || !pgxGetEditOn()) return;
+      if (pgxGridState.editing){
+        const editingTd = pgxFindCellByPos(pgxGridState.editing.row, pgxGridState.editing.col);
+        if (editingTd !== td) pgxCommitEditing(true);
+      }
       pgxSetSelectedCell(td);
       pgxStartEditing(td);
     });
@@ -6470,6 +6485,17 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
       { name:"TEXTOS", url:"https://docs.google.com/spreadsheets/d/1ILTmyKaVYUDhTv3KOit67iOh3MlgsCVtSi0ri2ejPgU/edit?gid=11988891#gid=11988891" },
       { name:"LENGUAJE", url:"https://docs.google.com/spreadsheets/d/1-CucKZAZHYKPu3Z2FxZc6iz0hiWpptb2xJh_UwjTi2o/edit?gid=11988891#gid=11988891" },
       { name:"HABILIDAD OPERATIVA", url:"https://docs.google.com/spreadsheets/d/1GrTdfQVKnTjor-e6sso2s1ydN9nh0DbF8uj1VY9ZbVQ/edit?gid=11988891#gid=11988891" },
+    ],
+    "ESCOLARES": [
+      { name:"RAZONAMIENTO VERBAL", url:"https://docs.google.com/spreadsheets/d/1_5Uv3ej180TWxwNJSV4-qVL_GL9ErWrYEann35wtioY/edit?usp=drive_link" },
+      { name:"RAZONAMIENTO MATEMÁTICO", url:"https://docs.google.com/spreadsheets/d/1p1fpN4v9Zly4EhHRf3qMRbdceQFDmBSpUE1zjrpnbo0/edit?usp=drive_link" },
+      { name:"ARITMÉTICA", url:"https://docs.google.com/spreadsheets/d/1-H9iMGTMPsVD6TlRyU60QArWnTbTs-49-wVxUfmXfoU/edit?usp=drive_link" },
+      { name:"ÁLGEBRA", url:"https://docs.google.com/spreadsheets/d/1gEHKQV3Fa-NQkMaMFl0N7iM9D-MEfKEMKQ1xaAuFPTY/edit?usp=drive_link" },
+      { name:"GEOMETRÍA", url:"https://docs.google.com/spreadsheets/d/1GVqc3MoXmyi9yfRCxW_v2mQNo_8USxAMV3SBPcoyK9g/edit?usp=drive_link" },
+      { name:"TRIGONOMETRÍA", url:"https://docs.google.com/spreadsheets/d/1ywA_V1NxzeSgYpJq_E1TTJzwBM6UHh0Am1pINlOyh8Y/edit?usp=drive_link" },
+      { name:"FÍSICA", url:"https://docs.google.com/spreadsheets/d/1sUAs7uN9FK4i52Kfc840Nv5XkyL4PcqxKQSYX3boKO4/edit?usp=drive_link" },
+      { name:"QUÍMICA", url:"https://docs.google.com/spreadsheets/d/1XW3amXv3IsjBdwKcqc6j4g2y1VLCeO_CyctS_j9dsPc/edit?usp=drive_link" },
+      { name:"BIOLOGÍA", url:"https://docs.google.com/spreadsheets/d/1OKo9aSm8jk4RCeTA-Xt9i0zpVvJSJqxZ-DQvuHQPQbI/edit?usp=drive_link" },
     ]
   };
 
@@ -7435,7 +7461,7 @@ const MATERIALES = [
   { uni:"AGRARIA",   url:"https://drive.google.com/drive/folders/1pDEZ0rG3l27snsgp4UGo0qaS5irT2f2d?usp=sharing" },
   { uni:"U.LIMA",    url:"https://drive.google.com/drive/folders/1LBTg5hU3Qhbxi6LNt8NgIkJD73QGQUmw?usp=drive_link" },
   { uni:"PUCP",      url:"https://drive.google.com/drive/folders/1FfUL4GEiHALYEOhBHTJA3SzHVotRGv0k?usp=sharing" },
-  { uni:"ESCOLARES", url:"" },
+  { uni:"ESCOLARES", url:"https://drive.google.com/drive/folders/1nUdMaZU2n6b-FZlfR9WI2041e_aoOPYy" },
 ];
 
 // ===================== NOTAS GENERALES (NUEVO) =====================
@@ -8067,7 +8093,18 @@ function renderMateriales(){
   "Textos",
   "Álgebra",
   "Simulacros"],
-    "ESCOLARES":["(Definir cursos escolares)"]
+    "ESCOLARES":[
+      "Razonamiento Verbal",
+      "Razonamiento Matemático",
+      "Aritmética",
+      "Álgebra",
+      "Geometría",
+      "Trigonometría",
+      "Física",
+      "Química",
+      "Biología",
+      "Simulacros"
+    ]
   };
 
   const UNI_KEY="LM_MAT_UI_UNI";
@@ -9997,6 +10034,15 @@ el.dataset.ready = "1";
     return "VIRT";
   }
 
+  function isEscolaresIntegralesSchedule(sch){
+    const raw = [
+      String(sch?.id || ""),
+      String(sch?.salon || ""),
+      String(sch?.uni || "")
+    ].join(" ").toUpperCase();
+    return raw.includes("INTEGRAL");
+  }
+
   function baseColumnKeyForSchedule(sch){
     if (sch.uni === "AGRARIA"){
       if (String(sch.salon||"").toUpperCase().includes("ESCOLAR")) return "ESCOLARES";
@@ -10011,7 +10057,8 @@ el.dataset.ready = "1";
       return "ULIMA_1";
     }
     if (sch.uni === "PUCP") return "PUCP";
-    return "ESCOLARES";
+    if (sch.uni === "ESCOLARES") return isEscolaresIntegralesSchedule(sch) ? "ESCOLARES_INTEGRALES" : "ESCOLARES";
+    return isEscolaresIntegralesSchedule(sch) ? "ESCOLARES_INTEGRALES" : "ESCOLARES";
   }
 
   function expandColKeyForLocal(local, baseKey){
@@ -10022,6 +10069,7 @@ el.dataset.ready = "1";
     if (baseKey === "ULIMA_2") return `ULIMA_${lc}_2`;
     if (baseKey === "PUCP") return `PUCP_${lc}`;
     if (baseKey === "ESCOLARES") return `ESCOLARES_${lc}`;
+    if (baseKey === "ESCOLARES_INTEGRALES") return `ESCOLARES_INTEGRALES_${lc}`;
     return `${baseKey}_${lc}`;
   }
 
@@ -10049,7 +10097,10 @@ el.dataset.ready = "1";
     if (t === "AGRARIA") return `AGRARIA ${lc}${String(colKey).endsWith("_2") ? " 2" : " 1"}`;
     if (t === "U.LIMA") return `ULIMA ${lc}${String(colKey).endsWith("_2") ? " 2" : " 1"}`;
     if (t === "PUCP") return `PUCP ${lc}`;
-    if (t === "ESCOLARES") return `ESCOLARES ${lc}`;
+    if (t === "ESCOLARES"){
+      if (String(colKey||"").toUpperCase().startsWith("ESCOLARES_INTEGRALES_")) return `ESCOLARES INTEGRALES ${lc}`;
+      return `ESCOLARES ${lc}`;
+    }
     return fallback || `${t} ${lc}`;
   }
 
@@ -10183,6 +10234,7 @@ el.dataset.ready = "1";
       { key:"ULIMA_2",   label:"U.LIMA 2" },
       { key:"PUCP",      label:"PUCP" },
       { key:"ESCOLARES", label:"ESCOLARES" },
+      { key:"ESCOLARES_INTEGRALES", label:"ESCOLARES INTEGRALES" },
     ];
 
     // index
@@ -10209,7 +10261,7 @@ el.dataset.ready = "1";
 
     if (mx){
       mx.innerHTML = `
-        <div class="schMatrix">
+        <div class="schMatrix" style="--mxCols:${COLS.length};">
           <div class="mxCorner"></div>
           ${headCells}
           ${rows}
