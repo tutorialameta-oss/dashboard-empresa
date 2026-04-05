@@ -8118,6 +8118,32 @@ function renderMateriales(){
     ]
   };
 
+  const ESCOLARES_INTEGRAL_COURSES = COURSES["ESCOLARES"];
+  const ESCOLARES_ARS_COURSES = [
+    "Números y Operaciones",
+    "Geometría y Medida",
+    "Álgebra",
+    "Textos",
+    "Simulacros"
+  ];
+
+  function mcMaterialProgramNameRaw(program){
+    return String(program?.meta?.name || "").trim();
+  }
+  function mcMaterialDisplayProgramName(program){
+    const raw = mcMaterialProgramNameRaw(program);
+    const normalized = raw.toUpperCase().replace(/\s+/g, " ").trim();
+    if (normalized === "ESCOLARES AGRARIA" || normalized === "ESCOLARES AGRARAI") return "ESCOLARES INTEGRAL";
+    return normalized || "(SIN PROGRAMAS)";
+  }
+  function mcMaterialCoursesFor(uniLabel, program){
+    const uniNorm = mcNormLabel(uniLabel);
+    if (uniNorm !== "ESCOLARES") return COURSES[uniNorm] || [];
+    const name = mcMaterialProgramNameRaw(program).toUpperCase();
+    if (name.includes("ARS")) return ESCOLARES_ARS_COURSES;
+    return ESCOLARES_INTEGRAL_COURSES;
+  }
+
   const UNI_KEY="LM_MAT_UI_UNI";
   const PROG_KEY="LM_MAT_UI_PROG";
   const COURSE_KEY="LM_MAT_UI_COURSE";
@@ -8130,7 +8156,7 @@ function renderMateriales(){
   const progIdSaved = localStorage.getItem(PROG_KEY) || "";
   const prog = uniPrograms.find(p=>p.id===progIdSaved) || uniPrograms[0] || null;
 
-  const courses = COURSES[uni] || [];
+  const courses = mcMaterialCoursesFor(uni, prog);
   const savedCourse = localStorage.getItem(COURSE_KEY) || "";
   const course = courses.includes(savedCourse) ? savedCourse : (courses[0]||"");
 
@@ -8242,7 +8268,7 @@ function renderMateriales(){
       <div class="mrSelRow" style="flex-wrap:wrap;">
         <label style="font-weight:950; color:var(--muted);">PROGRAMA
           <select id="mcP2" style="margin-left:8px; padding:8px 10px; border-radius:12px; border:1px solid var(--border); font-weight:900;">
-            ${(uniPrograms.length?uniPrograms:[{id:"",meta:{name:"(Sin programas)"} }]).map(p=>`<option value="${escapeHtml(p.id||"")}">${escapeHtml(String(p?.meta?.name||"").toUpperCase()||"(SIN PROGRAMAS)")}</option>`).join("")}
+            ${(uniPrograms.length?uniPrograms:[{id:"",meta:{name:"(Sin programas)"} }]).map(p=>`<option value="${escapeHtml(p.id||"")}">${escapeHtml(mcMaterialDisplayProgramName(p))}</option>`).join("")}
           </select>
         </label>
 
