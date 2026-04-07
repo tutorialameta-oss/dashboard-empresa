@@ -6502,7 +6502,18 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
       { name:"LENGUAJE", url:"https://docs.google.com/spreadsheets/d/1-CucKZAZHYKPu3Z2FxZc6iz0hiWpptb2xJh_UwjTi2o/edit?gid=11988891#gid=11988891" },
       { name:"HABILIDAD OPERATIVA", url:"https://docs.google.com/spreadsheets/d/1GrTdfQVKnTjor-e6sso2s1ydN9nh0DbF8uj1VY9ZbVQ/edit?gid=11988891#gid=11988891" },
     ],
-    "ESCOLARES": [
+    "ESCOLARES INTEGRAL": [
+      { name:"RAZONAMIENTO VERBAL", url:"https://docs.google.com/spreadsheets/d/1_5Uv3ej180TWxwNJSV4-qVL_GL9ErWrYEann35wtioY/edit?usp=drive_link" },
+      { name:"RAZONAMIENTO MATEMÁTICO", url:"https://docs.google.com/spreadsheets/d/1p1fpN4v9Zly4EhHRf3qMRbdceQFDmBSpUE1zjrpnbo0/edit?usp=drive_link" },
+      { name:"ARITMÉTICA", url:"https://docs.google.com/spreadsheets/d/1-H9iMGTMPsVD6TlRyU60QArWnTbTs-49-wVxUfmXfoU/edit?usp=drive_link" },
+      { name:"ÁLGEBRA", url:"https://docs.google.com/spreadsheets/d/1gEHKQV3Fa-NQkMaMFl0N7iM9D-MEfKEMKQ1xaAuFPTY/edit?usp=drive_link" },
+      { name:"GEOMETRÍA", url:"https://docs.google.com/spreadsheets/d/1GVqc3MoXmyi9yfRCxW_v2mQNo_8USxAMV3SBPcoyK9g/edit?usp=drive_link" },
+      { name:"TRIGONOMETRÍA", url:"https://docs.google.com/spreadsheets/d/1ywA_V1NxzeSgYpJq_E1TTJzwBM6UHh0Am1pINlOyh8Y/edit?usp=drive_link" },
+      { name:"FÍSICA", url:"https://docs.google.com/spreadsheets/d/1sUAs7uN9FK4i52Kfc840Nv5XkyL4PcqxKQSYX3boKO4/edit?usp=drive_link" },
+      { name:"QUÍMICA", url:"https://docs.google.com/spreadsheets/d/1XW3amXv3IsjBdwKcqc6j4g2y1VLCeO_CyctS_j9dsPc/edit?usp=drive_link" },
+      { name:"BIOLOGÍA", url:"https://docs.google.com/spreadsheets/d/1OKo9aSm8jk4RCeTA-Xt9i0zpVvJSJqxZ-DQvuHQPQbI/edit?usp=drive_link" },
+    ],
+    "ESCOLARES ARS - POP": [
       { name:"RAZONAMIENTO VERBAL", url:"https://docs.google.com/spreadsheets/d/1_5Uv3ej180TWxwNJSV4-qVL_GL9ErWrYEann35wtioY/edit?usp=drive_link" },
       { name:"RAZONAMIENTO MATEMÁTICO", url:"https://docs.google.com/spreadsheets/d/1p1fpN4v9Zly4EhHRf3qMRbdceQFDmBSpUE1zjrpnbo0/edit?usp=drive_link" },
       { name:"ARITMÉTICA", url:"https://docs.google.com/spreadsheets/d/1-H9iMGTMPsVD6TlRyU60QArWnTbTs-49-wVxUfmXfoU/edit?usp=drive_link" },
@@ -6519,8 +6530,15 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
     if (uni==="AGRARIA") return getCss("--agraria");
     if (uni==="U.LIMA") return getCss("--ulima");
     if (uni==="PUCP") return getCss("--pucp");
-    if (uni==="ESCOLARES") return getCss("--schHead_ESC");
+    if (uni==="ESCOLARES ARS - POP") return getCss("--pucp");
+    if (uni==="ESCOLARES" || uni==="ESCOLARES INTEGRAL") return getCss("--schHead_ESC");
     return getCss("--ulima");
+  }
+
+  function silaboUniKey(uniRaw){
+    const u = String(uniRaw || "").toUpperCase().trim();
+    if (u === "ESCOLARES") return "ESCOLARES INTEGRAL";
+    return uniRaw;
   }
 
   function ensureSilabosLayout(){
@@ -6581,7 +6599,8 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
           <span class="pill"><span class="dot agraria"></span>AGRARIA</span>
           <span class="pill"><span class="dot ulima"></span>U.LIMA</span>
           <span class="pill"><span class="dot pucp"></span>PUCP</span>
-          <span class="pill"><span class="dot escolares"></span>ESCOLARES</span>
+          <span class="pill"><span class="dot escolares"></span>ESCOLARES INTEGRAL</span>
+          <span class="pill"><span class="dot pucp"></span>ESCOLARES ARS - POP</span>
         </div>
         <div class="panelHint" style="margin-top:8px; color:var(--muted);">
         </div>
@@ -6592,7 +6611,7 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
           <div class="cardtitle" style="margin:0;">RESUMEN GENERAL</div>
           <div class="syKpis">
             <span class="syKpiPill">CURSOS: <b id="sTotal">0</b></span>
-            <span class="syKpiPill">UNIVERSIDADES: <b id="sUnis">4</b></span>
+            <span class="syKpiPill">UNIVERSIDADES: <b id="sUnis">5</b></span>
           </div>
         </div>
       </div>
@@ -6600,7 +6619,7 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
       <div class="panel12" id="sBlocks"></div>
     `;
 
-    fillSelectKeep("sUni", ["AGRARIA","U.LIMA","PUCP","ESCOLARES"], "UNIVERSIDAD: TODAS");
+    fillSelectKeep("sUni", ["AGRARIA","U.LIMA","PUCP","ESCOLARES INTEGRAL","ESCOLARES ARS - POP"], "UNIVERSIDAD: TODAS");
 
     document.getElementById("sReset").addEventListener("click", ()=>{
       document.getElementById("sUni").value="__ALL__";
@@ -6638,14 +6657,14 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
         return;
       }
 
-      const uni = uniKey(prof.uni || prof.uni_sheet || prof.ciclo || "") || (prof.uni || "-");
+      const uni = silaboUniKey(uniKey(prof.uni || prof.uni_sheet || prof.ciclo || "") || (prof.uni || "-"));
       let list = (SILABOS[uni] || []).slice();
       if (q) list = list.filter(x => low(x.name).includes(q));
 
       if (uniOnlyEl) uniOnlyEl.textContent = uni;
       if (totalEl) totalEl.textContent = String(list.length);
       if (uniPill){
-        uniPill.innerHTML = `<span class="dot" style="background:${uniDotColor(uni)};"></span><b>${escapeHtml(uni)}</b>`;
+        uniPill.innerHTML = `<span class="dot" style="background:${uniDot(uni)};"></span><b>${escapeHtml(uni)}</b>`;
       }
 
       const items = list.map(it=>{
@@ -6654,7 +6673,7 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
             <div class="syLeft">
               <div class="syCourse">${escapeHtml(it.name)}</div>
               <div class="syMeta">
-                <span class="dot" style="background:${uniDotColor(uni)};"></span>
+                <span class="dot" style="background:${uniDot(uni)};"></span>
                 <span>${escapeHtml(uni)}</span>
               </div>
             </div>
@@ -6686,7 +6705,7 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
     const fUni = document.getElementById("sUni").value;
     const q = low(document.getElementById("sQ").value);
 
-    const uniOrder = ["AGRARIA","U.LIMA","PUCP","ESCOLARES"];
+    const uniOrder = ["AGRARIA","U.LIMA","PUCP","ESCOLARES INTEGRAL","ESCOLARES ARS - POP"];
     let unis = uniOrder.slice();
     if (fUni !== "__ALL__") unis = unis.filter(u=>u===fUni);
 
