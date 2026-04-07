@@ -963,6 +963,19 @@
       --schHead: var(--schHead_ESC);
       --schCell: var(--schCell_ESC);
     }
+    /* Ajustes especiales para matriz de ESCOLARES */
+    .schCard[data-cycle^="ESCOLARES_"]{
+      --schHead: var(--schHead_AGR);
+      --schCell: var(--schCell_AGR);
+    }
+    .schCard[data-cycle="ESCOLARES_SM"]{
+      --schHead: var(--schHead_PUCP);
+      --schCell: var(--schCell_PUCP);
+    }
+    .schCard[data-cycle^="ESCOLARES_INTEGRALES_"]{
+      --schHead: var(--schHead_UL);
+      --schCell: var(--schCell_UL);
+    }
 
     /* ===================== MODO EXPORT PNG (FORMATO HORIZONTAL) ===================== */
     body.exportMode .schCard{
@@ -981,6 +994,9 @@
     body.exportMode .cell4 .tLine{ font-size:11px !important; font-weight:500 !important; }
     body.exportMode .schTable thead th{ font-size:11px !important; }
     body.exportMode .schTable .timeCell{ font-size:12px !important; }
+    body.exportMode .schCard .schHead .hActions{ display:none !important; }
+    body.exportMode .schCard .schUniPill{ display:none !important; }
+    body.exportMode .schCard .schHead button{ display:none !important; }
 
     /* ===================== IMPRESIONES ===================== */
     .iGrid{
@@ -9184,7 +9200,7 @@ function renderReportes(){
             <p class="sal">${escapeHtml(s.salon)}</p>
           </div>
 
-          <div style="display:flex; gap:10px; align-items:center;">
+          <div class="hActions" style="display:flex; gap:10px; align-items:center;">
             <div class="schUniPill">
               <span class="b" style="background:${dot};"></span>
               ${escapeHtml(s.uni)}
@@ -10135,8 +10151,10 @@ el.dataset.ready = "1";
     if (t === "U.LIMA") return `ULIMA ${lc}${String(colKey).endsWith("_2") ? " 2" : " 1"}`;
     if (t === "PUCP") return `PUCP ${lc}`;
     if (t === "ESCOLARES"){
-      if (String(colKey||"").toUpperCase().startsWith("ESCOLARES_INTEGRALES_")) return `ESCOLARES INTEGRALES ${lc}`;
-      return `ESCOLARES ${lc}`;
+      const c = String(colKey||"").toUpperCase();
+      if (c.startsWith("ESCOLARES_INTEGRALES_")) return "ESCOLARES";
+      if (local === "SAN MIGUEL") return "ESCOLARES ARS - POP";
+      return "ESCOLARES";
     }
     return fallback || `${t} ${lc}`;
   }
