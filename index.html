@@ -994,6 +994,9 @@
     body.exportMode .cell4 .tLine{ font-size:11px !important; font-weight:500 !important; }
     body.exportMode .schTable thead th{ font-size:11px !important; }
     body.exportMode .schTable .timeCell{ font-size:12px !important; }
+    body.exportMode .schCard .schHead .hActions{ display:none !important; }
+    body.exportMode .schCard .schUniPill{ display:none !important; }
+    body.exportMode .schCard .schHead button{ display:none !important; }
 
     /* ===================== IMPRESIONES ===================== */
     .iGrid{
@@ -9197,7 +9200,7 @@ function renderReportes(){
             <p class="sal">${escapeHtml(s.salon)}</p>
           </div>
 
-          <div style="display:flex; gap:10px; align-items:center;">
+          <div class="hActions" style="display:flex; gap:10px; align-items:center;">
             <div class="schUniPill">
               <span class="b" style="background:${dot};"></span>
               ${escapeHtml(s.uni)}
