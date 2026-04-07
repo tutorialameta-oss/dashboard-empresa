@@ -7491,7 +7491,8 @@ const MATERIALES = [
   { uni:"AGRARIA",   url:"https://drive.google.com/drive/folders/1pDEZ0rG3l27snsgp4UGo0qaS5irT2f2d?usp=sharing" },
   { uni:"U.LIMA",    url:"https://drive.google.com/drive/folders/1LBTg5hU3Qhbxi6LNt8NgIkJD73QGQUmw?usp=drive_link" },
   { uni:"PUCP",      url:"https://drive.google.com/drive/folders/1FfUL4GEiHALYEOhBHTJA3SzHVotRGv0k?usp=sharing" },
-  { uni:"ESCOLARES", url:"https://drive.google.com/drive/folders/1nUdMaZU2n6b-FZlfR9WI2041e_aoOPYy" },
+  { uni:"ESCOLARES INTEGRAL", url:"https://drive.google.com/drive/folders/1nUdMaZU2n6b-FZlfR9WI2041e_aoOPYy" },
+  { uni:"ESCOLARES ARS - POP", url:"https://drive.google.com/drive/folders/1wwFhp2o9m8oE9px2kI8D4chWrHjaPSou" },
 ];
 
 // ===================== NOTAS GENERALES (NUEVO) =====================
@@ -8059,12 +8060,13 @@ function renderMateriales(){
   // ===== tarjetas de carpetas (accesos directos) =====
   const grid = document.getElementById("matGrid");
   if (grid){
-    const MAT_UNI_ORDER = ["AGRARIA","U.LIMA","PUCP","ESCOLARES"];
+    const MAT_UNI_ORDER = ["AGRARIA","U.LIMA","PUCP","ESCOLARES INTEGRAL","ESCOLARES ARS - POP"];
     const MAT_UNI_COLOR = {
       "AGRARIA": getCss("--agraria"),
       "U.LIMA": getCss("--ulima"),
       "PUCP": getCss("--pucp"),
-      "ESCOLARES": getCss("--schHead_ESC")
+      "ESCOLARES INTEGRAL": getCss("--schHead_ESC"),
+      "ESCOLARES ARS - POP": getCss("--pucp")
     };
 
     const orderedMaterials = MAT_UNI_ORDER.map(u=>{
