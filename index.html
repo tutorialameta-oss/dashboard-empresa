@@ -2547,7 +2547,7 @@
   // ⚠️ CAMBIA ESTAS CLAVES AQUÍ
   const AUTH_ADMIN_PASS = "202619";
   const AUTH_TUTOR_PASS = "MBMLaMeta";
-  const APP_BUILD = "2026-05-06-pre-ulima-horarios";
+  const APP_BUILD = "2026-05-06-pre-ulima-final";
 
   const ROLE_KEY = "lameta_role";
   const STUDENT_USER_KEY = "lameta_student_user";
@@ -4987,7 +4987,6 @@ const tw = pgxTotalWeeks();
     "U.LIMA": getCss("--ulima"),
     "AGRARIA": getCss("--agraria"),
     "ESCOLARES": getCss("--schHead_ESC"),
-    "ADELANTO/PARALELO": getCss("--accent2"),
   };
 
   function getCss(varName){
@@ -6249,17 +6248,11 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
    * Reglas solicitadas:
    * 1) Quitar "ACTUALIZADO" (ya no se muestra en UI)
    * 2) OTRO: punto ROJO + número ROJO (mismo color)
-   * 3) PARALELO: mostrar etiqueta "U.LIMA" pero en ROJO (no naranja)
-   * 4) Orden fijo en cada local: AGRARIA -> U.LIMA -> PUCP -> ESCOLARES -> ADELANTO/PARALELO
+   * 3) Orden fijo en cada local: AGRARIA -> U.LIMA -> PUCP -> ESCOLARES
    */
   function imprMetaFromSalon(salon){
     const s = String(salon||"").toUpperCase();
 
-    // Caso especial: PARALELO/ADELANTO -> etiqueta ADELANTO / PARALELO en rojo
-    if (s.includes("PARALELO") || s.includes("ADELANTO")){
-      const red = getCss("--accent2");
-      return { group: 4, label: "ADELANTO / PARALELO", dot: red, num: red };
-    }
 
     const uni = inferUniFromSalonLabel(salon);
 
@@ -6320,6 +6313,7 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
 
         const up = salon.toUpperCase();
         if (up.includes("IMPRESION")) continue; // evita encabezados del estilo "# IMPRESIONES"
+        if (up.includes("ADELANTO") || up.includes("PARALELO")) continue; // ya no se usan en IMPRESIONES
 
         const count = toInt(grid[r][cc.colCount] || "0");
         out.push({ local: cc.local, salon, count });
@@ -6367,7 +6361,6 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
           <span class="pill"><span class="dot ulima"></span>U.LIMA</span>
           <span class="pill"><span class="dot pucp"></span>PUCP</span>
           <span class="pill"><span class="dot escolares"></span>ESCOLARES</span>
-          <span class="pill"><span class="dot" style="background:${getCss("--accent2")};"></span>ADELANTO / PARALELO</span>
         </div>
       </div>
 
@@ -6423,7 +6416,7 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
     });
 
     // Orden de tarjetas dentro de cada local:
-    // AGRARIA (0) -> U.LIMA (1) -> PUCP (2) -> ESCOLARES (3) -> ADELANTO/PARALELO (4)
+    // AGRARIA (0) -> U.LIMA (1) -> PUCP (2) -> ESCOLARES (3)
     function itemSortKey(it){
       const meta = imprMetaFromSalon(it.salon);
       return [meta.group, String(it.salon||"").toUpperCase()];
@@ -9024,23 +9017,45 @@ function renderReportes(){
     { start:"20:30", end:"21:00", label:"20:30 - 21:00" },
   ];
 
+  function timeMarksFromRows(rows){
+    const marks = rows.map(r=>r.start);
+    if (rows.length) marks.push(rows[rows.length-1].end);
+    return marks;
+  }
+
+  const TIME_ROWS_PRE_ULIMA = TIME_ROWS.filter(r=>r.start >= "15:00" && r.end <= "18:00");
+
+  function isPreUlimaKey(value){
+    return String(value||"").toUpperCase().startsWith("PRE_ULIMA_");
+  }
+
+  function isPreUlimaSchedule(schedule){
+    const raw = [schedule?.id, schedule?.salon, schedule?.__colKey, schedule?.__cardKey].map(x=>String(x||"").toUpperCase()).join(" ");
+    return raw.includes("PRE_UL") || raw.includes("PRE U.LIMA") || raw.includes("PRE ULIMA");
+  }
+
   function getTimeRowsForUni(uni){
     return mcNormLabel(uni) === "ESCOLARES" ? TIME_ROWS_ESCOLARES : TIME_ROWS;
   }
 
-  const TIME_MARKS = (()=>{
-    const marks = TIME_ROWS.map(r=>r.start);
-    marks.push(TIME_ROWS[TIME_ROWS.length-1].end);
-    return marks;
-  })();
-  const TIME_MARKS_ESCOLARES = (()=>{
-    const marks = TIME_ROWS_ESCOLARES.map(r=>r.start);
-    marks.push(TIME_ROWS_ESCOLARES[TIME_ROWS_ESCOLARES.length-1].end);
-    return marks;
-  })();
+  function getTimeRowsForSchedule(schedule){
+    if (isPreUlimaSchedule(schedule)) return TIME_ROWS_PRE_ULIMA;
+    return getTimeRowsForUni(schedule?.uni);
+  }
+
+  const TIME_MARKS = timeMarksFromRows(TIME_ROWS);
+  const TIME_MARKS_ESCOLARES = timeMarksFromRows(TIME_ROWS_ESCOLARES);
+  const TIME_MARKS_PRE_ULIMA = timeMarksFromRows(TIME_ROWS_PRE_ULIMA);
+
   function getTimeMarksForUni(uni){
     return mcNormLabel(uni) === "ESCOLARES" ? TIME_MARKS_ESCOLARES : TIME_MARKS;
   }
+
+  function getTimeMarksForSchedule(schedule){
+    if (isPreUlimaSchedule(schedule)) return TIME_MARKS_PRE_ULIMA;
+    return getTimeMarksForUni(schedule?.uni);
+  }
+
   function idxMark(t, uni){ return getTimeMarksForUni(uni).indexOf(t); }
 
   function normalizeDayKey(d){
@@ -9132,8 +9147,8 @@ function renderReportes(){
   }
 
   function buildScheduleMatrix(schedule){
-    const timeRows = getTimeRowsForUni(schedule?.uni);
-    const timeMarks = getTimeMarksForUni(schedule?.uni);
+    const timeRows = getTimeRowsForSchedule(schedule);
+    const timeMarks = getTimeMarksForSchedule(schedule);
     const idxMarkLocal = (t)=>timeMarks.indexOf(t);
 
     const rows = timeRows.map(()=> {
@@ -9199,7 +9214,7 @@ function renderReportes(){
 
   function scheduleToHtmlCard(s){
     const dot = uniDotColor(s.uni);
-    const timeRows = getTimeRowsForUni(s.uni);
+    const timeRows = getTimeRowsForSchedule(s);
     const matrix = buildScheduleMatrix(s);
 
     const colgroup = `
@@ -10237,7 +10252,7 @@ el.dataset.ready = "1";
     const t = cycleTypeFromColKey(colKey);
     const lc = localCodeFromName(local);
     if (t === "AGRARIA") return `AGRARIA ${lc}${String(colKey).endsWith("_2") ? " 2" : " 1"}`;
-    if (String(colKey||"").toUpperCase().startsWith("PRE_ULIMA_")) return `PRE U.LIMA ${lc}`;
+    if (String(colKey||"").toUpperCase().startsWith("PRE_ULIMA_")) return "PRE U.LIMA";
     if (t === "U.LIMA") return `ULIMA ${lc}${String(colKey).endsWith("_2") ? " 2" : " 1"}`;
     if (t === "PUCP") return `PUCP ${lc}`;
     if (t === "ESCOLARES"){
@@ -10476,8 +10491,8 @@ el.dataset.ready = "1";
     document.getElementById("hceEnd").innerHTML = marksHtml;
   }
 
-  function refreshHorariosCellTimeOptions(uni, startVal, endVal){
-    const marks = getTimeMarksForUni(uni);
+  function refreshHorariosCellTimeOptions(uni, startVal, endVal, colKey){
+    const marks = isPreUlimaKey(colKey) ? TIME_MARKS_PRE_ULIMA : getTimeMarksForUni(uni);
     const marksHtml = marks.map(t=>`<option value="${t}">${t}</option>`).join("");
     const sEl = document.getElementById("hceStart");
     const eEl = document.getElementById("hceEnd");
@@ -10502,7 +10517,7 @@ el.dataset.ready = "1";
     if (sub) sub.textContent = `Celda ${day} ${String(ctx.start||"")} - ${String(ctx.end||"")}`;
     document.getElementById("hceDay").value = day;
     document.getElementById("hceCourse").value = String(ctx.course || "");
-    refreshHorariosCellTimeOptions(ctx.uni || "", ctx.start || "08:00", ctx.end || "09:50");
+    refreshHorariosCellTimeOptions(ctx.uni || "", ctx.start || "15:00", ctx.end || "15:30", ctx.colKey || ctx.phColKey || "");
 
     ov.style.display = "flex";
     setTimeout(()=>{ const c = document.getElementById("hceCourse"); if (c){ c.focus(); c.select(); } }, 0);
@@ -10522,8 +10537,9 @@ el.dataset.ready = "1";
     const start = document.getElementById("hceStart").value;
     const end = document.getElementById("hceEnd").value;
 
-    const is = idxMark(start, HORARIOS_CELL_EDIT_CTX.uni);
-    const ie = idxMark(end, HORARIOS_CELL_EDIT_CTX.uni);
+    const timeMarksCtx = isPreUlimaKey(HORARIOS_CELL_EDIT_CTX.colKey || HORARIOS_CELL_EDIT_CTX.phColKey || "") ? TIME_MARKS_PRE_ULIMA : getTimeMarksForUni(HORARIOS_CELL_EDIT_CTX.uni);
+    const is = timeMarksCtx.indexOf(start);
+    const ie = timeMarksCtx.indexOf(end);
     if (!DAYS.includes(day) || is < 0 || ie < 0 || is >= ie){
       alert("Rango horario inválido.");
       return;
@@ -10595,8 +10611,9 @@ el.dataset.ready = "1";
         blocks: []
       };
 
+      sch.__colKey = card.getAttribute("data-colkey") || matrixColumnKeyForSchedule(sch);
       const matrix = buildScheduleMatrix(sch);
-      const timeRows = getTimeRowsForUni(sch.uni);
+      const timeRows = getTimeRowsForSchedule(sch);
       const rows = Array.from(card.querySelectorAll("tbody tr"));
       rows.forEach((tr, r)=>{
         const tds = Array.from(tr.querySelectorAll("td"));
@@ -10613,6 +10630,7 @@ el.dataset.ready = "1";
           td.dataset.end = (cell.kind === "start") ? timeRows[Math.min(timeRows.length-1, r + Number(cell.rowspan||1) - 1)].end : timeRows[r].end;
           td.dataset.course = (cell.kind === "start" && cell.block) ? String(cell.block.course||"") : "";
           td.dataset.uni = sch.uni || "";
+          td.dataset.colKey = card.getAttribute("data-colkey") || "";
           td.dataset.blockIndex = "-1";
           if (cell.kind === "start"){
             const idx = (sch.blocks||[]).findIndex(b=>normalizeDayKey(b.day)===d && b.start===td.dataset.start && b.end===td.dataset.end && String(b.course||"")===td.dataset.course);
@@ -11009,6 +11027,7 @@ el.dataset.ready = "1";
       course: cell.dataset.course || "",
       blockIndex: Number(cell.dataset.blockIndex || "-1"),
       cardKey: cell.dataset.cardKey || card.getAttribute("data-cardkey") || "",
+      colKey: cell.dataset.colKey || card.getAttribute("data-colkey") || "",
       isPlaceholder: cell.dataset.placeholder === "1",
       phLocal: cell.dataset.phLocal || "",
       phColKey: cell.dataset.phColKey || ""
