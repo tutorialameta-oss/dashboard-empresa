@@ -2547,7 +2547,7 @@
   // ⚠️ CAMBIA ESTAS CLAVES AQUÍ
   const AUTH_ADMIN_PASS = "202619";
   const AUTH_TUTOR_PASS = "MBMLaMeta";
-  const APP_BUILD = "2026-02-26-auth-hotfix-2";
+  const APP_BUILD = "2026-05-06-pre-ulima-final";
 
   const ROLE_KEY = "lameta_role";
   const STUDENT_USER_KEY = "lameta_student_user";
@@ -2910,17 +2910,20 @@ const SALONES = [
     { local:"LA MOLINA", ciclo:"AGRARIA",  salon:"AGRARIA LM 2", gid:1323349050 },
     { local:"LA MOLINA", ciclo:"PUCP",     salon:"PUCP LM",     gid:876641694 },
     { local:"LA MOLINA", ciclo:"U.LIMA",   salon:"U.LIMA LM",   gid:479676259 },
+    { local:"LA MOLINA", ciclo:"U.LIMA",   salon:"PRE U.LIMA LM", gid:916203735 },
    // { local:"LA MOLINA", ciclo:"ADELANTO", salon:"ADELANTO LM", gid:1271606284 },
   //  { local:"LA MOLINA", ciclo:"PARALELO", salon:"PARALELO LM", gid:1863430245 },
 
     { local:"SAN BORJA", ciclo:"AGRARIA", salon:"AGRARIA SB",  gid:1870866968 },
     { local:"SAN BORJA", ciclo:"PUCP",    salon:"PUCP SB",     gid:96974048 },
     { local:"SAN BORJA", ciclo:"U.LIMA",  salon:"U.LIMA SB 1", gid:626603572 },
+    { local:"SAN BORJA", ciclo:"U.LIMA",  salon:"PRE U.LIMA SB", gid:1823590015 },
    //{ local:"SAN BORJA", ciclo:"U.LIMA",  salon:"U.LIMA SB 2", gid:1856014712 },
 
     { local:"SAN MIGUEL", ciclo:"AGRARIA",  salon:"AGRARIA SM",  gid:511460041 },
     { local:"SAN MIGUEL", ciclo:"PUCP",     salon:"PUCP SM",     gid:213782657 },
     { local:"SAN MIGUEL", ciclo:"U.LIMA",   salon:"U.LIMA SM 1", gid:1004521782 },
+    { local:"SAN MIGUEL", ciclo:"U.LIMA",   salon:"PRE U.LIMA SM", gid:108211310 },
     //{ local:"SAN MIGUEL", ciclo:"U.LIMA",   salon:"U.LIMA SM 2", gid:679583464 },
   //  { local:"SAN MIGUEL", ciclo:"ADELANTO", salon:"ADELANTO SM", gid:2120250792 },
    // { local:"SAN MIGUEL", ciclo:"PARALELO", salon:"PARALELO SM", gid:721468852 },
@@ -3045,7 +3048,7 @@ const PGX_STORE_KEY   = "LM_PROGRAMA_SHEET_V1_STORE";
     const t = String(theme||"").toUpperCase();
     if (t === "AGRARIA") return {bar:getCss("--schHead_AGR"), cell:getCss("--schCell_AGR")};
     if (t === "PUCP")    return {bar:getCss("--schHead_PUCP"), cell:getCss("--schCell_PUCP")};
-    if (t === "U.LIMA" || t === "ULIMA") return {bar:getCss("--schHead_UL"), cell:getCss("--schCell_UL")};
+    if (t === "U.LIMA" || t === "ULIMA" || t === "PRE U.LIMA" || t === "PRE ULIMA") return {bar:getCss("--schHead_UL"), cell:getCss("--schCell_UL")};
     if (t === "ESCOLARES") return {bar:getCss("--schHead_ESC"), cell:getCss("--schCell_ESC")};
     // default
     return {bar:"#64748b", cell:"#f1f5f9"};
@@ -3065,11 +3068,12 @@ const PGX_STORE_KEY   = "LM_PROGRAMA_SHEET_V1_STORE";
 
 
 // Orden fijo de visualización por universidad/tema (siempre):
-// AGRARIA → U.LIMA → PUCP → ESCOLARES
+// AGRARIA → U.LIMA → PRE U.LIMA → PUCP → ESCOLARES
 function pgxThemeRank(theme){
   const t = String(theme||"").toUpperCase().trim();
   if (t==="AGRARIA") return 1;
   if (t==="U.LIMA" || t==="ULIMA" || t==="UL") return 2;
+  if (t==="PRE U.LIMA" || t==="PRE ULIMA") return 2.5;
   if (t==="PUCP") return 3;
   if (t==="ESCOLARES" || t==="ESCOLAR") return 4;
   return 99;
@@ -3099,6 +3103,15 @@ function pgxInsertProgramId(store, newProgram){
     if (r > rNew){ pos = i; break; }
   }
   store.order.splice(pos, 0, id);
+}
+
+function pgxProgramSpec(kind){
+  const raw = String(kind||"AGRARIA").trim().toUpperCase();
+  if (raw === "PRE U.LIMA" || raw === "PRE ULIMA") return { kind:"PRE U.LIMA", scope:"U.LIMA", theme:"PRE U.LIMA" };
+  if (raw === "U.LIMA" || raw === "ULIMA" || raw === "UL") return { kind:"U.LIMA", scope:"U.LIMA", theme:"U.LIMA" };
+  if (raw === "PUCP") return { kind:"PUCP", scope:"PUCP", theme:"PUCP" };
+  if (raw === "ESCOLARES" || raw === "ESCOLAR") return { kind:"ESCOLARES", scope:"ESCOLARES", theme:"ESCOLARES" };
+  return { kind:"AGRARIA", scope:"AGRARIA", theme:"AGRARIA" };
 }
 
   // Ventana visible por programa (para imitar bloques cortos como tu Excel)
@@ -3195,7 +3208,7 @@ function pgxInsertProgramId(store, newProgram){
       id,
       meta:{
         name: String(name||"PROGRAMA").trim().toUpperCase(),
-        scope: String(scope||"ALL").trim().toUpperCase(), // ALL / AGRARIA / PUCP / U.LIMA
+        scope: String(scope||"ALL").trim().toUpperCase(), // ALL / AGRARIA / PUCP / U.LIMA / ESCOLARES
         theme: String(theme||"AGRARIA").trim().toUpperCase(),
         createdAt: pgxNowISO(),
         updatedAt: pgxNowISO()
@@ -4067,7 +4080,7 @@ if (zoom) zoom.value = pgxZoomOption(pgxGetZoom());
 
         <label>TEMA
           <select id="pgsTheme">
-            ${["AGRARIA","U.LIMA","PUCP","ESCOLARES"].map(x=>`<option value="${x}"${String(p.meta?.theme||"AGRARIA").toUpperCase()===x?" selected":""}>${x}</option>`).join("")}
+            ${["AGRARIA","U.LIMA","PRE U.LIMA","PUCP","ESCOLARES"].map(x=>`<option value="${x}"${String(p.meta?.theme||"AGRARIA").toUpperCase()===x?" selected":""}>${x}</option>`).join("")}
           </select>
         </label>
 
@@ -4295,15 +4308,13 @@ const tw = pgxTotalWeeks();
 
   function pgxCreateProgramFlow(){
     if (!pgxCanEdit() || !pgxGetEditOn()) return;
-    const kind = String(document.getElementById("pgxCreateType")?.value||"AGRARIA").toUpperCase();
-    const allowed = ["AGRARIA","U.LIMA","PUCP","ESCOLARES"];
-    if (!allowed.includes(kind)) return;
+    const spec = pgxProgramSpec(document.getElementById("pgxCreateType")?.value||"AGRARIA");
     const store = pgxLoadStore();
-    const autoName = pgxNextProgramName(kind, store);
+    const autoName = pgxNextProgramName(spec.kind, store);
     const customName = prompt("Nombre del nuevo programa:", autoName);
     if (customName===null) return;
     const name = String(customName||"").trim().toUpperCase() || autoName;
-    const p = pgxDefaultProgram(name, kind, kind);
+    const p = pgxDefaultProgram(name, spec.scope, spec.theme);
     store.programs[p.id]=p;
     pgxInsertProgramId(store, p);
     pgxSaveStore(store);
@@ -4364,6 +4375,7 @@ const tw = pgxTotalWeeks();
           <select id="pgxCreateType">
             <option value="AGRARIA">CICLO: AGRARIA</option>
             <option value="U.LIMA">CICLO: U.LIMA</option>
+            <option value="PRE U.LIMA">CICLO: PRE U.LIMA</option>
             <option value="PUCP">CICLO: PUCP</option>
             <option value="ESCOLARES">CICLO: ESCOLARES</option>
           </select>
@@ -4494,7 +4506,7 @@ const tw = pgxTotalWeeks();
       });
     }
 
-    if (btnNew){ btnNew.addEventListener("click", ()=>{ if (!pgxCanEdit()||!pgxGetEditOn()) return; const name = prompt("Nombre del nuevo programa:", "NUEVO PROGRAMA"); if(!name) return; const kind=(prompt("Tipo (AGRARIA / U.LIMA / PUCP / ESCOLARES):", "AGRARIA")||"AGRARIA").toUpperCase(); const allowed=["AGRARIA","U.LIMA","PUCP","ESCOLARES"]; const theme=allowed.includes(kind)?kind:"AGRARIA"; const scope=theme; const store=pgxLoadStore(); const baseWeeks=pgxTotalWeeks(); const p=pgxDefaultProgram(name,scope,theme); const w=baseWeeks; p.config.lanes.forEach(l=>{ if(l.type==="cells") l.values=Array.from({length:w},(_,i)=>String(l.values?.[i]||"")); }); store.programs[p.id]=p; pgxInsertProgramId(store,p); pgxSaveStore(store); pgxSetActiveId(p.id); pgxSetMode("ONE"); renderPrograma(); toast("Programa creado."); pgxScheduleRelayout(); }); }
+    if (btnNew){ btnNew.addEventListener("click", ()=>{ if (!pgxCanEdit()||!pgxGetEditOn()) return; const name = prompt("Nombre del nuevo programa:", "NUEVO PROGRAMA"); if(!name) return; const spec=pgxProgramSpec(prompt("Tipo (AGRARIA / U.LIMA / PRE U.LIMA / PUCP / ESCOLARES):", "AGRARIA")||"AGRARIA"); const store=pgxLoadStore(); const baseWeeks=pgxTotalWeeks(); const p=pgxDefaultProgram(name,spec.scope,spec.theme); const w=baseWeeks; p.config.lanes.forEach(l=>{ if(l.type==="cells") l.values=Array.from({length:w},(_,i)=>String(l.values?.[i]||"")); }); store.programs[p.id]=p; pgxInsertProgramId(store,p); pgxSaveStore(store); pgxSetActiveId(p.id); pgxSetMode("ONE"); renderPrograma(); toast("Programa creado."); pgxScheduleRelayout(); }); }
     if (btnDel){ btnDel.addEventListener("click", ()=>{ if(!pgxCanEdit()||!pgxGetEditOn()) return; const id=pgxGetActiveId(); if(!id) return; if(!confirm("¿Eliminar este programa?")) return; const store=pgxLoadStore(); delete store.programs[id]; store.order=store.order.filter(x=>x!==id); pgxSaveStore(store); pgxSetActiveId(store.order[0]||""); renderPrograma(); toast("Programa eliminado."); pgxScheduleRelayout(); }); }
     if (btnJson){ btnJson.addEventListener("click", ()=>{ if(!pgxCanEdit()||!pgxGetEditOn()) return; const id=pgxGetActiveId(); const store=pgxLoadStore(); const baseWeeks=pgxTotalWeeks(); let p=store.programs[id]; if(p) p=pgxUpgradeProgram(p,baseWeeks); if(!p) return; const raw=prompt("Editor JSON (pega JSON válido). Sugerencia: copia primero para respaldo.", JSON.stringify(p,null,2)); if(!raw) return; try{ const obj=JSON.parse(raw); if(!obj||!obj.id) throw new Error(); obj.meta=obj.meta||{}; obj.meta.updatedAt=pgxNowISO(); store.programs[obj.id]=obj; if(!store.order.includes(obj.id)) store.order.push(obj.id); pgxSaveStore(store); pgxSetActiveId(obj.id); renderPrograma(); toast("JSON guardado."); pgxScheduleRelayout(); }catch(e){ alert("JSON inválido. No se guardó."); } }); }
     if (btnSet){ btnSet.addEventListener("click", ()=>{ if(!pgxCanEdit()||!pgxGetEditOn()) return; pgxSetSettingsOpen(!pgxGetSettingsOpen()); renderPrograma(); pgxScheduleRelayout(); }); }
@@ -4975,7 +4987,6 @@ const tw = pgxTotalWeeks();
     "U.LIMA": getCss("--ulima"),
     "AGRARIA": getCss("--agraria"),
     "ESCOLARES": getCss("--schHead_ESC"),
-    "ADELANTO/PARALELO": getCss("--accent2"),
   };
 
   function getCss(varName){
@@ -6237,17 +6248,11 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
    * Reglas solicitadas:
    * 1) Quitar "ACTUALIZADO" (ya no se muestra en UI)
    * 2) OTRO: punto ROJO + número ROJO (mismo color)
-   * 3) PARALELO: mostrar etiqueta "U.LIMA" pero en ROJO (no naranja)
-   * 4) Orden fijo en cada local: AGRARIA -> U.LIMA -> PUCP -> ESCOLARES -> ADELANTO/PARALELO
+   * 3) Orden fijo en cada local: AGRARIA -> U.LIMA -> PUCP -> ESCOLARES
    */
   function imprMetaFromSalon(salon){
     const s = String(salon||"").toUpperCase();
 
-    // Caso especial: PARALELO/ADELANTO -> etiqueta ADELANTO / PARALELO en rojo
-    if (s.includes("PARALELO") || s.includes("ADELANTO")){
-      const red = getCss("--accent2");
-      return { group: 4, label: "ADELANTO / PARALELO", dot: red, num: red };
-    }
 
     const uni = inferUniFromSalonLabel(salon);
 
@@ -6308,6 +6313,7 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
 
         const up = salon.toUpperCase();
         if (up.includes("IMPRESION")) continue; // evita encabezados del estilo "# IMPRESIONES"
+        if (up.includes("ADELANTO") || up.includes("PARALELO")) continue; // ya no se usan en IMPRESIONES
 
         const count = toInt(grid[r][cc.colCount] || "0");
         out.push({ local: cc.local, salon, count });
@@ -6321,6 +6327,21 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
       best.set(k, it);
     }
     return [...best.values()];
+  }
+
+  const MANDATORY_PRE_ULIMA_IMPRESIONES = [
+    { local:"LA MOLINA", salon:"PRE U.LIMA LM", count:0 },
+    { local:"SAN MIGUEL", salon:"PRE U.LIMA SM", count:0 },
+    { local:"SAN BORJA", salon:"PRE U.LIMA SB", count:0 },
+  ];
+
+  function ensurePreUlimaImpresionesRows(rows){
+    const base = Array.isArray(rows) ? rows.slice() : [];
+    for (const item of MANDATORY_PRE_ULIMA_IMPRESIONES){
+      const exists = base.some(r => String(r?.local||"").toUpperCase() === item.local && /PRE\s*U\.?LIMA/.test(String(r?.salon||"").toUpperCase()));
+      if (!exists) base.push({...item});
+    }
+    return base;
   }
 
   function ensureImpresionesLayout(){
@@ -6340,7 +6361,6 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
           <span class="pill"><span class="dot ulima"></span>U.LIMA</span>
           <span class="pill"><span class="dot pucp"></span>PUCP</span>
           <span class="pill"><span class="dot escolares"></span>ESCOLARES</span>
-          <span class="pill"><span class="dot" style="background:${getCss("--accent2")};"></span>ADELANTO / PARALELO</span>
         </div>
       </div>
 
@@ -6396,7 +6416,7 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
     });
 
     // Orden de tarjetas dentro de cada local:
-    // AGRARIA (0) -> U.LIMA (1) -> PUCP (2) -> ESCOLARES (3) -> ADELANTO/PARALELO (4)
+    // AGRARIA (0) -> U.LIMA (1) -> PUCP (2) -> ESCOLARES (3)
     function itemSortKey(it){
       const meta = imprMetaFromSalon(it.salon);
       return [meta.group, String(it.salon||"").toUpperCase()];
@@ -6460,11 +6480,11 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
       if (!res.ok) throw new Error("HTTP "+res.status);
       const text = await res.text();
 
-      state.imprRows = parseImpresionesCSV(text);
+      state.imprRows = ensurePreUlimaImpresionesRows(parseImpresionesCSV(text));
       state.imprUpdatedAt = Date.now(); // se conserva, pero ya no se muestra en pantalla
     } catch(e){
       console.error("IMPRESIONES:", e);
-      state.imprRows = state.imprRows || [];
+      state.imprRows = ensurePreUlimaImpresionesRows(state.imprRows || []);
     }
   }
   // ===================== FIN IMPRESIONES =====================
@@ -8576,6 +8596,7 @@ const LISTAS = [
   { local:"LA MOLINA", name:"AGRARIA 2", url:"https://docs.google.com/spreadsheets/d/1FcnFfoCuukv7_juMSUiYFzEm644WaZ5QCOcpukRtMYg/edit?usp=drive_link" },
   { local:"LA MOLINA", name:"PUCP",      url:"https://docs.google.com/spreadsheets/d/1mFBSS8VcFJYelnTSvRfxWuoKOwuq1KT_EuLsqh2DZlI/edit?usp=drive_link" },
   { local:"LA MOLINA", name:"U.LIMA 1",    url:"https://docs.google.com/spreadsheets/d/1fYzJ4UguJ35DnKFEOWkuM2fkiCe8WuSEcRKGUwR3OCw/edit?usp=drive_link" },
+  { local:"LA MOLINA", name:"PRE U.LIMA",  url:"https://docs.google.com/spreadsheets/d/10bZAZWW_nfObidZdgEHY3XA8Cx-NRWXBnmJxXeaVKZk/edit?gid=412178933#gid=412178933" },
  // { local:"LA MOLINA", name:"PARALELO",  url:"https://docs.google.com/spreadsheets/d/1uqJMpS3_QY6DmvnDjatf8tWcArf8kCtyYjIt7mSpJXU/edit?usp=drive_web&ouid=109996193497961946614" },
  // { local:"LA MOLINA", name:"ADELANTO",  url:"https://docs.google.com/spreadsheets/d/1k6oglFw7pd-XqFyv4NZf5xl0MM7PYZ507vuSFkp6uFU/edit?gid=1104164959#gid=1104164959" },
   { local:"LA MOLINA", name:"ESC AGRARIA",  url:"https://docs.google.com/spreadsheets/d/1EIIMX9B75KyoyER6mlyri9Y8IuQftwnAD0loSPz_Kko/edit?usp=drive_link" },
@@ -8586,6 +8607,7 @@ const LISTAS = [
   { local:"SAN MIGUEL", name:"AGRARIA 1",   url:"https://docs.google.com/spreadsheets/d/1NuFkT0EX-gPqbblJbFV7sNVGiJyhurZ-Yj120ocqaHc/edit?usp=drive_link" },
   { local:"SAN MIGUEL", name:"PUCP",      url:"https://docs.google.com/spreadsheets/d/1VSZ61cmo8reCfTp9jwNrzf8RtLwT2z6L2WKKYD7L854/edit?usp=drive_link" },
   { local:"SAN MIGUEL", name:"U.LIMA 1",  url:"https://docs.google.com/spreadsheets/d/18JB0MzoorXlb1I9U9ByUkTeR9dst-Lv3KBczZ1Al010/edit?usp=drive_link" },
+  { local:"SAN MIGUEL", name:"PRE U.LIMA", url:"https://docs.google.com/spreadsheets/d/14jn0y5YfbJh2ufJryAaWRPuhMTa-yZXCN59WfVGkyvk/edit?gid=412178933#gid=412178933" },
   //{ local:"SAN MIGUEL", name:"U.LIMA 2",  url:"https://docs.google.com/spreadsheets/d/1--AqnIDhIdZvbeIUjYC_BPwdHHHOAhSIqOnmIODNUkU/edit?usp=drive_web&ouid=109996193497961946614" },
 //  { local:"SAN MIGUEL", name:"PARALELO",  url:"https://docs.google.com/spreadsheets/d/1KlFuLnC99juHJoI7VT9Ez6cVN3c-X76eZzcZS17IXqM/edit?gid=1104164959#gid=1104164959" },
 //  { local:"SAN MIGUEL", name:"ADELANTO",  url:"https://docs.google.com/spreadsheets/d/1SrjJdlBjeNf12I0XFZ0FuripltmSNNmPOa_bTD0pZa8/edit?usp=drive_web&ouid=109996193497961946614" },
@@ -8598,6 +8620,7 @@ const LISTAS = [
   { local:"SAN BORJA", name:"AGRARIA 1",   url:"https://docs.google.com/spreadsheets/d/1YLu1uP2kR1SwjVPWPKSgcbSKomCkdlItLn5AyAP3j8A/edit?usp=drive_link" },
   { local:"SAN BORJA", name:"PUCP",      url:"https://docs.google.com/spreadsheets/d/1oCJc6BNpAnbpLZbMFIPZ_GBwgiKbHhUh92hyTAGdio8/edit?usp=drive_link" },
   { local:"SAN BORJA", name:"U.LIMA 1",  url:"https://docs.google.com/spreadsheets/d/1-NMJf7AV7xUDEr8azb8UUCiqFjNSsqwc25ifUrCwfX0/edit?usp=drive_link" },
+  { local:"SAN BORJA", name:"PRE U.LIMA", url:"https://docs.google.com/spreadsheets/d/1xMCd6Xhe5rvs_eCmu7dWj0gX9gAGMu8Uo13akNTcr80/edit?gid=412178933#gid=412178933" },
 //  { local:"SAN BORJA", name:"U.LIMA 2",  url:"https://docs.google.com/spreadsheets/d/1BJSLmUr2ECAfanxuI2py0R2Yi_eqovmkHuLcUNgMFSw/edit?usp=drive_web&ouid=109996193497961946614" },
   { local:"SAN BORJA", name:"ESCOLAR",  url:"https://docs.google.com/spreadsheets/d/1hKYufMBq_ObOjmP4BpDVgTRq-aqOwQET-TZIsz36iC8/edit?usp=drive_link"},
 
@@ -8994,23 +9017,45 @@ function renderReportes(){
     { start:"20:30", end:"21:00", label:"20:30 - 21:00" },
   ];
 
+  function timeMarksFromRows(rows){
+    const marks = rows.map(r=>r.start);
+    if (rows.length) marks.push(rows[rows.length-1].end);
+    return marks;
+  }
+
+  const TIME_ROWS_PRE_ULIMA = TIME_ROWS.filter(r=>r.start >= "15:00" && r.end <= "18:00");
+
+  function isPreUlimaKey(value){
+    return String(value||"").toUpperCase().startsWith("PRE_ULIMA_");
+  }
+
+  function isPreUlimaSchedule(schedule){
+    const raw = [schedule?.id, schedule?.salon, schedule?.__colKey, schedule?.__cardKey].map(x=>String(x||"").toUpperCase()).join(" ");
+    return raw.includes("PRE_UL") || raw.includes("PRE U.LIMA") || raw.includes("PRE ULIMA");
+  }
+
   function getTimeRowsForUni(uni){
     return mcNormLabel(uni) === "ESCOLARES" ? TIME_ROWS_ESCOLARES : TIME_ROWS;
   }
 
-  const TIME_MARKS = (()=>{
-    const marks = TIME_ROWS.map(r=>r.start);
-    marks.push(TIME_ROWS[TIME_ROWS.length-1].end);
-    return marks;
-  })();
-  const TIME_MARKS_ESCOLARES = (()=>{
-    const marks = TIME_ROWS_ESCOLARES.map(r=>r.start);
-    marks.push(TIME_ROWS_ESCOLARES[TIME_ROWS_ESCOLARES.length-1].end);
-    return marks;
-  })();
+  function getTimeRowsForSchedule(schedule){
+    if (isPreUlimaSchedule(schedule)) return TIME_ROWS_PRE_ULIMA;
+    return getTimeRowsForUni(schedule?.uni);
+  }
+
+  const TIME_MARKS = timeMarksFromRows(TIME_ROWS);
+  const TIME_MARKS_ESCOLARES = timeMarksFromRows(TIME_ROWS_ESCOLARES);
+  const TIME_MARKS_PRE_ULIMA = timeMarksFromRows(TIME_ROWS_PRE_ULIMA);
+
   function getTimeMarksForUni(uni){
     return mcNormLabel(uni) === "ESCOLARES" ? TIME_MARKS_ESCOLARES : TIME_MARKS;
   }
+
+  function getTimeMarksForSchedule(schedule){
+    if (isPreUlimaSchedule(schedule)) return TIME_MARKS_PRE_ULIMA;
+    return getTimeMarksForUni(schedule?.uni);
+  }
+
   function idxMark(t, uni){ return getTimeMarksForUni(uni).indexOf(t); }
 
   function normalizeDayKey(d){
@@ -9102,8 +9147,8 @@ function renderReportes(){
   }
 
   function buildScheduleMatrix(schedule){
-    const timeRows = getTimeRowsForUni(schedule?.uni);
-    const timeMarks = getTimeMarksForUni(schedule?.uni);
+    const timeRows = getTimeRowsForSchedule(schedule);
+    const timeMarks = getTimeMarksForSchedule(schedule);
     const idxMarkLocal = (t)=>timeMarks.indexOf(t);
 
     const rows = timeRows.map(()=> {
@@ -9161,7 +9206,7 @@ function renderReportes(){
   function getCornerLabelByCycle(cycle){
     const c = String(cycle||"").toUpperCase();
     if (c.startsWith("AGRARIA_") || c === "AGRARIA") return "AG";
-    if (c.startsWith("ULIMA_") || c === "U.LIMA") return "UL";
+    if (c.startsWith("ULIMA_") || c.startsWith("PRE_ULIMA_") || c === "U.LIMA") return "UL";
     if (c.startsWith("PUCP_") || c === "PUCP") return "PUCP";
     if (c.startsWith("ESCOLARES_") || c === "ESCOLARES") return "ESC";
     return "AG";
@@ -9169,7 +9214,7 @@ function renderReportes(){
 
   function scheduleToHtmlCard(s){
     const dot = uniDotColor(s.uni);
-    const timeRows = getTimeRowsForUni(s.uni);
+    const timeRows = getTimeRowsForSchedule(s);
     const matrix = buildScheduleMatrix(s);
 
     const colgroup = `
@@ -9537,6 +9582,14 @@ function renderReportes(){
     },
 
     {
+      id:"PRE_UL_LM",
+      local:"LA MOLINA",
+      uni:"U.LIMA",
+      salon:"PRE U.LIMA LM",
+      blocks:[]
+    },
+
+    {
       id:"UL_SM_1",
       local:"SAN MIGUEL",
       uni:"U.LIMA",
@@ -9563,6 +9616,14 @@ function renderReportes(){
 
         { day:"MARTES", start:"15:00", end:"17:00", course:"VIRT PRO", teacher:"RIOJA" },
       ]
+    },
+
+    {
+      id:"PRE_UL_SM",
+      local:"SAN MIGUEL",
+      uni:"U.LIMA",
+      salon:"PRE U.LIMA SM",
+      blocks:[]
     },
 
     {
@@ -9622,6 +9683,14 @@ function renderReportes(){
         { day:"MARTES", start:"16:00", end:"18:00", course:"VIRT PRO", teacher:"RIOJA" },
         { day:"MIÉRCOLES", start:"15:00", end:"17:00", course:"PRÁCT", teacher:"DÍAZ" },
       ]
+    },
+
+    {
+      id:"PRE_UL_SB",
+      local:"SAN BORJA",
+      uni:"U.LIMA",
+      salon:"PRE U.LIMA SB",
+      blocks:[]
     },
 
     {
@@ -9748,6 +9817,21 @@ function renderReportes(){
   // ===================== HORARIOS (PERSISTENCIA) =====================
   const SCHEDULES_KEY = "LM_SCHEDULES_v1";
 
+  const MANDATORY_PRE_ULIMA_SCHEDULES = [
+    { id:"PRE_UL_LM", local:"LA MOLINA", uni:"U.LIMA", salon:"PRE U.LIMA LM", blocks:[] },
+    { id:"PRE_UL_SM", local:"SAN MIGUEL", uni:"U.LIMA", salon:"PRE U.LIMA SM", blocks:[] },
+    { id:"PRE_UL_SB", local:"SAN BORJA", uni:"U.LIMA", salon:"PRE U.LIMA SB", blocks:[] },
+  ];
+
+  function ensureMandatorySchedules(list){
+    const base = Array.isArray(list) ? list.slice() : [];
+    const ids = new Set(base.map(x=>String(x?.id||"")));
+    for (const sch of MANDATORY_PRE_ULIMA_SCHEDULES){
+      if (!ids.has(sch.id)) base.push({...sch, blocks:[]});
+    }
+    return base;
+  }
+
   function isValidScheduleObj(x){
     if (!x || typeof x !== "object") return false;
     if (!x.id || !x.local || !x.uni || !x.salon) return false;
@@ -9772,7 +9856,7 @@ function renderReportes(){
       if (!Array.isArray(arr)) return null;
       const cleaned = arr.filter(isValidScheduleObj);
       if (!cleaned.length) return null;
-      return cleaned;
+      return ensureMandatorySchedules(cleaned);
     }catch(e){ return null; }
   }
 
@@ -9792,10 +9876,10 @@ function renderReportes(){
     const remote = await lmRemoteGet_(LM_MODULE_HORARIOS);
     if (!Array.isArray(remote) || !remote.length) return;
     try{
-      localStorage.setItem(SCHEDULES_KEY, JSON.stringify(remote));
+      localStorage.setItem(SCHEDULES_KEY, JSON.stringify(ensureMandatorySchedules(remote)));
     }catch(_){}
     try{
-      SCHEDULES = sortSchedules(remote);
+      SCHEDULES = sortSchedules(ensureMandatorySchedules(remote));
     }catch(_){}
     // refresca UI si corresponde
     if (typeof state !== "undefined" && state && state.view === "horarios" && typeof renderHorarios === "function"){
@@ -10121,7 +10205,9 @@ el.dataset.ready = "1";
     if (sch.uni === "U.LIMA"){
       const id = String(sch.id||"");
       const sal = String(sch.salon||"");
-      if (sal.toUpperCase().includes("ESC") || id.includes("UL_ESC")) return "ESCOLARES";
+      const salUp = sal.toUpperCase();
+      if (salUp.includes("PRE U.LIMA") || salUp.includes("PRE ULIMA") || id.includes("PRE_UL")) return "PRE_ULIMA";
+      if (salUp.includes("ESC") || id.includes("UL_ESC")) return "ESCOLARES";
       if (id.endsWith("_2") || sal.includes(" 2") || id.includes("_SM_2") || id.includes("_SB_2") || id.includes("_VIRT_2")) return "ULIMA_2";
       return "ULIMA_1";
     }
@@ -10136,6 +10222,7 @@ el.dataset.ready = "1";
     if (baseKey === "AGRARIA_2") return `AGRARIA_${lc}_2`;
     if (baseKey === "ULIMA_1") return `ULIMA_${lc}_1`;
     if (baseKey === "ULIMA_2") return `ULIMA_${lc}_2`;
+    if (baseKey === "PRE_ULIMA") return `PRE_ULIMA_${lc}`;
     if (baseKey === "PUCP") return `PUCP_${lc}`;
     if (baseKey === "ESCOLARES") return `ESCOLARES_${lc}`;
     if (baseKey === "ESCOLARES_INTEGRALES") return `ESCOLARES_INTEGRALES_${lc}`;
@@ -10154,6 +10241,7 @@ el.dataset.ready = "1";
     const c = String(colKey||"").toUpperCase();
     if (c.startsWith("AGRARIA_")) return "AGRARIA";
     if (c.startsWith("ULIMA_")) return "U.LIMA";
+    if (c.startsWith("PRE_ULIMA_")) return "U.LIMA";
     if (c.startsWith("PUCP_")) return "PUCP";
     if (c.startsWith("ESCOLARES_")) return "ESCOLARES";
     if (c === "AGRARIA" || c === "U.LIMA" || c === "PUCP" || c === "ESCOLARES") return c;
@@ -10164,6 +10252,7 @@ el.dataset.ready = "1";
     const t = cycleTypeFromColKey(colKey);
     const lc = localCodeFromName(local);
     if (t === "AGRARIA") return `AGRARIA ${lc}${String(colKey).endsWith("_2") ? " 2" : " 1"}`;
+    if (String(colKey||"").toUpperCase().startsWith("PRE_ULIMA_")) return "PRE U.LIMA";
     if (t === "U.LIMA") return `ULIMA ${lc}${String(colKey).endsWith("_2") ? " 2" : " 1"}`;
     if (t === "PUCP") return `PUCP ${lc}`;
     if (t === "ESCOLARES"){
@@ -10306,6 +10395,7 @@ el.dataset.ready = "1";
       { key:"PUCP",      label:"PUCP" },
       { key:"ESCOLARES", label:"ESCOLARES" },
       { key:"ESCOLARES_INTEGRALES", label:"ESCOLARES INTEGRALES" },
+      { key:"PRE_ULIMA", label:"PRE U.LIMA" },
     ];
 
     // index
@@ -10401,8 +10491,8 @@ el.dataset.ready = "1";
     document.getElementById("hceEnd").innerHTML = marksHtml;
   }
 
-  function refreshHorariosCellTimeOptions(uni, startVal, endVal){
-    const marks = getTimeMarksForUni(uni);
+  function refreshHorariosCellTimeOptions(uni, startVal, endVal, colKey){
+    const marks = isPreUlimaKey(colKey) ? TIME_MARKS_PRE_ULIMA : getTimeMarksForUni(uni);
     const marksHtml = marks.map(t=>`<option value="${t}">${t}</option>`).join("");
     const sEl = document.getElementById("hceStart");
     const eEl = document.getElementById("hceEnd");
@@ -10427,7 +10517,7 @@ el.dataset.ready = "1";
     if (sub) sub.textContent = `Celda ${day} ${String(ctx.start||"")} - ${String(ctx.end||"")}`;
     document.getElementById("hceDay").value = day;
     document.getElementById("hceCourse").value = String(ctx.course || "");
-    refreshHorariosCellTimeOptions(ctx.uni || "", ctx.start || "08:00", ctx.end || "09:50");
+    refreshHorariosCellTimeOptions(ctx.uni || "", ctx.start || "15:00", ctx.end || "15:30", ctx.colKey || ctx.phColKey || "");
 
     ov.style.display = "flex";
     setTimeout(()=>{ const c = document.getElementById("hceCourse"); if (c){ c.focus(); c.select(); } }, 0);
@@ -10447,8 +10537,9 @@ el.dataset.ready = "1";
     const start = document.getElementById("hceStart").value;
     const end = document.getElementById("hceEnd").value;
 
-    const is = idxMark(start, HORARIOS_CELL_EDIT_CTX.uni);
-    const ie = idxMark(end, HORARIOS_CELL_EDIT_CTX.uni);
+    const timeMarksCtx = isPreUlimaKey(HORARIOS_CELL_EDIT_CTX.colKey || HORARIOS_CELL_EDIT_CTX.phColKey || "") ? TIME_MARKS_PRE_ULIMA : getTimeMarksForUni(HORARIOS_CELL_EDIT_CTX.uni);
+    const is = timeMarksCtx.indexOf(start);
+    const ie = timeMarksCtx.indexOf(end);
     if (!DAYS.includes(day) || is < 0 || ie < 0 || is >= ie){
       alert("Rango horario inválido.");
       return;
@@ -10520,8 +10611,9 @@ el.dataset.ready = "1";
         blocks: []
       };
 
+      sch.__colKey = card.getAttribute("data-colkey") || matrixColumnKeyForSchedule(sch);
       const matrix = buildScheduleMatrix(sch);
-      const timeRows = getTimeRowsForUni(sch.uni);
+      const timeRows = getTimeRowsForSchedule(sch);
       const rows = Array.from(card.querySelectorAll("tbody tr"));
       rows.forEach((tr, r)=>{
         const tds = Array.from(tr.querySelectorAll("td"));
@@ -10538,6 +10630,7 @@ el.dataset.ready = "1";
           td.dataset.end = (cell.kind === "start") ? timeRows[Math.min(timeRows.length-1, r + Number(cell.rowspan||1) - 1)].end : timeRows[r].end;
           td.dataset.course = (cell.kind === "start" && cell.block) ? String(cell.block.course||"") : "";
           td.dataset.uni = sch.uni || "";
+          td.dataset.colKey = card.getAttribute("data-colkey") || "";
           td.dataset.blockIndex = "-1";
           if (cell.kind === "start"){
             const idx = (sch.blocks||[]).findIndex(b=>normalizeDayKey(b.day)===d && b.start===td.dataset.start && b.end===td.dataset.end && String(b.course||"")===td.dataset.course);
@@ -10934,6 +11027,7 @@ el.dataset.ready = "1";
       course: cell.dataset.course || "",
       blockIndex: Number(cell.dataset.blockIndex || "-1"),
       cardKey: cell.dataset.cardKey || card.getAttribute("data-cardkey") || "",
+      colKey: cell.dataset.colKey || card.getAttribute("data-colkey") || "",
       isPlaceholder: cell.dataset.placeholder === "1",
       phLocal: cell.dataset.phLocal || "",
       phColKey: cell.dataset.phColKey || ""
