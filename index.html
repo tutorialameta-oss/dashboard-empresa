@@ -2547,7 +2547,7 @@
   // ⚠️ CAMBIA ESTAS CLAVES AQUÍ
   const AUTH_ADMIN_PASS = "202619";
   const AUTH_TUTOR_PASS = "MBMLaMeta";
-  const APP_BUILD = "2026-05-06-pre-ulima";
+  const APP_BUILD = "2026-05-06-pre-ulima-horarios";
 
   const ROLE_KEY = "lameta_role";
   const STUDENT_USER_KEY = "lameta_student_user";
@@ -3048,7 +3048,7 @@ const PGX_STORE_KEY   = "LM_PROGRAMA_SHEET_V1_STORE";
     const t = String(theme||"").toUpperCase();
     if (t === "AGRARIA") return {bar:getCss("--schHead_AGR"), cell:getCss("--schCell_AGR")};
     if (t === "PUCP")    return {bar:getCss("--schHead_PUCP"), cell:getCss("--schCell_PUCP")};
-    if (t === "U.LIMA" || t === "ULIMA") return {bar:getCss("--schHead_UL"), cell:getCss("--schCell_UL")};
+    if (t === "U.LIMA" || t === "ULIMA" || t === "PRE U.LIMA" || t === "PRE ULIMA") return {bar:getCss("--schHead_UL"), cell:getCss("--schCell_UL")};
     if (t === "ESCOLARES") return {bar:getCss("--schHead_ESC"), cell:getCss("--schCell_ESC")};
     // default
     return {bar:"#64748b", cell:"#f1f5f9"};
@@ -3068,11 +3068,12 @@ const PGX_STORE_KEY   = "LM_PROGRAMA_SHEET_V1_STORE";
 
 
 // Orden fijo de visualización por universidad/tema (siempre):
-// AGRARIA → U.LIMA → PUCP → ESCOLARES
+// AGRARIA → U.LIMA → PRE U.LIMA → PUCP → ESCOLARES
 function pgxThemeRank(theme){
   const t = String(theme||"").toUpperCase().trim();
   if (t==="AGRARIA") return 1;
   if (t==="U.LIMA" || t==="ULIMA" || t==="UL") return 2;
+  if (t==="PRE U.LIMA" || t==="PRE ULIMA") return 2.5;
   if (t==="PUCP") return 3;
   if (t==="ESCOLARES" || t==="ESCOLAR") return 4;
   return 99;
@@ -3102,6 +3103,15 @@ function pgxInsertProgramId(store, newProgram){
     if (r > rNew){ pos = i; break; }
   }
   store.order.splice(pos, 0, id);
+}
+
+function pgxProgramSpec(kind){
+  const raw = String(kind||"AGRARIA").trim().toUpperCase();
+  if (raw === "PRE U.LIMA" || raw === "PRE ULIMA") return { kind:"PRE U.LIMA", scope:"U.LIMA", theme:"PRE U.LIMA" };
+  if (raw === "U.LIMA" || raw === "ULIMA" || raw === "UL") return { kind:"U.LIMA", scope:"U.LIMA", theme:"U.LIMA" };
+  if (raw === "PUCP") return { kind:"PUCP", scope:"PUCP", theme:"PUCP" };
+  if (raw === "ESCOLARES" || raw === "ESCOLAR") return { kind:"ESCOLARES", scope:"ESCOLARES", theme:"ESCOLARES" };
+  return { kind:"AGRARIA", scope:"AGRARIA", theme:"AGRARIA" };
 }
 
   // Ventana visible por programa (para imitar bloques cortos como tu Excel)
@@ -3198,7 +3208,7 @@ function pgxInsertProgramId(store, newProgram){
       id,
       meta:{
         name: String(name||"PROGRAMA").trim().toUpperCase(),
-        scope: String(scope||"ALL").trim().toUpperCase(), // ALL / AGRARIA / PUCP / U.LIMA
+        scope: String(scope||"ALL").trim().toUpperCase(), // ALL / AGRARIA / PUCP / U.LIMA / ESCOLARES
         theme: String(theme||"AGRARIA").trim().toUpperCase(),
         createdAt: pgxNowISO(),
         updatedAt: pgxNowISO()
@@ -4070,7 +4080,7 @@ if (zoom) zoom.value = pgxZoomOption(pgxGetZoom());
 
         <label>TEMA
           <select id="pgsTheme">
-            ${["AGRARIA","U.LIMA","PUCP","ESCOLARES"].map(x=>`<option value="${x}"${String(p.meta?.theme||"AGRARIA").toUpperCase()===x?" selected":""}>${x}</option>`).join("")}
+            ${["AGRARIA","U.LIMA","PRE U.LIMA","PUCP","ESCOLARES"].map(x=>`<option value="${x}"${String(p.meta?.theme||"AGRARIA").toUpperCase()===x?" selected":""}>${x}</option>`).join("")}
           </select>
         </label>
 
@@ -4298,15 +4308,13 @@ const tw = pgxTotalWeeks();
 
   function pgxCreateProgramFlow(){
     if (!pgxCanEdit() || !pgxGetEditOn()) return;
-    const kind = String(document.getElementById("pgxCreateType")?.value||"AGRARIA").toUpperCase();
-    const allowed = ["AGRARIA","U.LIMA","PUCP","ESCOLARES"];
-    if (!allowed.includes(kind)) return;
+    const spec = pgxProgramSpec(document.getElementById("pgxCreateType")?.value||"AGRARIA");
     const store = pgxLoadStore();
-    const autoName = pgxNextProgramName(kind, store);
+    const autoName = pgxNextProgramName(spec.kind, store);
     const customName = prompt("Nombre del nuevo programa:", autoName);
     if (customName===null) return;
     const name = String(customName||"").trim().toUpperCase() || autoName;
-    const p = pgxDefaultProgram(name, kind, kind);
+    const p = pgxDefaultProgram(name, spec.scope, spec.theme);
     store.programs[p.id]=p;
     pgxInsertProgramId(store, p);
     pgxSaveStore(store);
@@ -4367,6 +4375,7 @@ const tw = pgxTotalWeeks();
           <select id="pgxCreateType">
             <option value="AGRARIA">CICLO: AGRARIA</option>
             <option value="U.LIMA">CICLO: U.LIMA</option>
+            <option value="PRE U.LIMA">CICLO: PRE U.LIMA</option>
             <option value="PUCP">CICLO: PUCP</option>
             <option value="ESCOLARES">CICLO: ESCOLARES</option>
           </select>
@@ -4497,7 +4506,7 @@ const tw = pgxTotalWeeks();
       });
     }
 
-    if (btnNew){ btnNew.addEventListener("click", ()=>{ if (!pgxCanEdit()||!pgxGetEditOn()) return; const name = prompt("Nombre del nuevo programa:", "NUEVO PROGRAMA"); if(!name) return; const kind=(prompt("Tipo (AGRARIA / U.LIMA / PUCP / ESCOLARES):", "AGRARIA")||"AGRARIA").toUpperCase(); const allowed=["AGRARIA","U.LIMA","PUCP","ESCOLARES"]; const theme=allowed.includes(kind)?kind:"AGRARIA"; const scope=theme; const store=pgxLoadStore(); const baseWeeks=pgxTotalWeeks(); const p=pgxDefaultProgram(name,scope,theme); const w=baseWeeks; p.config.lanes.forEach(l=>{ if(l.type==="cells") l.values=Array.from({length:w},(_,i)=>String(l.values?.[i]||"")); }); store.programs[p.id]=p; pgxInsertProgramId(store,p); pgxSaveStore(store); pgxSetActiveId(p.id); pgxSetMode("ONE"); renderPrograma(); toast("Programa creado."); pgxScheduleRelayout(); }); }
+    if (btnNew){ btnNew.addEventListener("click", ()=>{ if (!pgxCanEdit()||!pgxGetEditOn()) return; const name = prompt("Nombre del nuevo programa:", "NUEVO PROGRAMA"); if(!name) return; const spec=pgxProgramSpec(prompt("Tipo (AGRARIA / U.LIMA / PRE U.LIMA / PUCP / ESCOLARES):", "AGRARIA")||"AGRARIA"); const store=pgxLoadStore(); const baseWeeks=pgxTotalWeeks(); const p=pgxDefaultProgram(name,spec.scope,spec.theme); const w=baseWeeks; p.config.lanes.forEach(l=>{ if(l.type==="cells") l.values=Array.from({length:w},(_,i)=>String(l.values?.[i]||"")); }); store.programs[p.id]=p; pgxInsertProgramId(store,p); pgxSaveStore(store); pgxSetActiveId(p.id); pgxSetMode("ONE"); renderPrograma(); toast("Programa creado."); pgxScheduleRelayout(); }); }
     if (btnDel){ btnDel.addEventListener("click", ()=>{ if(!pgxCanEdit()||!pgxGetEditOn()) return; const id=pgxGetActiveId(); if(!id) return; if(!confirm("¿Eliminar este programa?")) return; const store=pgxLoadStore(); delete store.programs[id]; store.order=store.order.filter(x=>x!==id); pgxSaveStore(store); pgxSetActiveId(store.order[0]||""); renderPrograma(); toast("Programa eliminado."); pgxScheduleRelayout(); }); }
     if (btnJson){ btnJson.addEventListener("click", ()=>{ if(!pgxCanEdit()||!pgxGetEditOn()) return; const id=pgxGetActiveId(); const store=pgxLoadStore(); const baseWeeks=pgxTotalWeeks(); let p=store.programs[id]; if(p) p=pgxUpgradeProgram(p,baseWeeks); if(!p) return; const raw=prompt("Editor JSON (pega JSON válido). Sugerencia: copia primero para respaldo.", JSON.stringify(p,null,2)); if(!raw) return; try{ const obj=JSON.parse(raw); if(!obj||!obj.id) throw new Error(); obj.meta=obj.meta||{}; obj.meta.updatedAt=pgxNowISO(); store.programs[obj.id]=obj; if(!store.order.includes(obj.id)) store.order.push(obj.id); pgxSaveStore(store); pgxSetActiveId(obj.id); renderPrograma(); toast("JSON guardado."); pgxScheduleRelayout(); }catch(e){ alert("JSON inválido. No se guardó."); } }); }
     if (btnSet){ btnSet.addEventListener("click", ()=>{ if(!pgxCanEdit()||!pgxGetEditOn()) return; pgxSetSettingsOpen(!pgxGetSettingsOpen()); renderPrograma(); pgxScheduleRelayout(); }); }
@@ -6326,6 +6335,21 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
     return [...best.values()];
   }
 
+  const MANDATORY_PRE_ULIMA_IMPRESIONES = [
+    { local:"LA MOLINA", salon:"PRE U.LIMA LM", count:0 },
+    { local:"SAN MIGUEL", salon:"PRE U.LIMA SM", count:0 },
+    { local:"SAN BORJA", salon:"PRE U.LIMA SB", count:0 },
+  ];
+
+  function ensurePreUlimaImpresionesRows(rows){
+    const base = Array.isArray(rows) ? rows.slice() : [];
+    for (const item of MANDATORY_PRE_ULIMA_IMPRESIONES){
+      const exists = base.some(r => String(r?.local||"").toUpperCase() === item.local && /PRE\s*U\.?LIMA/.test(String(r?.salon||"").toUpperCase()));
+      if (!exists) base.push({...item});
+    }
+    return base;
+  }
+
   function ensureImpresionesLayout(){
     const el = document.getElementById("view_impresiones");
     if (el.dataset.ready === "1") return;
@@ -6463,11 +6487,11 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
       if (!res.ok) throw new Error("HTTP "+res.status);
       const text = await res.text();
 
-      state.imprRows = parseImpresionesCSV(text);
+      state.imprRows = ensurePreUlimaImpresionesRows(parseImpresionesCSV(text));
       state.imprUpdatedAt = Date.now(); // se conserva, pero ya no se muestra en pantalla
     } catch(e){
       console.error("IMPRESIONES:", e);
-      state.imprRows = state.imprRows || [];
+      state.imprRows = ensurePreUlimaImpresionesRows(state.imprRows || []);
     }
   }
   // ===================== FIN IMPRESIONES =====================
@@ -9167,7 +9191,7 @@ function renderReportes(){
   function getCornerLabelByCycle(cycle){
     const c = String(cycle||"").toUpperCase();
     if (c.startsWith("AGRARIA_") || c === "AGRARIA") return "AG";
-    if (c.startsWith("ULIMA_") || c === "U.LIMA") return "UL";
+    if (c.startsWith("ULIMA_") || c.startsWith("PRE_ULIMA_") || c === "U.LIMA") return "UL";
     if (c.startsWith("PUCP_") || c === "PUCP") return "PUCP";
     if (c.startsWith("ESCOLARES_") || c === "ESCOLARES") return "ESC";
     return "AG";
@@ -10166,7 +10190,9 @@ el.dataset.ready = "1";
     if (sch.uni === "U.LIMA"){
       const id = String(sch.id||"");
       const sal = String(sch.salon||"");
-      if (sal.toUpperCase().includes("ESC") || id.includes("UL_ESC")) return "ESCOLARES";
+      const salUp = sal.toUpperCase();
+      if (salUp.includes("PRE U.LIMA") || salUp.includes("PRE ULIMA") || id.includes("PRE_UL")) return "PRE_ULIMA";
+      if (salUp.includes("ESC") || id.includes("UL_ESC")) return "ESCOLARES";
       if (id.endsWith("_2") || sal.includes(" 2") || id.includes("_SM_2") || id.includes("_SB_2") || id.includes("_VIRT_2")) return "ULIMA_2";
       return "ULIMA_1";
     }
@@ -10181,6 +10207,7 @@ el.dataset.ready = "1";
     if (baseKey === "AGRARIA_2") return `AGRARIA_${lc}_2`;
     if (baseKey === "ULIMA_1") return `ULIMA_${lc}_1`;
     if (baseKey === "ULIMA_2") return `ULIMA_${lc}_2`;
+    if (baseKey === "PRE_ULIMA") return `PRE_ULIMA_${lc}`;
     if (baseKey === "PUCP") return `PUCP_${lc}`;
     if (baseKey === "ESCOLARES") return `ESCOLARES_${lc}`;
     if (baseKey === "ESCOLARES_INTEGRALES") return `ESCOLARES_INTEGRALES_${lc}`;
@@ -10199,6 +10226,7 @@ el.dataset.ready = "1";
     const c = String(colKey||"").toUpperCase();
     if (c.startsWith("AGRARIA_")) return "AGRARIA";
     if (c.startsWith("ULIMA_")) return "U.LIMA";
+    if (c.startsWith("PRE_ULIMA_")) return "U.LIMA";
     if (c.startsWith("PUCP_")) return "PUCP";
     if (c.startsWith("ESCOLARES_")) return "ESCOLARES";
     if (c === "AGRARIA" || c === "U.LIMA" || c === "PUCP" || c === "ESCOLARES") return c;
@@ -10209,6 +10237,7 @@ el.dataset.ready = "1";
     const t = cycleTypeFromColKey(colKey);
     const lc = localCodeFromName(local);
     if (t === "AGRARIA") return `AGRARIA ${lc}${String(colKey).endsWith("_2") ? " 2" : " 1"}`;
+    if (String(colKey||"").toUpperCase().startsWith("PRE_ULIMA_")) return `PRE U.LIMA ${lc}`;
     if (t === "U.LIMA") return `ULIMA ${lc}${String(colKey).endsWith("_2") ? " 2" : " 1"}`;
     if (t === "PUCP") return `PUCP ${lc}`;
     if (t === "ESCOLARES"){
@@ -10351,6 +10380,7 @@ el.dataset.ready = "1";
       { key:"PUCP",      label:"PUCP" },
       { key:"ESCOLARES", label:"ESCOLARES" },
       { key:"ESCOLARES_INTEGRALES", label:"ESCOLARES INTEGRALES" },
+      { key:"PRE_ULIMA", label:"PRE U.LIMA" },
     ];
 
     // index
