@@ -2379,6 +2379,76 @@
   .mrLink.disabled{ pointer-events:none; opacity:.45; }
   .mrBtn.disabled{ pointer-events:none; opacity:.45; }
 
+  /* Sílabo semanal: visible solo en Materiales > Escolares ARS */
+  .mcSyllabusCol{ min-width:260px; width:32%; white-space:normal; vertical-align:top; }
+  .mcSyllabusCell{ display:flex; flex-direction:column; gap:6px; min-width:230px; }
+  .mcTopic{
+    display:grid;
+    grid-template-columns:24px minmax(0,1fr);
+    gap:8px;
+    align-items:start;
+    border:1px solid rgba(31,78,121,.18);
+    border-radius:10px;
+    padding:7px 9px;
+    background:linear-gradient(135deg,rgba(214,233,247,.82),rgba(255,255,255,.96));
+    color:#17324d;
+    font-weight:900;
+    line-height:1.25;
+  }
+  .mcTopicNum{
+    display:grid;
+    place-items:center;
+    width:22px;
+    height:22px;
+    border-radius:7px;
+    background:var(--schHead_PUCP);
+    color:#fff;
+    font-size:11px;
+    font-weight:1000;
+  }
+  .mcSyllabusPending{
+    display:inline-flex;
+    align-items:center;
+    gap:7px;
+    width:max-content;
+    max-width:100%;
+    border:1px dashed rgba(245,158,11,.45);
+    border-radius:999px;
+    padding:6px 10px;
+    background:rgba(245,158,11,.10);
+    color:#92400e;
+    font-size:11px;
+    font-weight:1000;
+    letter-spacing:.03em;
+  }
+  .mcSyllabusPending::before{ content:""; width:8px; height:8px; border-radius:999px; background:#f59e0b; flex:0 0 auto; }
+  .mcHolidayNote{
+    display:flex;
+    align-items:flex-start;
+    gap:6px;
+    margin-top:1px;
+    padding:6px 8px;
+    border-radius:9px;
+    background:rgba(220,38,38,.08);
+    color:#991b1b;
+    font-size:10px;
+    font-weight:950;
+    line-height:1.25;
+  }
+  .mcSyllabusMeta{ color:var(--muted); font-size:10px; font-weight:900; line-height:1.25; }
+  .mcSyllabusTools{ display:flex; gap:6px; align-items:center; flex-wrap:wrap; }
+  .mcSyllabusState{
+    display:inline-flex;
+    align-items:center;
+    border:1px solid var(--border);
+    border-radius:999px;
+    padding:6px 9px;
+    color:var(--muted);
+    background:#fff;
+    font-size:11px;
+    font-weight:950;
+  }
+
   .mcBarsCompact{
     display:grid;
     grid-template-columns: repeat(3, minmax(96px, 1fr));
@@ -2547,7 +2617,7 @@
   // ⚠️ CAMBIA ESTAS CLAVES AQUÍ
   const AUTH_ADMIN_PASS = "202619";
   const AUTH_TUTOR_PASS = "MBMLaMeta";
-  const APP_BUILD = "2026-05-06-pre-ulima-final";
+  const APP_BUILD = "2026-06-14-escolares-ars-silabo";
 
   const ROLE_KEY = "lameta_role";
   const STUDENT_USER_KEY = "lameta_student_user";
@@ -7684,11 +7754,11 @@ const MC_STORE_KEY = "LM_MAT_CURSOS_V1";
 let mcLastLocalWriteAt = 0;
 
 function mcLoadStore(){
-  try{ return JSON.parse(localStorage.getItem(MC_STORE_KEY) || '{"links":{},"status":{}}'); }
-  catch(e){ return {links:{}, status:{}}; }
+  try{ return JSON.parse(localStorage.getItem(MC_STORE_KEY) || '{"links":{},"syllabusLinks":{},"status":{}}'); }
+  catch(e){ return {links:{}, syllabusLinks:{}, status:{}}; }
 }
 function mcSaveStore(st){
-  const payload = st||{links:{},status:{}};
+  const payload = st||{links:{},syllabusLinks:{},status:{}};
   try{ localStorage.setItem(MC_STORE_KEY, JSON.stringify(payload)); }catch(e){}
   mcLastLocalWriteAt = Date.now();
   // push a store compartido
@@ -7721,7 +7791,7 @@ async function mcSyncPullOnce_(){
 }
 async function mcSyncPush_(st){
   try{
-    await lmRemoteSet_(LM_MODULE_MATERIALES, st || {links:{}, status:{}});
+    await lmRemoteSet_(LM_MODULE_MATERIALES, st || {links:{}, syllabusLinks:{}, status:{}});
   }catch(_){}
 }
 
@@ -8046,6 +8116,308 @@ function mcProgress(stOrPid, pidOrCid, cidOrNull, codesOrNull){
   return {total, rec, dia, imp, recPct:pct(rec), diaPct:pct(dia), impPct:pct(imp)};
 }
 
+const MC_ARS_SYLLABUS_CACHE = new Map();
+
+function mcIsArsProgram(program){
+  const raw = mcNormLabel([program?.meta?.name, program?.meta?.scope, program?.meta?.theme].filter(Boolean).join(" "));
+  return raw.includes("ARS") || raw.includes("POP");
+}
+
+function mcSyllabusLink(st, pid, cid){
+  return String(st?.syllabusLinks?.[pid]?.[cid] || "").trim();
+}
+
+function mcSyllabusCsvUrl(rawUrl){
+  const raw = String(rawUrl||"").trim();
+  const idMatch = raw.match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/);
+  if (!idMatch) return "";
+  const gidMatch = raw.match(/[?#&]gid=(\d+)/);
+  const gid = gidMatch ? gidMatch[1] : "0";
+  return `https://docs.google.com/spreadsheets/d/${idMatch[1]}/export?format=csv&gid=${gid}`;
+}
+
+function mcParseCsv(raw){
+  const rows = [];
+  let row = [], cell = "", quoted = false;
+  const text = String(raw||"");
+  for (let i=0;i<text.length;i++){
+    const ch = text[i];
+    if (ch === '"'){
+      if (quoted && text[i+1] === '"'){ cell += '"'; i++; }
+      else quoted = !quoted;
+    }else if (ch === "," && !quoted){
+      row.push(cell); cell = "";
+    }else if ((ch === "\n" || ch === "\r") && !quoted){
+      if (ch === "\r" && text[i+1] === "\n") i++;
+      row.push(cell); cell = "";
+      if (row.some(v=>String(v||"").trim())) rows.push(row);
+      row = [];
+    }else{
+      cell += ch;
+    }
+  }
+  row.push(cell);
+  if (row.some(v=>String(v||"").trim())) rows.push(row);
+  return rows;
+}
+
+function mcSyllabusHeaderKey(value){
+  return mcNormLabel(value).replace(/[^A-Z0-9]+/g, " ").replace(/\s+/g, " ").trim();
+}
+
+function mcParseSyllabusCsv(raw){
+  const rows = mcParseCsv(raw);
+  let headerRow = -1;
+  let codeIdx = -1, dateIdx = -1, blockIdx = -1, topicIdx = -1, notesIdx = -1;
+
+  for (let r=0; r<Math.min(rows.length, 40); r++){
+    const keys = rows[r].map(mcSyllabusHeaderKey);
+    const c = keys.findIndex(x=>x === "CODIGO" || x === "CÓDIGO");
+    const d = keys.findIndex(x=>x === "SEMANA" || x.includes("FECHA"));
+    const b = keys.findIndex(x=>x === "BLOQUE");
+    if (c >= 0 && d >= 0 && b >= 0){
+      headerRow = r;
+      codeIdx = c;
+      dateIdx = d;
+      blockIdx = b;
+      topicIdx = b + 1;
+      notesIdx = keys.findIndex(x=>x.includes("OBSERV"));
+      break;
+    }
+  }
+  if (headerRow < 0) throw new Error("No se encontraron las columnas CÓDIGO, SEMANA y BLOQUE.");
+
+  const weeks = [];
+  let current = null;
+  for (let r=headerRow+1; r<rows.length; r++){
+    const cells = rows[r] || [];
+    const code = String(cells[codeIdx]||"").trim();
+    const dateRaw = String(cells[dateIdx]||"").trim();
+    const block = String(cells[blockIdx]||"").trim().toUpperCase();
+    const topic = String(cells[topicIdx]||"").replace(/\s+/g," ").trim();
+    const notes = notesIdx >= 0 ? String(cells[notesIdx]||"").replace(/\s+/g," ").trim() : "";
+
+    if (code || dateRaw){
+      current = { code, dateRaw, topics:[], notes:[] };
+      weeks.push(current);
+    }
+    if (!current) continue;
+    if (topic && !/^(Á?LGEBRA|TEXTOS|N[ÚU]MEROS Y OPERACIONES|GEOMETR[IÍ]A Y MEDIDA|SIMULACROS?)$/i.test(topic)){
+      if (!current.topics.includes(topic) && current.topics.length < 3) current.topics.push(topic);
+    }
+    if (notes && !current.notes.includes(notes)) current.notes.push(notes);
+    if (block && !["A","B","C"].includes(block) && !code && !dateRaw && !topic && !notes) current = null;
+  }
+  return weeks.filter(w=>w.code || w.dateRaw || w.topics.length || w.notes.length);
+}
+
+function mcMonthNumber(raw){
+  const m = mcNormLabel(raw).slice(0,3);
+  return {ENE:0,FEB:1,MAR:2,ABR:3,MAY:4,JUN:5,JUL:6,AGO:7,SEP:8,OCT:9,NOV:10,DIC:11}[m];
+}
+
+function mcParseSheetDate(raw, year){
+  const s = String(raw||"").trim().toLowerCase();
+  let m = s.match(/(\d{1,2})\s*[-\/]\s*([a-záéíóúñ]{3,}|\d{1,2})(?:\s*[-\/]\s*(\d{2,4}))?/i);
+  if (!m) return null;
+  const day = +m[1];
+  const month = /^\d+$/.test(m[2]) ? (+m[2]-1) : mcMonthNumber(m[2]);
+  let yy = m[3] ? +m[3] : +year;
+  if (yy < 100) yy += 2000;
+  if (!Number.isFinite(day) || !Number.isFinite(month) || !Number.isFinite(yy)) return null;
+  const d = new Date(yy, month, day);
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+
+function mcDateKey(d){
+  if (!(d instanceof Date) || Number.isNaN(d.getTime())) return "";
+  return [d.getFullYear(),String(d.getMonth()+1).padStart(2,"0"),String(d.getDate()).padStart(2,"0")].join("-");
+}
+
+function mcFmtDM(d){
+  if (!(d instanceof Date) || Number.isNaN(d.getTime())) return "";
+  return `${String(d.getDate()).padStart(2,"0")}/${String(d.getMonth()+1).padStart(2,"0")}`;
+}
+
+function mcEasterSunday(year){
+  const a=year%19, b=Math.floor(year/100), c=year%100, d=Math.floor(b/4), e=b%4;
+  const f=Math.floor((b+8)/25), g=Math.floor((b-f+1)/3);
+  const h=(19*a+b-d-g+15)%30, i=Math.floor(c/4), k=c%4;
+  const l=(32+2*e+2*i-h-k)%7, m=Math.floor((a+11*h+22*l)/451);
+  const month=Math.floor((h+l-7*m+114)/31)-1;
+  const day=((h+l-7*m+114)%31)+1;
+  return new Date(year,month,day);
+}
+
+function mcPeruHolidays(year){
+  const map = new Map();
+  const add = (month,day,name)=>map.set(mcDateKey(new Date(year,month-1,day)),name);
+  add(1,1,"Año Nuevo");
+  add(5,1,"Día del Trabajo");
+  add(6,7,"Batalla de Arica y Día de la Bandera");
+  add(6,29,"San Pedro y San Pablo");
+  add(7,23,"Día de la Fuerza Aérea del Perú");
+  add(7,28,"Fiestas Patrias");
+  add(7,29,"Fiestas Patrias");
+  add(8,6,"Batalla de Junín");
+  add(8,30,"Santa Rosa de Lima");
+  add(10,8,"Combate de Angamos");
+  add(11,1,"Todos los Santos");
+  add(12,8,"Inmaculada Concepción");
+  add(12,9,"Batalla de Ayacucho");
+  add(12,25,"Navidad");
+  const easter = mcEasterSunday(year);
+  const holyThu = pgxAddDays(easter,-3);
+  const holyFri = pgxAddDays(easter,-2);
+  map.set(mcDateKey(holyThu),"Jueves Santo");
+  map.set(mcDateKey(holyFri),"Viernes Santo");
+  return map;
+}
+
+function mcHolidaysFromSyllabusNotes(weeks, year){
+  const map = new Map();
+  const months = "enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre";
+  const rx = new RegExp("(\\d{1,2})\\s+de\\s+("+months+")(?:\\s+de\\s+(\\d{4}))?","gi");
+  for (const week of (weeks||[])){
+    for (const note of (week.notes||[])){
+      let match;
+      while ((match = rx.exec(note))){
+        const month = mcMonthNumber(match[2]);
+        const yy = +(match[3] || year);
+        if (!Number.isFinite(month)) continue;
+        map.set(mcDateKey(new Date(yy,month,+match[1])), note);
+      }
+    }
+  }
+  return map;
+}
+
+function mcCourseAliases(course){
+  const c = mcNormLabel(course);
+  if (c.includes("NUMEROS Y OPERACIONES")) return ["N&O","NO","NUMEROS Y OPERACIONES"];
+  if (c.includes("GEOMETRIA Y MEDIDA")) return ["G&M","GM","GEOMETRIA Y MEDIDA"];
+  if (c.includes("ALGEBRA")) return ["ALG","ALGEBRA"];
+  if (c.includes("TEXTOS")) return ["TXT","TEXTO","TEXTOS"];
+  if (c.includes("SIMULACRO")) return ["SIM","SIMULACRO","SIMULACROS"];
+  return [c];
+}
+
+function mcScheduleDaysForArs(local, course){
+  const loc = mcNormLabel(local);
+  if (!loc || loc === "EDITOR" || typeof SCHEDULES === "undefined") return [];
+  const aliases = mcCourseAliases(course).map(mcNormLabel);
+  let schedules = (SCHEDULES||[]).filter(s=>mcNormLabel(s?.uni)==="ESCOLARES" && mcNormLabel(s?.local)===loc);
+  const ars = schedules.filter(s=>{
+    const raw = mcNormLabel([s?.id,s?.salon].join(" "));
+    return raw.includes("ARS") || raw.includes("POP") || raw.includes("PUCP");
+  });
+  if (ars.length) schedules = ars;
+
+  const dayMap = {LUNES:1,MARTES:2,MIERCOLES:3,"MIÉRCOLES":3,JUEVES:4,VIERNES:5,SABADO:6,"SÁBADO":6,DOMINGO:0};
+  const days = [];
+  for (const sch of schedules){
+    for (const block of (sch.blocks||[])){
+      const rawCourse = mcNormLabel(block?.course).replace(/\b[123]\b/g," ").replace(/\s+/g," ").trim();
+      if (!aliases.some(a=>rawCourse===a || rawCourse.startsWith(a+" ") || rawCourse.includes(" "+a+" "))) continue;
+      const day = dayMap[String(block?.day||"").toUpperCase()];
+      if (Number.isFinite(day)) days.push(day);
+    }
+  }
+  return Array.from(new Set(days)).sort((a,b)=>a-b);
+}
+
+function mcProgramWeekDate(start, weekIndex, weekday){
+  const base = pgxAddDays(start, weekIndex*7);
+  base.setHours(0,0,0,0);
+  const offset = (weekday - base.getDay() + 7) % 7;
+  return pgxAddDays(base, offset);
+}
+
+function mcAlignSyllabusTopics({weeks,codes,first,last,pStart,local,course}){
+  const byCode = new Map((weeks||[]).map(w=>[mcNormLabel(w.code),w]));
+  const year = pStart.getFullYear();
+  const holidays = mcPeruHolidays(year);
+  for (const [key,name] of mcHolidaysFromSyllabusNotes(weeks,year)) holidays.set(key,name);
+  const classDays = mcScheduleDaysForArs(local,course);
+  const carry = [];
+  const result = [];
+
+  for (let i=first-1; i<=last-1; i++){
+    const code = String(codes[i]||`SEM${i+1}`);
+    const srcWeek = byCode.get(mcNormLabel(code)) || weeks[i] || {topics:[],notes:[]};
+    const sourceTopics = (srcWeek.topics||[]).slice(0,3);
+    const holidayHits = [];
+    for (const day of classDays){
+      const d = mcProgramWeekDate(pStart,i,day);
+      const name = holidays.get(mcDateKey(d));
+      if (name) holidayHits.push({date:d,name});
+    }
+
+    if (mcNormLabel(local)==="EDITOR"){
+      result.push({topics:sourceTopics, holidayHits, sourceWeek:srcWeek});
+      continue;
+    }
+
+    carry.push(...sourceTopics);
+    let capacity = sourceTopics.length || Math.min(3,classDays.length);
+    capacity = Math.max(0,capacity-Math.min(capacity,holidayHits.length));
+    const topics = carry.splice(0,Math.min(3,capacity));
+    result.push({topics, holidayHits, sourceWeek:srcWeek, delayed:carry.length});
+  }
+  return result;
+}
+
+function mcSyllabusCellHtml(item){
+  const topics = (item?.topics||[]).slice(0,3);
+  const topicsHtml = topics.map((topic,i)=>`
+    <div class="mcTopic"><span class="mcTopicNum">${i+1}</span><span>${escapeHtml(topic)}</span></div>
+  `).join("");
+  const holidayHtml = (item?.holidayHits||[]).map(h=>`
+    <div class="mcHolidayNote"><span>FERIADO</span><span>${escapeHtml(mcFmtDM(h.date))} · ${escapeHtml(h.name)}</span></div>
+  `).join("");
+  const delayedHtml = item?.delayed ? `<div class="mcSyllabusMeta">${item.delayed} tema(s) desplazado(s) a la siguiente semana.</div>` : "";
+  return `<div class="mcSyllabusCell">${topicsHtml || '<span class="mcSyllabusPending">PENDIENTE</span>'}${holidayHtml}${delayedHtml}</div>`;
+}
+
+async function mcLoadSyllabusData(url){
+  const key = String(url||"").trim();
+  if (!key) throw new Error("Enlace de sílabo pendiente.");
+  if (MC_ARS_SYLLABUS_CACHE.has(key)) return await MC_ARS_SYLLABUS_CACHE.get(key);
+  const promise = (async ()=>{
+    const csvUrl = mcSyllabusCsvUrl(key);
+    if (!csvUrl) throw new Error("El enlace debe ser de Google Sheets.");
+    const res = await fetch(csvUrl + "&_ts=" + Date.now(), {cache:"no-store"});
+    if (!res.ok) throw new Error("No se pudo leer la hoja. Verifica que esté compartida.");
+    const weeks = mcParseSyllabusCsv(await res.text());
+    if (!weeks.length) throw new Error("La hoja no contiene semanas reconocibles.");
+    return weeks;
+  })();
+  MC_ARS_SYLLABUS_CACHE.set(key,promise);
+  try{ return await promise; }
+  catch(err){ MC_ARS_SYLLABUS_CACHE.delete(key); throw err; }
+}
+
+async function mcHydrateArsSyllabus({pid,cid,codes,first,last,pStart,space,url}){
+  const status = document.getElementById("mcSyllabusStatus");
+  const cells = Array.from(document.querySelectorAll('[data-syllabus-week]'));
+  if (!cells.length) return;
+  if (!url){
+    cells.forEach(td=>td.innerHTML='<div class="mcSyllabusCell"><span class="mcSyllabusPending">PENDIENTE</span><div class="mcSyllabusMeta">El Editor debe añadir el enlace del sílabo.</div></div>');
+    if (status) status.textContent = "SÍLABO PENDIENTE";
+    return;
+  }
+  try{
+    if (status) status.textContent = "CARGANDO SÍLABO…";
+    const weeks = await mcLoadSyllabusData(url);
+    const aligned = mcAlignSyllabusTopics({weeks,codes,first,last,pStart,local:space,course:cid});
+    cells.forEach((td,index)=>{ td.innerHTML = mcSyllabusCellHtml(aligned[index]); });
+    if (status) status.textContent = `SÍLABO ACTIVO · ${weeks.length} SEMANAS`;
+  }catch(err){
+    cells.forEach(td=>td.innerHTML=`<div class="mcSyllabusCell"><span class="mcSyllabusPending">PENDIENTE</span><div class="mcSyllabusMeta">${escapeHtml(err?.message||String(err))}</div></div>`);
+    if (status) status.textContent = "REVISAR SÍLABO";
+  }
+}
+
 function mcSelected(){
   const pid = document.getElementById("mcProgram")?.value || "__ALL__";
   const cid = document.getElementById("mcCourse")?.value || "";
@@ -8207,14 +8579,18 @@ function renderMateriales(){
   const uniPrograms = byUni(uni);
   const progIdSaved = localStorage.getItem(PROG_KEY) || "";
   const prog = uniPrograms.find(p=>p.id===progIdSaved) || uniPrograms[0] || null;
+  const isArsProgram = (uni === "ESCOLARES" && mcIsArsProgram(prog));
 
   const courses = mcMaterialCoursesFor(uni, prog);
   const savedCourse = localStorage.getItem(COURSE_KEY) || "";
   const course = courses.includes(savedCourse) ? savedCourse : (courses[0]||"");
 
+  const materialSpaces = isArsProgram
+    ? [...MC_SPACES, {id:"VIRTUAL", label:"VIRTUAL"}]
+    : MC_SPACES;
   const availableSpaces = (roleLower === "admin")
-    ? MC_SPACES
-    : MC_SPACES.filter(x=>x.id !== "EDITOR");
+    ? materialSpaces
+    : materialSpaces.filter(x=>x.id !== "EDITOR");
   const defaultSpace = (roleLower === "admin") ? "EDITOR" : "LA_MOLINA";
   const savedSpace = String(localStorage.getItem(SPACE_KEY) || defaultSpace).toUpperCase();
   const space = availableSpaces.find(x=>x.id===savedSpace)
@@ -8330,8 +8706,15 @@ function renderMateriales(){
           </select>
         </label>
 
-        <a id="mcOpen2" class="btn folder" target="_blank" rel="noopener" style="margin-left:6px; text-decoration:none;">📁 CARPETA</a>
+        <a id="mcOpen2" class="btn folder" target="_blank" rel="noopener" style="margin-left:6px; text-decoration:none;">CARPETA</a>
         ${(canEdit && matEditOn) ? '<input id="mcLink2" type="text" placeholder="Link carpeta (Drive)" style="min-width:320px; padding:8px 10px; border-radius:12px; border:1px solid var(--border); font-weight:900;"/><button id="mcSaveLink2" class="btn ghost" type="button">GUARDAR LINK</button>' : ""}
+        ${isArsProgram ? `
+          <span class="mcSyllabusTools">
+            <a id="mcOpenSyllabus2" class="btn folder" target="_blank" rel="noopener" style="text-decoration:none;">ABRIR SÍLABO</a>
+            ${(canEdit && matEditOn) ? '<input id="mcSyllabusLink2" type="text" placeholder="Link del sílabo (Google Sheets)" style="min-width:340px; padding:8px 10px; border-radius:12px; border:1px solid var(--border); font-weight:900;"/><button id="mcSaveSyllabus2" class="btn ghost" type="button">GUARDAR SÍLABO</button>' : ""}
+            <span id="mcSyllabusStatus" class="mcSyllabusState">SÍLABO PENDIENTE</span>
+          </span>
+        ` : ""}
 
 ${canWork ? `<button id="mcEditBtn" class="btn ${matEditOn?'primary':'ghost'}" type="button" style="margin-left:6px;">${matEditOn?'EDITANDO':'EDITAR'}</button>` : ""}
       </div>
@@ -8371,6 +8754,10 @@ ${canWork ? `<button id="mcEditBtn" class="btn ${matEditOn?'primary':'ghost'}" t
   const openBtn = card.querySelector("#mcOpen2");
   const linkInp = card.querySelector("#mcLink2");
   const saveBtn = card.querySelector("#mcSaveLink2");
+  const syllabusUrl = mcSyllabusLink(st0,pid0,cid0);
+  const syllabusOpenBtn = card.querySelector("#mcOpenSyllabus2");
+  const syllabusLinkInp = card.querySelector("#mcSyllabusLink2");
+  const syllabusSaveBtn = card.querySelector("#mcSaveSyllabus2");
 
   if (openBtn){
     if (curUrl){
@@ -8386,6 +8773,21 @@ ${canWork ? `<button id="mcEditBtn" class="btn ${matEditOn?'primary':'ghost'}" t
     }
   }
   if (linkInp) linkInp.value = curUrl;
+  if (syllabusLinkInp) syllabusLinkInp.value = syllabusUrl;
+  if (syllabusOpenBtn){
+    if (syllabusUrl){
+      syllabusOpenBtn.setAttribute("href",syllabusUrl);
+      syllabusOpenBtn.classList.remove("disabled");
+      syllabusOpenBtn.style.pointerEvents = "";
+      syllabusOpenBtn.style.opacity = "1";
+    }else{
+      syllabusOpenBtn.setAttribute("href","#");
+      syllabusOpenBtn.classList.add("disabled");
+      syllabusOpenBtn.style.pointerEvents = "none";
+      syllabusOpenBtn.style.opacity = "0.55";
+      syllabusOpenBtn.title = "Sílabo pendiente de configurar.";
+    }
+  }
 
   saveBtn?.addEventListener("click", ()=>{
     if (!canEdit) return toast("Solo Editor puede configurar links.");
@@ -8396,6 +8798,20 @@ ${canWork ? `<button id="mcEditBtn" class="btn ${matEditOn?'primary':'ghost'}" t
     st.links[pid0][cid0] = url;
     mcSaveStore(st);
     toast("Link guardado.");
+    renderMateriales();
+  });
+
+  syllabusSaveBtn?.addEventListener("click", ()=>{
+    if (!canEdit || !isArsProgram) return toast("Solo Editor puede configurar el sílabo.");
+    const url = String(syllabusLinkInp?.value||"").trim();
+    if (url && !mcSyllabusCsvUrl(url)) return toast("Pega un enlace válido de Google Sheets.");
+    const st = mcLoadStore();
+    if (!st.syllabusLinks) st.syllabusLinks = {};
+    if (!st.syllabusLinks[pid0]) st.syllabusLinks[pid0] = {};
+    st.syllabusLinks[pid0][cid0] = url;
+    MC_ARS_SYLLABUS_CACHE.clear();
+    mcSaveStore(st);
+    toast(url ? "Sílabo guardado." : "Sílabo marcado como pendiente.");
     renderMateriales();
   });
 
@@ -8513,6 +8929,7 @@ ${canWork ? `<button id="mcEditBtn" class="btn ${matEditOn?'primary':'ghost'}" t
         <td class="mcWeekCol" style="font-weight:950;">${escapeHtml(code)}</td>
 
         <td class="mcPctCol"><span class="semBadge ${semClass}"><span class="semDot"></span>${wkPct}%</span></td>
+        ${isArsProgram ? `<td class="mcSyllabusCol" data-syllabus-week="${i}"><div class="mcSyllabusCell"><span class="mcSyllabusPending">CARGANDO</span></div></td>` : ""}
 
         <td class="mcChkCell"><input type="checkbox" class="${disClsRec}" ${roRecAttr} data-code="${escapeHtml(code)}" data-field="rec" ${rec?"checked":""}></td>
         <td class="mcChkCell"><input type="checkbox" class="${disClsDia}" ${roDiaAttr} data-code="${escapeHtml(code)}" data-field="dia" ${dia?"checked":""}></td>
@@ -8541,6 +8958,7 @@ ${canWork ? `<button id="mcEditBtn" class="btn ${matEditOn?'primary':'ghost'}" t
       <table class="mcTable">
         <colgroup>
           <col><col><col><col>
+          ${isArsProgram ? '<col class="mcSyllabusCol">' : ""}
           <col class="mcColStatus"><col class="mcColStatus"><col class="mcColStatus">
         </colgroup>
         <thead>
@@ -8549,13 +8967,14 @@ ${canWork ? `<button id="mcEditBtn" class="btn ${matEditOn?'primary':'ghost'}" t
             <th>FECHA</th>
             <th>SEMANA</th>
             <th>AVANCE</th>
+            ${isArsProgram ? '<th class="mcSyllabusCol">SÍLABO</th>' : ""}
             <th class="mcStatusCol">RECIBIDO</th>
             <th class="mcStatusCol">DIAGRAMADO</th>
             <th class="mcStatusCol">IMPRESO</th>
           </tr>
         </thead>
         <tbody>
-          ${rows.length ? rows.join("") : `<tr><td colspan="7" style="padding:14px; color:var(--muted); font-weight:950;">No hay filas para este filtro.</td></tr>`}
+          ${rows.length ? rows.join("") : `<tr><td colspan="${isArsProgram ? 8 : 7}" style="padding:14px; color:var(--muted); font-weight:950;">No hay filas para este filtro.</td></tr>`}
         </tbody>
       </table>
     </div>
@@ -8563,6 +8982,19 @@ ${canWork ? `<button id="mcEditBtn" class="btn ${matEditOn?'primary':'ghost'}" t
     <div style="margin-top:10px; color:var(--muted); font-weight:900;">
     </div>
   `;
+
+  if (isArsProgram){
+    mcHydrateArsSyllabus({
+      pid,
+      cid,
+      codes,
+      first:range.first,
+      last:range.last,
+      pStart,
+      space,
+      url:syllabusUrl
+    });
+  }
 
   // wire checkboxes
   body.querySelectorAll('input[type=checkbox][data-code][data-field]').forEach(ch=>{
