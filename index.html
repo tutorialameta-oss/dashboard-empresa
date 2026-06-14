@@ -7,7 +7,7 @@
   <meta http-equiv="Pragma" content="no-cache"/>
   <meta http-equiv="Expires" content="0"/>
   <title>LA META | DASHBOARD</title>
-  <!-- revisión: materiales ARS v2026-06-14c · fix columnas materiales 100% -->
+  <!-- revisión: materiales ARS v2026-06-14e · sílabo alineado a horario real del curso y feriados por día -->
 
   <!-- Charts -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
@@ -8473,6 +8473,21 @@ function mcSyllabusIsCourseOnly(value){
   if (/^(A|B|C|BLOQUE|SEMANA|CODIGO|COD|FECHA|FECHAS|OBS|OBSERVACION|OBSERVACIONES|NOTA|NOTAS)$/i.test(s)) return true;
   if (/^(ALGEBRA|TEXTOS|TEXTO|NUMEROS Y OPERACIONES|N O|NO|GEOMETRIA Y MEDIDA|SIMULACRO|SIMULACROS|REPASO|FERIADO)$/i.test(s)) return true;
   if (/^(CURSO|TEMA|TEMAS|CONTENIDO|CONTENIDOS|SESION|SESIONES)$/i.test(s)) return true;
+
+  // No tratar como tema los códigos de simulacro que aparecen en la columna F
+  // del sílabo: S1, S2, SN1, SR1, SIM1, etc.
+  if (/^(S|SN|SR|SIM)\s*\d+$/i.test(s)) return true;
+  if (/^SIMULACRO\s*\d+$/i.test(s)) return true;
+  return false;
+}
+
+function mcSyllabusIsNonTopicColumnHeader(value){
+  const s = mcSyllabusHeaderKey(value);
+  if (!s) return false;
+
+  // Columnas administrativas que no son contenido académico.
+  if (/^(SIMULACRO|SIMULACROS|OBS|OBSERVACION|OBSERVACIONES|NOTA|NOTAS|FERIADO|FERIADOS)$/i.test(s)) return true;
+  if (s.includes("SIMULACRO") || s.includes("OBSERV")) return true;
   return false;
 }
 
@@ -8514,7 +8529,13 @@ function mcParseSyllabusRows(rows){
       else if (blockIdx >= 0){
         const stop = notesIdx >= 0 ? notesIdx : rows[r].length;
         topicIdxs = [];
-        for (let i=blockIdx+1; i<stop; i++) topicIdxs.push(i);
+        for (let i=blockIdx+1; i<stop; i++){
+          // En formatos como: BLOQUE | CURSO | SIMULACROS | OBSERVACIONES,
+          // solo debe leerse la columna del curso/contenido.
+          // La columna SIMULACROS contiene códigos como S1/S2/SN1 y no es tema.
+          if (mcSyllabusIsNonTopicColumnHeader(keys[i])) continue;
+          topicIdxs.push(i);
+        }
       }
       break;
     }
@@ -8656,11 +8677,24 @@ function mcHolidaysFromSyllabusNotes(weeks, year){
   return map;
 }
 
-function mcSyllabusNotesForWeek(notes, holidayHits, year){
-  const holidayKeys = new Set((holidayHits||[]).map(h=>mcDateKey(h.date)).filter(Boolean));
+function mcSyllabusNotesForWeek(notes, holidayHits, year, holidays, classDates){
+  const hitKeys = new Set((holidayHits||[]).map(h=>mcDateKey(h.date)).filter(Boolean));
+  const classKeys = new Set((classDates||[]).map(mcDateKey).filter(Boolean));
+  const holidayMap = holidays instanceof Map ? holidays : new Map();
+
   return (notes||[]).filter(note=>{
     const keys = mcDateKeysFromText(note, year);
-    return !keys.some(k=>holidayKeys.has(k));
+    if (!keys.length) return true;
+
+    // Si el feriado sí coincidió con el día real del curso, se muestra como FERIADO,
+    // no como aviso duplicado.
+    if (keys.some(k=>hitKeys.has(k))) return false;
+
+    // Si la observación solo corresponde a un feriado que NO cae en el día de clase
+    // del curso seleccionado, se ignora. Ej.: feriado domingo o lunes para un curso martes.
+    if (keys.some(k=>holidayMap.has(k)) && !keys.some(k=>classKeys.has(k))) return false;
+
+    return true;
   });
 }
 
@@ -8674,10 +8708,45 @@ function mcCourseAliases(course){
   return [c];
 }
 
-function mcScheduleDaysForArs(local, course){
-  const loc = mcNormLabel(local);
-  if (!loc || loc === "EDITOR" || typeof SCHEDULES === "undefined") return [];
+function mcCleanScheduleCourseLabel(value){
+  return mcNormLabel(value)
+    .replace(/\b(PRE|REF|REFORZAMIENTO|VIRTUAL|VIRT)\b/g," ")
+    .replace(/\b[123456789]\b/g," ")
+    .replace(/\s+/g," ")
+    .trim();
+}
+
+function mcScheduleCourseMatches(blockCourse, course){
+  const rawCourse = mcCleanScheduleCourseLabel(blockCourse);
   const aliases = mcCourseAliases(course).map(mcNormLabel);
+  if (!rawCourse || !aliases.length) return false;
+  return aliases.some(a=> rawCourse===a || rawCourse.startsWith(a+" ") || rawCourse.includes(" "+a+" "));
+}
+
+function mcDefaultArsCourseDays(course){
+  const c = mcNormLabel(course);
+
+  // Fallback oficial para ESCOLARES ARS San Miguel cuando el horario aún no terminó
+  // de sincronizarse desde el navegador/remoto. Se usa solo si no se pudo detectar
+  // el día desde SCHEDULES.
+  if (c.includes("NUMEROS Y OPERACIONES")) return [1]; // Lunes: N&O
+  if (c.includes("TEXTOS")) return [2];                // Martes: TXT
+  if (c.includes("GEOMETRIA Y MEDIDA")) return [3];    // Miércoles: G&M
+  if (c.includes("ALGEBRA")) return [5];               // Viernes: ÁLG
+  if (c.includes("SIMULACRO")) return [6];             // Sábado: simulacros
+  return [];
+}
+
+function mcScheduleDaysForArs(local, course){
+  let loc = mcNormLabel(local);
+
+  // En Materiales, el espacio EDITOR administra el ciclo, pero ESCOLARES ARS se dicta
+  // físicamente en San Miguel. Por eso el sílabo debe alinearse al horario de San Miguel.
+  if (!loc || loc === "EDITOR") loc = "SAN MIGUEL";
+
+  const fallbackDays = mcDefaultArsCourseDays(course);
+  if (typeof SCHEDULES === "undefined") return fallbackDays;
+
   let schedules = (SCHEDULES||[]).filter(s=>{
     const sLoc = mcNormLabel(s?.local);
     const sUni = mcNormLabel(s?.uni);
@@ -8694,13 +8763,14 @@ function mcScheduleDaysForArs(local, course){
   const days = [];
   for (const sch of schedules){
     for (const block of (sch.blocks||[])){
-      const rawCourse = mcNormLabel(block?.course).replace(/\b[123]\b/g," ").replace(/\s+/g," ").trim();
-      if (!aliases.some(a=>rawCourse===a || rawCourse.startsWith(a+" ") || rawCourse.includes(" "+a+" "))) continue;
+      if (!mcScheduleCourseMatches(block?.course, course)) continue;
       const day = dayMap[String(block?.day||"").toUpperCase()];
       if (Number.isFinite(day)) days.push(day);
     }
   }
-  return Array.from(new Set(days)).sort((a,b)=>a-b);
+
+  const detected = Array.from(new Set(days)).sort((a,b)=>a-b);
+  return detected.length ? detected : fallbackDays;
 }
 
 function mcProgramWeekDate(start, weekIndex, weekday){
@@ -8769,7 +8839,7 @@ function mcAlignSyllabusTopics({weeks,codes,first,last,pStart,local,course}){
     const selected = carry.splice(0, Math.min(3, capacity));
     const topicSourceWeek = selected[0]?.sourceWeek || srcWeek;
     const topics = selected.map(x=>x.topic);
-    const currentNotes = mcSyllabusNotesForWeek(srcWeek.notes||[], holidayHits, year);
+    const currentNotes = mcSyllabusNotesForWeek(srcWeek.notes||[], holidayHits, year, holidays, classDates);
     const sourceLabel = String(topicSourceWeek?.displayCode || topicSourceWeek?.code || "");
     const currentLabel = String(srcWeek?.displayCode || srcWeek?.code || code);
 
