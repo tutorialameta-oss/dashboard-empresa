@@ -7,7 +7,7 @@
   <meta http-equiv="Pragma" content="no-cache"/>
   <meta http-equiv="Expires" content="0"/>
   <title>LA META | DASHBOARD</title>
-  <!-- revisión: materiales ARS v2026-06-14e · sílabo alineado a horario real del curso y feriados por día -->
+  <!-- revisión: materiales ARS v2026-06-14f · corrección ARS: feriados solo en día real del curso -->
 
   <!-- Charts -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
@@ -7957,8 +7957,8 @@ function ensureMaterialesLayout(){
     const url = String(document.getElementById("mcLink").value||"").trim();
     const st = mcLoadStore();
     if (!st.links) st.links = {};
-    if (!st.links[pid0]) st.links[pid0] = {};
-    st.links[pid0][cid0] = url;
+    if (!st.links[pid]) st.links[pid] = {};
+    st.links[pid][cid] = url;
     mcSaveStore(st);
     toast("Link guardado.");
     renderMateriales();
@@ -8747,19 +8747,21 @@ function mcScheduleDaysForArs(local, course){
   const fallbackDays = mcDefaultArsCourseDays(course);
   if (typeof SCHEDULES === "undefined") return fallbackDays;
 
+  const dayMap = {LUNES:1,MARTES:2,MIERCOLES:3,"MIÉRCOLES":3,JUEVES:4,VIERNES:5,SABADO:6,"SÁBADO":6,DOMINGO:0};
+
+  // Para ARS no se deben mezclar horarios de ESC PUCP / ESC INTEGRALES.
+  // El error detectado venía de considerar "PUCP" como si fuera ARS; eso agregaba
+  // días de clase falsos y activaba reprogramaciones por feriados que no tocaban al curso.
   let schedules = (SCHEDULES||[]).filter(s=>{
     const sLoc = mcNormLabel(s?.local);
+    const raw = mcNormLabel([s?.id,s?.salon,s?.uni,s?.__colKey,s?.__cardKey].join(" "));
     const sUni = mcNormLabel(s?.uni);
     const sSalon = mcNormLabel(s?.salon);
-    return sLoc === loc && (sUni === "ESCOLARES" || sSalon.includes("ESCOLAR") || sSalon.includes("ESC "));
+    const isEscolares = sUni === "ESCOLARES" || sSalon.includes("ESCOLAR") || /(^|\s)ESC(\s|$)/.test(sSalon) || raw.includes("ESCOLARES");
+    const isArs = raw.includes("ARS") || raw.includes("POP");
+    return sLoc === loc && isEscolares && isArs;
   });
-  const ars = schedules.filter(s=>{
-    const raw = mcNormLabel([s?.id,s?.salon,s?.__colKey,s?.__cardKey].join(" "));
-    return raw.includes("ARS") || raw.includes("POP") || raw.includes("PUCP");
-  });
-  if (ars.length) schedules = ars;
 
-  const dayMap = {LUNES:1,MARTES:2,MIERCOLES:3,"MIÉRCOLES":3,JUEVES:4,VIERNES:5,SABADO:6,"SÁBADO":6,DOMINGO:0};
   const days = [];
   for (const sch of schedules){
     for (const block of (sch.blocks||[])){
@@ -8770,6 +8772,14 @@ function mcScheduleDaysForArs(local, course){
   }
 
   const detected = Array.from(new Set(days)).sort((a,b)=>a-b);
+
+  // Regla de seguridad para ARS: cada curso base tiene un día oficial único.
+  // Si el horario detectado devuelve cero, múltiples días o un día distinto, se usa
+  // el día oficial para evitar reprogramaciones falsas.
+  if (fallbackDays.length === 1){
+    if (detected.length !== 1 || detected[0] !== fallbackDays[0]) return fallbackDays;
+  }
+
   return detected.length ? detected : fallbackDays;
 }
 
