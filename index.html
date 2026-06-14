@@ -7,6 +7,7 @@
   <meta http-equiv="Pragma" content="no-cache"/>
   <meta http-equiv="Expires" content="0"/>
   <title>LA META | DASHBOARD</title>
+  <!-- revisión: materiales ARS v2026-06-14c · fix columnas materiales 100% -->
 
   <!-- Charts -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
@@ -2380,8 +2381,42 @@
   .mrBtn.disabled{ pointer-events:none; opacity:.45; }
 
   /* Sílabo semanal: visible solo en Materiales > Escolares ARS */
-  .mcSyllabusCol{ min-width:260px; width:32%; white-space:normal; vertical-align:top; }
-  .mcSyllabusCell{ display:flex; flex-direction:column; gap:6px; min-width:230px; }
+  .mcSyllabusCol{
+    width:86px;
+    min-width:86px;
+    max-width:86px;
+    white-space:nowrap;
+    vertical-align:middle;
+    text-align:center;
+  }
+  .mcSyllabusCell{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    min-width:0;
+    width:100%;
+  }
+  .mcSyllabusBtn{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    min-width:78px;
+    height:30px;
+    padding:6px 10px;
+    border:1px solid rgba(31,78,121,.22);
+    border-radius:999px;
+    background:rgba(214,233,247,.72);
+    color:#17324d;
+    font-size:12px;
+    font-weight:1000;
+    letter-spacing:.02em;
+    line-height:1;
+    cursor:pointer;
+    text-transform:uppercase;
+    white-space:nowrap;
+  }
+  .mcSyllabusBtn:hover{ border-color:rgba(31,78,121,.38); box-shadow:0 0 0 3px rgba(31,78,121,.08); background:rgba(214,233,247,.95); }
+  .mcSyllabusBtnBadge{ display:none; }
   .mcTopic{
     display:grid;
     grid-template-columns:24px minmax(0,1fr);
@@ -2409,19 +2444,21 @@
   .mcSyllabusPending{
     display:inline-flex;
     align-items:center;
-    gap:7px;
+    justify-content:center;
+    gap:5px;
     width:max-content;
     max-width:100%;
     border:1px dashed rgba(245,158,11,.45);
     border-radius:999px;
-    padding:6px 10px;
+    padding:5px 8px;
     background:rgba(245,158,11,.10);
     color:#92400e;
-    font-size:11px;
+    font-size:10px;
     font-weight:1000;
-    letter-spacing:.03em;
+    letter-spacing:.02em;
+    line-height:1;
   }
-  .mcSyllabusPending::before{ content:""; width:8px; height:8px; border-radius:999px; background:#f59e0b; flex:0 0 auto; }
+  .mcSyllabusPending::before{ content:""; width:7px; height:7px; border-radius:999px; background:#f59e0b; flex:0 0 auto; }
   .mcHolidayNote{
     display:flex;
     align-items:flex-start;
@@ -2447,6 +2484,57 @@
     background:#fff;
     font-size:11px;
     font-weight:950;
+  }
+  .mcSyllabusOverlay{
+    position:fixed;
+    inset:0;
+    background:rgba(2,6,23,.52);
+    display:none;
+    align-items:center;
+    justify-content:center;
+    padding:18px;
+    z-index:25000;
+  }
+  .mcSyllabusOverlay.on{ display:flex; }
+  .mcSyllabusModal{
+    width:min(680px, 96vw);
+    max-height:92vh;
+    overflow:auto;
+    background:#fff;
+    border-radius:18px;
+    border:1px solid rgba(15,23,42,.12);
+    box-shadow:0 30px 90px rgba(2,6,23,.30);
+  }
+  .mcSyllabusModalHead{
+    position:sticky;
+    top:0;
+    z-index:1;
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+    gap:12px;
+    padding:16px 18px 12px;
+    background:#fff;
+    border-bottom:1px solid rgba(15,23,42,.10);
+  }
+  .mcSyllabusModalTitle{ font-size:18px; font-weight:1100; line-height:1.15; color:var(--text); }
+  .mcSyllabusModalSub{ margin-top:6px; color:var(--muted); font-size:12px; font-weight:900; text-transform:uppercase; }
+  .mcSyllabusClose{
+    border:1px solid rgba(15,23,42,.14);
+    background:#fff;
+    border-radius:12px;
+    padding:8px 10px;
+    cursor:pointer;
+    font-weight:1000;
+  }
+  .mcSyllabusModalBody{ padding:14px 18px 18px; display:flex; flex-direction:column; gap:10px; }
+  .mcSyllabusModalEmpty{
+    border:1px dashed rgba(15,23,42,.14);
+    border-radius:14px;
+    padding:14px;
+    color:var(--muted);
+    font-weight:900;
+    background:#f8fafc;
   }
 
   .mcBarsCompact{
@@ -2475,9 +2563,27 @@
   .mcTable tbody tr.mcCurrentWeekRow td{
     background: rgba(34,197,94,0.16);
   }
-  .mcStatusCol{ width:34px; text-align:center; white-space:nowrap; }
-  .mcColStatus{ width:34px; }
-  .mcChkCell{ text-align:center; }
+  /* Columnas finales: ajuste leve sin alterar el formato de las columnas principales. */
+  .mcStatusCol{
+    width:56px;
+    max-width:56px;
+    text-align:center;
+    white-space:nowrap;
+    word-break:normal;
+    line-height:1.05;
+    font-size:10px;
+    letter-spacing:-0.35px;
+    padding-left:2px !important;
+    padding-right:2px !important;
+  }
+  .mcColStatus{ width:56px; min-width:56px; max-width:56px; }
+  .mcChkCell{
+    width:56px;
+    max-width:56px;
+    text-align:center;
+    padding-left:2px !important;
+    padding-right:2px !important;
+  }
   .mcTableWrap input[type="checkbox"]{
     width:13px;
     height:13px;
@@ -2487,6 +2593,122 @@
   .mcTableWrap input[type="checkbox"].mcChkReadOnly{
     pointer-events:none;
     cursor:not-allowed;
+  }
+
+
+  /* ============================================================
+     FIX MATERIALES v2026-06-14c
+     - La columna IMPRESO queda visible y clicable a zoom 100%.
+     - FECHA y SEMANA ya no se recortan en SIMULACROS.
+     - Las columnas RECIBIDO / DIAGRAMADO / IMPRESO quedan balanceadas.
+  ============================================================ */
+  .mcTableWrap{
+    width:100% !important;
+    max-width:100% !important;
+    overflow-x:hidden !important;
+    overflow-y:visible !important;
+    padding-bottom:0 !important;
+  }
+  .mcTable{
+    width:100% !important;
+    max-width:100% !important;
+    min-width:0 !important;
+    table-layout:fixed !important;
+    border-collapse:collapse !important;
+  }
+  .mcTable th,
+  .mcTable td{
+    text-align:center !important;
+    vertical-align:middle !important;
+    white-space:nowrap !important;
+    overflow:hidden !important;
+    text-overflow:clip !important;
+    padding:7px 4px !important;
+  }
+  .mcTable thead th{
+    background:#fff !important;
+    color:var(--muted) !important;
+    font-size:12px !important;
+    font-weight:1100 !important;
+    letter-spacing:0 !important;
+    text-transform:uppercase !important;
+  }
+
+  .mcTable .mcIdxCol,
+  .mcTable thead th:first-child{
+    text-align:left !important;
+    padding-left:6px !important;
+  }
+  .mcDateCol,
+  .mcWeekCol{
+    text-align:left !important;
+    padding-left:6px !important;
+    overflow:visible !important;
+  }
+  .mcPctCol{
+    text-align:center !important;
+  }
+
+  /* SIMULACROS / cursos sin columna SÍLABO: FECHA y SEMANA completas + IMPRESO visible. */
+  .mcTable.noSyllabus col.mcColIdx{ width:3.5%; }
+  .mcTable.noSyllabus col.mcColDate{ width:7.0%; }
+  .mcTable.noSyllabus col.mcColWeek{ width:8.0%; }
+  .mcTable.noSyllabus col.mcColPct{ width:17.5%; }
+  .mcTable.noSyllabus col.mcColRec{ width:21.5%; }
+  .mcTable.noSyllabus col.mcColDia{ width:21.5%; }
+  .mcTable.noSyllabus col.mcColImp{ width:21.0%; }
+
+  /* Cursos con columna SÍLABO: se conserva SÍLABO y se abre espacio real para IMPRESO. */
+  .mcTable.hasSyllabus col.mcColIdx{ width:3.0%; }
+  .mcTable.hasSyllabus col.mcColDate{ width:6.0%; }
+  .mcTable.hasSyllabus col.mcColWeek{ width:7.0%; }
+  .mcTable.hasSyllabus col.mcColPct{ width:15.0%; }
+  .mcTable.hasSyllabus col.mcColSyllabus{ width:10.0%; }
+  .mcTable.hasSyllabus col.mcColRec{ width:19.5%; }
+  .mcTable.hasSyllabus col.mcColDia{ width:19.5%; }
+  .mcTable.hasSyllabus col.mcColImp{ width:20.0%; }
+
+  .mcStatusCol,
+  .mcColStatus,
+  .mcChkCell{
+    width:auto !important;
+    min-width:0 !important;
+    max-width:none !important;
+    text-align:center !important;
+    white-space:nowrap !important;
+    font-size:12px !important;
+    letter-spacing:0 !important;
+    line-height:1.15 !important;
+    padding-left:4px !important;
+    padding-right:4px !important;
+    overflow:visible !important;
+  }
+  .mcChkCell > div{
+    width:100% !important;
+    min-width:0 !important;
+    display:flex !important;
+    align-items:center !important;
+    justify-content:center !important;
+  }
+  .mcTableWrap input[type="checkbox"]{
+    width:18px !important;
+    height:18px !important;
+    min-width:18px !important;
+    min-height:18px !important;
+    margin:0 auto !important;
+    display:block !important;
+    accent-color:var(--ok);
+    visibility:visible !important;
+    opacity:1 !important;
+  }
+  .mcTable .semBadge{
+    min-width:96px !important;
+    justify-content:center !important;
+  }
+
+  @media (max-width: 900px){
+    .mcTableWrap{ overflow-x:auto !important; }
+    .mcTable{ min-width:980px !important; }
   }
 
 </style>
@@ -2617,7 +2839,7 @@
   // ⚠️ CAMBIA ESTAS CLAVES AQUÍ
   const AUTH_ADMIN_PASS = "202619";
   const AUTH_TUTOR_PASS = "MBMLaMeta";
-  const APP_BUILD = "2026-06-14-escolares-ars-silabo";
+  const APP_BUILD = "2026-06-14-escolares-ars-san-miguel-columna-b-formato-restaurado-v6";
 
   const ROLE_KEY = "lameta_role";
   const STUDENT_USER_KEY = "lameta_student_user";
@@ -6603,7 +6825,7 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
       { name:"QUÍMICA", url:"https://docs.google.com/spreadsheets/d/1XW3amXv3IsjBdwKcqc6j4g2y1VLCeO_CyctS_j9dsPc/edit?usp=drive_link" },
       { name:"BIOLOGÍA", url:"https://docs.google.com/spreadsheets/d/1OKo9aSm8jk4RCeTA-Xt9i0zpVvJSJqxZ-DQvuHQPQbI/edit?usp=drive_link" },
     ],
-    "ESCOLARES ARS - POP": [
+    "ESCOLARES ARS": [
       { name:"NÚMEROS Y OPERACIONES", url:"https://docs.google.com/spreadsheets/d/1DiO4Xo6soJP6RJoGLl9MzdMgLqxtX3lR/edit?usp=drive_link&ouid=109996193497961946614&rtpof=true&sd=true" },
       { name:"TEXTOS", url:"https://docs.google.com/spreadsheets/d/13hVQ3aU8tGTTCLulDKqvEPjfPig6mJmT/edit?usp=drive_link&ouid=109996193497961946614&rtpof=true&sd=true" },
       { name:"ÁLGEBRA", url:"https://docs.google.com/spreadsheets/d/1xCleoX70pd__IPvAJmxIXLg7PbqYSZWl/edit?usp=drive_link&ouid=109996193497961946614&rtpof=true&sd=true" },
@@ -6615,7 +6837,7 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
     if (uni==="AGRARIA") return getCss("--agraria");
     if (uni==="U.LIMA") return getCss("--ulima");
     if (uni==="PUCP") return getCss("--pucp");
-    if (uni==="ESCOLARES ARS - POP") return getCss("--pucp");
+    if (uni==="ESCOLARES ARS") return getCss("--pucp");
     if (uni==="ESCOLARES" || uni==="ESCOLARES INTEGRAL") return getCss("--schHead_ESC");
     return getCss("--ulima");
   }
@@ -6623,6 +6845,7 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
   function silaboUniKey(uniRaw){
     const u = String(uniRaw || "").toUpperCase().trim();
     if (u === "ESCOLARES") return "ESCOLARES INTEGRAL";
+    if (u.includes("ESCOLARES ARS") || u.includes("ARS") || u.includes("POP")) return "ESCOLARES ARS";
     return uniRaw;
   }
 
@@ -6685,7 +6908,7 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
           <span class="pill"><span class="dot ulima"></span>U.LIMA</span>
           <span class="pill"><span class="dot pucp"></span>PUCP</span>
           <span class="pill"><span class="dot escolares"></span>ESCOLARES INTEGRAL</span>
-          <span class="pill"><span class="dot pucp"></span>ESCOLARES ARS - POP</span>
+          <span class="pill"><span class="dot pucp"></span>ESCOLARES ARS</span>
         </div>
         <div class="panelHint" style="margin-top:8px; color:var(--muted);">
         </div>
@@ -6704,7 +6927,7 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
       <div class="panel12" id="sBlocks"></div>
     `;
 
-    fillSelectKeep("sUni", ["AGRARIA","U.LIMA","PUCP","ESCOLARES INTEGRAL","ESCOLARES ARS - POP"], "UNIVERSIDAD: TODAS");
+    fillSelectKeep("sUni", ["AGRARIA","U.LIMA","PUCP","ESCOLARES INTEGRAL","ESCOLARES ARS"], "UNIVERSIDAD: TODAS");
 
     document.getElementById("sReset").addEventListener("click", ()=>{
       document.getElementById("sUni").value="__ALL__";
@@ -6790,7 +7013,7 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
     const fUni = document.getElementById("sUni").value;
     const q = low(document.getElementById("sQ").value);
 
-    const uniOrder = ["AGRARIA","U.LIMA","PUCP","ESCOLARES INTEGRAL","ESCOLARES ARS - POP"];
+    const uniOrder = ["AGRARIA","U.LIMA","PUCP","ESCOLARES INTEGRAL","ESCOLARES ARS"];
     let unis = uniOrder.slice();
     if (fUni !== "__ALL__") unis = unis.filter(u=>u===fUni);
 
@@ -7582,7 +7805,7 @@ const MATERIALES = [
   { uni:"U.LIMA",    url:"https://drive.google.com/drive/folders/1LBTg5hU3Qhbxi6LNt8NgIkJD73QGQUmw?usp=drive_link" },
   { uni:"PUCP",      url:"https://drive.google.com/drive/folders/1FfUL4GEiHALYEOhBHTJA3SzHVotRGv0k?usp=sharing" },
   { uni:"ESCOLARES INTEGRAL", url:"https://drive.google.com/drive/folders/1nUdMaZU2n6b-FZlfR9WI2041e_aoOPYy" },
-  { uni:"ESCOLARES ARS - POP", url:"https://drive.google.com/drive/folders/1wwFhp2o9m8oE9px2kI8D4chWrHjaPSou" },
+  { uni:"ESCOLARES ARS", url:"https://drive.google.com/drive/folders/1wwFhp2o9m8oE9px2kI8D4chWrHjaPSou" },
 ];
 
 // ===================== NOTAS GENERALES (NUEVO) =====================
@@ -8117,6 +8340,24 @@ function mcProgress(stOrPid, pidOrCid, cidOrNull, codesOrNull){
 }
 
 const MC_ARS_SYLLABUS_CACHE = new Map();
+let MC_ACTIVE_SYLLABUS_ITEMS = [];
+const MC_ARS_MANUAL_SYLLABUS = {
+  "NUMEROS Y OPERACIONES": [
+    {code:"SEN1", displayCode:"SN1", dateRaw:"15-jun", topics:["Nivelación – Modelamiento Cuantitativo y Traducción de Enunciados", "Planteo de Ecuaciones y Operaciones Comerciales"]},
+    {code:"SEN2", displayCode:"SN2", dateRaw:"22-jun", topics:["Taller de Aritmética de Factores (números primos)", "Razones, Proporciones y Constantes Proporcionales"]},
+    {code:"SE01", displayCode:"S1", dateRaw:"29-jun", topics:["Operaciones Comerciales II y Variaciones Porcentuales", "Teoría de Conjuntos I"], notes:["Lunes 29 de junio: Día de San Pedro y San Pablo"]},
+    {code:"SE02", displayCode:"S2", dateRaw:"6-jul", topics:["Teoría de Conjuntos II (Cardinalidad)", "Optimización con Diagramas de Venn y Carroll"]},
+    {code:"SE03", displayCode:"S3", dateRaw:"13-jul", topics:["Fracciones I (Concepto y Operadores)", "Fracciones II (Reducción a la Unidad)"]},
+    {code:"SE04", displayCode:"S4", dateRaw:"20-jul", topics:["Teoría de la Divisibilidad I", "Teoría de la Divisibilidad II"], notes:["Jueves 23 de julio: Día de la Fuerza Aérea del Perú"]},
+    {code:"SE05", displayCode:"S5", dateRaw:"27-jul", topics:["Estudio Analítico de los Divisores", "Máximo Común Divisor (MCD)"], notes:["Martes 28 de julio hasta Miércoles 29 de julio: Fiestas Patrias"]},
+    {code:"SE06", displayCode:"S6", dateRaw:"3-ago", topics:["Mínimo Común Múltiplo (MCM)", "Sucesiones Numéricas y Patrones"], notes:["Jueves 6 de agosto: Batalla de Junín"]},
+    {code:"SE07", displayCode:"S7", dateRaw:"10-ago", topics:["Progresiones Aritméticas", "Progresiones Geométricas"]},
+    {code:"SE08", displayCode:"S8", dateRaw:"17-ago", topics:["Series y Sumatorias Notables", "Series Geométricas Convergentes (Suma Infinita) y Repaso"]},
+    {code:"SE09", displayCode:"S9", dateRaw:"24-ago", topics:["Repaso general 1 (Reconstruidos de admisión)", "Repaso general 2 (Reconstruidos de admisión)"], notes:["Domingo 30 de agosto: Santa Rosa de Lima"]},
+    {code:"SER1", displayCode:"SR1", dateRaw:"31-ago", topics:["Repaso general 3 (Reconstruidos de admisión)", "Repaso general 4 (Reconstruidos de admisión)"]},
+    {code:"SER2", displayCode:"SR2", dateRaw:"7-sep", topics:["Repaso general 5 (Reconstruidos de admisión)", "Repaso general 6 (Reconstruidos de admisión)"]}
+  ]
+};
 
 function mcIsArsProgram(program){
   const raw = mcNormLabel([program?.meta?.name, program?.meta?.scope, program?.meta?.theme].filter(Boolean).join(" "));
@@ -8127,13 +8368,74 @@ function mcSyllabusLink(st, pid, cid){
   return String(st?.syllabusLinks?.[pid]?.[cid] || "").trim();
 }
 
-function mcSyllabusCsvUrl(rawUrl){
+function mcSyllabusSheetInfo(rawUrl){
   const raw = String(rawUrl||"").trim();
-  const idMatch = raw.match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/);
-  if (!idMatch) return "";
+  if (!raw) return null;
+  const csvDirect = /^https:\/\/.*(?:output=csv|format=csv|tqx=out:csv)/i.test(raw);
+  const idMatch = raw.match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/) || raw.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+  if (!idMatch && csvDirect) return { raw, id:"", gid:"0", directCsv:true };
+  if (!idMatch) return null;
   const gidMatch = raw.match(/[?#&]gid=(\d+)/);
   const gid = gidMatch ? gidMatch[1] : "0";
-  return `https://docs.google.com/spreadsheets/d/${idMatch[1]}/export?format=csv&gid=${gid}`;
+  return { raw, id:idMatch[1], gid, directCsv:csvDirect };
+}
+
+function mcSyllabusCsvUrl(rawUrl){
+  const info = mcSyllabusSheetInfo(rawUrl);
+  if (!info) return "";
+  if (info.directCsv) return info.raw;
+  return `https://docs.google.com/spreadsheets/d/${info.id}/export?format=csv&gid=${info.gid}`;
+}
+
+function mcSyllabusCandidateCsvUrls(rawUrl){
+  const info = mcSyllabusSheetInfo(rawUrl);
+  if (!info) return [];
+  if (info.directCsv) return [info.raw];
+  return [
+    `https://docs.google.com/spreadsheets/d/${info.id}/export?format=csv&gid=${info.gid}`,
+    `https://docs.google.com/spreadsheets/d/${info.id}/gviz/tq?tqx=out:csv&gid=${info.gid}`,
+    `https://docs.google.com/spreadsheets/d/${info.id}/pub?output=csv&gid=${info.gid}`
+  ];
+}
+
+function mcRowsToCsv(rows){
+  return (rows||[]).map(row => (row||[]).map(v => {
+    const s = String(v ?? "");
+    return /[",\n\r]/.test(s) ? '"' + s.replace(/"/g,'""') + '"' : s;
+  }).join(",")).join("\n");
+}
+
+function mcIsLikelyHtml(text){
+  const s = String(text||"").trim().slice(0,300).toLowerCase();
+  return s.includes("<!doctype") || s.includes("<html") || s.includes("<head") || s.includes("google docs");
+}
+
+function mcLoadSyllabusGvizRows(rawUrl){
+  const info = mcSyllabusSheetInfo(rawUrl);
+  if (!info || !info.id) return Promise.reject(new Error("El enlace debe ser de Google Sheets."));
+  return new Promise((resolve,reject)=>{
+    const cb = "__mcGvizSyllabusCb_" + Date.now() + "_" + Math.random().toString(36).slice(2);
+    const cleanup = ()=>{
+      try{ delete window[cb]; }catch(_){ window[cb] = undefined; }
+      if (script && script.parentNode) script.parentNode.removeChild(script);
+    };
+    const timer = setTimeout(()=>{ cleanup(); reject(new Error("Tiempo agotado leyendo el sílabo.")); }, 15000);
+    window[cb] = (data)=>{
+      clearTimeout(timer);
+      try{
+        const cols = (data?.table?.cols||[]).map(c=>String(c?.label || c?.id || ""));
+        const rows = (data?.table?.rows||[]).map(r => (r?.c||[]).map(c => (c && (c.f ?? c.v)) != null ? String(c.f ?? c.v) : ""));
+        if (cols.some(Boolean)) rows.unshift(cols);
+        cleanup();
+        resolve(rows);
+      }catch(e){ cleanup(); reject(e); }
+    };
+    const script = document.createElement("script");
+    script.async = true;
+    script.onerror = ()=>{ clearTimeout(timer); cleanup(); reject(new Error("No se pudo leer la hoja. Verifique que el enlace sea público o que la hoja esté publicada.")); };
+    script.src = `https://docs.google.com/spreadsheets/d/${info.id}/gviz/tq?gid=${encodeURIComponent(info.gid)}&tqx=responseHandler:${cb}&_ts=${Date.now()}`;
+    document.head.appendChild(script);
+  });
 }
 
 function mcParseCsv(raw){
@@ -8165,50 +8467,92 @@ function mcSyllabusHeaderKey(value){
   return mcNormLabel(value).replace(/[^A-Z0-9]+/g, " ").replace(/\s+/g, " ").trim();
 }
 
-function mcParseSyllabusCsv(raw){
-  const rows = mcParseCsv(raw);
-  let headerRow = -1;
-  let codeIdx = -1, dateIdx = -1, blockIdx = -1, topicIdx = -1, notesIdx = -1;
+function mcSyllabusIsCourseOnly(value){
+  const s = mcSyllabusHeaderKey(value);
+  if (!s) return true;
+  if (/^(A|B|C|BLOQUE|SEMANA|CODIGO|COD|FECHA|FECHAS|OBS|OBSERVACION|OBSERVACIONES|NOTA|NOTAS)$/i.test(s)) return true;
+  if (/^(ALGEBRA|TEXTOS|TEXTO|NUMEROS Y OPERACIONES|N O|NO|GEOMETRIA Y MEDIDA|SIMULACRO|SIMULACROS|REPASO|FERIADO)$/i.test(s)) return true;
+  if (/^(CURSO|TEMA|TEMAS|CONTENIDO|CONTENIDOS|SESION|SESIONES)$/i.test(s)) return true;
+  return false;
+}
 
-  for (let r=0; r<Math.min(rows.length, 40); r++){
+function mcSyllabusSplitTopics(value){
+  const raw = String(value||"").replace(/\r/g,"\n").trim();
+  if (!raw) return [];
+  const parts = raw
+    .split(/\n|(?:\s*[•▪▫●]\s*)|(?:\s*;\s*)|(?:\s+\/\s+)/g)
+    .map(x=>String(x||"").replace(/^[-–—\d\.\)\s]+/,"").replace(/\s+/g," ").trim())
+    .filter(Boolean);
+  return parts.filter(x=>!mcSyllabusIsCourseOnly(x));
+}
+
+function mcParseSyllabusRows(rows){
+  rows = (rows||[]).map(r => (r||[]).map(v=>String(v ?? "")));
+  let headerRow = -1;
+  let codeIdx = -1, dateIdx = -1, blockIdx = -1, notesIdx = -1;
+  const displayIdx = 1; // Columna B: etiqueta visible para mensajes de reprogramación.
+  let topicIdxs = [];
+
+  for (let r=0; r<Math.min(rows.length, 60); r++){
     const keys = rows[r].map(mcSyllabusHeaderKey);
-    const c = keys.findIndex(x=>x === "CODIGO" || x === "CÓDIGO");
+    const c = keys.findIndex(x=>x === "CODIGO" || x === "CÓDIGO" || x === "COD" || x === "SEM");
     const d = keys.findIndex(x=>x === "SEMANA" || x.includes("FECHA"));
-    const b = keys.findIndex(x=>x === "BLOQUE");
-    if (c >= 0 && d >= 0 && b >= 0){
+    const b = keys.findIndex(x=>x === "BLOQUE" || x === "CLASE" || x === "SESION" || x === "SESIÓN");
+    const explicitTopics = keys
+      .map((x,i)=>({x,i}))
+      .filter(o => /(^| )(TEMA|TEMAS|CONTENIDO|CONTENIDOS|TEMARIO|ACTIVIDAD|SESION|SESIÓN)( |$)/.test(o.x) && o.i !== b && o.i !== d && o.i !== c)
+      .map(o=>o.i);
+    const hasWeek = c >= 0 || d >= 0 || keys.some(x=>/^SEMANA\s*\d+|^SEM\s*\d+|^SE\s*\d+/i.test(x));
+    const hasTopicHead = explicitTopics.length > 0 || b >= 0;
+    if (hasWeek && hasTopicHead){
       headerRow = r;
       codeIdx = c;
       dateIdx = d;
       blockIdx = b;
-      topicIdx = b + 1;
-      notesIdx = keys.findIndex(x=>x.includes("OBSERV"));
+      notesIdx = keys.findIndex(x=>x.includes("OBSERV") || x === "NOTAS" || x === "NOTA" || x.includes("FERIADO"));
+      if (explicitTopics.length) topicIdxs = explicitTopics;
+      else if (blockIdx >= 0){
+        const stop = notesIdx >= 0 ? notesIdx : rows[r].length;
+        topicIdxs = [];
+        for (let i=blockIdx+1; i<stop; i++) topicIdxs.push(i);
+      }
       break;
     }
   }
-  if (headerRow < 0) throw new Error("No se encontraron las columnas CÓDIGO, SEMANA y BLOQUE.");
+  if (headerRow < 0) throw new Error("No se encontraron columnas reconocibles de semana/bloque/tema.");
+  if (!topicIdxs.length) throw new Error("No se encontraron columnas de temas.");
 
   const weeks = [];
   let current = null;
   for (let r=headerRow+1; r<rows.length; r++){
     const cells = rows[r] || [];
-    const code = String(cells[codeIdx]||"").trim();
-    const dateRaw = String(cells[dateIdx]||"").trim();
-    const block = String(cells[blockIdx]||"").trim().toUpperCase();
-    const topic = String(cells[topicIdx]||"").replace(/\s+/g," ").trim();
+    const firstNonEmpty = cells.find(v=>String(v||"").trim()) || "";
+    const code = codeIdx >= 0 ? String(cells[codeIdx]||"").trim() : (/^\s*(SEM\w*\s*\d+|SE\s*\d+)/i.test(firstNonEmpty) ? String(firstNonEmpty).trim() : "");
+    const dateRaw = dateIdx >= 0 ? String(cells[dateIdx]||"").trim() : "";
+    const block = blockIdx >= 0 ? String(cells[blockIdx]||"").trim().toUpperCase() : "";
     const notes = notesIdx >= 0 ? String(cells[notesIdx]||"").replace(/\s+/g," ").trim() : "";
+    const colBLabel = String(cells[1]||"").replace(/\s+/g," ").trim();
+    const displayCode = String(cells[displayIdx]||"").replace(/\s+/g," ").trim();
 
     if (code || dateRaw){
-      current = { code, dateRaw, topics:[], notes:[] };
+      current = { code, displayCode: displayCode || code, colBLabel, dateRaw, topics:[], notes:[] };
       weeks.push(current);
     }
     if (!current) continue;
-    if (topic && !/^(Á?LGEBRA|TEXTOS|N[ÚU]MEROS Y OPERACIONES|GEOMETR[IÍ]A Y MEDIDA|SIMULACROS?)$/i.test(topic)){
-      if (!current.topics.includes(topic) && current.topics.length < 3) current.topics.push(topic);
+
+    for (const idx of topicIdxs){
+      for (const topic of mcSyllabusSplitTopics(cells[idx])){
+        if (!current.topics.includes(topic) && current.topics.length < 3) current.topics.push(topic);
+      }
     }
     if (notes && !current.notes.includes(notes)) current.notes.push(notes);
-    if (block && !["A","B","C"].includes(block) && !code && !dateRaw && !topic && !notes) current = null;
+    if (block && !["A","B","C","1","2","3"].includes(block) && !code && !dateRaw && !topicIdxs.some(i=>String(cells[i]||"").trim()) && !notes) current = null;
   }
   return weeks.filter(w=>w.code || w.dateRaw || w.topics.length || w.notes.length);
+}
+
+function mcParseSyllabusCsv(raw){
+  return mcParseSyllabusRows(mcParseCsv(raw));
 }
 
 function mcMonthNumber(raw){
@@ -8274,22 +8618,50 @@ function mcPeruHolidays(year){
   return map;
 }
 
+function mcDateKeysFromText(raw, year){
+  const keys = new Set();
+  const text = String(raw||"");
+  const months = "enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre";
+  const rxLong = new RegExp("(\\d{1,2})\\s+de\\s+("+months+")(?:\\s+de\\s+(\\d{4}))?","gi");
+  let match;
+  while ((match = rxLong.exec(text))){
+    const month = mcMonthNumber(match[2]);
+    let yy = +(match[3] || year);
+    if (yy < 100) yy += 2000;
+    if (!Number.isFinite(month) || !Number.isFinite(yy)) continue;
+    keys.add(mcDateKey(new Date(yy,month,+match[1])));
+  }
+
+  const rxShort = /(\d{1,2})\s*[-\/]\s*([a-záéíóúñ]{3,}|\d{1,2})(?:\s*[-\/]\s*(\d{2,4}))?/gi;
+  while ((match = rxShort.exec(text))){
+    const day = +match[1];
+    const month = /^\d+$/.test(match[2]) ? (+match[2]-1) : mcMonthNumber(match[2]);
+    let yy = match[3] ? +match[3] : +year;
+    if (yy < 100) yy += 2000;
+    if (!Number.isFinite(day) || !Number.isFinite(month) || !Number.isFinite(yy)) continue;
+    keys.add(mcDateKey(new Date(yy,month,day)));
+  }
+  return Array.from(keys).filter(Boolean);
+}
+
 function mcHolidaysFromSyllabusNotes(weeks, year){
   const map = new Map();
-  const months = "enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre";
-  const rx = new RegExp("(\\d{1,2})\\s+de\\s+("+months+")(?:\\s+de\\s+(\\d{4}))?","gi");
   for (const week of (weeks||[])){
     for (const note of (week.notes||[])){
-      let match;
-      while ((match = rx.exec(note))){
-        const month = mcMonthNumber(match[2]);
-        const yy = +(match[3] || year);
-        if (!Number.isFinite(month)) continue;
-        map.set(mcDateKey(new Date(yy,month,+match[1])), note);
+      for (const key of mcDateKeysFromText(note, year)){
+        map.set(key, note);
       }
     }
   }
   return map;
+}
+
+function mcSyllabusNotesForWeek(notes, holidayHits, year){
+  const holidayKeys = new Set((holidayHits||[]).map(h=>mcDateKey(h.date)).filter(Boolean));
+  return (notes||[]).filter(note=>{
+    const keys = mcDateKeysFromText(note, year);
+    return !keys.some(k=>holidayKeys.has(k));
+  });
 }
 
 function mcCourseAliases(course){
@@ -8306,9 +8678,14 @@ function mcScheduleDaysForArs(local, course){
   const loc = mcNormLabel(local);
   if (!loc || loc === "EDITOR" || typeof SCHEDULES === "undefined") return [];
   const aliases = mcCourseAliases(course).map(mcNormLabel);
-  let schedules = (SCHEDULES||[]).filter(s=>mcNormLabel(s?.uni)==="ESCOLARES" && mcNormLabel(s?.local)===loc);
+  let schedules = (SCHEDULES||[]).filter(s=>{
+    const sLoc = mcNormLabel(s?.local);
+    const sUni = mcNormLabel(s?.uni);
+    const sSalon = mcNormLabel(s?.salon);
+    return sLoc === loc && (sUni === "ESCOLARES" || sSalon.includes("ESCOLAR") || sSalon.includes("ESC "));
+  });
   const ars = schedules.filter(s=>{
-    const raw = mcNormLabel([s?.id,s?.salon].join(" "));
+    const raw = mcNormLabel([s?.id,s?.salon,s?.__colKey,s?.__cardKey].join(" "));
     return raw.includes("ARS") || raw.includes("POP") || raw.includes("PUCP");
   });
   if (ars.length) schedules = ars;
@@ -8333,6 +8710,40 @@ function mcProgramWeekDate(start, weekIndex, weekday){
   return pgxAddDays(base, offset);
 }
 
+function mcSyllabusClassDatesForWeek({pStart, weekIndex, classDays, sourceWeek, year}){
+  const dates = [];
+  for (const day of (classDays||[])){
+    const d = mcProgramWeekDate(pStart, weekIndex, day);
+    if (d && !Number.isNaN(d.getTime())) dates.push(d);
+  }
+  if (!dates.length){
+    const fromSheet = mcParseSheetDate(sourceWeek?.dateRaw, year);
+    if (fromSheet) dates.push(fromSheet);
+    else {
+      const d = pgxAddDays(pStart, weekIndex*7);
+      d.setHours(0,0,0,0);
+      dates.push(d);
+    }
+  }
+  const seen = new Set();
+  return dates.filter(d=>{
+    const key = mcDateKey(d);
+    if (!key || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+function mcSyllabusWeekCapacity(sourceTopics, classDates, holidayHits){
+  const topicCount = (sourceTopics||[]).length;
+  if (!topicCount) return 0;
+  const totalSessions = Math.max(1, (classDates||[]).length || 1);
+  const blockedSessions = Math.min(totalSessions, (holidayHits||[]).length || 0);
+  const validSessions = Math.max(0, totalSessions - blockedSessions);
+  if (!validSessions) return 0;
+  return Math.max(1, Math.min(topicCount, Math.floor(topicCount * validSessions / totalSessions)));
+}
+
 function mcAlignSyllabusTopics({weeks,codes,first,last,pStart,local,course}){
   const byCode = new Map((weeks||[]).map(w=>[mcNormLabel(w.code),w]));
   const year = pStart.getFullYear();
@@ -8346,37 +8757,156 @@ function mcAlignSyllabusTopics({weeks,codes,first,last,pStart,local,course}){
     const code = String(codes[i]||`SEM${i+1}`);
     const srcWeek = byCode.get(mcNormLabel(code)) || weeks[i] || {topics:[],notes:[]};
     const sourceTopics = (srcWeek.topics||[]).slice(0,3);
+    const classDates = mcSyllabusClassDatesForWeek({pStart, weekIndex:i, classDays, sourceWeek:srcWeek, year});
     const holidayHits = [];
-    for (const day of classDays){
-      const d = mcProgramWeekDate(pStart,i,day);
+    for (const d of classDates){
       const name = holidays.get(mcDateKey(d));
       if (name) holidayHits.push({date:d,name});
     }
 
-    if (mcNormLabel(local)==="EDITOR"){
-      result.push({topics:sourceTopics, holidayHits, sourceWeek:srcWeek});
-      continue;
-    }
+    carry.push(...sourceTopics.map(topic=>({topic, sourceWeek:srcWeek})));
+    const capacity = mcSyllabusWeekCapacity(sourceTopics, classDates, holidayHits);
+    const selected = carry.splice(0, Math.min(3, capacity));
+    const topicSourceWeek = selected[0]?.sourceWeek || srcWeek;
+    const topics = selected.map(x=>x.topic);
+    const currentNotes = mcSyllabusNotesForWeek(srcWeek.notes||[], holidayHits, year);
+    const sourceLabel = String(topicSourceWeek?.displayCode || topicSourceWeek?.code || "");
+    const currentLabel = String(srcWeek?.displayCode || srcWeek?.code || code);
 
-    carry.push(...sourceTopics);
-    let capacity = sourceTopics.length || Math.min(3,classDays.length);
-    capacity = Math.max(0,capacity-Math.min(capacity,holidayHits.length));
-    const topics = carry.splice(0,Math.min(3,capacity));
-    result.push({topics, holidayHits, sourceWeek:srcWeek, delayed:carry.length});
+    result.push({
+      topics,
+      notes: currentNotes,
+      holidayHits,
+      delayed: carry.length,
+      currentWeek: srcWeek,
+      sourceWeek: topicSourceWeek,
+      sourceCode: topicSourceWeek?.code || "",
+      sourceDisplayCode: sourceLabel,
+      sourceColBLabel: topicSourceWeek?.colBLabel || "",
+      sourceDateRaw: topicSourceWeek?.dateRaw || "",
+      shifted: !!(topics.length && sourceLabel && currentLabel && mcNormLabel(sourceLabel) !== mcNormLabel(currentLabel))
+    });
   }
   return result;
 }
 
-function mcSyllabusCellHtml(item){
+function mcManualSyllabusAligned({cid,codes,first,last,pStart,local}){
+  const manual = MC_ARS_MANUAL_SYLLABUS[mcNormLabel(cid)];
+  if (!manual || !manual.length) return null;
+  const aligned = mcAlignSyllabusTopics({weeks:manual,codes,first,last,pStart,local,course:cid});
+  return aligned.map((item,index)=>{
+    const absoluteIndex = first - 1 + index;
+    const code = mcNormLabel(String(codes[absoluteIndex]||""));
+    const fallback = manual[absoluteIndex] || manual[index] || {};
+    const current = manual.find(w=>mcNormLabel(w.code)===code || mcNormLabel(w.displayCode||"")===code) || fallback;
+    const src = item.sourceWeek || current || {};
+    return {
+      ...item,
+      displayCode: current?.displayCode || current?.code || String(codes[absoluteIndex]||`SEM${absoluteIndex+1}`),
+      dateRaw: current?.dateRaw || "",
+      sourceDisplayCode: src?.displayCode || src?.code || item.sourceDisplayCode || "",
+      sourceColBLabel: src?.colBLabel || item.sourceColBLabel || "",
+      sourceCode: src?.code || item.sourceCode || "",
+      sourceDateRaw: src?.dateRaw || item.sourceDateRaw || ""
+    };
+  });
+}
+
+function mcSyllabusCellHtml(item, idx){
   const topics = (item?.topics||[]).slice(0,3);
-  const topicsHtml = topics.map((topic,i)=>`
+  const notes = (item?.notes||[]).slice();
+  const noteCount = notes.length + ((item?.holidayHits||[]).length || 0);
+  if (!topics.length && !noteCount){
+    return `<div class="mcSyllabusCell"><span class="mcSyllabusPending">PENDIENTE</span></div>`;
+  }
+  const meta = [];
+  if (topics.length) meta.push(`${topics.length} tema${topics.length===1?"":"s"}`);
+  if (noteCount) meta.push(`${noteCount} aviso${noteCount===1?"":"s"}`);
+  const label = meta.join(" · ") || "Contenido listo";
+  return `
+    <div class="mcSyllabusCell">
+      <button type="button" class="mcSyllabusBtn" data-syllabus-open="${idx}" title="${escapeHtml(label)}" aria-label="Ver sílabo: ${escapeHtml(label)}">
+        <span class="mcSyllabusBtnBadge">${topics.length || noteCount || 1}</span>
+        <span>VER</span>
+      </button>
+    </div>
+  `;
+}
+
+function mcEnsureSyllabusModal(){
+  let el = document.getElementById("mcSyllabusOverlay");
+  if (el) return el;
+  el = document.createElement("div");
+  el.id = "mcSyllabusOverlay";
+  el.className = "mcSyllabusOverlay";
+  el.innerHTML = `
+    <div class="mcSyllabusModal" role="dialog" aria-modal="true" aria-labelledby="mcSyllabusModalTitle">
+      <div class="mcSyllabusModalHead">
+        <div>
+          <div id="mcSyllabusModalTitle" class="mcSyllabusModalTitle">Temas del sílabo</div>
+          <div id="mcSyllabusModalSub" class="mcSyllabusModalSub">—</div>
+        </div>
+        <button type="button" class="mcSyllabusClose" data-syllabus-close="1">Cerrar</button>
+      </div>
+      <div id="mcSyllabusModalBody" class="mcSyllabusModalBody"></div>
+    </div>
+  `;
+  el.addEventListener("click", (ev)=>{
+    if (ev.target === el || ev.target.closest("[data-syllabus-close]")){
+      el.classList.remove("on");
+    }
+  });
+  document.addEventListener("keydown", (ev)=>{
+    if (ev.key === "Escape") el.classList.remove("on");
+  });
+  document.body.appendChild(el);
+  return el;
+}
+
+function mcOpenSyllabusModal(idx){
+  const item = (MC_ACTIVE_SYLLABUS_ITEMS || [])[idx];
+  if (!item) return;
+  const overlay = mcEnsureSyllabusModal();
+  const title = overlay.querySelector("#mcSyllabusModalTitle");
+  const sub = overlay.querySelector("#mcSyllabusModalSub");
+  const body = overlay.querySelector("#mcSyllabusModalBody");
+  if (title) title.textContent = `Semana ${item.displayCode || item.code || idx+1}`;
+  const subParts = [];
+  if (item.dateRaw) subParts.push(String(item.dateRaw).toUpperCase());
+  if (item.code && item.displayCode && item.code !== item.displayCode) subParts.push(`PROGRAMA: ${item.code}`);
+  const sourceLabel = String(item.sourceColBLabel || "").trim();
+  const sourceFallbackLabel = String(item.sourceDisplayCode || item.sourceCode || "").trim();
+  const isShiftedContent = !!(item.shifted || (sourceFallbackLabel && item.displayCode && mcNormLabel(sourceFallbackLabel)!==mcNormLabel(item.displayCode)));
+  if (isShiftedContent && (item.topics||[]).length){
+    subParts.push(sourceLabel ? `CONTENIDO REPROGRAMADO: ${sourceLabel}` : "CONTENIDO REPROGRAMADO");
+  }
+  if (sub) sub.textContent = subParts.join(" · ") || "Contenido semanal";
+  const topicsHtml = (item.topics||[]).map((topic,i)=>`
     <div class="mcTopic"><span class="mcTopicNum">${i+1}</span><span>${escapeHtml(topic)}</span></div>
   `).join("");
-  const holidayHtml = (item?.holidayHits||[]).map(h=>`
-    <div class="mcHolidayNote"><span>FERIADO</span><span>${escapeHtml(mcFmtDM(h.date))} · ${escapeHtml(h.name)}</span></div>
-  `).join("");
-  const delayedHtml = item?.delayed ? `<div class="mcSyllabusMeta">${item.delayed} tema(s) desplazado(s) a la siguiente semana.</div>` : "";
-  return `<div class="mcSyllabusCell">${topicsHtml || '<span class="mcSyllabusPending">PENDIENTE</span>'}${holidayHtml}${delayedHtml}</div>`;
+  const isHolidayWithoutTopics = !(item.topics||[]).length && (item.holidayHits||[]).length;
+  const emptyHtml = isHolidayWithoutTopics
+    ? '<div class="mcSyllabusModalEmpty"><b>Semana no lectiva por feriado.</b><br/>No se programan temas para esta fecha. El contenido se traslada a la siguiente clase efectiva.</div>'
+    : '<div class="mcSyllabusModalEmpty">No hay temas cargados para esta semana.</div>';
+  const shiftHtml = (isShiftedContent && (item.topics||[]).length)
+    ? `<div class="mcHolidayNote"><span>REPROGRAMADO</span><span>${sourceLabel ? `Contenido trasladado desde ${escapeHtml(sourceLabel)}.` : "Contenido reprogramado."}</span></div>`
+    : "";
+  const notesHtml = [
+    shiftHtml,
+    ...((item.notes||[]).map(n=>`<div class="mcHolidayNote"><span>AVISO</span><span>${escapeHtml(n)}</span></div>`)),
+    ...((item.holidayHits||[]).map(h=>`<div class="mcHolidayNote"><span>FERIADO</span><span>${escapeHtml(mcFmtDM(h.date))} · ${escapeHtml(h.name)}</span></div>`))
+  ].join("");
+  body.innerHTML = `${topicsHtml || emptyHtml}${notesHtml}`;
+  overlay.classList.add("on");
+}
+
+function mcBindSyllabusButtons(scope){
+  (scope || document).querySelectorAll("[data-syllabus-open]").forEach(btn=>{
+    btn.addEventListener("click", ()=>{
+      const idx = +btn.getAttribute("data-syllabus-open");
+      if (Number.isFinite(idx)) mcOpenSyllabusModal(idx);
+    });
+  });
 }
 
 async function mcLoadSyllabusData(url){
@@ -8384,13 +8914,30 @@ async function mcLoadSyllabusData(url){
   if (!key) throw new Error("Enlace de sílabo pendiente.");
   if (MC_ARS_SYLLABUS_CACHE.has(key)) return await MC_ARS_SYLLABUS_CACHE.get(key);
   const promise = (async ()=>{
-    const csvUrl = mcSyllabusCsvUrl(key);
-    if (!csvUrl) throw new Error("El enlace debe ser de Google Sheets.");
-    const res = await fetch(csvUrl + "&_ts=" + Date.now(), {cache:"no-store"});
-    if (!res.ok) throw new Error("No se pudo leer la hoja. Verifica que esté compartida.");
-    const weeks = mcParseSyllabusCsv(await res.text());
-    if (!weeks.length) throw new Error("La hoja no contiene semanas reconocibles.");
-    return weeks;
+    if (!mcSyllabusSheetInfo(key)) throw new Error("El enlace debe ser de Google Sheets o CSV publicado.");
+    const errors = [];
+
+    try{
+      const rows = await mcLoadSyllabusGvizRows(key);
+      const weeks = mcParseSyllabusRows(rows);
+      if (weeks.length) return weeks;
+      errors.push("GViz: hoja vacía");
+    }catch(e){ errors.push("GViz: " + (e?.message || String(e))); }
+
+    for (const csvUrl of mcSyllabusCandidateCsvUrls(key)){
+      try{
+        const joiner = csvUrl.includes("?") ? "&" : "?";
+        const res = await fetch(csvUrl + joiner + "_ts=" + Date.now(), {cache:"no-store"});
+        if (!res.ok){ errors.push(`CSV ${res.status}`); continue; }
+        const raw = await res.text();
+        if (mcIsLikelyHtml(raw)){ errors.push("CSV devolvió HTML, no datos"); continue; }
+        const weeks = mcParseSyllabusCsv(raw);
+        if (weeks.length) return weeks;
+        errors.push("CSV: hoja sin semanas reconocibles");
+      }catch(e){ errors.push("CSV: " + (e?.message || String(e))); }
+    }
+
+    throw new Error("No se pudo leer la hoja. Debe estar compartida como 'Cualquier usuario con el enlace' o publicada como CSV. " + errors.slice(0,2).join(" | "));
   })();
   MC_ARS_SYLLABUS_CACHE.set(key,promise);
   try{ return await promise; }
@@ -8401,21 +8948,44 @@ async function mcHydrateArsSyllabus({pid,cid,codes,first,last,pStart,space,url})
   const status = document.getElementById("mcSyllabusStatus");
   const cells = Array.from(document.querySelectorAll('[data-syllabus-week]'));
   if (!cells.length) return;
-  if (!url){
-    cells.forEach(td=>td.innerHTML='<div class="mcSyllabusCell"><span class="mcSyllabusPending">PENDIENTE</span><div class="mcSyllabusMeta">El Editor debe añadir el enlace del sílabo.</div></div>');
-    if (status) status.textContent = "SÍLABO PENDIENTE";
+
+  const applyAligned = (aligned, weeksLabel)=>{
+    MC_ACTIVE_SYLLABUS_ITEMS = aligned.map((item, index)=>({
+      ...item,
+      code: String(codes[first-1+index] || item?.code || `SEM${first+index}`)
+    }));
+    cells.forEach((td,index)=>{ td.innerHTML = mcSyllabusCellHtml(MC_ACTIVE_SYLLABUS_ITEMS[index], index); });
+    mcBindSyllabusButtons(document.getElementById("mcBody2") || document);
+    if (status) status.textContent = weeksLabel;
+  };
+
+  const manualAligned = mcManualSyllabusAligned({cid,codes,first,last,pStart,local:space});
+
+  if (url){
+    try{
+      if (status) status.textContent = "CARGANDO SÍLABO…";
+      const weeks = await mcLoadSyllabusData(url);
+      const aligned = mcAlignSyllabusTopics({weeks,codes,first,last,pStart,local:space,course:cid});
+      applyAligned(aligned, `SÍLABO ACTIVO · ${weeks.length} SEMANAS`);
+      return;
+    }catch(err){
+      if (manualAligned){
+        applyAligned(manualAligned, `SÍLABO TEMPORAL · ${manualAligned.length} SEMANAS · REVISAR LINK`);
+        return;
+      }
+      cells.forEach(td=>td.innerHTML='<div class="mcSyllabusCell"><span class="mcSyllabusPending">PENDIENTE</span></div>');
+      if (status) status.textContent = "REVISAR SÍLABO";
+      return;
+    }
+  }
+
+  if (manualAligned){
+    applyAligned(manualAligned, `SÍLABO ACTIVO · ${manualAligned.length} SEMANAS · FERIADOS APLICADOS`);
     return;
   }
-  try{
-    if (status) status.textContent = "CARGANDO SÍLABO…";
-    const weeks = await mcLoadSyllabusData(url);
-    const aligned = mcAlignSyllabusTopics({weeks,codes,first,last,pStart,local:space,course:cid});
-    cells.forEach((td,index)=>{ td.innerHTML = mcSyllabusCellHtml(aligned[index]); });
-    if (status) status.textContent = `SÍLABO ACTIVO · ${weeks.length} SEMANAS`;
-  }catch(err){
-    cells.forEach(td=>td.innerHTML=`<div class="mcSyllabusCell"><span class="mcSyllabusPending">PENDIENTE</span><div class="mcSyllabusMeta">${escapeHtml(err?.message||String(err))}</div></div>`);
-    if (status) status.textContent = "REVISAR SÍLABO";
-  }
+
+  cells.forEach(td=>td.innerHTML='<div class="mcSyllabusCell"><span class="mcSyllabusPending">PENDIENTE</span></div>');
+  if (status) status.textContent = "SÍLABO PENDIENTE";
 }
 
 function mcSelected(){
@@ -8452,13 +9022,13 @@ function renderMateriales(){
   // ===== tarjetas de carpetas (accesos directos) =====
   const grid = document.getElementById("matGrid");
   if (grid){
-    const MAT_UNI_ORDER = ["AGRARIA","U.LIMA","PUCP","ESCOLARES INTEGRAL","ESCOLARES ARS - POP"];
+    const MAT_UNI_ORDER = ["AGRARIA","U.LIMA","PUCP","ESCOLARES INTEGRAL","ESCOLARES ARS"];
     const MAT_UNI_COLOR = {
       "AGRARIA": getCss("--agraria"),
       "U.LIMA": getCss("--ulima"),
       "PUCP": getCss("--pucp"),
       "ESCOLARES INTEGRAL": getCss("--schHead_ESC"),
-      "ESCOLARES ARS - POP": getCss("--pucp")
+      "ESCOLARES ARS": getCss("--pucp")
     };
 
     const orderedMaterials = MAT_UNI_ORDER.map(u=>{
@@ -8558,6 +9128,7 @@ function renderMateriales(){
     const raw = mcMaterialProgramNameRaw(program);
     const normalized = raw.toUpperCase().replace(/\s+/g, " ").trim();
     if (normalized === "ESCOLARES AGRARIA" || normalized === "ESCOLARES AGRARAI") return "ESCOLARES INTEGRAL";
+    if (normalized.includes("ARS") || normalized.includes("POP")) return "ESCOLARES ARS";
     return normalized || "(SIN PROGRAMAS)";
   }
   function mcMaterialCoursesFor(uniLabel, program){
@@ -8584,14 +9155,24 @@ function renderMateriales(){
   const courses = mcMaterialCoursesFor(uni, prog);
   const savedCourse = localStorage.getItem(COURSE_KEY) || "";
   const course = courses.includes(savedCourse) ? savedCourse : (courses[0]||"");
+  const isSimulacroCourse = mcNormLabel(course).includes("SIMULACRO");
+  const showSyllabusCol = isArsProgram && !isSimulacroCourse;
 
+  // ESCOLARES ARS solo se dicta en SAN MIGUEL.
+  // Por eso, en Materiales no se muestran LA MOLINA, SAN BORJA ni VIRTUAL para este ciclo.
+  const ARS_SPACES = [
+    {id:"EDITOR", label:"EDITOR"},
+    {id:"SAN_MIGUEL", label:"SAN MIGUEL"}
+  ];
   const materialSpaces = isArsProgram
-    ? [...MC_SPACES, {id:"VIRTUAL", label:"VIRTUAL"}]
+    ? ARS_SPACES
     : MC_SPACES;
   const availableSpaces = (roleLower === "admin")
     ? materialSpaces
     : materialSpaces.filter(x=>x.id !== "EDITOR");
-  const defaultSpace = (roleLower === "admin") ? "EDITOR" : "LA_MOLINA";
+  const defaultSpace = isArsProgram
+    ? ((roleLower === "admin") ? "EDITOR" : "SAN_MIGUEL")
+    : ((roleLower === "admin") ? "EDITOR" : "LA_MOLINA");
   const savedSpace = String(localStorage.getItem(SPACE_KEY) || defaultSpace).toUpperCase();
   const space = availableSpaces.find(x=>x.id===savedSpace)
     ? savedSpace
@@ -8708,7 +9289,7 @@ function renderMateriales(){
 
         <a id="mcOpen2" class="btn folder" target="_blank" rel="noopener" style="margin-left:6px; text-decoration:none;">CARPETA</a>
         ${(canEdit && matEditOn) ? '<input id="mcLink2" type="text" placeholder="Link carpeta (Drive)" style="min-width:320px; padding:8px 10px; border-radius:12px; border:1px solid var(--border); font-weight:900;"/><button id="mcSaveLink2" class="btn ghost" type="button">GUARDAR LINK</button>' : ""}
-        ${isArsProgram ? `
+        ${showSyllabusCol ? `
           <span class="mcSyllabusTools">
             <a id="mcOpenSyllabus2" class="btn folder" target="_blank" rel="noopener" style="text-decoration:none;">ABRIR SÍLABO</a>
             ${(canEdit && matEditOn) ? '<input id="mcSyllabusLink2" type="text" placeholder="Link del sílabo (Google Sheets)" style="min-width:340px; padding:8px 10px; border-radius:12px; border:1px solid var(--border); font-weight:900;"/><button id="mcSaveSyllabus2" class="btn ghost" type="button">GUARDAR SÍLABO</button>' : ""}
@@ -8802,7 +9383,7 @@ ${canWork ? `<button id="mcEditBtn" class="btn ${matEditOn?'primary':'ghost'}" t
   });
 
   syllabusSaveBtn?.addEventListener("click", ()=>{
-    if (!canEdit || !isArsProgram) return toast("Solo Editor puede configurar el sílabo.");
+    if (!canEdit || !showSyllabusCol) return toast("Solo Editor puede configurar el sílabo.");
     const url = String(syllabusLinkInp?.value||"").trim();
     if (url && !mcSyllabusCsvUrl(url)) return toast("Pega un enlace válido de Google Sheets.");
     const st = mcLoadStore();
@@ -8929,12 +9510,12 @@ ${canWork ? `<button id="mcEditBtn" class="btn ${matEditOn?'primary':'ghost'}" t
         <td class="mcWeekCol" style="font-weight:950;">${escapeHtml(code)}</td>
 
         <td class="mcPctCol"><span class="semBadge ${semClass}"><span class="semDot"></span>${wkPct}%</span></td>
-        ${isArsProgram ? `<td class="mcSyllabusCol" data-syllabus-week="${i}"><div class="mcSyllabusCell"><span class="mcSyllabusPending">CARGANDO</span></div></td>` : ""}
+        ${showSyllabusCol ? `<td class="mcSyllabusCol" data-syllabus-week="${i}"><div class="mcSyllabusCell"><span class="mcSyllabusPending">CARGANDO</span></div></td>` : ""}
 
         <td class="mcChkCell"><input type="checkbox" class="${disClsRec}" ${roRecAttr} data-code="${escapeHtml(code)}" data-field="rec" ${rec?"checked":""}></td>
         <td class="mcChkCell"><input type="checkbox" class="${disClsDia}" ${roDiaAttr} data-code="${escapeHtml(code)}" data-field="dia" ${dia?"checked":""}></td>
-        <td class="mcChkCell">
-          <div style="display:flex; flex-direction:column; align-items:center; gap:4px;">
+        <td class="mcChkCell mcImpCell">
+          <div>
             <input type="checkbox" class="${disClsImp}" ${roImpAttr} data-code="${escapeHtml(code)}" data-field="imp" ${imp?"checked":""}>
           </div>
         </td>
@@ -8945,21 +9526,17 @@ ${canWork ? `<button id="mcEditBtn" class="btn ${matEditOn?'primary':'ghost'}" t
   body.innerHTML = `
     <div class="mrTop" style="margin:0;">
       <div class="mrKpi">${escapeHtml(String(prog.meta?.name||"PROGRAMA").toUpperCase())} · <b>${escapeHtml(String(cid||"CURSO").toUpperCase())}</b> · Inicio: <b>${escapeHtml(fmtDM(pgxAddDays(pStart,(range.first-1)*7)))}</b> · Fin: <b>${escapeHtml(fmtDM(pgxAddDays(pStart,(range.last-1)*7)))}</b></div>
-      <div style="margin-top:6px; display:flex; flex-wrap:wrap; gap:6px;">
-        <span style="display:inline-flex; align-items:center; border:1px solid var(--border); border-radius:999px; padding:4px 10px; font-weight:900; font-size:12px; color:var(--muted); background:#fff;">Recibe: PEDRO</span>
-        <span style="display:inline-flex; align-items:center; border:1px solid var(--border); border-radius:999px; padding:4px 10px; font-weight:900; font-size:12px; color:var(--muted); background:#fff;">DIAGRAMA: ${escapeHtml(diagramaLabel || "—")}</span>
-        <span style="display:inline-flex; align-items:center; border:1px solid var(--border); border-radius:999px; padding:4px 10px; font-weight:900; font-size:12px; color:var(--muted); background:#fff;">Imprime: ${escapeHtml(impresor || "—")}</span>
-      </div>
+
     </div>
 
     ${progBars}
 
     <div class="mcTableWrap">
-      <table class="mcTable">
+      <table class="mcTable ${showSyllabusCol ? 'hasSyllabus' : 'noSyllabus'}">
         <colgroup>
-          <col><col><col><col>
-          ${isArsProgram ? '<col class="mcSyllabusCol">' : ""}
-          <col class="mcColStatus"><col class="mcColStatus"><col class="mcColStatus">
+          <col class="mcColIdx"><col class="mcColDate"><col class="mcColWeek"><col class="mcColPct">
+          ${showSyllabusCol ? '<col class="mcColSyllabus">' : ""}
+          <col class="mcColRec"><col class="mcColDia"><col class="mcColImp">
         </colgroup>
         <thead>
           <tr style="background:#f1f5f9;">
@@ -8967,14 +9544,14 @@ ${canWork ? `<button id="mcEditBtn" class="btn ${matEditOn?'primary':'ghost'}" t
             <th>FECHA</th>
             <th>SEMANA</th>
             <th>AVANCE</th>
-            ${isArsProgram ? '<th class="mcSyllabusCol">SÍLABO</th>' : ""}
+            ${showSyllabusCol ? '<th class="mcSyllabusCol">SÍLABO</th>' : ""}
             <th class="mcStatusCol">RECIBIDO</th>
             <th class="mcStatusCol">DIAGRAMADO</th>
             <th class="mcStatusCol">IMPRESO</th>
           </tr>
         </thead>
         <tbody>
-          ${rows.length ? rows.join("") : `<tr><td colspan="${isArsProgram ? 8 : 7}" style="padding:14px; color:var(--muted); font-weight:950;">No hay filas para este filtro.</td></tr>`}
+          ${rows.length ? rows.join("") : `<tr><td colspan="${showSyllabusCol ? 8 : 7}" style="padding:14px; color:var(--muted); font-weight:950;">No hay filas para este filtro.</td></tr>`}
         </tbody>
       </table>
     </div>
@@ -8983,7 +9560,7 @@ ${canWork ? `<button id="mcEditBtn" class="btn ${matEditOn?'primary':'ghost'}" t
     </div>
   `;
 
-  if (isArsProgram){
+  if (showSyllabusCol){
     mcHydrateArsSyllabus({
       pid,
       cid,
@@ -10619,18 +11196,30 @@ el.dataset.ready = "1";
     return "VIRT";
   }
 
+  function isEscolaresArsSchedule(sch){
+    const raw = [
+      String(sch?.id || ""),
+      String(sch?.salon || ""),
+      String(sch?.uni || ""),
+      String(sch?.__colKey || ""),
+      String(sch?.__cardKey || "")
+    ].join(" ").toUpperCase();
+    return raw.includes("ARS") || raw.includes("POP");
+  }
+
   function isEscolaresIntegralesSchedule(sch){
     const raw = [
       String(sch?.id || ""),
       String(sch?.salon || ""),
       String(sch?.uni || "")
     ].join(" ").toUpperCase();
-    return raw.includes("INTEGRAL");
+    if (isEscolaresArsSchedule(sch)) return false;
+    return raw.includes("INTEGRAL") || raw.includes("ESCOLAR") || raw.includes("ESCOLARES") || /(^|\s)ESC(\s|$)/.test(raw);
   }
 
   function baseColumnKeyForSchedule(sch){
     if (sch.uni === "AGRARIA"){
-      if (String(sch.salon||"").toUpperCase().includes("ESCOLAR")) return "ESCOLARES";
+      if (String(sch.salon||"").toUpperCase().includes("ESCOLAR")) return "ESCOLARES_INTEGRALES";
       if (sch.id === "AGR_LM_2" || String(sch.salon||"").includes(" 2") || String(sch.salon||"").includes("LM 2")) return "AGRARIA_2";
       return "AGRARIA_1";
     }
@@ -10639,13 +11228,13 @@ el.dataset.ready = "1";
       const sal = String(sch.salon||"");
       const salUp = sal.toUpperCase();
       if (salUp.includes("PRE U.LIMA") || salUp.includes("PRE ULIMA") || id.includes("PRE_UL")) return "PRE_ULIMA";
-      if (salUp.includes("ESC") || id.includes("UL_ESC")) return "ESCOLARES";
+      if (salUp.includes("ESC") || id.includes("UL_ESC")) return "ESCOLARES_INTEGRALES";
       if (id.endsWith("_2") || sal.includes(" 2") || id.includes("_SM_2") || id.includes("_SB_2") || id.includes("_VIRT_2")) return "ULIMA_2";
       return "ULIMA_1";
     }
     if (sch.uni === "PUCP") return "PUCP";
-    if (sch.uni === "ESCOLARES") return isEscolaresIntegralesSchedule(sch) ? "ESCOLARES_INTEGRALES" : "ESCOLARES";
-    return isEscolaresIntegralesSchedule(sch) ? "ESCOLARES_INTEGRALES" : "ESCOLARES";
+    if (sch.uni === "ESCOLARES") return isEscolaresArsSchedule(sch) ? "ESCOLARES" : "ESCOLARES_INTEGRALES";
+    return isEscolaresArsSchedule(sch) ? "ESCOLARES" : (isEscolaresIntegralesSchedule(sch) ? "ESCOLARES_INTEGRALES" : "ESCOLARES");
   }
 
   function expandColKeyForLocal(local, baseKey){
@@ -10690,7 +11279,7 @@ el.dataset.ready = "1";
     if (t === "ESCOLARES"){
       const c = String(colKey||"").toUpperCase();
       if (c.startsWith("ESCOLARES_INTEGRALES_")) return "ESCOLARES";
-      if (local === "SAN MIGUEL") return "ESCOLARES ARS - POP";
+      if (local === "SAN MIGUEL") return "ESCOLARES ARS";
       return "ESCOLARES";
     }
     return fallback || `${t} ${lc}`;
@@ -10825,7 +11414,7 @@ el.dataset.ready = "1";
       { key:"ULIMA_1",   label:"U.LIMA 1" },
       { key:"ULIMA_2",   label:"U.LIMA 2" },
       { key:"PUCP",      label:"PUCP" },
-      { key:"ESCOLARES", label:"ESCOLARES" },
+      { key:"ESCOLARES", label:"ESCOLARES ARS" },
       { key:"ESCOLARES_INTEGRALES", label:"ESCOLARES INTEGRALES" },
       { key:"PRE_ULIMA", label:"PRE U.LIMA" },
     ];
@@ -10843,6 +11432,12 @@ el.dataset.ready = "1";
     const rows = LOCS.map(loc=>{
       const cells = COLS.map(c=>{
         const key = expandColKeyForLocal(loc, c.key);
+
+        // ESCOLARES ARS solo corresponde a SAN MIGUEL. En otros locales no se genera tarjeta ni placeholder.
+        if (c.key === "ESCOLARES" && loc !== "SAN MIGUEL"){
+          return `<div class="mxCell"><div class="mxEmpty">NO APLICA</div></div>`;
+        }
+
         const list = sortSchedules((by.get(key) || []).slice());
         const inner = list.length
           ? list.map(scheduleCardHtmlWithMeta).join("")
@@ -12314,4 +12909,3 @@ window.addEventListener("DOMContentLoaded", () => {
 });</script>
 </body>
 </html>
-    const uni = document.getElementById("heUni")?.value || "";
