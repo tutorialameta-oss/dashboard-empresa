@@ -11338,14 +11338,23 @@ el.dataset.ready = "1";
   }
 
   function isEscolaresArsSchedule(sch){
-    const raw = [
-      String(sch?.id || ""),
-      String(sch?.salon || ""),
-      String(sch?.uni || ""),
-      String(sch?.__colKey || ""),
-      String(sch?.__cardKey || "")
-    ].join(" ").toUpperCase();
-    return raw.includes("ARS") || raw.includes("POP");
+    const id = String(sch?.id || "").toUpperCase();
+    const salon = String(sch?.salon || "").toUpperCase();
+    const uni = String(sch?.uni || "").toUpperCase();
+    const local = String(sch?.local || "").toUpperCase();
+    const colKey = String(sch?.__colKey || "").toUpperCase();
+    const cardKey = String(sch?.__cardKey || "").toUpperCase();
+    const raw = [id, salon, uni, local, colKey, cardKey].join(" ");
+
+    if (raw.includes("ARS") || raw.includes("POP")) return true;
+
+    // La tarjeta fija de la matriz para ESCOLARES ARS en SAN MIGUEL usa el key ESCOLARES_SM.
+    // Al guardar desde el editor puede quedar como SCH_ESCOLARES_SM / ESCOLARES SM; sin esta
+    // regla el horario se reclasifica como ESCOLARES INTEGRALES y desaparece de la columna ARS.
+    if (id === "SCH_ESCOLARES_SM" || colKey === "ESCOLARES_SM" || cardKey.includes("ESCOLARES_SM")) return true;
+    if (uni === "ESCOLARES" && local === "SAN MIGUEL" && salon === "ESCOLARES SM") return true;
+
+    return false;
   }
 
   function isEscolaresIntegralesSchedule(sch){
@@ -12076,8 +12085,14 @@ el.dataset.ready = "1";
 
     const local = document.getElementById("heLocal").value;
     const uni   = document.getElementById("heUni").value;
-    const salon = document.getElementById("heSalon").value.trim();
+    let salon = document.getElementById("heSalon").value.trim();
     const id    = document.getElementById("heId").value.trim();
+
+    if (isEscolaresArsSchedule({ id, local, uni, salon })){
+      salon = "ESCOLARES ARS";
+      const heSalon = document.getElementById("heSalon");
+      if (heSalon) heSalon.value = salon;
+    }
 
     if (!local || !uni || !salon || !id){
       alert("Completa LOCAL / UNIVERSIDAD / SALÓN / ID.");
