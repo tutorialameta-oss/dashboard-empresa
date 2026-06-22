@@ -630,6 +630,31 @@
       user-select:none;
     }
 
+    .schColorTools{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      padding:6px 8px;
+      border:1px solid rgba(15,23,42,0.12);
+      border-radius:999px;
+      background:#fff;
+      color:var(--muted);
+      font-size:10px;
+      font-weight:950;
+      text-transform:uppercase;
+      white-space:nowrap;
+    }
+    .schColorTools label{ display:flex; align-items:center; gap:5px; }
+    .schColorTools input[type="color"]{
+      min-width:0;
+      width:28px;
+      height:24px;
+      padding:2px;
+      border-radius:8px;
+      cursor:pointer;
+    }
+    body.exportMode .schColorTools{ display:none !important; }
+
     .schEdit{
       padding:8px 12px;
       border-radius:999px;
@@ -10129,6 +10154,7 @@ function renderReportes(){
 
   function getTimeRowsForSchedule(schedule){
     if (isPreUlimaSchedule(schedule)) return TIME_ROWS_PRE_ULIMA;
+    if (isEscolaresArsSchedule(schedule)) return TIME_ROWS;
     return getTimeRowsForUni(schedule?.uni);
   }
 
@@ -10142,6 +10168,7 @@ function renderReportes(){
 
   function getTimeMarksForSchedule(schedule){
     if (isPreUlimaSchedule(schedule)) return TIME_MARKS_PRE_ULIMA;
+    if (isEscolaresArsSchedule(schedule)) return TIME_MARKS;
     return getTimeMarksForUni(schedule?.uni);
   }
 
@@ -10292,6 +10319,37 @@ function renderReportes(){
     return getCss("--ulima");
   }
 
+  function normalizeHexColor(value, fallback){
+    const v = String(value || "").trim();
+    return /^#[0-9a-f]{6}$/i.test(v) ? v : fallback;
+  }
+
+  function scheduleThemeColors(s){
+    const temp = document.createElement("div");
+    temp.className = "schCard";
+    temp.setAttribute("data-uni", s?.uni || "");
+    if (s?.__colKey) temp.setAttribute("data-cycle", s.__colKey);
+    document.body.appendChild(temp);
+    const cs = getComputedStyle(temp);
+    const fallbackHead = (cs.getPropertyValue("--schHead") || getCss("--schHead_ESC") || "#d4a200").trim();
+    const fallbackCell = (cs.getPropertyValue("--schCell") || getCss("--schCell_ESC") || "#fff4cc").trim();
+    temp.remove();
+    return {
+      head: normalizeHexColor(s?.colors?.head, fallbackHead),
+      cell: normalizeHexColor(s?.colors?.cell, fallbackCell)
+    };
+  }
+
+  function scheduleColorToolsHtml(s, colors){
+    if (CURRENT_ROLE !== "admin" || !HORARIOS_EDIT_MODE) return "";
+    return `
+      <div class="schColorTools" title="Colores visibles solo en modo edición">
+        <label>Enc.<input type="color" class="schColorInput" data-part="head" data-sid="${escapeAttr(s.id)}" value="${escapeAttr(colors.head)}"></label>
+        <label>Celdas<input type="color" class="schColorInput" data-part="cell" data-sid="${escapeAttr(s.id)}" value="${escapeAttr(colors.cell)}"></label>
+      </div>
+    `;
+  }
+
   function getCornerLabelByCycle(cycle){
     const c = String(cycle||"").toUpperCase();
     if (c.startsWith("AGRARIA_") || c === "AGRARIA") return "AG";
@@ -10303,6 +10361,7 @@ function renderReportes(){
 
   function scheduleToHtmlCard(s){
     const dot = uniDotColor(s.uni);
+    const colors = scheduleThemeColors(s);
     const timeRows = getTimeRowsForSchedule(s);
     const matrix = buildScheduleMatrix(s);
 
@@ -10343,7 +10402,7 @@ function renderReportes(){
     }).join("");
 
     return `
-      <div class="schCard" data-id="${escapeHtml(s.id)}" data-local="${escapeHtml(s.local)}" data-uni="${escapeHtml(s.uni)}" data-salon="${escapeHtml(s.salon)}">
+      <div class="schCard" style="--schHead:${escapeAttr(colors.head)}; --schCell:${escapeAttr(colors.cell)};" data-id="${escapeHtml(s.id)}" data-local="${escapeHtml(s.local)}" data-uni="${escapeHtml(s.uni)}" data-salon="${escapeHtml(s.salon)}">
         <div class="schHead">
           <div class="hLeft">
             <p class="loc">${escapeHtml(s.local)}</p>
@@ -10355,6 +10414,7 @@ function renderReportes(){
               <span class="b" style="background:${dot};"></span>
               ${escapeHtml(s.uni)}
             </div>
+            ${scheduleColorToolsHtml(s, colors)}
             <button class="schDl" data-sid="${escapeHtml(s.id)}">DESCARGAR PNG</button>${(CURRENT_ROLE==="admin" && HORARIOS_EDIT_MODE) ? `<button class="schEdit" data-sid="${escapeHtml(s.id)}">EDITAR</button>` : ``}
           </div>
         </div>
@@ -10929,8 +10989,9 @@ function renderReportes(){
     for (const b of x.blocks){
       if (!b) return false;
       if (!b.day || !b.start || !b.end) return false;
-      const is = idxMark(b.start, x.uni);
-      const ie = idxMark(b.end, x.uni);
+      const marks = getTimeMarksForSchedule(x);
+      const is = marks.indexOf(b.start);
+      const ie = marks.indexOf(b.end);
       if (is < 0 || ie < 0) return false;
       if (is >= ie) return false;
     }
@@ -11396,7 +11457,9 @@ el.dataset.ready = "1";
     const view = Object.assign({}, s, {
       uni: uniType,
       salon: inferSalonByCardKey(s.local, colKey, s.salon),
-      cornerLabel: getCornerLabelByCycle(colKey)
+      cornerLabel: getCornerLabelByCycle(colKey),
+      colors: s.colors || null,
+      __colKey: colKey
     });
     let html = scheduleToHtmlCard(view);
     html = html.replace('<div class="schCard"', `<div class="schCard" data-cycle="${escapeAttr(colKey)}" data-colkey="${escapeAttr(colKey)}" data-cardkey="${escapeAttr(cardKey)}"`);
@@ -11870,8 +11933,14 @@ el.dataset.ready = "1";
         const eEl = tr.querySelector(".heEnd");
         const sVal = String(sEl?.value||"");
         const eVal = String(eEl?.value||"");
-        if (sEl) sEl.innerHTML = timeOptionsHtml(sVal, uni);
-        if (eEl) eEl.innerHTML = timeOptionsHtml(eVal, uni);
+        const ctx = {
+          id: document.getElementById("heId")?.value || "",
+          local: document.getElementById("heLocal")?.value || "",
+          uni,
+          salon: document.getElementById("heSalon")?.value || ""
+        };
+        if (sEl) sEl.innerHTML = timeOptionsHtml(sVal, uni, ctx);
+        if (eEl) eEl.innerHTML = timeOptionsHtml(eVal, uni, ctx);
       });
     });
 
@@ -11924,7 +11993,7 @@ el.dataset.ready = "1";
     const tb = document.getElementById("heTbody");
     tb.innerHTML = "";
     const blocks = (s && Array.isArray(s.blocks)) ? s.blocks : [];
-    for (const b of blocks) appendHorarioBlockRow(b, heUni.value);
+    for (const b of blocks) appendHorarioBlockRow(Object.assign({__scheduleCtx:s}, b), heUni.value);
 
     overlay.style.display = "flex";
   }
@@ -11940,9 +12009,11 @@ el.dataset.ready = "1";
     return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
   }
 
-  function timeOptionsHtml(selected, uni){
+  function timeOptionsHtml(selected, uni, scheduleCtx=null){
     const sel = String(selected||"");
-    return getTimeMarksForUni(uni).map(t=>`<option value="${t}" ${t===sel ? "selected" : ""}>${t}</option>`).join("");
+    let marks = scheduleCtx ? getTimeMarksForSchedule(scheduleCtx) : getTimeMarksForUni(uni);
+    if (sel && !marks.includes(sel)) marks = marks.concat([sel]).sort();
+    return marks.map(t=>`<option value="${t}" ${t===sel ? "selected" : ""}>${t}</option>`).join("");
   }
 
   function dayOptionsHtml(selected){
@@ -11957,14 +12028,15 @@ el.dataset.ready = "1";
     const day = normalizeDayKey(b.day || "LUNES");
     const start = b.start || "08:00";
     const end = b.end || "09:50";
+    const scheduleCtx = b.__scheduleCtx || null;
     const course = b.course || "";
     const teacher = b.teacher || "";
 
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td><select class="heDay hInpSm">${dayOptionsHtml(day)}</select></td>
-      <td><select class="heStart hInpSm">${timeOptionsHtml(start, uni)}</select></td>
-      <td><select class="heEnd hInpSm">${timeOptionsHtml(end, uni)}</select></td>
+      <td><select class="heStart hInpSm">${timeOptionsHtml(start, uni, scheduleCtx)}</select></td>
+      <td><select class="heEnd hInpSm">${timeOptionsHtml(end, uni, scheduleCtx)}</select></td>
       <td><input class="heCourse hInpSm" value="${escapeAttr(course)}" placeholder="Ej: RV / ÁLG 1"/></td>
       <td><input class="heTeacher hInpSm" value="${escapeAttr(teacher)}" placeholder="Ej: TABER"/></td>
       <td><button class="hBtn hBtnTiny hBtnDanger heDel">✕</button></td>
@@ -11986,8 +12058,12 @@ el.dataset.ready = "1";
       const course = r.querySelector(".heCourse").value.trim();
       const teacher = r.querySelector(".heTeacher").value.trim();
 
-      const is = idxMark(start, uni);
-      const ie = idxMark(end, uni);
+      const local = document.getElementById("heLocal")?.value || "";
+      const salon = document.getElementById("heSalon")?.value || "";
+      const id = document.getElementById("heId")?.value || "";
+      const marks = getTimeMarksForSchedule({ id, local, uni, salon });
+      const is = marks.indexOf(start);
+      const ie = marks.indexOf(end);
       if (is < 0 || ie < 0 || is >= ie) continue;
 
       blocks.push({ day, start, end, course, teacher });
@@ -12161,6 +12237,25 @@ el.dataset.ready = "1";
       e.preventDefault();
       setHorariosMatrixFullscreen(false);
     }
+  });
+
+  document.addEventListener("input", (e)=>{
+    const inp = e.target.closest(".schColorInput");
+    if (!inp || CURRENT_ROLE !== "admin" || !HORARIOS_EDIT_MODE) return;
+    const card = inp.closest(".schCard");
+    const sid = inp.getAttribute("data-sid") || card?.getAttribute("data-id") || "";
+    const part = inp.getAttribute("data-part");
+    const val = normalizeHexColor(inp.value, part === "cell" ? "#fff4cc" : "#d4a200");
+    if (card) card.style.setProperty(part === "cell" ? "--schCell" : "--schHead", val);
+    let sch = SCHEDULES.find(x=>x.id===sid) || null;
+    if (!sch && card){
+      sch = { id: sid, local: card.getAttribute("data-local") || "LA MOLINA", uni: card.getAttribute("data-uni") || "AGRARIA", salon: card.getAttribute("data-salon") || "NUEVO SALON", blocks: [] };
+      SCHEDULES.push(sch);
+    }
+    if (!sch) return;
+    sch.colors = Object.assign({}, sch.colors || {});
+    sch.colors[part === "cell" ? "cell" : "head"] = val;
+    saveSchedules();
   });
 
   document.addEventListener("click", (e)=>{
