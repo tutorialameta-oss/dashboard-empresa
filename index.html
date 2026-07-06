@@ -630,7 +630,8 @@
       user-select:none;
     }
 
-    .schColorTools{
+    .schColorTools,
+    .schRangeTools{
       display:flex;
       align-items:center;
       gap:8px;
@@ -644,7 +645,8 @@
       text-transform:uppercase;
       white-space:nowrap;
     }
-    .schColorTools label{ display:flex; align-items:center; gap:5px; }
+    .schColorTools label,
+    .schRangeTools label{ display:flex; align-items:center; gap:5px; }
     .schColorTools input[type="color"]{
       min-width:0;
       width:28px;
@@ -653,7 +655,8 @@
       border-radius:8px;
       cursor:pointer;
     }
-    body.exportMode .schColorTools{ display:none !important; }
+    body.exportMode .schColorTools,
+    body.exportMode .schRangeTools{ display:none !important; }
 
     .schEdit{
       padding:8px 12px;
@@ -10131,13 +10134,21 @@ function renderReportes(){
     { start:"20:30", end:"21:00", label:"20:30 - 21:00" },
   ];
 
+  const TIME_ROWS_FULL = [
+    ...TIME_ROWS,
+    { start:"18:00", end:"18:30", label:"18:00 - 18:30" },
+    { start:"18:30", end:"19:00", label:"18:30 - 19:00" },
+    { start:"19:00", end:"19:30", label:"19:00 - 19:30" },
+    { start:"19:30", end:"20:00", label:"19:30 - 20:00" },
+    { start:"20:00", end:"20:30", label:"20:00 - 20:30" },
+    { start:"20:30", end:"21:00", label:"20:30 - 21:00" },
+  ];
+
   function timeMarksFromRows(rows){
     const marks = rows.map(r=>r.start);
     if (rows.length) marks.push(rows[rows.length-1].end);
     return marks;
   }
-
-  const TIME_ROWS_PRE_ULIMA = TIME_ROWS.filter(r=>r.start >= "15:00" && r.end <= "18:00");
 
   function isPreUlimaKey(value){
     return String(value||"").toUpperCase().startsWith("PRE_ULIMA_");
@@ -10152,24 +10163,43 @@ function renderReportes(){
     return mcNormLabel(uni) === "ESCOLARES" ? TIME_ROWS_ESCOLARES : TIME_ROWS;
   }
 
-  function getTimeRowsForSchedule(schedule){
+  const TIME_MARKS = timeMarksFromRows(TIME_ROWS);
+  const TIME_MARKS_ESCOLARES = timeMarksFromRows(TIME_ROWS_ESCOLARES);
+  const TIME_MARKS_FULL = timeMarksFromRows(TIME_ROWS_FULL);
+  const TIME_ROWS_PRE_ULIMA = TIME_ROWS.filter(r=>r.start >= "15:00" && r.end <= "18:00");
+  const TIME_MARKS_PRE_ULIMA = timeMarksFromRows(TIME_ROWS_PRE_ULIMA);
+
+  function getScheduleTimeRange(schedule){
+    const start = String(schedule?.timeRange?.start || "");
+    const end = String(schedule?.timeRange?.end || "");
+    const is = TIME_MARKS_FULL.indexOf(start);
+    const ie = TIME_MARKS_FULL.indexOf(end);
+    if (is >= 0 && ie >= 0 && is < ie) return { start, end };
+    return null;
+  }
+
+  function timeRowsFromRange(range){
+    if (!range) return null;
+    const rows = TIME_ROWS_FULL.filter(r=>r.start >= range.start && r.end <= range.end);
+    return rows.length ? rows : null;
+  }
+
+  function getDefaultTimeRowsForSchedule(schedule){
     if (isPreUlimaSchedule(schedule)) return TIME_ROWS_PRE_ULIMA;
     if (isEscolaresArsSchedule(schedule)) return TIME_ROWS;
     return getTimeRowsForUni(schedule?.uni);
   }
 
-  const TIME_MARKS = timeMarksFromRows(TIME_ROWS);
-  const TIME_MARKS_ESCOLARES = timeMarksFromRows(TIME_ROWS_ESCOLARES);
-  const TIME_MARKS_PRE_ULIMA = timeMarksFromRows(TIME_ROWS_PRE_ULIMA);
+  function getTimeRowsForSchedule(schedule){
+    return timeRowsFromRange(getScheduleTimeRange(schedule)) || getDefaultTimeRowsForSchedule(schedule);
+  }
 
   function getTimeMarksForUni(uni){
     return mcNormLabel(uni) === "ESCOLARES" ? TIME_MARKS_ESCOLARES : TIME_MARKS;
   }
 
   function getTimeMarksForSchedule(schedule){
-    if (isPreUlimaSchedule(schedule)) return TIME_MARKS_PRE_ULIMA;
-    if (isEscolaresArsSchedule(schedule)) return TIME_MARKS;
-    return getTimeMarksForUni(schedule?.uni);
+    return timeMarksFromRows(getTimeRowsForSchedule(schedule));
   }
 
   function idxMark(t, uni){ return getTimeMarksForUni(uni).indexOf(t); }
@@ -10350,6 +10380,27 @@ function renderReportes(){
     `;
   }
 
+  function timeRangeOptionsHtml(selected){
+    const sel = String(selected || "");
+    return TIME_MARKS_FULL.map(t=>`<option value="${t}" ${t===sel ? "selected" : ""}>${t}</option>`).join("");
+  }
+
+  function scheduleRangeToolsHtml(s){
+    if (CURRENT_ROLE !== "admin" || !HORARIOS_EDIT_MODE) return "";
+    const rows = getTimeRowsForSchedule(s);
+    const current = getScheduleTimeRange(s) || { start: rows[0]?.start || "08:00", end: rows[rows.length-1]?.end || "18:00" };
+    return `
+      <div class="schRangeTools" title="Rango visible del horario; no cambia los bloques programados">
+        <label>Rango
+          <select class="schRangeInput" data-part="start" data-sid="${escapeAttr(s.id)}">${timeRangeOptionsHtml(current.start)}</select>
+        </label>
+        <label>a
+          <select class="schRangeInput" data-part="end" data-sid="${escapeAttr(s.id)}">${timeRangeOptionsHtml(current.end)}</select>
+        </label>
+      </div>
+    `;
+  }
+
   function getCornerLabelByCycle(cycle){
     const c = String(cycle||"").toUpperCase();
     if (c.startsWith("AGRARIA_") || c === "AGRARIA") return "AG";
@@ -10415,6 +10466,7 @@ function renderReportes(){
               ${escapeHtml(s.uni)}
             </div>
             ${scheduleColorToolsHtml(s, colors)}
+            ${scheduleRangeToolsHtml(s)}
             <button class="schDl" data-sid="${escapeHtml(s.id)}">DESCARGAR PNG</button>${(CURRENT_ROLE==="admin" && HORARIOS_EDIT_MODE) ? `<button class="schEdit" data-sid="${escapeHtml(s.id)}">EDITAR</button>` : ``}
           </div>
         </div>
@@ -11468,6 +11520,7 @@ el.dataset.ready = "1";
       salon: inferSalonByCardKey(s.local, colKey, s.salon),
       cornerLabel: getCornerLabelByCycle(colKey),
       colors: s.colors || null,
+      timeRange: s.timeRange || null,
       __colKey: colKey
     });
     let html = scheduleToHtmlCard(view);
@@ -12100,7 +12153,10 @@ el.dataset.ready = "1";
     }
 
     const blocks = collectEditorBlocks();
+    const existing = SCHEDULES.find(x=>x.id===(HORARIOS_EDIT_CURRENT_ID || id)) || null;
     const obj = { id, local, uni, salon, blocks };
+    if (existing?.colors) obj.colors = existing.colors;
+    if (existing?.timeRange) obj.timeRange = existing.timeRange;
 
     if (HORARIOS_EDIT_IS_NEW){
       if (SCHEDULES.some(x=>x.id===id)){
@@ -12254,6 +12310,15 @@ el.dataset.ready = "1";
     }
   });
 
+  function ensureScheduleFromCard(card, sid){
+    let sch = SCHEDULES.find(x=>x.id===sid) || null;
+    if (!sch && card){
+      sch = { id: sid, local: card.getAttribute("data-local") || "LA MOLINA", uni: card.getAttribute("data-uni") || "AGRARIA", salon: card.getAttribute("data-salon") || "NUEVO SALON", blocks: [] };
+      SCHEDULES.push(sch);
+    }
+    return sch;
+  }
+
   document.addEventListener("input", (e)=>{
     const inp = e.target.closest(".schColorInput");
     if (!inp || CURRENT_ROLE !== "admin" || !HORARIOS_EDIT_MODE) return;
@@ -12262,15 +12327,34 @@ el.dataset.ready = "1";
     const part = inp.getAttribute("data-part");
     const val = normalizeHexColor(inp.value, part === "cell" ? "#fff4cc" : "#d4a200");
     if (card) card.style.setProperty(part === "cell" ? "--schCell" : "--schHead", val);
-    let sch = SCHEDULES.find(x=>x.id===sid) || null;
-    if (!sch && card){
-      sch = { id: sid, local: card.getAttribute("data-local") || "LA MOLINA", uni: card.getAttribute("data-uni") || "AGRARIA", salon: card.getAttribute("data-salon") || "NUEVO SALON", blocks: [] };
-      SCHEDULES.push(sch);
-    }
+    const sch = ensureScheduleFromCard(card, sid);
     if (!sch) return;
     sch.colors = Object.assign({}, sch.colors || {});
     sch.colors[part === "cell" ? "cell" : "head"] = val;
     saveSchedules();
+  });
+
+  document.addEventListener("change", (e)=>{
+    const inp = e.target.closest(".schRangeInput");
+    if (!inp || CURRENT_ROLE !== "admin" || !HORARIOS_EDIT_MODE) return;
+    const card = inp.closest(".schCard");
+    const sid = inp.getAttribute("data-sid") || card?.getAttribute("data-id") || "";
+    const sch = ensureScheduleFromCard(card, sid);
+    if (!sch) return;
+
+    const start = card?.querySelector('.schRangeInput[data-part="start"]')?.value || "";
+    const end = card?.querySelector('.schRangeInput[data-part="end"]')?.value || "";
+    const is = TIME_MARKS_FULL.indexOf(start);
+    const ie = TIME_MARKS_FULL.indexOf(end);
+    if (is < 0 || ie < 0 || is >= ie){
+      alert("Rango horario inválido. El inicio debe ser menor que el fin.");
+      renderHorarios();
+      return;
+    }
+
+    sch.timeRange = { start, end };
+    saveSchedules();
+    renderHorarios();
   });
 
   document.addEventListener("click", (e)=>{
