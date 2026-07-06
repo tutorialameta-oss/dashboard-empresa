@@ -8793,12 +8793,15 @@ function mcDefaultArsCourseDays(course){
 
 function mcScheduleDaysForEscolaresMateriales(local, course, programType){
   let loc = mcNormLabel(local);
-  if (!loc || loc === "EDITOR") return [];
-  if (typeof SCHEDULES === "undefined") return [];
-
   const type = mcNormLabel(programType || "");
   const wantArs = type.includes("ARS") || type.includes("POP");
   const wantIntegral = type.includes("INTEGRAL") || (!wantArs && type.includes("ESCOLARES"));
+
+  if (wantArs && (!loc || loc === "EDITOR")) loc = "SAN MIGUEL";
+  else if (!loc || loc === "EDITOR") return [];
+  if (wantIntegral && !["LA MOLINA","SAN MIGUEL","SAN BORJA"].includes(loc)) return [];
+  if (typeof SCHEDULES === "undefined") return [];
+
   const dayMap = {LUNES:1,MARTES:2,MIERCOLES:3,"MIÉRCOLES":3,JUEVES:4,VIERNES:5,SABADO:6,"SÁBADO":6,DOMINGO:0};
 
   const schedules = (SCHEDULES||[]).filter(s=>{
@@ -8809,9 +8812,12 @@ function mcScheduleDaysForEscolaresMateriales(local, course, programType){
     const sSalon = mcNormLabel(s?.salon);
     const isEscolares = sUni === "ESCOLARES" || sSalon.includes("ESCOLAR") || raw.includes("ESCOLARES") || /(^|\s)ESC(\s|$)/.test(sSalon);
     if (!isEscolares) return false;
-    const isArs = raw.includes("ARS") || raw.includes("POP") || /^SCH_ESCOLARES_(LM|SM|SB|VIRT)$/.test(raw) || /ESCOLARES_(LM|SM|SB|VIRT)/.test(raw);
+
+    const isArs = raw.includes("ARS") || raw.includes("POP") || (sLoc === "SAN MIGUEL" && (raw.includes("SCH_ESCOLARES_SM") || raw.includes("ESCOLARES_SM") || raw.includes("ESCOLARES SM")));
+    const isIntegral = !isArs && (raw.includes("ESCOLARES_INTEGRALES") || sSalon.includes("ESCOLAR") || raw.includes("ESCOLARES"));
+
     if (wantArs) return isArs;
-    if (wantIntegral) return !isArs;
+    if (wantIntegral) return isIntegral;
     return false;
   });
 
@@ -9104,8 +9110,10 @@ async function mcHydrateMaterialesSyllabus({pid,cid,codes,first,last,pStart,spac
         applyAligned(manualAligned, `SÍLABO TEMPORAL · ${manualAligned.length} SEMANAS · REVISAR LINK`);
         return;
       }
+      console.error("[MATERIALES SÍLABO]", { pid, cid, programType, space, url, err });
+      const msg = String(err?.message || err || "Error desconocido").slice(0, 140);
       cells.forEach(td=>td.innerHTML='<div class="mcSyllabusCell"><span class="mcSyllabusPending">PENDIENTE</span></div>');
-      if (status) status.textContent = "REVISAR SÍLABO";
+      if (status) status.textContent = "REVISAR SÍLABO: " + msg;
       return;
     }
   }
