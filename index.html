@@ -8537,11 +8537,32 @@ function mcSyllabusIsNonTopicColumnHeader(value){
   return false;
 }
 
+function mcRegexEscape(value){
+  return String(value || "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
 function mcSyllabusHeaderMatchesCourse(headerValue, courseName){
   const h = mcSyllabusHeaderKey(headerValue);
   if (!h || !courseName) return false;
+
+  // Nunca tomar columnas administrativas como columna de temas.
+  // Esto evita el bug de RV: "OBSERVACIONES" contiene la secuencia "RV"
+  // y antes se interpretaba como si fuera Razonamiento Verbal.
+  if (mcSyllabusIsNonTopicColumnHeader(h)) return false;
+
   const aliases = mcCourseAliases(courseName).map(mcSyllabusHeaderKey).filter(Boolean);
-  return aliases.some(a => h === a || h.includes(a) || a.includes(h));
+  return aliases.some(a => {
+    if (!a) return false;
+    if (h === a) return true;
+
+    // Alias cortos como RV, RM, GEO, TRI, ALG, ARI, FIS, QUI, BIO, TXT
+    // solo deben coincidir como token completo, no dentro de otra palabra.
+    if (a.length <= 4){
+      const rx = new RegExp("(^|\\s)" + mcRegexEscape(a) + "(\\s|$)");
+      return rx.test(h);
+    }
+
+    return h.includes(a) || a.includes(h);
+  });
 }
 
 function mcSyllabusSplitTopics(value){
@@ -8572,7 +8593,7 @@ function mcParseSyllabusRows(rows, courseName=""){
       .map(o=>o.i);
     const explicitTopics = keys
       .map((x,i)=>({x,i}))
-      .filter(o => /(^| )(TEMA|TEMAS|CONTENIDO|CONTENIDOS|TEMARIO|ACTIVIDAD|SESION)( |$)/.test(o.x) && o.i !== b && o.i !== d && o.i !== c)
+      .filter(o => !mcSyllabusIsNonTopicColumnHeader(o.x) && /(^| )(TEMA|TEMAS|CONTENIDO|CONTENIDOS|TEMARIO|ACTIVIDAD|SESION)( |$)/.test(o.x) && o.i !== b && o.i !== d && o.i !== c)
       .map(o=>o.i);
     const hasWeek = c >= 0 || d >= 0 || keys.some(x=>/^SEMANA\s*\d+|^SEM\s*\d+|^SE\s*\d+/i.test(x));
     const hasTopicHead = courseTopicIdxs.length > 0 || explicitTopics.length > 0 || b >= 0;
@@ -9049,12 +9070,15 @@ function mcManualSyllabusAligned({cid,codes,first,last,pStart,local,programType}
 }
 
 function mcSyllabusCellHtml(item, idx){
-  if (item?.schedulePending){
-    return `<div class="mcSyllabusCell"><span class="mcSyllabusPending">HORARIO PENDIENTE</span></div>`;
-  }
   const topics = (item?.topics||[]).slice(0,3);
   const notes = (item?.notes||[]).slice();
   const noteCount = notes.length + ((item?.holidayHits||[]).length || 0);
+
+  // Si no se detectó horario, igual se deben mostrar los avisos/feriados del sílabo
+  // como guía. Solo se muestra HORARIO PENDIENTE cuando no hay ningún contenido.
+  if (item?.schedulePending && !topics.length && !noteCount){
+    return `<div class="mcSyllabusCell"><span class="mcSyllabusPending">HORARIO PENDIENTE</span></div>`;
+  }
   if (!topics.length && !noteCount){
     return `<div class="mcSyllabusCell"><span class="mcSyllabusPending">PENDIENTE</span></div>`;
   }
