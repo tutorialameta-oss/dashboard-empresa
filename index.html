@@ -11037,6 +11037,10 @@ function renderReportes(){
 
   // ===================== HORARIOS (PERSISTENCIA) =====================
   const SCHEDULES_KEY = "LM_SCHEDULES_v1";
+  const SCHEDULES_SYNC_GRACE_MS = 30000;
+  let SCH_LAST_LOCAL_SAVE_AT = 0;
+  let SCH_PUSH_PENDING = false;
+  let SCH_PUSH_IN_FLIGHT = false;
 
   const MANDATORY_PRE_ULIMA_SCHEDULES = [
     { id:"PRE_UL_LM", local:"LA MOLINA", uni:"U.LIMA", salon:"PRE U.LIMA LM", blocks:[] },
@@ -11061,11 +11065,10 @@ function renderReportes(){
     for (const b of x.blocks){
       if (!b) return false;
       if (!b.day || !b.start || !b.end) return false;
-      const marks = getTimeMarksForSchedule(x);
-      const is = marks.indexOf(b.start);
-      const ie = marks.indexOf(b.end);
-      if (is < 0 || ie < 0) return false;
-      if (is >= ie) return false;
+      // Validar formato y orden, no contra el rango visible ni contra marcas rígidas.
+      // El rango visible puede ocultar filas y algunos horarios históricos usan cortes como 14:00.
+      if (!/^\d{2}:\d{2}$/.test(String(b.start)) || !/^\d{2}:\d{2}$/.test(String(b.end))) return false;
+      if (timeToMin(b.start) >= timeToMin(b.end)) return false;
     }
     return true;
   }
@@ -11083,6 +11086,8 @@ function renderReportes(){
   }
 
   function saveSchedules(){
+    SCH_LAST_LOCAL_SAVE_AT = Date.now();
+    SCH_PUSH_PENDING = true;
     try{ localStorage.setItem(SCHEDULES_KEY, JSON.stringify(SCHEDULES)); }catch(e){}
     // push a store compartido
     schSyncPush_();
@@ -11095,13 +11100,22 @@ function renderReportes(){
 
   // ===================== HORARIOS (SYNC CENTRAL) =====================
   async function schSyncPullOnce_(){
+    // Evita que un pull periódico traiga una copia remota antigua justo después de guardar.
+    // Ese era el origen de la sensación de inestabilidad: el cambio aparecía y luego se borraba.
+    if (SCH_PUSH_IN_FLIGHT || SCH_PUSH_PENDING || (Date.now() - SCH_LAST_LOCAL_SAVE_AT) < SCHEDULES_SYNC_GRACE_MS){
+      if (SCH_PUSH_PENDING && !SCH_PUSH_IN_FLIGHT) schSyncPush_();
+      return;
+    }
+
     const remote = await lmRemoteGet_(LM_MODULE_HORARIOS);
     if (!Array.isArray(remote) || !remote.length) return;
+    const cleaned = ensureMandatorySchedules(remote).filter(isValidScheduleObj);
+    if (!cleaned.length) return;
     try{
-      localStorage.setItem(SCHEDULES_KEY, JSON.stringify(ensureMandatorySchedules(remote)));
+      localStorage.setItem(SCHEDULES_KEY, JSON.stringify(cleaned));
     }catch(_){}
     try{
-      SCHEDULES = sortSchedules(ensureMandatorySchedules(remote));
+      SCHEDULES = sortSchedules(cleaned);
     }catch(_){}
     // refresca UI si corresponde
     if (typeof state !== "undefined" && state && state.view === "horarios" && typeof renderHorarios === "function"){
@@ -11110,9 +11124,17 @@ function renderReportes(){
   }
 
   async function schSyncPush_(){
+    if (SCH_PUSH_IN_FLIGHT) return;
+    SCH_PUSH_IN_FLIGHT = true;
     try{
       await lmRemoteSet_(LM_MODULE_HORARIOS, Array.isArray(SCHEDULES) ? SCHEDULES : []);
-    }catch(_){}
+      SCH_PUSH_PENDING = false;
+      SCH_LAST_LOCAL_SAVE_AT = Date.now();
+    }catch(_){
+      SCH_PUSH_PENDING = true;
+    }finally{
+      SCH_PUSH_IN_FLIGHT = false;
+    }
   }
 
 ;
@@ -11785,7 +11807,15 @@ el.dataset.ready = "1";
     const start = document.getElementById("hceStart").value;
     const end = document.getElementById("hceEnd").value;
 
-    const timeMarksCtx = isPreUlimaKey(HORARIOS_CELL_EDIT_CTX.colKey || HORARIOS_CELL_EDIT_CTX.phColKey || "") ? TIME_MARKS_PRE_ULIMA : getTimeMarksForUni(HORARIOS_CELL_EDIT_CTX.uni);
+    const timeMarksCtx = getTimeMarksForSchedule({
+      id: HORARIOS_CELL_EDIT_CTX.scheduleId || "",
+      local: HORARIOS_CELL_EDIT_CTX.phLocal || "",
+      uni: HORARIOS_CELL_EDIT_CTX.uni || "",
+      salon: "",
+      timeRange: HORARIOS_CELL_EDIT_CTX.timeRange || null,
+      __colKey: HORARIOS_CELL_EDIT_CTX.colKey || HORARIOS_CELL_EDIT_CTX.phColKey || "",
+      __cardKey: HORARIOS_CELL_EDIT_CTX.cardKey || ""
+    });
     const is = timeMarksCtx.indexOf(start);
     const ie = timeMarksCtx.indexOf(end);
     if (!DAYS.includes(day) || is < 0 || ie < 0 || is >= ie){
@@ -12300,7 +12330,8 @@ el.dataset.ready = "1";
       colKey: cell.dataset.colKey || card.getAttribute("data-colkey") || "",
       isPlaceholder: cell.dataset.placeholder === "1",
       phLocal: cell.dataset.phLocal || "",
-      phColKey: cell.dataset.phColKey || ""
+      phColKey: cell.dataset.phColKey || "",
+      timeRange: (SCHEDULES.find(x=>x.id===(cell.dataset.scheduleId || card.getAttribute("data-id"))) || {}).timeRange || null
     });
   });
 
