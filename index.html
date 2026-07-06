@@ -12119,7 +12119,7 @@ el.dataset.ready = "1";
 
   function timeOptionsHtml(selected, uni, scheduleCtx=null){
     const sel = String(selected||"");
-    let marks = scheduleCtx ? getTimeMarksForSchedule(scheduleCtx) : getTimeMarksForUni(uni);
+    let marks = TIME_MARKS_FULL.slice();
     if (sel && !marks.includes(sel)) marks = marks.concat([sel]).sort();
     return marks.map(t=>`<option value="${t}" ${t===sel ? "selected" : ""}>${t}</option>`).join("");
   }
@@ -12159,6 +12159,15 @@ el.dataset.ready = "1";
     const uni = document.getElementById("heUni")?.value || "";
     const rows = Array.from(tb.querySelectorAll("tr"));
     const blocks = [];
+    const invalidRows = [];
+    const local = document.getElementById("heLocal")?.value || "";
+    const salon = document.getElementById("heSalon")?.value || "";
+    const id = document.getElementById("heId")?.value || "";
+    const existing = SCHEDULES.find(x=>x.id===(HORARIOS_EDIT_CURRENT_ID || id)) || null;
+    // En el editor completo se permiten todos los cortes disponibles; el rango visible
+    // se ajusta al guardar para que bloques largos (ej. 17:00-18:30) sí se dibujen.
+    const marks = TIME_MARKS_FULL;
+
     for (const r of rows){
       const day = normalizeDayKey(r.querySelector(".heDay").value);
       const start = r.querySelector(".heStart").value;
@@ -12166,15 +12175,19 @@ el.dataset.ready = "1";
       const course = r.querySelector(".heCourse").value.trim();
       const teacher = r.querySelector(".heTeacher").value.trim();
 
-      const local = document.getElementById("heLocal")?.value || "";
-      const salon = document.getElementById("heSalon")?.value || "";
-      const id = document.getElementById("heId")?.value || "";
-      const marks = getTimeMarksForSchedule({ id, local, uni, salon });
       const is = marks.indexOf(start);
       const ie = marks.indexOf(end);
-      if (is < 0 || ie < 0 || is >= ie) continue;
+      if (is < 0 || ie < 0 || is >= ie){
+        invalidRows.push(`${day} ${start}-${end}`);
+        continue;
+      }
 
       blocks.push({ day, start, end, course, teacher });
+    }
+
+    if (invalidRows.length){
+      alert(`Hay rangos inválidos o fuera del rango visible del horario:\n${invalidRows.join("\n")}\n\nAjusta el rango visible de la tarjeta o corrige las horas.`);
+      return null;
     }
     return blocks;
   }
@@ -12199,10 +12212,21 @@ el.dataset.ready = "1";
     }
 
     const blocks = collectEditorBlocks();
+    if (!blocks) return;
     const existing = SCHEDULES.find(x=>x.id===(HORARIOS_EDIT_CURRENT_ID || id)) || null;
     const obj = { id, local, uni, salon, blocks };
     if (existing?.colors) obj.colors = existing.colors;
     if (existing?.timeRange) obj.timeRange = existing.timeRange;
+
+    if (blocks.length){
+      const idxs = blocks.flatMap(b=>[TIME_MARKS_FULL.indexOf(b.start), TIME_MARKS_FULL.indexOf(b.end)]).filter(i=>i >= 0);
+      if (idxs.length){
+        const needed = { start: TIME_MARKS_FULL[Math.min(...idxs)], end: TIME_MARKS_FULL[Math.max(...idxs)] };
+        const current = getScheduleTimeRange(obj);
+        const coversNeeded = current && TIME_MARKS_FULL.indexOf(current.start) <= TIME_MARKS_FULL.indexOf(needed.start) && TIME_MARKS_FULL.indexOf(current.end) >= TIME_MARKS_FULL.indexOf(needed.end);
+        if (!coversNeeded) obj.timeRange = needed;
+      }
+    }
 
     if (HORARIOS_EDIT_IS_NEW){
       if (SCHEDULES.some(x=>x.id===id)){
