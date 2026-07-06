@@ -8575,43 +8575,129 @@ function mcSyllabusSplitTopics(value){
   return parts.filter(x=>!mcSyllabusIsCourseOnly(x));
 }
 
+function mcSyllabusLooksLikeWeekCode(value){
+  const s = mcSyllabusHeaderKey(value);
+  return /^(SEN|SEA|SE|SER|SN|SA|SR|S)\s*\d+$/i.test(s);
+}
+
+function mcSyllabusLooksLikeDate(value){
+  const s = String(value||"").trim();
+  if (!s) return false;
+  return /\d{1,2}\s*[-\/]\s*(ene|feb|mar|abr|may|jun|jul|ago|sep|oct|nov|dic|\d{1,2})/i.test(s) || /\d{1,2}\s+de\s+[a-záéíóúñ]+/i.test(s);
+}
+
+function mcGuessSyllabusLayout(rows, courseName=""){
+  const scanMax = Math.min(rows.length, 120);
+  let dataStart = -1;
+  let codeIdx = -1, dateIdx = -1, blockIdx = -1;
+
+  // Formato típico Escolares Integral:
+  // A ETAPAS | B CÓDIGO DE SEMANA | C FECHA | D BLOQUES POR SEMANA | E CURSO | F SIMULACROS | G OBSERVACIONES
+  for (let r=0; r<scanMax; r++){
+    const cells = rows[r] || [];
+    for (let c=0; c<Math.min(cells.length, 8); c++){
+      if (!mcSyllabusLooksLikeWeekCode(cells[c])) continue;
+      const maybeDate = c+1 < cells.length ? cells[c+1] : "";
+      const maybeBlock = c+2 < cells.length ? mcSyllabusHeaderKey(cells[c+2]) : "";
+      if (mcSyllabusLooksLikeDate(maybeDate) || /^(A|B|C|1|2|3)$/.test(maybeBlock)){
+        dataStart = r;
+        codeIdx = c;
+        dateIdx = c + 1;
+        blockIdx = c + 2;
+        break;
+      }
+    }
+    if (dataStart >= 0) break;
+  }
+
+  if (dataStart < 0) return null;
+
+  let notesIdx = -1;
+  for (let r=0; r<=Math.min(dataStart, rows.length-1); r++){
+    const keys = (rows[r]||[]).map(mcSyllabusHeaderKey);
+    const idx = keys.findIndex(x=>x.includes("OBSERV") || x === "NOTAS" || x === "NOTA" || x.includes("FERIADO"));
+    if (idx >= 0) notesIdx = idx;
+  }
+  if (notesIdx < 0){
+    // En todos los sílabos integrales mostrados, OBSERVACIONES está en la columna G.
+    notesIdx = Math.max(6, (rows[dataStart]||[]).length - 1);
+  }
+
+  let topicIdxs = [];
+  // Primero intenta ubicar una columna cuyo encabezado sea el curso seleccionado.
+  for (let r=0; r<=Math.min(dataStart, rows.length-1); r++){
+    const keys = (rows[r]||[]).map(mcSyllabusHeaderKey);
+    const found = keys
+      .map((x,i)=>({x,i}))
+      .filter(o => o.i !== codeIdx && o.i !== dateIdx && o.i !== blockIdx && o.i !== notesIdx)
+      .filter(o => !mcSyllabusIsNonTopicColumnHeader(o.x) && mcSyllabusHeaderMatchesCourse(o.x, courseName))
+      .map(o=>o.i);
+    if (found.length){ topicIdxs = found; break; }
+  }
+
+  // Si el encabezado del curso no fue reconocido o la columna de temas está vacía,
+  // usar la columna inmediatamente posterior a BLOQUES POR SEMANA y anterior a SIMULACROS/OBSERVACIONES.
+  if (!topicIdxs.length && blockIdx >= 0){
+    const stop = notesIdx >= 0 ? notesIdx : (rows[dataStart]||[]).length;
+    for (let i=blockIdx+1; i<stop; i++){
+      let isAdmin = false;
+      for (let r=0; r<=Math.min(dataStart, rows.length-1); r++){
+        const key = mcSyllabusHeaderKey((rows[r]||[])[i]);
+        if (mcSyllabusIsNonTopicColumnHeader(key)) isAdmin = true;
+      }
+      if (!isAdmin) topicIdxs.push(i);
+    }
+  }
+
+  // Si aun así no hay columna de tema, conservar solo observaciones: el modal mostrará “-”.
+  return {
+    headerRow: dataStart - 1,
+    codeIdx,
+    dateIdx,
+    blockIdx,
+    notesIdx,
+    topicIdxs: topicIdxs.filter(i=>Number.isFinite(i) && i >= 0),
+    displayIdx: codeIdx
+  };
+}
+
 function mcParseSyllabusRows(rows, courseName=""){
   rows = (rows||[]).map(r => (r||[]).map(v=>String(v ?? "")));
   let headerRow = -1;
   let codeIdx = -1, dateIdx = -1, blockIdx = -1, notesIdx = -1;
-  const displayIdx = 1; // Columna B: etiqueta visible para mensajes de reprogramación.
+  let displayIdx = 1; // Columna B: etiqueta visible para mensajes de reprogramación.
   let topicIdxs = [];
 
-  for (let r=0; r<Math.min(rows.length, 60); r++){
+  for (let r=0; r<Math.min(rows.length, 80); r++){
     const keys = rows[r].map(mcSyllabusHeaderKey);
     const c = keys.findIndex(x=>x === "CODIGO" || x === "COD" || x === "SEM" || x === "CODIGO DE SEMANA" || x === "CODIGO SEMANA");
     const d = keys.findIndex(x=>x === "SEMANA" || x === "FECHA" || x === "FECHAS" || x.includes("FECHA"));
     const b = keys.findIndex(x=>x === "BLOQUE" || x === "BLOQUES" || x === "BLOQUE POR SEMANA" || x === "BLOQUES POR SEMANA" || x === "CLASE" || x === "SESION");
+    const n = keys.findIndex(x=>x.includes("OBSERV") || x === "NOTAS" || x === "NOTA" || x.includes("FERIADO"));
     const courseTopicIdxs = keys
       .map((x,i)=>({x,i}))
-      .filter(o => mcSyllabusHeaderMatchesCourse(o.x, courseName) && o.i !== b && o.i !== d && o.i !== c)
+      .filter(o => mcSyllabusHeaderMatchesCourse(o.x, courseName) && o.i !== b && o.i !== d && o.i !== c && o.i !== n)
       .map(o=>o.i);
     const explicitTopics = keys
       .map((x,i)=>({x,i}))
-      .filter(o => !mcSyllabusIsNonTopicColumnHeader(o.x) && /(^| )(TEMA|TEMAS|CONTENIDO|CONTENIDOS|TEMARIO|ACTIVIDAD|SESION)( |$)/.test(o.x) && o.i !== b && o.i !== d && o.i !== c)
+      .filter(o => !mcSyllabusIsNonTopicColumnHeader(o.x) && /(^| )(TEMA|TEMAS|CONTENIDO|CONTENIDOS|TEMARIO|ACTIVIDAD|SESION)( |$)/.test(o.x) && o.i !== b && o.i !== d && o.i !== c && o.i !== n)
       .map(o=>o.i);
     const hasWeek = c >= 0 || d >= 0 || keys.some(x=>/^SEMANA\s*\d+|^SEM\s*\d+|^SE\s*\d+/i.test(x));
-    const hasTopicHead = courseTopicIdxs.length > 0 || explicitTopics.length > 0 || b >= 0;
+    const hasTopicHead = courseTopicIdxs.length > 0 || explicitTopics.length > 0 || b >= 0 || n >= 0;
     if (hasWeek && hasTopicHead){
       headerRow = r;
       codeIdx = c;
       dateIdx = d;
       blockIdx = b;
-      notesIdx = keys.findIndex(x=>x.includes("OBSERV") || x === "NOTAS" || x === "NOTA" || x.includes("FERIADO"));
+      notesIdx = n;
+      displayIdx = codeIdx >= 0 ? codeIdx : 1;
       if (courseTopicIdxs.length) topicIdxs = courseTopicIdxs;
       else if (explicitTopics.length) topicIdxs = explicitTopics;
       else if (blockIdx >= 0){
         const stop = notesIdx >= 0 ? notesIdx : rows[r].length;
         topicIdxs = [];
         for (let i=blockIdx+1; i<stop; i++){
-          // En formatos como: BLOQUE | CURSO | SIMULACROS | OBSERVACIONES,
-          // solo debe leerse la columna del curso/contenido.
-          // La columna SIMULACROS contiene códigos como S1/S2/SN1 y no es tema.
+          if (i === notesIdx) continue;
           if (mcSyllabusIsNonTopicColumnHeader(keys[i])) continue;
           topicIdxs.push(i);
         }
@@ -8619,8 +8705,22 @@ function mcParseSyllabusRows(rows, courseName=""){
       break;
     }
   }
+
+  if (headerRow < 0){
+    const guessed = mcGuessSyllabusLayout(rows, courseName);
+    if (guessed){
+      headerRow = guessed.headerRow;
+      codeIdx = guessed.codeIdx;
+      dateIdx = guessed.dateIdx;
+      blockIdx = guessed.blockIdx;
+      notesIdx = guessed.notesIdx;
+      topicIdxs = guessed.topicIdxs || [];
+      displayIdx = guessed.displayIdx;
+    }
+  }
+
   if (headerRow < 0) throw new Error("No se encontraron columnas reconocibles de semana/bloque/tema.");
-  if (!topicIdxs.length) throw new Error("No se encontraron columnas de temas.");
+  if (!topicIdxs.length && notesIdx < 0) throw new Error("No se encontraron columnas de temas ni observaciones.");
 
   const weeks = [];
   let current = null;
@@ -8641,6 +8741,7 @@ function mcParseSyllabusRows(rows, courseName=""){
     if (!current) continue;
 
     for (const idx of topicIdxs){
+      if (idx === notesIdx) continue;
       for (const topic of mcSyllabusSplitTopics(cells[idx])){
         if (!current.topics.includes(topic) && current.topics.length < 3) current.topics.push(topic);
       }
