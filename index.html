@@ -8537,6 +8537,13 @@ function mcSyllabusIsNonTopicColumnHeader(value){
   return false;
 }
 
+function mcSyllabusHeaderMatchesCourse(headerValue, courseName){
+  const h = mcSyllabusHeaderKey(headerValue);
+  if (!h || !courseName) return false;
+  const aliases = mcCourseAliases(courseName).map(mcSyllabusHeaderKey).filter(Boolean);
+  return aliases.some(a => h === a || h.includes(a) || a.includes(h));
+}
+
 function mcSyllabusSplitTopics(value){
   const raw = String(value||"").replace(/\r/g,"\n").trim();
   if (!raw) return [];
@@ -8547,7 +8554,7 @@ function mcSyllabusSplitTopics(value){
   return parts.filter(x=>!mcSyllabusIsCourseOnly(x));
 }
 
-function mcParseSyllabusRows(rows){
+function mcParseSyllabusRows(rows, courseName=""){
   rows = (rows||[]).map(r => (r||[]).map(v=>String(v ?? "")));
   let headerRow = -1;
   let codeIdx = -1, dateIdx = -1, blockIdx = -1, notesIdx = -1;
@@ -8556,22 +8563,27 @@ function mcParseSyllabusRows(rows){
 
   for (let r=0; r<Math.min(rows.length, 60); r++){
     const keys = rows[r].map(mcSyllabusHeaderKey);
-    const c = keys.findIndex(x=>x === "CODIGO" || x === "CÓDIGO" || x === "COD" || x === "SEM");
-    const d = keys.findIndex(x=>x === "SEMANA" || x.includes("FECHA"));
-    const b = keys.findIndex(x=>x === "BLOQUE" || x === "CLASE" || x === "SESION" || x === "SESIÓN");
+    const c = keys.findIndex(x=>x === "CODIGO" || x === "COD" || x === "SEM" || x === "CODIGO DE SEMANA" || x === "CODIGO SEMANA");
+    const d = keys.findIndex(x=>x === "SEMANA" || x === "FECHA" || x === "FECHAS" || x.includes("FECHA"));
+    const b = keys.findIndex(x=>x === "BLOQUE" || x === "BLOQUES" || x === "BLOQUE POR SEMANA" || x === "BLOQUES POR SEMANA" || x === "CLASE" || x === "SESION");
+    const courseTopicIdxs = keys
+      .map((x,i)=>({x,i}))
+      .filter(o => mcSyllabusHeaderMatchesCourse(o.x, courseName) && o.i !== b && o.i !== d && o.i !== c)
+      .map(o=>o.i);
     const explicitTopics = keys
       .map((x,i)=>({x,i}))
-      .filter(o => /(^| )(TEMA|TEMAS|CONTENIDO|CONTENIDOS|TEMARIO|ACTIVIDAD|SESION|SESIÓN)( |$)/.test(o.x) && o.i !== b && o.i !== d && o.i !== c)
+      .filter(o => /(^| )(TEMA|TEMAS|CONTENIDO|CONTENIDOS|TEMARIO|ACTIVIDAD|SESION)( |$)/.test(o.x) && o.i !== b && o.i !== d && o.i !== c)
       .map(o=>o.i);
     const hasWeek = c >= 0 || d >= 0 || keys.some(x=>/^SEMANA\s*\d+|^SEM\s*\d+|^SE\s*\d+/i.test(x));
-    const hasTopicHead = explicitTopics.length > 0 || b >= 0;
+    const hasTopicHead = courseTopicIdxs.length > 0 || explicitTopics.length > 0 || b >= 0;
     if (hasWeek && hasTopicHead){
       headerRow = r;
       codeIdx = c;
       dateIdx = d;
       blockIdx = b;
       notesIdx = keys.findIndex(x=>x.includes("OBSERV") || x === "NOTAS" || x === "NOTA" || x.includes("FERIADO"));
-      if (explicitTopics.length) topicIdxs = explicitTopics;
+      if (courseTopicIdxs.length) topicIdxs = courseTopicIdxs;
+      else if (explicitTopics.length) topicIdxs = explicitTopics;
       else if (blockIdx >= 0){
         const stop = notesIdx >= 0 ? notesIdx : rows[r].length;
         topicIdxs = [];
@@ -8618,8 +8630,8 @@ function mcParseSyllabusRows(rows){
   return weeks.filter(w=>w.code || w.dateRaw || w.topics.length || w.notes.length);
 }
 
-function mcParseSyllabusCsv(raw){
-  return mcParseSyllabusRows(mcParseCsv(raw));
+function mcParseSyllabusCsv(raw, courseName=""){
+  return mcParseSyllabusRows(mcParseCsv(raw), courseName);
 }
 
 function mcMonthNumber(raw){
@@ -9046,17 +9058,18 @@ function mcBindSyllabusButtons(scope){
   });
 }
 
-async function mcLoadSyllabusData(url){
+async function mcLoadSyllabusData(url, courseName=""){
   const key = String(url||"").trim();
+  const cacheKey = `${key}::${mcNormLabel(courseName)}`;
   if (!key) throw new Error("Enlace de sílabo pendiente.");
-  if (MC_ARS_SYLLABUS_CACHE.has(key)) return await MC_ARS_SYLLABUS_CACHE.get(key);
+  if (MC_ARS_SYLLABUS_CACHE.has(cacheKey)) return await MC_ARS_SYLLABUS_CACHE.get(cacheKey);
   const promise = (async ()=>{
     if (!mcSyllabusSheetInfo(key)) throw new Error("El enlace debe ser de Google Sheets o CSV publicado.");
     const errors = [];
 
     try{
       const rows = await mcLoadSyllabusGvizRows(key);
-      const weeks = mcParseSyllabusRows(rows);
+      const weeks = mcParseSyllabusRows(rows, courseName);
       if (weeks.length) return weeks;
       errors.push("GViz: hoja vacía");
     }catch(e){ errors.push("GViz: " + (e?.message || String(e))); }
@@ -9068,7 +9081,7 @@ async function mcLoadSyllabusData(url){
         if (!res.ok){ errors.push(`CSV ${res.status}`); continue; }
         const raw = await res.text();
         if (mcIsLikelyHtml(raw)){ errors.push("CSV devolvió HTML, no datos"); continue; }
-        const weeks = mcParseSyllabusCsv(raw);
+        const weeks = mcParseSyllabusCsv(raw, courseName);
         if (weeks.length) return weeks;
         errors.push("CSV: hoja sin semanas reconocibles");
       }catch(e){ errors.push("CSV: " + (e?.message || String(e))); }
@@ -9076,9 +9089,9 @@ async function mcLoadSyllabusData(url){
 
     throw new Error("No se pudo leer la hoja. Debe estar compartida como 'Cualquier usuario con el enlace' o publicada como CSV. " + errors.slice(0,2).join(" | "));
   })();
-  MC_ARS_SYLLABUS_CACHE.set(key,promise);
+  MC_ARS_SYLLABUS_CACHE.set(cacheKey,promise);
   try{ return await promise; }
-  catch(err){ MC_ARS_SYLLABUS_CACHE.delete(key); throw err; }
+  catch(err){ MC_ARS_SYLLABUS_CACHE.delete(cacheKey); throw err; }
 }
 
 async function mcHydrateMaterialesSyllabus({pid,cid,codes,first,last,pStart,space,url,programType}){
@@ -9101,7 +9114,7 @@ async function mcHydrateMaterialesSyllabus({pid,cid,codes,first,last,pStart,spac
   if (url){
     try{
       if (status) status.textContent = "CARGANDO SÍLABO…";
-      const weeks = await mcLoadSyllabusData(url);
+      const weeks = await mcLoadSyllabusData(url, cid);
       const aligned = mcAlignSyllabusTopics({weeks,codes,first,last,pStart,local:space,course:cid,programType});
       applyAligned(aligned, `SÍLABO ACTIVO · ${weeks.length} SEMANAS`);
       return;
