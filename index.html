@@ -8517,7 +8517,7 @@ function mcSyllabusIsCourseOnly(value){
   const s = mcSyllabusHeaderKey(value);
   if (!s) return true;
   if (/^(A|B|C|BLOQUE|SEMANA|CODIGO|COD|FECHA|FECHAS|OBS|OBSERVACION|OBSERVACIONES|NOTA|NOTAS)$/i.test(s)) return true;
-  if (/^(ALGEBRA|TEXTOS|TEXTO|NUMEROS Y OPERACIONES|N O|NO|GEOMETRIA Y MEDIDA|SIMULACRO|SIMULACROS|REPASO|FERIADO)$/i.test(s)) return true;
+  if (/^(RV|RM|ARI|ALG|GEO|TRI|TRIG|FIS|QUI|BIO|TXT|N O|NO|G M|ALGEBRA|TEXTOS|TEXTO|NUMEROS Y OPERACIONES|GEOMETRIA Y MEDIDA|GEOMETRIA|TRIGONOMETRIA|FISICA|QUIMICA|BIOLOGIA|ARITMETICA|RAZONAMIENTO VERBAL|RAZONAMIENTO MATEMATICO|SIMULACRO|SIMULACROS|REPASO|FERIADO)$/i.test(s)) return true;
   if (/^(CURSO|TEMA|TEMAS|CONTENIDO|CONTENIDOS|SESION|SESIONES)$/i.test(s)) return true;
 
   // No tratar como tema los códigos de simulacro que aparecen en la columna F
@@ -8758,19 +8758,48 @@ function mcSyllabusNotesForWeek(notes, holidayHits, year, holidays, classDates){
 
 function mcCourseAliases(course){
   const c = mcNormLabel(course);
-  if (c.includes("RAZONAMIENTO VERBAL") || c === "RV" || c.includes("RAZ VERBAL")) return ["RV","RAZ VERBAL","RAZONAMIENTO VERBAL"];
-  if (c.includes("RAZONAMIENTO MATEMATICO") || c === "RM" || c.includes("RAZ MATEMATICO")) return ["RM","RAZ MATEMATICO","RAZONAMIENTO MATEMATICO"];
-  if (c.includes("ARITMETICA") || c === "ARI") return ["ARI","ARITMETICA"];
-  if (c.includes("ALGEBRA") || c === "ALG") return ["ALG","ALGEBRA"];
-  if (c.includes("GEOMETRIA Y MEDIDA") || c === "G&M" || c === "GM") return ["G&M","GM","GEOMETRIA Y MEDIDA"];
-  if (c.includes("GEOMETRIA") || c === "GEO") return ["GEO","GEOMETRIA"];
-  if (c.includes("TRIGONOMETRIA") || c === "TRIG" || c === "TRI") return ["TRI","TRIG","TRIGONOMETRIA"];
-  if (c.includes("FISICA") || c === "FIS") return ["FIS","FISICA"];
-  if (c.includes("QUIMICA") || c === "QUI") return ["QUI","QUIMICA"];
-  if (c.includes("BIOLOGIA") || c === "BIO") return ["BIO","BIOLOGIA"];
-  if (c.includes("TEXTOS") || c.includes("TEXTO") || c === "TXT") return ["TXT","TEXTO","TEXTOS"];
-  if (c.includes("NUMEROS Y OPERACIONES") || c === "N&O" || c === "NO") return ["N&O","NO","NUMEROS Y OPERACIONES"];
-  if (c.includes("SIMULACRO")) return ["SIM","SIMULACRO","SIMULACROS"];
+
+  // Equivalencias usadas en Horarios y Materiales.
+  // mcNormLabel elimina tildes, por eso ÁLG/ALG, FÍS/FIS, QUÍ/QUI son equivalentes.
+  if (c.includes("RAZONAMIENTO VERBAL") || c === "RV" || c.includes("RAZ VERBAL")){
+    return ["RV","RAZ VERBAL","RAZ. VERBAL","RAZONAMIENTO VERBAL"];
+  }
+  if (c.includes("RAZONAMIENTO MATEMATICO") || c === "RM" || c.includes("RAZ MATEMATICO")){
+    return ["RM","RAZ MATEMATICO","RAZ. MATEMATICO","RAZONAMIENTO MATEMATICO"];
+  }
+  if (c.includes("ARITMETICA") || c === "ARI"){
+    return ["ARI","ARITMETICA"];
+  }
+  if (c.includes("ALGEBRA") || c === "ALG" || c === "ALG"){
+    return ["ALG","ALGEBRA"];
+  }
+  if (c.includes("GEOMETRIA Y MEDIDA") || c === "G&M" || c === "GM" || c === "G M"){
+    return ["G&M","GM","G M","GEOMETRIA Y MEDIDA"];
+  }
+  if (c.includes("GEOMETRIA") || c === "GEO"){
+    return ["GEO","GEOMETRIA"];
+  }
+  if (c.includes("TRIGONOMETRIA") || c === "TRIG" || c === "TRI"){
+    return ["TRI","TRIG","TRIGONOMETRIA"];
+  }
+  if (c.includes("FISICA") || c === "FIS"){
+    return ["FIS","FISICA"];
+  }
+  if (c.includes("QUIMICA") || c === "QUI"){
+    return ["QUI","QUIMICA"];
+  }
+  if (c.includes("BIOLOGIA") || c === "BIO"){
+    return ["BIO","BIOLOGIA"];
+  }
+  if (c.includes("TEXTOS") || c.includes("TEXTO") || c === "TXT"){
+    return ["TXT","TEXTO","TEXTOS"];
+  }
+  if (c.includes("NUMEROS Y OPERACIONES") || c === "N&O" || c === "N O" || c === "NO"){
+    return ["N&O","N O","NO","NUMEROS Y OPERACIONES"];
+  }
+  if (c.includes("SIMULACRO") || c === "SIM"){
+    return ["SIM","SIMULACRO","SIMULACROS"];
+  }
   return [c];
 }
 
@@ -8883,6 +8912,24 @@ function mcSyllabusClassDatesForWeek({pStart, weekIndex, classDays, sourceWeek, 
   });
 }
 
+function mcClassDatesFromBaseWeek({baseDate, classDays}){
+  const dates = [];
+  if (!(baseDate instanceof Date) || Number.isNaN(baseDate.getTime())) return dates;
+  const base = new Date(baseDate.getFullYear(), baseDate.getMonth(), baseDate.getDate());
+  for (const day of (classDays||[])){
+    const offset = (day - base.getDay() + 7) % 7;
+    const d = pgxAddDays(base, offset);
+    if (d && !Number.isNaN(d.getTime())) dates.push(d);
+  }
+  const seen = new Set();
+  return dates.filter(d=>{
+    const key = mcDateKey(d);
+    if (!key || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
 function mcSyllabusWeekCapacity(sourceTopics, classDates, holidayHits){
   const topicCount = (sourceTopics||[]).length;
   if (!topicCount) return 0;
@@ -8894,19 +8941,59 @@ function mcSyllabusWeekCapacity(sourceTopics, classDates, holidayHits){
 }
 
 function mcAlignSyllabusTopics({weeks,codes,first,last,pStart,local,course,programType}){
-  const byCode = new Map((weeks||[]).map(w=>[mcNormLabel(w.code),w]));
+  const byCode = new Map();
+  for (const w of (weeks||[])){
+    const keys = [w?.code, w?.displayCode, w?.colBLabel]
+      .map(x=>mcNormLabel(x))
+      .filter(Boolean);
+    for (const k of keys){
+      if (!byCode.has(k)) byCode.set(k, w);
+    }
+  }
+
   const year = pStart.getFullYear();
   const holidays = mcHolidaysFromSyllabusNotes(weeks, year);
   const classDays = mcScheduleDaysForEscolaresMateriales(local, course, programType);
   const schedulePending = !classDays.length;
+  const isIntegral = mcNormLabel(programType).includes("INTEGRAL");
   const carry = [];
   const result = [];
 
   for (let i=first-1; i<=last-1; i++){
     const code = String(codes[i]||`SEM${i+1}`);
-    const srcWeek = byCode.get(mcNormLabel(code)) || weeks[i] || {topics:[],notes:[]};
+    const codeKey = mcNormLabel(code);
+    const exactWeek = byCode.get(codeKey) || null;
+
+    // En ESCOLARES INTEGRAL el cruce debe ser estricto por código.
+    // No se permite usar weeks[i] porque eso desplaza SEN1 hacia SE01, SEN2 hacia SE02, etc.
+    const srcWeek = exactWeek || (!isIntegral ? (weeks[i] || null) : null);
+
+    if (!srcWeek){
+      result.push({
+        code,
+        displayCode: code,
+        dateRaw: "",
+        topics: [],
+        notes: [],
+        holidayHits: [],
+        delayed: carry.length,
+        currentWeek: null,
+        sourceWeek: null,
+        sourceCode: "",
+        sourceDisplayCode: "",
+        sourceColBLabel: "",
+        sourceDateRaw: "",
+        shifted: false,
+        schedulePending
+      });
+      continue;
+    }
+
     const sourceTopics = (srcWeek.topics||[]).slice(0,3);
-    const classDates = mcSyllabusClassDatesForWeek({pStart, weekIndex:i, classDays, sourceWeek:srcWeek, year, strictSchedule:true});
+    const sheetBaseDate = mcParseSheetDate(srcWeek?.dateRaw, year);
+    const classDates = sheetBaseDate
+      ? mcClassDatesFromBaseWeek({baseDate: sheetBaseDate, classDays})
+      : mcSyllabusClassDatesForWeek({pStart, weekIndex:i, classDays, sourceWeek:srcWeek, year, strictSchedule:true});
     const holidayHits = [];
     for (const d of classDates){
       const name = holidays.get(mcDateKey(d));
@@ -8923,6 +9010,9 @@ function mcAlignSyllabusTopics({weeks,codes,first,last,pStart,local,course,progr
     const currentLabel = String(srcWeek?.displayCode || srcWeek?.code || code);
 
     result.push({
+      code,
+      displayCode: srcWeek?.displayCode || srcWeek?.code || code,
+      dateRaw: srcWeek?.dateRaw || "",
       topics,
       notes: currentNotes,
       holidayHits,
@@ -9108,7 +9198,20 @@ async function mcHydrateMaterialesSyllabus({pid,cid,codes,first,last,pStart,spac
       ...item,
       code: String(codes[first-1+index] || item?.code || `SEM${first+index}`)
     }));
-    cells.forEach((td,index)=>{ td.innerHTML = mcSyllabusCellHtml(MC_ACTIVE_SYLLABUS_ITEMS[index], index); });
+    cells.forEach((td,index)=>{
+      const item = MC_ACTIVE_SYLLABUS_ITEMS[index];
+      td.innerHTML = mcSyllabusCellHtml(item, index);
+
+      // Para ESCOLARES INTEGRAL, cuando el código existe en el sílabo,
+      // la fecha visible de Materiales debe respetar la fecha de la hoja del sílabo.
+      const absoluteWeek = first - 1 + index;
+      const dateCell = document.querySelector(`[data-material-date-week="${absoluteWeek}"]`);
+      const sheetDate = mcParseSheetDate(item?.dateRaw, pStart.getFullYear());
+      if (dateCell && sheetDate){
+        dateCell.textContent = mcFmtDM(sheetDate);
+        dateCell.title = "Fecha tomada del sílabo";
+      }
+    });
     mcBindSyllabusButtons(document.getElementById("mcBody2") || document);
     if (status) status.textContent = weeksLabel;
   };
@@ -9669,7 +9772,7 @@ ${canWork ? `<button id="mcEditBtn" class="btn ${matEditOn?'primary':'ghost'}" t
     rows.push(`
       <tr class="${isCurrentWeek ? "mcCurrentWeekRow" : ""}">
         <td class="mcIdxCol" style="font-weight:950;">${idx}</td>
-        <td class="mcDateCol">${escapeHtml(date)}</td>
+        <td class="mcDateCol" data-material-date-week="${i}">${escapeHtml(date)}</td>
         <td class="mcWeekCol" style="font-weight:950;">${escapeHtml(code)}</td>
 
         <td class="mcPctCol"><span class="semBadge ${semClass}"><span class="semDot"></span>${wkPct}%</span></td>
