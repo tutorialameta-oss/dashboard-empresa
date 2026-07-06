@@ -8803,8 +8803,12 @@ function mcDefaultArsCourseDays(course){
   return [];
 }
 
+function mcMaterialLocalKey(value){
+  return mcNormLabel(value).replace(/_/g, " ").replace(/\s+/g, " ").trim();
+}
+
 function mcScheduleDaysForEscolaresMateriales(local, course, programType){
-  let loc = mcNormLabel(local);
+  let loc = mcMaterialLocalKey(local);
   const type = mcNormLabel(programType || "");
   const wantArs = type.includes("ARS") || type.includes("POP");
   const wantIntegral = type.includes("INTEGRAL") || (!wantArs && type.includes("ESCOLARES"));
@@ -8817,7 +8821,7 @@ function mcScheduleDaysForEscolaresMateriales(local, course, programType){
   const dayMap = {LUNES:1,MARTES:2,MIERCOLES:3,"MIÉRCOLES":3,JUEVES:4,VIERNES:5,SABADO:6,"SÁBADO":6,DOMINGO:0};
 
   const schedules = (SCHEDULES||[]).filter(s=>{
-    const sLoc = mcNormLabel(s?.local);
+    const sLoc = mcMaterialLocalKey(s?.local);
     if (sLoc !== loc) return false;
     const raw = mcNormLabel([s?.id,s?.salon,s?.uni,s?.__colKey,s?.__cardKey].join(" "));
     const sUni = mcNormLabel(s?.uni);
@@ -8826,7 +8830,7 @@ function mcScheduleDaysForEscolaresMateriales(local, course, programType){
     if (!isEscolares) return false;
 
     const isArs = raw.includes("ARS") || raw.includes("POP") || (sLoc === "SAN MIGUEL" && (raw.includes("SCH_ESCOLARES_SM") || raw.includes("ESCOLARES_SM") || raw.includes("ESCOLARES SM")));
-    const isIntegral = !isArs && (raw.includes("ESCOLARES_INTEGRALES") || sSalon.includes("ESCOLAR") || raw.includes("ESCOLARES"));
+    const isIntegral = !isArs && (raw.includes("ESCOLARES_INTEGRALES") || raw.includes("ESCOLARES INTEGRALES") || sSalon.includes("ESCOLAR") || sSalon === "ESCOLARES" || raw.includes("ESCOLARES"));
 
     if (wantArs) return isArs;
     if (wantIntegral) return isIntegral;
