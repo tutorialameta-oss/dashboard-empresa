@@ -8575,9 +8575,15 @@ function mcSyllabusSplitTopics(value){
   return parts.filter(x=>!mcSyllabusIsCourseOnly(x));
 }
 
-function mcSyllabusLooksLikeWeekCode(value){
+function mcSyllabusExtractWeekCode(value){
   const s = mcSyllabusHeaderKey(value).replace(/\s+/g, "");
-  return /^(SEN|SEA|SE|SER|SN|SA|SR|S)\d+$/i.test(s);
+  if (!s) return "";
+  const m = s.match(/^(SEN|SEA|SER|SE|SN|SA|SR|S)\d+/i);
+  return m ? m[0].toUpperCase() : "";
+}
+
+function mcSyllabusLooksLikeWeekCode(value){
+  return !!mcSyllabusExtractWeekCode(value);
 }
 
 function mcSyllabusLooksLikeDate(value){
@@ -8587,7 +8593,7 @@ function mcSyllabusLooksLikeDate(value){
 }
 
 function mcSyllabusCleanWeekCode(value){
-  return mcSyllabusHeaderKey(value).replace(/\s+/g, "");
+  return mcSyllabusExtractWeekCode(value) || mcSyllabusHeaderKey(value).replace(/\s+/g, "");
 }
 
 function mcSyllabusFindNotesIdx(rows, dataStart, fallbackIdx){
@@ -9459,6 +9465,27 @@ async function mcHydrateMaterialesSyllabus({pid,cid,codes,first,last,pStart,spac
   const status = document.getElementById("mcSyllabusStatus");
   const cells = Array.from(document.querySelectorAll('[data-syllabus-week]'));
   if (!cells.length) return;
+
+  // Regla estándar para ARS e INTEGRAL:
+  // primero se valida si el curso existe en Horarios para el local/espacio elegido.
+  // Si no existe, no se intenta interpretar feriados ni reprogramaciones desde el sílabo,
+  // y todos los cursos se comportan igual: HORARIO PENDIENTE.
+  const preClassDays = mcScheduleDaysForEscolaresMateriales(space, cid, programType);
+  if (!preClassDays.length){
+    MC_ACTIVE_SYLLABUS_ITEMS = cells.map((_, index)=>({
+      code: String(codes[first-1+index] || `SEM${first+index}`),
+      topics: [],
+      notes: [],
+      holidayHits: [],
+      schedulePending: true,
+      matchedBySyllabus: false
+    }));
+    cells.forEach(td=>{
+      td.innerHTML = '<div class="mcSyllabusCell"><span class="mcSyllabusPending">HORARIO PENDIENTE</span></div>';
+    });
+    if (status) status.textContent = "HORARIO PENDIENTE · agrega este curso en Horarios";
+    return;
+  }
 
   const applyAligned = (aligned, weeksLabel)=>{
     MC_ACTIVE_SYLLABUS_ITEMS = aligned.map((item, index)=>({
