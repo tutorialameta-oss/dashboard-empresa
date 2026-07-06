@@ -8628,65 +8628,80 @@ function mcSyllabusFindCourseTopicIdxs(rows, courseName, dataStart, codeIdx, dat
 
 function mcParseSyllabusByWeekRows(rows, courseName=""){
   rows = (rows||[]).map(r => (r||[]).map(v=>String(v ?? "")));
-  let dataStart = -1;
-  let codeIdx = -1, dateIdx = -1, blockIdx = -1;
 
-  // Detectar la primera fila real del temario buscando códigos como SEN1, SEN2, SEA1, SE01, SN1, etc.
+  const tryBuild = (codeIdx, dateIdx, blockIdx, notesIdx, topicIdxs, dataStart)=>{
+    const weeks = [];
+    let current = null;
+    for (let r=Math.max(0, dataStart); r<rows.length; r++){
+      const cells = rows[r] || [];
+      const rawCode = String(cells[codeIdx] || "").trim();
+      const code = mcSyllabusLooksLikeWeekCode(rawCode) ? mcSyllabusCleanWeekCode(rawCode) : "";
+      const dateRaw = dateIdx >= 0 ? String(cells[dateIdx] || "").trim() : "";
+      const hasDate = mcSyllabusLooksLikeDate(dateRaw);
+      const block = blockIdx >= 0 ? String(cells[blockIdx] || "").trim().toUpperCase() : "";
+
+      // Nueva semana solo si hay código real de semana o fecha real. Esto evita que un feriado
+      // de OBSERVACIONES sea interpretado como fecha base o como tema.
+      if (code || hasDate){
+        current = { code, displayCode: code || rawCode, colBLabel: rawCode || code, dateRaw, topics:[], notes:[] };
+        weeks.push(current);
+      }
+      if (!current) continue;
+
+      for (const idx of (topicIdxs||[])){
+        if (idx === notesIdx) continue;
+        const rawTopic = String(cells[idx] || "").trim();
+        if (!rawTopic) continue;
+        for (const topic of mcSyllabusSplitTopics(rawTopic)){
+          if (!current.topics.includes(topic) && current.topics.length < 3) current.topics.push(topic);
+        }
+      }
+
+      const notes = notesIdx >= 0 ? String(cells[notesIdx] || "").replace(/\s+/g," ").trim() : "";
+      if (notes && !current.notes.includes(notes)) current.notes.push(notes);
+      void block;
+    }
+    return weeks.filter(w=>w.code || w.dateRaw || w.topics.length || w.notes.length);
+  };
+
+  // 1) Ruta preferente: detectar dinámicamente la primera fila real del temario.
+  // Se permite que la fecha o el bloque estén vacíos, porque en algunos sílabos de Física,
+  // Química y Biología el formato viene con celdas fusionadas o vacías en la exportación GViz.
   for (let r=0; r<rows.length; r++){
     const cells = rows[r] || [];
-    for (let c=0; c<Math.min(cells.length, 10); c++){
+    for (let c=0; c<Math.min(cells.length, 12); c++){
       if (!mcSyllabusLooksLikeWeekCode(cells[c])) continue;
-      const maybeDate = c+1 < cells.length ? cells[c+1] : "";
-      const maybeBlock = c+2 < cells.length ? mcSyllabusHeaderKey(cells[c+2]) : "";
-      if (mcSyllabusLooksLikeDate(maybeDate) || /^(A|B|C|1|2|3)$/.test(maybeBlock)){
-        dataStart = r;
-        codeIdx = c;
-        dateIdx = c + 1;
-        blockIdx = c + 2;
-        break;
+      let dateIdx = c + 1;
+      let blockIdx = c + 2;
+      let maybeDate = dateIdx < cells.length ? cells[dateIdx] : "";
+      let maybeBlock = blockIdx < cells.length ? mcSyllabusHeaderKey(cells[blockIdx]) : "";
+
+      // Si el patrón natural B-C-D no se reconoce por celdas vacías/fusionadas,
+      // igual se acepta el código de semana y se aplica la estructura estándar.
+      if (mcSyllabusLooksLikeDate(maybeDate) || /^(A|B|C|1|2|3)$/.test(maybeBlock) || c <= 3){
+        const notesIdx = mcSyllabusFindNotesIdx(rows, r, c + 5);
+        const topicIdxs = mcSyllabusFindCourseTopicIdxs(rows, courseName, r, c, dateIdx, blockIdx, notesIdx)
+          .filter(i=>Number.isFinite(i) && i >= 0 && i !== notesIdx);
+        const built = tryBuild(c, dateIdx, blockIdx, notesIdx, topicIdxs, r);
+        if (built.length) return built;
       }
     }
-    if (dataStart >= 0) break;
   }
-  if (dataStart < 0) return [];
 
-  const notesIdx = mcSyllabusFindNotesIdx(rows, dataStart, codeIdx + 5);
-  const topicIdxs = mcSyllabusFindCourseTopicIdxs(rows, courseName, dataStart, codeIdx, dateIdx, blockIdx, notesIdx)
-    .filter(i=>Number.isFinite(i) && i >= 0 && i !== notesIdx);
-
-  const weeks = [];
-  let current = null;
-  for (let r=dataStart; r<rows.length; r++){
+  // 2) Ruta fija para el formato institucional de ESCOLARES INTEGRAL:
+  // A=ETAPAS, B=CÓDIGO DE SEMANA, C=FECHA, D=BLOQUES POR SEMANA, E=CURSO, F=SIMULACROS, G=OBSERVACIONES.
+  // Esta ruta es clave para Física, Química y Biología aunque la columna E no tenga temas.
+  let fixedStart = -1;
+  for (let r=0; r<rows.length; r++){
     const cells = rows[r] || [];
-    const rawCode = String(cells[codeIdx] || "").trim();
-    const code = mcSyllabusLooksLikeWeekCode(rawCode) ? mcSyllabusCleanWeekCode(rawCode) : "";
-    const dateRaw = dateIdx >= 0 ? String(cells[dateIdx] || "").trim() : "";
-    const block = blockIdx >= 0 ? String(cells[blockIdx] || "").trim().toUpperCase() : "";
-
-    if (code || (dateRaw && mcSyllabusLooksLikeDate(dateRaw))){
-      current = { code, displayCode: code || rawCode, colBLabel: rawCode || code, dateRaw, topics:[], notes:[] };
-      weeks.push(current);
-    }
-    if (!current) continue;
-
-    for (const idx of topicIdxs){
-      if (idx === notesIdx) continue;
-      const rawTopic = String(cells[idx] || "").trim();
-      if (!rawTopic) continue;
-      for (const topic of mcSyllabusSplitTopics(rawTopic)){
-        if (!current.topics.includes(topic) && current.topics.length < 3) current.topics.push(topic);
-      }
-    }
-
-    const notes = notesIdx >= 0 ? String(cells[notesIdx] || "").replace(/\s+/g," ").trim() : "";
-    if (notes && !current.notes.includes(notes)) current.notes.push(notes);
-
-    // No cortar semanas largas por filas vacías o bloques B/C. Los sílabos de Física,
-    // Química y Biología pueden tener tramos extensos hasta noviembre.
-    void block;
+    if (mcSyllabusLooksLikeWeekCode(cells[1]) || mcSyllabusLooksLikeDate(cells[2])){ fixedStart = r; break; }
+  }
+  if (fixedStart >= 0){
+    const built = tryBuild(1, 2, 3, 6, [4], fixedStart);
+    if (built.length) return built;
   }
 
-  return weeks.filter(w=>w.code || w.dateRaw || w.topics.length || w.notes.length);
+  return [];
 }
 
 function mcGuessSyllabusLayout(rows, courseName=""){
@@ -9086,6 +9101,9 @@ function mcSyllabusWeekCapacity(sourceTopics, classDates, holidayHits){
 
 function mcAlignSyllabusTopics({weeks,codes,first,last,pStart,local,course,programType}){
   const byCode = new Map();
+  const byDate = new Map();
+  const year = pStart.getFullYear();
+
   for (const w of (weeks||[])){
     const keys = [w?.code, w?.displayCode, w?.colBLabel]
       .map(x=>mcNormLabel(x))
@@ -9093,9 +9111,11 @@ function mcAlignSyllabusTopics({weeks,codes,first,last,pStart,local,course,progr
     for (const k of keys){
       if (!byCode.has(k)) byCode.set(k, w);
     }
+    const d = mcParseSheetDate(w?.dateRaw, year);
+    const dk = mcDateKey(d);
+    if (dk && !byDate.has(dk)) byDate.set(dk, w);
   }
 
-  const year = pStart.getFullYear();
   const holidays = mcHolidaysFromSyllabusNotes(weeks, year);
   const classDays = mcScheduleDaysForEscolaresMateriales(local, course, programType);
   const schedulePending = !classDays.length;
@@ -9106,11 +9126,25 @@ function mcAlignSyllabusTopics({weeks,codes,first,last,pStart,local,course,progr
   for (let i=first-1; i<=last-1; i++){
     const code = String(codes[i]||`SEM${i+1}`);
     const codeKey = mcNormLabel(code);
-    const exactWeek = byCode.get(codeKey) || null;
+    const programWeekStart = pgxAddDays(pStart, i*7);
+    programWeekStart.setHours(0,0,0,0);
+    const programDateKey = mcDateKey(programWeekStart);
 
-    // En ESCOLARES INTEGRAL el cruce debe ser estricto por código.
-    // No se permite usar weeks[i] porque eso desplaza SEN1 hacia SE01, SEN2 hacia SE02, etc.
-    const srcWeek = exactWeek || (!isIntegral ? (weeks[i] || null) : null);
+    const exactWeek = byCode.get(codeKey) || null;
+    const dateWeek = byDate.get(programDateKey) || null;
+
+    let srcWeek = null;
+    let matchedByDate = false;
+    if (isIntegral){
+      if (dateWeek){ srcWeek = dateWeek; matchedByDate = true; }
+      else if (exactWeek){
+        const d = mcParseSheetDate(exactWeek?.dateRaw, year);
+        const dk = mcDateKey(d);
+        if (!dk || dk === programDateKey) srcWeek = exactWeek;
+      }
+    }else{
+      srcWeek = exactWeek || (weeks[i] || null);
+    }
 
     if (!srcWeek){
       result.push({
@@ -9128,7 +9162,8 @@ function mcAlignSyllabusTopics({weeks,codes,first,last,pStart,local,course,progr
         sourceColBLabel: "",
         sourceDateRaw: "",
         shifted: false,
-        schedulePending
+        schedulePending,
+        matchedByDate: false
       });
       continue;
     }
@@ -9138,6 +9173,7 @@ function mcAlignSyllabusTopics({weeks,codes,first,last,pStart,local,course,progr
     const classDates = sheetBaseDate
       ? mcClassDatesFromBaseWeek({baseDate: sheetBaseDate, classDays})
       : mcSyllabusClassDatesForWeek({pStart, weekIndex:i, classDays, sourceWeek:srcWeek, year, strictSchedule:true});
+
     const holidayHits = [];
     for (const d of classDates){
       const name = holidays.get(mcDateKey(d));
@@ -9168,7 +9204,8 @@ function mcAlignSyllabusTopics({weeks,codes,first,last,pStart,local,course,progr
       sourceColBLabel: topicSourceWeek?.colBLabel || "",
       sourceDateRaw: topicSourceWeek?.dateRaw || "",
       shifted: !!(topics.length && sourceLabel && currentLabel && mcNormLabel(sourceLabel) !== mcNormLabel(currentLabel)),
-      schedulePending
+      schedulePending,
+      matchedByDate
     });
   }
   return result;
@@ -9362,7 +9399,7 @@ async function mcHydrateMaterialesSyllabus({pid,cid,codes,first,last,pStart,spac
       const absoluteWeek = first - 1 + index;
       const dateCell = document.querySelector(`[data-material-date-week="${absoluteWeek}"]`);
       const sheetDate = mcParseSheetDate(item?.dateRaw, pStart.getFullYear());
-      if (dateCell && sheetDate){
+      if (dateCell && sheetDate && item?.matchedByDate){
         dateCell.textContent = mcFmtDM(sheetDate);
         dateCell.title = "Fecha tomada del sílabo";
       }
