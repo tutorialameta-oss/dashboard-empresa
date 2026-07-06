@@ -8746,10 +8746,18 @@ function mcSyllabusNotesForWeek(notes, holidayHits, year, holidays, classDates){
 
 function mcCourseAliases(course){
   const c = mcNormLabel(course);
-  if (c.includes("NUMEROS Y OPERACIONES")) return ["N&O","NO","NUMEROS Y OPERACIONES"];
-  if (c.includes("GEOMETRIA Y MEDIDA")) return ["G&M","GM","GEOMETRIA Y MEDIDA"];
-  if (c.includes("ALGEBRA")) return ["ALG","ALGEBRA"];
-  if (c.includes("TEXTOS")) return ["TXT","TEXTO","TEXTOS"];
+  if (c.includes("RAZONAMIENTO VERBAL") || c === "RV" || c.includes("RAZ VERBAL")) return ["RV","RAZ VERBAL","RAZONAMIENTO VERBAL"];
+  if (c.includes("RAZONAMIENTO MATEMATICO") || c === "RM" || c.includes("RAZ MATEMATICO")) return ["RM","RAZ MATEMATICO","RAZONAMIENTO MATEMATICO"];
+  if (c.includes("ARITMETICA") || c === "ARI") return ["ARI","ARITMETICA"];
+  if (c.includes("ALGEBRA") || c === "ALG") return ["ALG","ALGEBRA"];
+  if (c.includes("GEOMETRIA Y MEDIDA") || c === "G&M" || c === "GM") return ["G&M","GM","GEOMETRIA Y MEDIDA"];
+  if (c.includes("GEOMETRIA") || c === "GEO") return ["GEO","GEOMETRIA"];
+  if (c.includes("TRIGONOMETRIA") || c === "TRIG" || c === "TRI") return ["TRI","TRIG","TRIGONOMETRIA"];
+  if (c.includes("FISICA") || c === "FIS") return ["FIS","FISICA"];
+  if (c.includes("QUIMICA") || c === "QUI") return ["QUI","QUIMICA"];
+  if (c.includes("BIOLOGIA") || c === "BIO") return ["BIO","BIOLOGIA"];
+  if (c.includes("TEXTOS") || c.includes("TEXTO") || c === "TXT") return ["TXT","TEXTO","TEXTOS"];
+  if (c.includes("NUMEROS Y OPERACIONES") || c === "N&O" || c === "NO") return ["N&O","NO","NUMEROS Y OPERACIONES"];
   if (c.includes("SIMULACRO")) return ["SIM","SIMULACRO","SIMULACROS"];
   return [c];
 }
@@ -8783,29 +8791,28 @@ function mcDefaultArsCourseDays(course){
   return [];
 }
 
-function mcScheduleDaysForArs(local, course){
+function mcScheduleDaysForEscolaresMateriales(local, course, programType){
   let loc = mcNormLabel(local);
+  if (!loc || loc === "EDITOR") return [];
+  if (typeof SCHEDULES === "undefined") return [];
 
-  // En Materiales, el espacio EDITOR administra el ciclo, pero ESCOLARES ARS se dicta
-  // físicamente en San Miguel. Por eso el sílabo debe alinearse al horario de San Miguel.
-  if (!loc || loc === "EDITOR") loc = "SAN MIGUEL";
-
-  const fallbackDays = mcDefaultArsCourseDays(course);
-  if (typeof SCHEDULES === "undefined") return fallbackDays;
-
+  const type = mcNormLabel(programType || "");
+  const wantArs = type.includes("ARS") || type.includes("POP");
+  const wantIntegral = type.includes("INTEGRAL") || (!wantArs && type.includes("ESCOLARES"));
   const dayMap = {LUNES:1,MARTES:2,MIERCOLES:3,"MIÉRCOLES":3,JUEVES:4,VIERNES:5,SABADO:6,"SÁBADO":6,DOMINGO:0};
 
-  // Para ARS no se deben mezclar horarios de ESC PUCP / ESC INTEGRALES.
-  // El error detectado venía de considerar "PUCP" como si fuera ARS; eso agregaba
-  // días de clase falsos y activaba reprogramaciones por feriados que no tocaban al curso.
-  let schedules = (SCHEDULES||[]).filter(s=>{
+  const schedules = (SCHEDULES||[]).filter(s=>{
     const sLoc = mcNormLabel(s?.local);
+    if (sLoc !== loc) return false;
     const raw = mcNormLabel([s?.id,s?.salon,s?.uni,s?.__colKey,s?.__cardKey].join(" "));
     const sUni = mcNormLabel(s?.uni);
     const sSalon = mcNormLabel(s?.salon);
-    const isEscolares = sUni === "ESCOLARES" || sSalon.includes("ESCOLAR") || /(^|\s)ESC(\s|$)/.test(sSalon) || raw.includes("ESCOLARES");
-    const isArs = raw.includes("ARS") || raw.includes("POP");
-    return sLoc === loc && isEscolares && isArs;
+    const isEscolares = sUni === "ESCOLARES" || sSalon.includes("ESCOLAR") || raw.includes("ESCOLARES") || /(^|\s)ESC(\s|$)/.test(sSalon);
+    if (!isEscolares) return false;
+    const isArs = raw.includes("ARS") || raw.includes("POP") || /^SCH_ESCOLARES_(LM|SM|SB|VIRT)$/.test(raw) || /ESCOLARES_(LM|SM|SB|VIRT)/.test(raw);
+    if (wantArs) return isArs;
+    if (wantIntegral) return !isArs;
+    return false;
   });
 
   const days = [];
@@ -8816,17 +8823,11 @@ function mcScheduleDaysForArs(local, course){
       if (Number.isFinite(day)) days.push(day);
     }
   }
+  return Array.from(new Set(days)).sort((a,b)=>a-b);
+}
 
-  const detected = Array.from(new Set(days)).sort((a,b)=>a-b);
-
-  // Regla de seguridad para ARS: cada curso base tiene un día oficial único.
-  // Si el horario detectado devuelve cero, múltiples días o un día distinto, se usa
-  // el día oficial para evitar reprogramaciones falsas.
-  if (fallbackDays.length === 1){
-    if (detected.length !== 1 || detected[0] !== fallbackDays[0]) return fallbackDays;
-  }
-
-  return detected.length ? detected : fallbackDays;
+function mcScheduleDaysForArs(local, course){
+  return mcScheduleDaysForEscolaresMateriales(local, course, "ESCOLARES ARS");
 }
 
 function mcProgramWeekDate(start, weekIndex, weekday){
@@ -8836,13 +8837,13 @@ function mcProgramWeekDate(start, weekIndex, weekday){
   return pgxAddDays(base, offset);
 }
 
-function mcSyllabusClassDatesForWeek({pStart, weekIndex, classDays, sourceWeek, year}){
+function mcSyllabusClassDatesForWeek({pStart, weekIndex, classDays, sourceWeek, year, strictSchedule=false}){
   const dates = [];
   for (const day of (classDays||[])){
     const d = mcProgramWeekDate(pStart, weekIndex, day);
     if (d && !Number.isNaN(d.getTime())) dates.push(d);
   }
-  if (!dates.length){
+  if (!dates.length && !strictSchedule){
     const fromSheet = mcParseSheetDate(sourceWeek?.dateRaw, year);
     if (fromSheet) dates.push(fromSheet);
     else {
@@ -8870,12 +8871,12 @@ function mcSyllabusWeekCapacity(sourceTopics, classDates, holidayHits){
   return Math.max(1, Math.min(topicCount, Math.floor(topicCount * validSessions / totalSessions)));
 }
 
-function mcAlignSyllabusTopics({weeks,codes,first,last,pStart,local,course}){
+function mcAlignSyllabusTopics({weeks,codes,first,last,pStart,local,course,programType}){
   const byCode = new Map((weeks||[]).map(w=>[mcNormLabel(w.code),w]));
   const year = pStart.getFullYear();
-  const holidays = mcPeruHolidays(year);
-  for (const [key,name] of mcHolidaysFromSyllabusNotes(weeks,year)) holidays.set(key,name);
-  const classDays = mcScheduleDaysForArs(local,course);
+  const holidays = mcHolidaysFromSyllabusNotes(weeks, year);
+  const classDays = mcScheduleDaysForEscolaresMateriales(local, course, programType);
+  const schedulePending = !classDays.length;
   const carry = [];
   const result = [];
 
@@ -8883,7 +8884,7 @@ function mcAlignSyllabusTopics({weeks,codes,first,last,pStart,local,course}){
     const code = String(codes[i]||`SEM${i+1}`);
     const srcWeek = byCode.get(mcNormLabel(code)) || weeks[i] || {topics:[],notes:[]};
     const sourceTopics = (srcWeek.topics||[]).slice(0,3);
-    const classDates = mcSyllabusClassDatesForWeek({pStart, weekIndex:i, classDays, sourceWeek:srcWeek, year});
+    const classDates = mcSyllabusClassDatesForWeek({pStart, weekIndex:i, classDays, sourceWeek:srcWeek, year, strictSchedule:true});
     const holidayHits = [];
     for (const d of classDates){
       const name = holidays.get(mcDateKey(d));
@@ -8891,7 +8892,7 @@ function mcAlignSyllabusTopics({weeks,codes,first,last,pStart,local,course}){
     }
 
     carry.push(...sourceTopics.map(topic=>({topic, sourceWeek:srcWeek})));
-    const capacity = mcSyllabusWeekCapacity(sourceTopics, classDates, holidayHits);
+    const capacity = schedulePending ? sourceTopics.length : mcSyllabusWeekCapacity(sourceTopics, classDates, holidayHits);
     const selected = carry.splice(0, Math.min(3, capacity));
     const topicSourceWeek = selected[0]?.sourceWeek || srcWeek;
     const topics = selected.map(x=>x.topic);
@@ -8910,16 +8911,17 @@ function mcAlignSyllabusTopics({weeks,codes,first,last,pStart,local,course}){
       sourceDisplayCode: sourceLabel,
       sourceColBLabel: topicSourceWeek?.colBLabel || "",
       sourceDateRaw: topicSourceWeek?.dateRaw || "",
-      shifted: !!(topics.length && sourceLabel && currentLabel && mcNormLabel(sourceLabel) !== mcNormLabel(currentLabel))
+      shifted: !!(topics.length && sourceLabel && currentLabel && mcNormLabel(sourceLabel) !== mcNormLabel(currentLabel)),
+      schedulePending
     });
   }
   return result;
 }
 
-function mcManualSyllabusAligned({cid,codes,first,last,pStart,local}){
+function mcManualSyllabusAligned({cid,codes,first,last,pStart,local,programType}){
   const manual = MC_ARS_MANUAL_SYLLABUS[mcNormLabel(cid)];
   if (!manual || !manual.length) return null;
-  const aligned = mcAlignSyllabusTopics({weeks:manual,codes,first,last,pStart,local,course:cid});
+  const aligned = mcAlignSyllabusTopics({weeks:manual,codes,first,last,pStart,local,course:cid,programType});
   return aligned.map((item,index)=>{
     const absoluteIndex = first - 1 + index;
     const code = mcNormLabel(String(codes[absoluteIndex]||""));
@@ -8939,6 +8941,9 @@ function mcManualSyllabusAligned({cid,codes,first,last,pStart,local}){
 }
 
 function mcSyllabusCellHtml(item, idx){
+  if (item?.schedulePending){
+    return `<div class="mcSyllabusCell"><span class="mcSyllabusPending">HORARIO PENDIENTE</span></div>`;
+  }
   const topics = (item?.topics||[]).slice(0,3);
   const notes = (item?.notes||[]).slice();
   const noteCount = notes.length + ((item?.holidayHits||[]).length || 0);
@@ -9070,7 +9075,7 @@ async function mcLoadSyllabusData(url){
   catch(err){ MC_ARS_SYLLABUS_CACHE.delete(key); throw err; }
 }
 
-async function mcHydrateArsSyllabus({pid,cid,codes,first,last,pStart,space,url}){
+async function mcHydrateMaterialesSyllabus({pid,cid,codes,first,last,pStart,space,url,programType}){
   const status = document.getElementById("mcSyllabusStatus");
   const cells = Array.from(document.querySelectorAll('[data-syllabus-week]'));
   if (!cells.length) return;
@@ -9085,13 +9090,13 @@ async function mcHydrateArsSyllabus({pid,cid,codes,first,last,pStart,space,url})
     if (status) status.textContent = weeksLabel;
   };
 
-  const manualAligned = mcManualSyllabusAligned({cid,codes,first,last,pStart,local:space});
+  const manualAligned = mcManualSyllabusAligned({cid,codes,first,last,pStart,local:space,programType});
 
   if (url){
     try{
       if (status) status.textContent = "CARGANDO SÍLABO…";
       const weeks = await mcLoadSyllabusData(url);
-      const aligned = mcAlignSyllabusTopics({weeks,codes,first,last,pStart,local:space,course:cid});
+      const aligned = mcAlignSyllabusTopics({weeks,codes,first,last,pStart,local:space,course:cid,programType});
       applyAligned(aligned, `SÍLABO ACTIVO · ${weeks.length} SEMANAS`);
       return;
     }catch(err){
@@ -9106,7 +9111,7 @@ async function mcHydrateArsSyllabus({pid,cid,codes,first,last,pStart,space,url})
   }
 
   if (manualAligned){
-    applyAligned(manualAligned, `SÍLABO ACTIVO · ${manualAligned.length} SEMANAS · FERIADOS APLICADOS`);
+    applyAligned(manualAligned, `SÍLABO ACTIVO · ${manualAligned.length} SEMANAS`);
     return;
   }
 
@@ -9277,12 +9282,14 @@ function renderMateriales(){
   const progIdSaved = localStorage.getItem(PROG_KEY) || "";
   const prog = uniPrograms.find(p=>p.id===progIdSaved) || uniPrograms[0] || null;
   const isArsProgram = (uni === "ESCOLARES" && mcIsArsProgram(prog));
+  const isEscolaresProgram = (uni === "ESCOLARES");
+  const isIntegralProgram = isEscolaresProgram && !isArsProgram;
 
   const courses = mcMaterialCoursesFor(uni, prog);
   const savedCourse = localStorage.getItem(COURSE_KEY) || "";
   const course = courses.includes(savedCourse) ? savedCourse : (courses[0]||"");
   const isSimulacroCourse = mcNormLabel(course).includes("SIMULACRO");
-  const showSyllabusCol = isArsProgram && !isSimulacroCourse;
+  const showSyllabusCol = (isArsProgram || isIntegralProgram) && !isSimulacroCourse;
 
   // ESCOLARES ARS solo se dicta en SAN MIGUEL.
   // Por eso, en Materiales no se muestran LA MOLINA, SAN BORJA ni VIRTUAL para este ciclo.
@@ -9290,9 +9297,14 @@ function renderMateriales(){
     {id:"EDITOR", label:"EDITOR"},
     {id:"SAN_MIGUEL", label:"SAN MIGUEL"}
   ];
+  const INTEGRAL_SPACES = [
+    {id:"LA_MOLINA", label:"LA MOLINA"},
+    {id:"SAN_MIGUEL", label:"SAN MIGUEL"},
+    {id:"SAN_BORJA", label:"SAN BORJA"}
+  ];
   const materialSpaces = isArsProgram
     ? ARS_SPACES
-    : MC_SPACES;
+    : (isIntegralProgram ? INTEGRAL_SPACES : MC_SPACES);
   const availableSpaces = (roleLower === "admin")
     ? materialSpaces
     : materialSpaces.filter(x=>x.id !== "EDITOR");
@@ -9303,7 +9315,7 @@ function renderMateriales(){
   const space = availableSpaces.find(x=>x.id===savedSpace)
     ? savedSpace
     : (availableSpaces[0]?.id || defaultSpace);
-  const canEdit = (canEditRole && space === "EDITOR");
+  const canEdit = (canEditRole && (space === "EDITOR" || isEscolaresProgram));
 
   // helpers
   function fmtDM(d){
@@ -9687,7 +9699,7 @@ ${canWork ? `<button id="mcEditBtn" class="btn ${matEditOn?'primary':'ghost'}" t
   `;
 
   if (showSyllabusCol){
-    mcHydrateArsSyllabus({
+    mcHydrateMaterialesSyllabus({
       pid,
       cid,
       codes,
@@ -9695,7 +9707,8 @@ ${canWork ? `<button id="mcEditBtn" class="btn ${matEditOn?'primary':'ghost'}" t
       last:range.last,
       pStart,
       space,
-      url:syllabusUrl
+      url:syllabusUrl,
+      programType: isArsProgram ? "ESCOLARES ARS" : "ESCOLARES INTEGRAL"
     });
   }
 
