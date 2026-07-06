@@ -8576,26 +8576,65 @@ function mcSyllabusSplitTopics(value){
 }
 
 function mcSyllabusLooksLikeWeekCode(value){
-  const s = mcSyllabusHeaderKey(value);
-  return /^(SEN|SEA|SE|SER|SN|SA|SR|S)\s*\d+$/i.test(s);
+  const s = mcSyllabusHeaderKey(value).replace(/\s+/g, "");
+  return /^(SEN|SEA|SE|SER|SN|SA|SR|S)\d+$/i.test(s);
 }
 
 function mcSyllabusLooksLikeDate(value){
   const s = String(value||"").trim();
   if (!s) return false;
-  return /\d{1,2}\s*[-\/]\s*(ene|feb|mar|abr|may|jun|jul|ago|sep|oct|nov|dic|\d{1,2})/i.test(s) || /\d{1,2}\s+de\s+[a-záéíóúñ]+/i.test(s);
+  return /\d{1,2}\s*[-\/]\s*(ene|feb|mar|abr|may|jun|jul|ago|sep|oct|nov|dic|enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre|\d{1,2})/i.test(s) || /\d{1,2}\s+de\s+[a-záéíóúñ]+/i.test(s);
 }
 
-function mcGuessSyllabusLayout(rows, courseName=""){
-  const scanMax = Math.min(rows.length, 120);
+function mcSyllabusCleanWeekCode(value){
+  return mcSyllabusHeaderKey(value).replace(/\s+/g, "");
+}
+
+function mcSyllabusFindNotesIdx(rows, dataStart, fallbackIdx){
+  let notesIdx = -1;
+  const scanUntil = Math.min(Math.max(0, dataStart), rows.length - 1);
+  for (let r=0; r<=scanUntil; r++){
+    const keys = (rows[r]||[]).map(mcSyllabusHeaderKey);
+    const idx = keys.findIndex(x=>x.includes("OBSERV") || x === "NOTAS" || x === "NOTA" || x.includes("FERIADO"));
+    if (idx >= 0) notesIdx = idx;
+  }
+  if (notesIdx >= 0) return notesIdx;
+  if (Number.isFinite(fallbackIdx) && fallbackIdx >= 0) return fallbackIdx;
+  return -1;
+}
+
+function mcSyllabusFindCourseTopicIdxs(rows, courseName, dataStart, codeIdx, dateIdx, blockIdx, notesIdx){
+  const out = [];
+  const scanUntil = Math.min(Math.max(0, dataStart), rows.length - 1);
+
+  // 1) Preferir una columna cuyo encabezado sea exactamente el curso del desplegable.
+  for (let r=0; r<=scanUntil; r++){
+    const keys = (rows[r]||[]).map(mcSyllabusHeaderKey);
+    for (let i=0; i<keys.length; i++){
+      if ([codeIdx,dateIdx,blockIdx,notesIdx].includes(i)) continue;
+      if (mcSyllabusIsNonTopicColumnHeader(keys[i])) continue;
+      if (mcSyllabusHeaderMatchesCourse(keys[i], courseName)) out.push(i);
+    }
+    if (out.length) return Array.from(new Set(out));
+  }
+
+  // 2) Formato fijo del sílabo integral: D = bloques, E = curso, F = simulacros, G = observaciones.
+  if (blockIdx >= 0){
+    const candidate = blockIdx + 1;
+    if (candidate !== notesIdx) return [candidate];
+  }
+  return [];
+}
+
+function mcParseSyllabusByWeekRows(rows, courseName=""){
+  rows = (rows||[]).map(r => (r||[]).map(v=>String(v ?? "")));
   let dataStart = -1;
   let codeIdx = -1, dateIdx = -1, blockIdx = -1;
 
-  // Formato típico Escolares Integral:
-  // A ETAPAS | B CÓDIGO DE SEMANA | C FECHA | D BLOQUES POR SEMANA | E CURSO | F SIMULACROS | G OBSERVACIONES
-  for (let r=0; r<scanMax; r++){
+  // Detectar la primera fila real del temario buscando códigos como SEN1, SEN2, SEA1, SE01, SN1, etc.
+  for (let r=0; r<rows.length; r++){
     const cells = rows[r] || [];
-    for (let c=0; c<Math.min(cells.length, 8); c++){
+    for (let c=0; c<Math.min(cells.length, 10); c++){
       if (!mcSyllabusLooksLikeWeekCode(cells[c])) continue;
       const maybeDate = c+1 < cells.length ? cells[c+1] : "";
       const maybeBlock = c+2 < cells.length ? mcSyllabusHeaderKey(cells[c+2]) : "";
@@ -8609,63 +8648,65 @@ function mcGuessSyllabusLayout(rows, courseName=""){
     }
     if (dataStart >= 0) break;
   }
+  if (dataStart < 0) return [];
 
-  if (dataStart < 0) return null;
+  const notesIdx = mcSyllabusFindNotesIdx(rows, dataStart, codeIdx + 5);
+  const topicIdxs = mcSyllabusFindCourseTopicIdxs(rows, courseName, dataStart, codeIdx, dateIdx, blockIdx, notesIdx)
+    .filter(i=>Number.isFinite(i) && i >= 0 && i !== notesIdx);
 
-  let notesIdx = -1;
-  for (let r=0; r<=Math.min(dataStart, rows.length-1); r++){
-    const keys = (rows[r]||[]).map(mcSyllabusHeaderKey);
-    const idx = keys.findIndex(x=>x.includes("OBSERV") || x === "NOTAS" || x === "NOTA" || x.includes("FERIADO"));
-    if (idx >= 0) notesIdx = idx;
-  }
-  if (notesIdx < 0){
-    // En todos los sílabos integrales mostrados, OBSERVACIONES está en la columna G.
-    notesIdx = Math.max(6, (rows[dataStart]||[]).length - 1);
-  }
+  const weeks = [];
+  let current = null;
+  for (let r=dataStart; r<rows.length; r++){
+    const cells = rows[r] || [];
+    const rawCode = String(cells[codeIdx] || "").trim();
+    const code = mcSyllabusLooksLikeWeekCode(rawCode) ? mcSyllabusCleanWeekCode(rawCode) : "";
+    const dateRaw = dateIdx >= 0 ? String(cells[dateIdx] || "").trim() : "";
+    const block = blockIdx >= 0 ? String(cells[blockIdx] || "").trim().toUpperCase() : "";
 
-  let topicIdxs = [];
-  // Primero intenta ubicar una columna cuyo encabezado sea el curso seleccionado.
-  for (let r=0; r<=Math.min(dataStart, rows.length-1); r++){
-    const keys = (rows[r]||[]).map(mcSyllabusHeaderKey);
-    const found = keys
-      .map((x,i)=>({x,i}))
-      .filter(o => o.i !== codeIdx && o.i !== dateIdx && o.i !== blockIdx && o.i !== notesIdx)
-      .filter(o => !mcSyllabusIsNonTopicColumnHeader(o.x) && mcSyllabusHeaderMatchesCourse(o.x, courseName))
-      .map(o=>o.i);
-    if (found.length){ topicIdxs = found; break; }
-  }
-
-  // Si el encabezado del curso no fue reconocido o la columna de temas está vacía,
-  // usar la columna inmediatamente posterior a BLOQUES POR SEMANA y anterior a SIMULACROS/OBSERVACIONES.
-  if (!topicIdxs.length && blockIdx >= 0){
-    const stop = notesIdx >= 0 ? notesIdx : (rows[dataStart]||[]).length;
-    for (let i=blockIdx+1; i<stop; i++){
-      let isAdmin = false;
-      for (let r=0; r<=Math.min(dataStart, rows.length-1); r++){
-        const key = mcSyllabusHeaderKey((rows[r]||[])[i]);
-        if (mcSyllabusIsNonTopicColumnHeader(key)) isAdmin = true;
-      }
-      if (!isAdmin) topicIdxs.push(i);
+    if (code || (dateRaw && mcSyllabusLooksLikeDate(dateRaw))){
+      current = { code, displayCode: code || rawCode, colBLabel: rawCode || code, dateRaw, topics:[], notes:[] };
+      weeks.push(current);
     }
+    if (!current) continue;
+
+    for (const idx of topicIdxs){
+      if (idx === notesIdx) continue;
+      const rawTopic = String(cells[idx] || "").trim();
+      if (!rawTopic) continue;
+      for (const topic of mcSyllabusSplitTopics(rawTopic)){
+        if (!current.topics.includes(topic) && current.topics.length < 3) current.topics.push(topic);
+      }
+    }
+
+    const notes = notesIdx >= 0 ? String(cells[notesIdx] || "").replace(/\s+/g," ").trim() : "";
+    if (notes && !current.notes.includes(notes)) current.notes.push(notes);
+
+    // No cortar semanas largas por filas vacías o bloques B/C. Los sílabos de Física,
+    // Química y Biología pueden tener tramos extensos hasta noviembre.
+    void block;
   }
 
-  // Si aun así no hay columna de tema, conservar solo observaciones: el modal mostrará “-”.
-  return {
-    headerRow: dataStart - 1,
-    codeIdx,
-    dateIdx,
-    blockIdx,
-    notesIdx,
-    topicIdxs: topicIdxs.filter(i=>Number.isFinite(i) && i >= 0),
-    displayIdx: codeIdx
-  };
+  return weeks.filter(w=>w.code || w.dateRaw || w.topics.length || w.notes.length);
+}
+
+function mcGuessSyllabusLayout(rows, courseName=""){
+  const weeks = mcParseSyllabusByWeekRows(rows, courseName);
+  if (!weeks.length) return null;
+  return { weeks };
 }
 
 function mcParseSyllabusRows(rows, courseName=""){
   rows = (rows||[]).map(r => (r||[]).map(v=>String(v ?? "")));
+
+  // Ruta prioritaria y más robusta: leer por filas reales de semana.
+  // Esto permite que Física, Química y Biología carguen igual que los demás cursos,
+  // aunque la columna de temas esté vacía y solo existan observaciones/feriados.
+  const directWeeks = mcParseSyllabusByWeekRows(rows, courseName);
+  if (directWeeks.length) return directWeeks;
+
   let headerRow = -1;
   let codeIdx = -1, dateIdx = -1, blockIdx = -1, notesIdx = -1;
-  let displayIdx = 1; // Columna B: etiqueta visible para mensajes de reprogramación.
+  let displayIdx = 1;
   let topicIdxs = [];
 
   for (let r=0; r<Math.min(rows.length, 80); r++){
@@ -8706,19 +8747,6 @@ function mcParseSyllabusRows(rows, courseName=""){
     }
   }
 
-  if (headerRow < 0){
-    const guessed = mcGuessSyllabusLayout(rows, courseName);
-    if (guessed){
-      headerRow = guessed.headerRow;
-      codeIdx = guessed.codeIdx;
-      dateIdx = guessed.dateIdx;
-      blockIdx = guessed.blockIdx;
-      notesIdx = guessed.notesIdx;
-      topicIdxs = guessed.topicIdxs || [];
-      displayIdx = guessed.displayIdx;
-    }
-  }
-
   if (headerRow < 0) throw new Error("No se encontraron columnas reconocibles de semana/bloque/tema.");
   if (!topicIdxs.length && notesIdx < 0) throw new Error("No se encontraron columnas de temas ni observaciones.");
 
@@ -8729,13 +8757,12 @@ function mcParseSyllabusRows(rows, courseName=""){
     const firstNonEmpty = cells.find(v=>String(v||"").trim()) || "";
     const code = codeIdx >= 0 ? String(cells[codeIdx]||"").trim() : (/^\s*(SEM\w*\s*\d+|SE\s*\d+)/i.test(firstNonEmpty) ? String(firstNonEmpty).trim() : "");
     const dateRaw = dateIdx >= 0 ? String(cells[dateIdx]||"").trim() : "";
-    const block = blockIdx >= 0 ? String(cells[blockIdx]||"").trim().toUpperCase() : "";
     const notes = notesIdx >= 0 ? String(cells[notesIdx]||"").replace(/\s+/g," ").trim() : "";
     const colBLabel = String(cells[1]||"").replace(/\s+/g," ").trim();
     const displayCode = String(cells[displayIdx]||"").replace(/\s+/g," ").trim();
 
     if (code || dateRaw){
-      current = { code, displayCode: displayCode || code, colBLabel, dateRaw, topics:[], notes:[] };
+      current = { code: mcSyllabusCleanWeekCode(code), displayCode: displayCode || code, colBLabel, dateRaw, topics:[], notes:[] };
       weeks.push(current);
     }
     if (!current) continue;
@@ -8747,7 +8774,6 @@ function mcParseSyllabusRows(rows, courseName=""){
       }
     }
     if (notes && !current.notes.includes(notes)) current.notes.push(notes);
-    if (block && !["A","B","C","1","2","3"].includes(block) && !code && !dateRaw && !topicIdxs.some(i=>String(cells[i]||"").trim()) && !notes) current = null;
   }
   return weeks.filter(w=>w.code || w.dateRaw || w.topics.length || w.notes.length);
 }
