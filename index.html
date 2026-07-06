@@ -551,7 +551,25 @@
       align-items:flex-start;
       justify-content:space-between;
       gap:12px;
+      flex-wrap:wrap;
     }
+    .schHead .hActions{
+      display:flex;
+      gap:8px;
+      align-items:center;
+      justify-content:flex-end;
+      flex-wrap:wrap;
+      flex:0 0 auto;
+      max-width:100%;
+    }
+    .schEditTools{
+      display:flex;
+      gap:8px;
+      align-items:center;
+      flex-wrap:wrap;
+      padding:0 14px 10px;
+    }
+    body.exportMode .schEditTools{ display:none !important; }
     .schHead .hLeft{
       display:flex;
       flex-direction:column;
@@ -10460,7 +10478,7 @@ function renderReportes(){
             <p class="sal">${escapeHtml(s.salon)}</p>
           </div>
 
-          <div class="hActions" style="display:flex; gap:10px; align-items:center;">
+          <div class="hActions">
             <div class="schUniPill">
               <span class="b" style="background:${dot};"></span>
               ${escapeHtml(s.uni)}
@@ -10470,6 +10488,8 @@ function renderReportes(){
             <button class="schDl" data-sid="${escapeHtml(s.id)}">DESCARGAR PNG</button>${(CURRENT_ROLE==="admin" && HORARIOS_EDIT_MODE) ? `<button class="schEdit" data-sid="${escapeHtml(s.id)}">EDITAR</button>` : ``}
           </div>
         </div>
+
+        ${(CURRENT_ROLE==="admin" && HORARIOS_EDIT_MODE) ? `<div class="schEditTools">${scheduleColorToolsHtml(s, colors)}${scheduleRangeToolsHtml(s)}</div>` : ``}
 
         <div class="schTableWrap">
           <table class="schTable">
@@ -11403,8 +11423,9 @@ el.dataset.ready = "1";
     // La tarjeta fija de la matriz para ESCOLARES ARS en SAN MIGUEL usa el key ESCOLARES_SM.
     // Al guardar desde el editor puede quedar como SCH_ESCOLARES_SM / ESCOLARES SM; sin esta
     // regla el horario se reclasifica como ESCOLARES INTEGRALES y desaparece de la columna ARS.
-    if (id === "SCH_ESCOLARES_SM" || colKey === "ESCOLARES_SM" || cardKey.includes("ESCOLARES_SM")) return true;
-    if (uni === "ESCOLARES" && local === "SAN MIGUEL" && salon === "ESCOLARES SM") return true;
+    if (/^SCH_ESCOLARES_(LM|SM|SB|VIRT)$/.test(id)) return true;
+    if (/^ESCOLARES_(LM|SM|SB|VIRT)$/.test(colKey) || /ESCOLARES_(LM|SM|SB|VIRT)/.test(cardKey)) return true;
+    if (uni === "ESCOLARES" && ["LA MOLINA","SAN MIGUEL","SAN BORJA","VIRTUAL"].includes(local) && /^ESCOLARES (LM|SM|SB|VIRT)$/.test(salon)) return true;
 
     return false;
   }
@@ -11481,7 +11502,7 @@ el.dataset.ready = "1";
     if (t === "ESCOLARES"){
       const c = String(colKey||"").toUpperCase();
       if (c.startsWith("ESCOLARES_INTEGRALES_")) return "ESCOLARES";
-      if (local === "SAN MIGUEL") return "ESCOLARES ARS";
+      if (c.startsWith("ESCOLARES_")) return "ESCOLARES ARS";
       return "ESCOLARES";
     }
     return fallback || `${t} ${lc}`;
@@ -11637,11 +11658,6 @@ el.dataset.ready = "1";
     const rows = LOCS.map(loc=>{
       const cells = COLS.map(c=>{
         const key = expandColKeyForLocal(loc, c.key);
-
-        // ESCOLARES ARS solo corresponde a SAN MIGUEL. En otros locales no se genera tarjeta ni placeholder.
-        if (c.key === "ESCOLARES" && loc !== "SAN MIGUEL"){
-          return `<div class="mxCell"><div class="mxEmpty">NO APLICA</div></div>`;
-        }
 
         const list = sortSchedules((by.get(key) || []).slice());
         const inner = list.length
