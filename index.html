@@ -7,7 +7,7 @@
   <meta http-equiv="Pragma" content="no-cache"/>
   <meta http-equiv="Expires" content="0"/>
   <title>LA META | DASHBOARD</title>
-  <!-- revisión: materiales ARS v2026-06-14f · corrección ARS: feriados solo en día real del curso -->
+  <!-- revisión: materiales ARS/Integral v2026-07-06b · avisos de feriado visibles sin reprogramar si no coinciden con el día real -->
 
   <!-- Charts -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
@@ -8737,21 +8737,17 @@ function mcHolidaysFromSyllabusNotes(weeks, year){
 
 function mcSyllabusNotesForWeek(notes, holidayHits, year, holidays, classDates){
   const hitKeys = new Set((holidayHits||[]).map(h=>mcDateKey(h.date)).filter(Boolean));
-  const classKeys = new Set((classDates||[]).map(mcDateKey).filter(Boolean));
-  const holidayMap = holidays instanceof Map ? holidays : new Map();
 
   return (notes||[]).filter(note=>{
     const keys = mcDateKeysFromText(note, year);
     if (!keys.length) return true;
 
-    // Si el feriado sí coincidió con el día real del curso, se muestra como FERIADO,
-    // no como aviso duplicado.
+    // Si el feriado coincide con el día real de clase, se muestra como FERIADO
+    // mediante holidayHits para evitar duplicarlo como AVISO.
     if (keys.some(k=>hitKeys.has(k))) return false;
 
-    // Si la observación solo corresponde a un feriado que NO cae en el día de clase
-    // del curso seleccionado, se ignora. Ej.: feriado domingo o lunes para un curso martes.
-    if (keys.some(k=>holidayMap.has(k)) && !keys.some(k=>classKeys.has(k))) return false;
-
+    // Si el feriado está en el sílabo pero no afecta al día real del curso,
+    // igual se muestra como AVISO para orientar al usuario. No reprograma.
     return true;
   });
 }
@@ -9124,20 +9120,28 @@ function mcOpenSyllabusModal(idx){
     subParts.push(sourceLabel ? `CONTENIDO REPROGRAMADO: ${sourceLabel}` : "CONTENIDO REPROGRAMADO");
   }
   if (sub) sub.textContent = subParts.join(" · ") || "Contenido semanal";
-  const topicsHtml = (item.topics||[]).map((topic,i)=>`
-    <div class="mcTopic"><span class="mcTopicNum">${i+1}</span><span>${escapeHtml(topic)}</span></div>
-  `).join("");
-  const isHolidayWithoutTopics = !(item.topics||[]).length && (item.holidayHits||[]).length;
-  const emptyHtml = isHolidayWithoutTopics
-    ? '<div class="mcSyllabusModalEmpty"><b>Semana no lectiva por feriado.</b><br/>No se programan temas para esta fecha. El contenido se traslada a la siguiente clase efectiva.</div>'
-    : '<div class="mcSyllabusModalEmpty">No hay temas cargados para esta semana.</div>';
-  const shiftHtml = (isShiftedContent && (item.topics||[]).length)
+
+  const topics = (item.topics||[]).slice(0,3);
+  const notes = (item.notes||[]).slice();
+  const holidays = (item.holidayHits||[]).slice();
+  const hasAvisos = notes.length || holidays.length;
+
+  const topicsHtml = topics.length
+    ? topics.map((topic,i)=>`
+        <div class="mcTopic"><span class="mcTopicNum">${i+1}</span><span>${escapeHtml(topic)}</span></div>
+      `).join("")
+    : (hasAvisos
+        ? '<div class="mcTopic"><span class="mcTopicNum">—</span><span>-</span></div>'
+        : '');
+
+  const emptyHtml = '<div class="mcSyllabusModalEmpty">No hay temas cargados para esta semana.</div>';
+  const shiftHtml = (isShiftedContent && topics.length)
     ? `<div class="mcHolidayNote"><span>REPROGRAMADO</span><span>${sourceLabel ? `Contenido trasladado desde ${escapeHtml(sourceLabel)}.` : "Contenido reprogramado."}</span></div>`
     : "";
   const notesHtml = [
     shiftHtml,
-    ...((item.notes||[]).map(n=>`<div class="mcHolidayNote"><span>AVISO</span><span>${escapeHtml(n)}</span></div>`)),
-    ...((item.holidayHits||[]).map(h=>`<div class="mcHolidayNote"><span>FERIADO</span><span>${escapeHtml(mcFmtDM(h.date))} · ${escapeHtml(h.name)}</span></div>`))
+    ...notes.map(n=>`<div class="mcHolidayNote"><span>AVISO</span><span>${escapeHtml(n)}</span></div>`),
+    ...holidays.map(h=>`<div class="mcHolidayNote"><span>FERIADO</span><span>${escapeHtml(mcFmtDM(h.date))} · ${escapeHtml(h.name)}</span></div>`)
   ].join("");
   body.innerHTML = `${topicsHtml || emptyHtml}${notesHtml}`;
   overlay.classList.add("on");
