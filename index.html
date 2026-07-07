@@ -2784,6 +2784,203 @@
     .mcTable{ min-width:980px !important; }
   }
 
+
+
+    /* ======================================================================
+      V20 · ACABADO VISUAL PREMIUM LA META
+      Solo capa estética: no cambia datos, permisos, horarios, sílabos ni flujos.
+    ====================================================================== */
+    :root{
+      --bg:#f7f8fc;
+      --card:rgba(255,255,255,.96);
+      --text:#071226;
+      --muted:#667085;
+      --border:rgba(15,23,42,.105);
+      --accent:#e31b23;
+      --accent2:#8f0d12;
+      --soft:#fff1f2;
+      --shadow:0 18px 48px rgba(15,23,42,.105);
+      --shadow2:0 10px 26px rgba(143,13,18,.09);
+      --radius:20px;
+    }
+
+    body{
+      background:
+        radial-gradient(circle at 12% -8%, rgba(227,27,35,.105) 0, transparent 34%),
+        radial-gradient(circle at 96% 0%, rgba(143,13,18,.075) 0, transparent 30%),
+        linear-gradient(180deg,#ffffff 0%,#f8fafc 42%,#f3f5f9 100%);
+      -webkit-font-smoothing:antialiased;
+      text-rendering:geometricPrecision;
+    }
+    .topbar{
+      background:linear-gradient(90deg,#62070b 0%,#b20f16 42%,#f04438 100%);
+      box-shadow:0 6px 24px rgba(143,13,18,.24);
+    }
+    .sidebar{
+      background:
+        linear-gradient(180deg,rgba(255,255,255,.97),rgba(255,255,255,.90)),
+        radial-gradient(circle at 0% 0%, rgba(227,27,35,.085), transparent 48%);
+      backdrop-filter: blur(10px);
+      box-shadow:8px 0 28px rgba(15,23,42,.045);
+    }
+    .brand{
+      background:
+        linear-gradient(135deg,rgba(255,255,255,.98),rgba(255,247,247,.92));
+      border-color:rgba(227,27,35,.14);
+      box-shadow:0 18px 40px rgba(15,23,42,.08), inset 0 1px 0 rgba(255,255,255,.9);
+    }
+    .brand img{
+      box-shadow:0 12px 28px rgba(143,13,18,.13);
+      border-color:rgba(227,27,35,.18);
+    }
+    .brand h1,
+    .title h2{
+      color:#061123;
+      letter-spacing:.28px;
+    }
+    .nav button{
+      background:linear-gradient(180deg,#ffffff 0%,#fbfcfe 100%);
+      box-shadow:0 8px 22px rgba(15,23,42,.045);
+      transition:transform .12s ease, box-shadow .12s ease, border-color .12s ease, background .12s ease;
+    }
+    .nav button:hover{
+      transform:translateY(-1px);
+      box-shadow:0 14px 30px rgba(15,23,42,.075);
+      border-color:rgba(227,27,35,.22);
+    }
+    .nav button.active{
+      background:linear-gradient(135deg,rgba(255,241,242,.98),rgba(255,255,255,.92));
+      border-color:rgba(227,27,35,.34);
+      box-shadow:0 0 0 4px rgba(227,27,35,.075), 0 14px 30px rgba(143,13,18,.08);
+    }
+    .card,
+    .schCard,
+    .iItem,
+    .syItem,
+    .mcTableWrap,
+    .mcSyllabusModal{
+      border-color:rgba(15,23,42,.095) !important;
+      box-shadow:var(--shadow);
+    }
+    .card{
+      background:linear-gradient(180deg,rgba(255,255,255,.98) 0%,rgba(252,253,255,.96) 100%);
+    }
+    .cardtitle{
+      color:#667085;
+      letter-spacing:.35px;
+    }
+    select,
+    input,
+    button,
+    .btn,
+    .syOpen,
+    .mcSyllabusBtn,
+    .mcSyllabusState,
+    .syKpiPill,
+    .pill{
+      box-shadow:0 6px 16px rgba(15,23,42,.035);
+    }
+    select:focus,
+    input:focus{
+      border-color:rgba(227,27,35,.42);
+      box-shadow:0 0 0 4px rgba(227,27,35,.095), 0 8px 18px rgba(15,23,42,.05);
+    }
+    button,
+    .btn{
+      background:linear-gradient(180deg,#fff7f7 0%,#fff 100%);
+      border-color:rgba(227,27,35,.24);
+      transition:transform .12s ease, box-shadow .12s ease, background .12s ease, border-color .12s ease;
+    }
+    button:hover,
+    .btn:hover{
+      transform:translateY(-1px);
+      box-shadow:0 12px 24px rgba(143,13,18,.10);
+      background:linear-gradient(180deg,#fff0f1 0%,#ffffff 100%);
+    }
+    .semBadge{
+      box-shadow:inset 0 1px 0 rgba(255,255,255,.75), 0 7px 16px rgba(15,23,42,.045);
+    }
+    .schCard{
+      background:linear-gradient(180deg,rgba(255,255,255,.98),rgba(250,252,255,.96));
+      overflow:hidden;
+    }
+    .schCard .schHead,
+    .schTop,
+    .syLocalHead,
+    .alSectionHead{
+      background:linear-gradient(90deg,rgba(255,255,255,.96),rgba(248,250,252,.78));
+      border-radius:18px;
+    }
+    .schTable{
+      filter:drop-shadow(0 8px 14px rgba(15,23,42,.045));
+    }
+    .schTable thead th,
+    .mcTable thead th{
+      text-shadow:0 1px 0 rgba(255,255,255,.18);
+      letter-spacing:.18px;
+    }
+    .mcTableWrap{
+      background:linear-gradient(180deg,#ffffff,#fbfcff);
+      border-radius:18px;
+    }
+    .mcTable tbody tr{
+      transition:background .12s ease;
+    }
+    .mcTable tbody tr:hover td{
+      background:rgba(227,27,35,.025);
+    }
+    .mcTable tbody tr.mcCurrentWeekRow td{
+      background:linear-gradient(90deg,rgba(34,197,94,.12),rgba(255,255,255,.92)) !important;
+    }
+    .mcTableWrap input[type="checkbox"]{
+      filter:drop-shadow(0 4px 8px rgba(22,163,74,.14));
+    }
+    .mcSyllabusBtn{
+      background:linear-gradient(180deg,#eaf4ff,#f7fbff);
+      border-color:rgba(31,78,121,.20);
+      color:#0b2a4a;
+    }
+    .mcSyllabusPending{
+      background:linear-gradient(180deg,#fff7ed,#fffaf3);
+      border-color:rgba(245,158,11,.26);
+    }
+    .syItem{
+      background:
+        linear-gradient(180deg,rgba(255,255,255,.99) 0%,rgba(249,251,255,.97) 100%);
+      box-shadow:0 12px 30px rgba(15,23,42,.065);
+    }
+    .syItem:hover{
+      transform:translateY(-2px);
+      box-shadow:0 20px 44px rgba(15,23,42,.11);
+    }
+    .syOpen{
+      background:linear-gradient(180deg,#ffffff,#f8fafc);
+      border-color:rgba(15,23,42,.10);
+    }
+    .iItem{
+      background:linear-gradient(135deg,rgba(255,255,255,.98),rgba(250,252,255,.94));
+      transition:transform .12s ease, box-shadow .12s ease;
+    }
+    .iItem:not(.disabled):hover{
+      transform:translateY(-2px);
+      box-shadow:0 18px 40px rgba(15,23,42,.10);
+    }
+    .kpi .value{
+      background:linear-gradient(90deg,var(--accent2),var(--accent));
+      -webkit-background-clip:text;
+      background-clip:text;
+      color:transparent;
+    }
+    .mcSyllabusOverlay{
+      backdrop-filter: blur(4px);
+    }
+    .mcSyllabusModal{
+      background:linear-gradient(180deg,#ffffff,#fbfcff);
+    }
+    .mcTopic{
+      box-shadow:inset 0 1px 0 rgba(255,255,255,.75), 0 6px 16px rgba(31,78,121,.055);
+    }
+
 </style>
 </head>
 
@@ -6859,6 +7056,7 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
     "AGRARIA": [
       { name:"RAZ. MATEMÁTICO", url:"https://docs.google.com/spreadsheets/d/18p6FOxX2w4DxgG1eVXdAUt9q-56EIfTyYDbEC4J0G9Y/edit?gid=11988891#gid=11988891" },
       { name:"RAZ. VERBAL", url:"https://docs.google.com/spreadsheets/d/1hSp4h3q_p0lWWYIBD_Zlr08e_JSM57SDi3Ih6Kl790Q/edit" },
+      { name:"TEXTOS", url:"" },
       { name:"ARITMÉTICA", url:"https://docs.google.com/spreadsheets/d/1QsTH-iYZe7fTl_5KpDVbsvYUrfx_k1EI2NZyhS-jrMc/edit?usp=drive_link" },
       { name:"ÁLGEBRA", url:"https://docs.google.com/spreadsheets/d/1OvggaurE7NZ0bWwom7zdyFWZNz8d4RC6Rb89fVRBkpw/edit?usp=drive_link" },
       { name:"GEOMETRÍA", url:"https://docs.google.com/spreadsheets/d/1jAhW0n4DCqK44Kfir4pG5O7XQOuR0UyxoSOjcSdL-I8/edit?usp=drive_link" },
