@@ -2981,6 +2981,37 @@
       box-shadow:inset 0 1px 0 rgba(255,255,255,.75), 0 6px 16px rgba(31,78,121,.055);
     }
 
+
+
+  /* Semana actual: resaltado institucional limpio, sin franja verde pesada */
+  .mcTable tbody tr.mcCurrentWeekRow td{
+    background:linear-gradient(180deg,#fffdfd 0%, #fff6f6 100%) !important;
+    border-top:1px solid rgba(177,24,30,.16) !important;
+    border-bottom:1px solid rgba(177,24,30,.14) !important;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.82);
+  }
+  .mcTable tbody tr.mcCurrentWeekRow td:first-child{
+    position:relative;
+    box-shadow:
+      inset 4px 0 0 rgba(177,24,30,.92),
+      inset 0 1px 0 rgba(255,255,255,.82);
+  }
+  .mcTable tbody tr.mcCurrentWeekRow td:first-child::after{
+    content:"";
+    position:absolute;
+    left:8px;
+    top:50%;
+    width:6px;
+    height:6px;
+    border-radius:999px;
+    transform:translateY(-50%);
+    background:linear-gradient(135deg,#b1181e,#d9a428);
+    box-shadow:0 0 0 3px rgba(177,24,30,.10);
+  }
+  .mcTable tbody tr.mcCurrentWeekRow:hover td{
+    background:linear-gradient(180deg,#fffafa 0%, #fff1f1 100%) !important;
+  }
+
 </style>
 </head>
 
