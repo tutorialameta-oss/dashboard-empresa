@@ -6966,23 +6966,15 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
 
   function syRenderItem(uni, it, idx){
     const st = mcLoadStore();
-    const dot = uniDot(uni);
     const url = syRepoGetLink(st, uni, it.name, true);
-    const manualUrl = syRepoGetManual(st, uni, it.name);
     const hasUrl = !!url;
     const canEdit = syCanEditLinks();
-    const status = manualUrl ? "ENLACE MANUAL" : (hasUrl ? "ENLACE BASE" : "SIN ENLACE");
     const safeUni = escapeHtml(uni);
     const safeCourse = escapeHtml(it.name);
     return `
       <div class="syItem" style="align-items:flex-start; flex-wrap:wrap;">
         <div class="syLeft" style="flex:1 1 260px; min-width:240px;">
           <div class="syCourse">${safeCourse}</div>
-          <div class="syMeta">
-            <span class="dot" style="background:${dot};"></span>
-            <span>${safeUni}</span>
-            <span>${escapeHtml(status)}</span>
-          </div>
         </div>
         <div class="syBtns" style="flex:0 0 auto;">
           <a class="syOpen${hasUrl ? "" : " disabled"}" href="${escapeHtml(hasUrl ? url : "#")}" target="_blank" rel="noopener noreferrer" style="${hasUrl ? "" : "pointer-events:none; opacity:.55;"}">ABRIR EXCEL</a>
