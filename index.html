@@ -9150,6 +9150,57 @@ function mcMaterialLocalKey(value){
   return mcNormLabel(value).replace(/_/g, " ").replace(/\s+/g, " ").trim();
 }
 
+function mcScheduleMaterialRawKey(s){
+  return mcNormLabel([
+    s?.id,
+    s?.salon,
+    s?.uni,
+    s?.__colKey,
+    s?.__cardKey,
+    s?.cycle,
+    s?.dataCycle
+  ].join(" "))
+    .replace(/_/g," ")
+    .replace(/\s+/g," ")
+    .trim();
+}
+
+function mcIsMaterialArsSchedule(s, loc){
+  const raw = mcScheduleMaterialRawKey(s);
+  const sLoc = mcMaterialLocalKey(s?.local);
+  if (sLoc !== loc) return false;
+
+  // ARS/POP se reconoce solo por marcas explícitas del ciclo.
+  if (raw.includes("ARS") || raw.includes("POP")) return true;
+
+  // En Materiales ARS solo aplica a San Miguel. Esta regla mantiene compatible
+  // la tarjeta histórica SCH_ESCOLARES_SM / ESCOLARES_SM, sin mezclar LM/SB.
+  if (loc === "SAN MIGUEL"){
+    if (raw.includes("SCH ESCOLARES SM")) return true;
+    if (raw.includes("ESCOLARES SM")) return true;
+  }
+  return false;
+}
+
+function mcIsMaterialIntegralSchedule(s, loc){
+  const raw = mcScheduleMaterialRawKey(s);
+  const sLoc = mcMaterialLocalKey(s?.local);
+  if (sLoc !== loc) return false;
+  if (!["LA MOLINA","SAN MIGUEL","SAN BORJA"].includes(loc)) return false;
+
+  // Integral debe reconocerse por una marca explícita de ESCOLARES INTEGRALES.
+  // No basta con que el salón diga "ESCOLAR", porque eso puede pertenecer a
+  // AGRARIA ESCOLAR, U.LIMA ESCOLAR u otros ciclos.
+  if (raw.includes("ESCOLARES INTEGRALES")) return true;
+  if (raw.includes("ESCOLAR INTEGRAL")) return true;
+  if (raw.includes("INTEGRAL") && raw.includes("ESCOLAR")) return true;
+
+  const explicitKey = String([s?.id,s?.__colKey,s?.__cardKey].join(" ")).toUpperCase();
+  if (explicitKey.includes("ESCOLARES_INTEGRALES")) return true;
+
+  return false;
+}
+
 function mcScheduleDaysForEscolaresMateriales(local, course, programType){
   let loc = mcMaterialLocalKey(local);
   const type = mcNormLabel(programType || "");
@@ -9166,17 +9217,8 @@ function mcScheduleDaysForEscolaresMateriales(local, course, programType){
   const schedules = (SCHEDULES||[]).filter(s=>{
     const sLoc = mcMaterialLocalKey(s?.local);
     if (sLoc !== loc) return false;
-    const raw = mcNormLabel([s?.id,s?.salon,s?.uni,s?.__colKey,s?.__cardKey].join(" "));
-    const sUni = mcNormLabel(s?.uni);
-    const sSalon = mcNormLabel(s?.salon);
-    const isEscolares = sUni === "ESCOLARES" || sSalon.includes("ESCOLAR") || raw.includes("ESCOLARES") || /(^|\s)ESC(\s|$)/.test(sSalon);
-    if (!isEscolares) return false;
-
-    const isArs = raw.includes("ARS") || raw.includes("POP") || (sLoc === "SAN MIGUEL" && (raw.includes("SCH_ESCOLARES_SM") || raw.includes("ESCOLARES_SM") || raw.includes("ESCOLARES SM")));
-    const isIntegral = !isArs && (raw.includes("ESCOLARES_INTEGRALES") || raw.includes("ESCOLARES INTEGRALES") || sSalon.includes("ESCOLAR") || sSalon === "ESCOLARES" || raw.includes("ESCOLARES"));
-
-    if (wantArs) return isArs;
-    if (wantIntegral) return isIntegral;
+    if (wantArs) return mcIsMaterialArsSchedule(s, loc);
+    if (wantIntegral) return mcIsMaterialIntegralSchedule(s, loc);
     return false;
   });
 
@@ -9190,7 +9232,6 @@ function mcScheduleDaysForEscolaresMateriales(local, course, programType){
   }
   return Array.from(new Set(days)).sort((a,b)=>a-b);
 }
-
 function mcScheduleDaysForArs(local, course){
   return mcScheduleDaysForEscolaresMateriales(local, course, "ESCOLARES ARS");
 }
