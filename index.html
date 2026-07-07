@@ -8716,8 +8716,20 @@ function mcSyllabusSplitTopics(value){
 function mcSyllabusExtractWeekCode(value){
   const s = mcSyllabusHeaderKey(value).replace(/\s+/g, "");
   if (!s) return "";
-  const m = s.match(/^(SEN|SEA|SER|SE|SN|SA|SR|S)\d+/i);
-  return m ? m[0].toUpperCase() : "";
+
+  // Códigos normales: SEN1, SEN2, SEA1, SE01, SE16, SR01, etc.
+  // Se exige que el código completo termine en número para evitar falsos positivos
+  // con textos como SEPARATAS, SEMINARIO o SIMULACROS.
+  const m = s.match(/^(SEN|SEA|SER|SE|SN|SA|SR|S)(\d+)$/i);
+  if (m) return (m[1] + m[2]).toUpperCase();
+
+  // Algunos sílabos escriben la semana de repaso final como SER o SR, mientras
+  // el programa la maneja como SER1/SR1. Se normaliza para que esa última semana
+  // no quede pegada a la semana anterior.
+  if (s === "SER") return "SER1";
+  if (s === "SR") return "SR1";
+
+  return "";
 }
 
 function mcSyllabusLooksLikeWeekCode(value){
