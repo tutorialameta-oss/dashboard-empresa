@@ -2983,18 +2983,18 @@
 
 
 
-  /* Semana actual: resaltado institucional limpio, sin franja verde pesada */
+  /* Semana actual: resaltado limpio en verde institucional operativo */
   .mcTable tbody tr.mcCurrentWeekRow td{
-    background:linear-gradient(180deg,#fffdfd 0%, #fff6f6 100%) !important;
-    border-top:1px solid rgba(177,24,30,.16) !important;
-    border-bottom:1px solid rgba(177,24,30,.14) !important;
-    box-shadow:inset 0 1px 0 rgba(255,255,255,.82);
+    background:linear-gradient(180deg,#ffffff 0%, #f1fbf4 100%) !important;
+    border-top:1px solid rgba(34,197,94,.22) !important;
+    border-bottom:1px solid rgba(22,163,74,.20) !important;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.86);
   }
   .mcTable tbody tr.mcCurrentWeekRow td:first-child{
     position:relative;
     box-shadow:
-      inset 4px 0 0 rgba(177,24,30,.92),
-      inset 0 1px 0 rgba(255,255,255,.82);
+      inset 4px 0 0 rgba(34,197,94,.92),
+      inset 0 1px 0 rgba(255,255,255,.86);
   }
   .mcTable tbody tr.mcCurrentWeekRow td:first-child::after{
     content:"";
@@ -3005,11 +3005,11 @@
     height:6px;
     border-radius:999px;
     transform:translateY(-50%);
-    background:linear-gradient(135deg,#b1181e,#d9a428);
-    box-shadow:0 0 0 3px rgba(177,24,30,.10);
+    background:linear-gradient(135deg,#16a34a,#22c55e);
+    box-shadow:0 0 0 3px rgba(34,197,94,.13);
   }
   .mcTable tbody tr.mcCurrentWeekRow:hover td{
-    background:linear-gradient(180deg,#fffafa 0%, #fff1f1 100%) !important;
+    background:linear-gradient(180deg,#fbfffc 0%, #eaf9ef 100%) !important;
   }
 
 </style>
@@ -8884,8 +8884,11 @@ function mcSyllabusIsCourseOnly(value){
   const s = mcSyllabusHeaderKey(value);
   if (!s) return true;
   if (/^(A|B|C|BLOQUE|SEMANA|CODIGO|COD|FECHA|FECHAS|OBS|OBSERVACION|OBSERVACIONES|NOTA|NOTAS)$/i.test(s)) return true;
-  if (/^(RV|RM|ARI|ALG|GEO|TRI|TRIG|FIS|QUI|BIO|TXT|N O|NO|G M|ALGEBRA|TEXTOS|TEXTO|NUMEROS Y OPERACIONES|GEOMETRIA Y MEDIDA|GEOMETRIA|TRIGONOMETRIA|FISICA|QUIMICA|BIOLOGIA|ARITMETICA|RAZONAMIENTO VERBAL|RAZONAMIENTO MATEMATICO|SIMULACRO|SIMULACROS|REPASO|FERIADO)$/i.test(s)) return true;
+  if (/^(RV|RM|ARI|ALG|GEO|TRI|TRIG|FIS|QUI|BIO|TXT|N O|NO|G M|ALGEBRA|TEXTOS|TEXTO|NUMEROS Y OPERACIONES|GEOMETRIA Y MEDIDA|GEOMETRIA|TRIGONOMETRIA|FISICA|QUIMICA|BIOLOGIA|ARITMETICA|RAZONAMIENTO VERBAL|RAZONAMIENTO MATEMATICO|SIMULACRO|SIMULACROS|FERIADO)$/i.test(s)) return true;
   if (/^(CURSO|TEMA|TEMAS|CONTENIDO|CONTENIDOS|SESION|SESIONES)$/i.test(s)) return true;
+
+  // REPASO sí puede ser un contenido válido del sílabo (ej. U.LIMA Textos SEA6).
+  // Por eso no se filtra aquí como encabezado administrativo.
 
   // No tratar como tema los códigos de simulacro que aparecen en la columna F
   // del sílabo: S1, S2, SN1, SR1, SIM1, etc.
