@@ -3012,6 +3012,78 @@
     background:linear-gradient(180deg,#fbfffc 0%, #eaf9ef 100%) !important;
   }
 
+
+/* Limpieza visual de enlaces editables: Sílabos, Listas y Reportes */
+.syEditToggle{
+  border:1px solid rgba(165,24,32,.22);
+  background:linear-gradient(180deg,#fff 0%,#fff7f7 100%);
+  color:#941018;
+  border-radius:999px;
+  font-weight:950;
+  letter-spacing:.02em;
+  padding:10px 16px;
+  cursor:pointer;
+  box-shadow:0 8px 18px rgba(165,24,32,.06);
+}
+.syEditToggle.active{
+  background:linear-gradient(135deg,#a51820,#d63b3f);
+  color:#fff;
+  border-color:transparent;
+  box-shadow:0 12px 26px rgba(165,24,32,.18);
+}
+.syDisplayCard{
+  position:relative;
+  overflow:hidden;
+  border-left:4px solid var(--syAccent, var(--accent));
+  background:linear-gradient(135deg,#ffffff 0%,#fbfdff 100%);
+}
+.syDisplayCard:hover{
+  transform:translateY(-1px);
+  box-shadow:0 14px 32px rgba(15,23,42,.08);
+}
+.syCourseRow{
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+.syColorDot{
+  width:12px;
+  height:12px;
+  border-radius:50%;
+  background:var(--syAccent, var(--accent));
+  box-shadow:0 0 0 5px color-mix(in srgb, var(--syAccent, var(--accent)) 16%, transparent);
+  flex:0 0 auto;
+}
+.syCleanMeta{
+  margin-top:6px;
+  color:var(--muted);
+  font-size:12px;
+  font-weight:900;
+  letter-spacing:.02em;
+}
+.syEditPanel{
+  flex:1 1 100%;
+  display:flex;
+  gap:8px;
+  align-items:center;
+  flex-wrap:wrap;
+  margin-top:12px;
+  padding:12px;
+  border-radius:16px;
+  background:rgba(248,250,252,.82);
+  border:1px dashed rgba(100,116,139,.28);
+}
+.syEditPanel input{
+  flex:1 1 420px;
+  min-width:260px;
+  padding:9px 11px;
+  border-radius:12px;
+  border:1px solid var(--border);
+  font-weight:900;
+  background:#fff;
+}
+.reportEditPanel input{ flex:1 1 360px; }
+
 </style>
 </head>
 
@@ -7220,28 +7292,34 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
     return syRepoGetLink(st, repoUni, course, true);
   }
 
+  let SY_LINK_EDIT_MODE = false;
+  let LISTAS_LINK_EDIT_MODE = false;
+  let REPORTES_LINK_EDIT_MODE = false;
+
   function syRenderItem(uni, it, idx){
     const st = mcLoadStore();
     const url = syRepoGetLink(st, uni, it.name, true);
     const hasUrl = !!url;
     const canEdit = syCanEditLinks();
+    const editing = canEdit && SY_LINK_EDIT_MODE;
     const safeUni = escapeHtml(uni);
     const safeCourse = escapeHtml(it.name);
     const dot = escapeHtml(uniDot(uni) || getCss("--accent"));
     return `
-      <div class="syItem" style="--syAccent:${dot}; align-items:flex-start; flex-wrap:wrap;">
+      <div class="syItem syDisplayCard${editing ? " syEditing" : ""}" style="--syAccent:${dot}; align-items:flex-start; flex-wrap:wrap;">
         <div class="syLeft" style="flex:1 1 260px; min-width:240px;">
           <div class="syCourseRow">
             <span class="syColorDot" aria-hidden="true"></span>
             <div class="syCourse">${safeCourse}</div>
           </div>
+          <div class="syCleanMeta">${hasUrl ? "Sílabo disponible" : "Sílabo pendiente"}</div>
         </div>
         <div class="syBtns" style="flex:0 0 auto;">
           <a class="syOpen${hasUrl ? "" : " disabled"}" href="${escapeHtml(hasUrl ? url : "#")}" target="_blank" rel="noopener noreferrer" style="${hasUrl ? "" : "pointer-events:none; opacity:.55;"}">ABRIR EXCEL</a>
         </div>
-        ${canEdit ? `
-          <div style="flex:1 1 100%; display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-top:10px; padding-left:4px;">
-            <input class="syLinkInput" type="text" value="${escapeHtml(url)}" placeholder="Pega aquí el link del sílabo de ${safeCourse}" style="flex:1 1 420px; min-width:260px; padding:8px 10px; border-radius:12px; border:1px solid var(--border); font-weight:900;"/>
+        ${editing ? `
+          <div class="syEditPanel">
+            <input class="syLinkInput" type="text" value="${escapeHtml(url)}" placeholder="Pega aquí el link del sílabo de ${safeCourse}" />
             <button class="syBtn" type="button" data-sy-save="1" data-sy-uni="${safeUni}" data-sy-course="${safeCourse}">GUARDAR</button>
             <button class="syBtn" type="button" data-sy-clear="1" data-sy-uni="${safeUni}" data-sy-course="${safeCourse}">LIMPIAR</button>
           </div>
@@ -7332,7 +7410,10 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
     // Admin/Tutor: filtros completos
     el.innerHTML = `
       <div class="card panel12">
-        <div class="cardtitle">FILTROS</div>
+        <div class="syLocalHead" style="margin-bottom:10px;">
+          <div class="cardtitle" style="margin:0;">FILTROS</div>
+          ${syCanEditLinks() ? `<button id="sEditToggle" class="syEditToggle" type="button">EDITAR ENLACES</button>` : ``}
+        </div>
         <div class="controls" style="justify-content:flex-start;">
           <select id="sUni"></select>
           <input id="sQ" type="text" placeholder="Buscar curso (ej: álgebra, física, textos)"/>
@@ -7345,8 +7426,8 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
           <span class="pill"><span class="dot escolares"></span>ESCOLARES INTEGRAL</span>
           <span class="pill"><span class="dot pucp"></span>ESCOLARES ARS</span>
         </div>
-        <div class="panelHint" style="margin-top:8px; color:var(--muted);">
-          ${syCanEditLinks() ? "Como Editor/Admin puedes pegar o actualizar manualmente el enlace de cada sílabo. Materiales usará este repositorio como fuente principal." : "Los enlaces son de solo lectura."}
+        <div class="panelHint" style="margin-top:8px; color:var(--muted);" id="sEditHint">
+          ${syCanEditLinks() ? "Vista limpia activa. Usa EDITAR ENLACES solo cuando necesites actualizar el repositorio." : "Los enlaces son de solo lectura."}
         </div>
       </div>
 
@@ -7372,6 +7453,10 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
     });
     document.getElementById("sUni").addEventListener("change", renderSilabos);
     document.getElementById("sQ").addEventListener("input", renderSilabos);
+    document.getElementById("sEditToggle")?.addEventListener("click", ()=>{
+      SY_LINK_EDIT_MODE = !SY_LINK_EDIT_MODE;
+      renderSilabos();
+    });
 
     el.dataset.ready = "1";
   }
@@ -7434,7 +7519,19 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
       return;
     }
 
-    // Admin/Tutor: filtros normales; Admin/Editor puede cambiar links manualmente.
+    // Admin/Tutor: filtros normales; Admin/Editor puede cambiar links manualmente al activar edición.
+    const sEditBtn = document.getElementById("sEditToggle");
+    if (sEditBtn){
+      sEditBtn.textContent = SY_LINK_EDIT_MODE ? "VISTA LIMPIA" : "EDITAR ENLACES";
+      sEditBtn.classList.toggle("active", SY_LINK_EDIT_MODE);
+    }
+    const sEditHint = document.getElementById("sEditHint");
+    if (sEditHint && syCanEditLinks()){
+      sEditHint.textContent = SY_LINK_EDIT_MODE
+        ? "Modo edición activo: pega, guarda o limpia enlaces. Al terminar, vuelve a VISTA LIMPIA."
+        : "Vista limpia activa. Usa EDITAR ENLACES solo cuando necesites actualizar el repositorio.";
+    }
+
     const fUni = document.getElementById("sUni").value;
     const q = low(document.getElementById("sQ").value);
 
@@ -7458,7 +7555,7 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
             </div>
             <div class="syKpis">
               <span class="syKpiPill">CURSOS: <b>${list.length}</b></span>
-              ${canEdit ? `<span class="syKpiPill">EDICIÓN: <b>ACTIVA</b></span>` : ""}
+              ${canEdit ? `<span class="syKpiPill">MODO: <b>${SY_LINK_EDIT_MODE ? "EDICIÓN" : "LIMPIO"}</b></span>` : ""}
             </div>
           </div>
           <div class="syWrap">
@@ -10795,17 +10892,65 @@ function sortListasByLocalOrder(values){
   });
 }
 
+
+function repoSafeKey(){
+  return Array.from(arguments).map(v=>mcNormLabel(String(v||"")).replace(/\s+/g," ").trim()).join("||");
+}
+function listaRepoGetLink(st, local, name, fallback){
+  const key = repoSafeKey(local, name);
+  const repo = st?.listasRepo || {};
+  if (Object.prototype.hasOwnProperty.call(repo, key)) return String(repo[key] || "").trim();
+  return String(fallback || "").trim();
+}
+function listaRepoSetLink(st, local, name, url){
+  if (!st.listasRepo) st.listasRepo = {};
+  st.listasRepo[repoSafeKey(local, name)] = String(url || "").trim();
+  return st;
+}
+function bindListaEditors(){
+  if (!syCanEditLinks() || !LISTAS_LINK_EDIT_MODE) return;
+  document.querySelectorAll('[data-lista-save="1"]').forEach(btn=>{
+    btn.addEventListener("click", ()=>{
+      const item = btn.closest(".syItem");
+      const input = item?.querySelector(".listaLinkInput");
+      const local = btn.getAttribute("data-local") || "";
+      const name = btn.getAttribute("data-name") || "";
+      const url = String(input?.value || "").trim();
+      const st = mcLoadStore();
+      listaRepoSetLink(st, local, name, url);
+      mcSaveStore(st);
+      toast(url ? "Lista guardada." : "Lista marcada como pendiente.");
+      renderListas();
+    });
+  });
+  document.querySelectorAll('[data-lista-clear="1"]').forEach(btn=>{
+    btn.addEventListener("click", ()=>{
+      const st = mcLoadStore();
+      listaRepoSetLink(st, btn.getAttribute("data-local") || "", btn.getAttribute("data-name") || "", "");
+      mcSaveStore(st);
+      toast("Lista limpiada.");
+      renderListas();
+    });
+  });
+}
+
 function ensureListasLayout(){
   const el = document.getElementById("view_listas");
   if (el.dataset.ready === "1") return;
 
   el.innerHTML = `
     <div class="card panel12">
-      <div class="cardtitle">FILTROS</div>
+      <div class="syLocalHead" style="margin-bottom:10px;">
+        <div class="cardtitle" style="margin:0;">FILTROS</div>
+        ${syCanEditLinks() ? `<button id="lEditToggle" class="syEditToggle" type="button">EDITAR ENLACES</button>` : ``}
+      </div>
       <div class="controls" style="justify-content:flex-start;">
         <select id="lLocal"></select>
         <input id="lQ" type="text" placeholder="Buscar (ej: agraria, pucp, paralelo, adelanto)"/>
         <button id="lReset">VER TODO</button>
+      </div>
+      <div class="panelHint" id="lEditHint" style="margin-top:8px; color:var(--muted);">
+        ${syCanEditLinks() ? "Vista limpia activa. Usa EDITAR ENLACES solo cuando necesites actualizar listas." : "Los enlaces son de solo lectura."}
       </div>
     </div>
 
@@ -10832,6 +10977,10 @@ function ensureListasLayout(){
   });
   document.getElementById("lLocal").addEventListener("change", renderListas);
   document.getElementById("lQ").addEventListener("input", renderListas);
+  document.getElementById("lEditToggle")?.addEventListener("click", ()=>{
+    LISTAS_LINK_EDIT_MODE = !LISTAS_LINK_EDIT_MODE;
+    renderListas();
+  });
 
   el.dataset.ready = "1";
 }
@@ -10876,8 +11025,21 @@ function listaMetaFromName(name){
 function renderListas(){
   ensureListasLayout();
 
+  const editBtn = document.getElementById("lEditToggle");
+  if (editBtn){
+    editBtn.textContent = LISTAS_LINK_EDIT_MODE ? "VISTA LIMPIA" : "EDITAR ENLACES";
+    editBtn.classList.toggle("active", LISTAS_LINK_EDIT_MODE);
+  }
+  const hint = document.getElementById("lEditHint");
+  if (hint && syCanEditLinks()){
+    hint.textContent = LISTAS_LINK_EDIT_MODE
+      ? "Modo edición activo: actualiza los enlaces de listas y vuelve a VISTA LIMPIA al finalizar."
+      : "Vista limpia activa. Usa EDITAR ENLACES solo cuando necesites actualizar listas.";
+  }
+
   const fLocal = document.getElementById("lLocal").value;
   const q = low(document.getElementById("lQ").value);
+  const st = mcLoadStore();
 
   let base = LISTAS.slice();
   if (fLocal !== "__ALL__") base = base.filter(x=>x.local===fLocal);
@@ -10908,23 +11070,35 @@ function renderListas(){
 
     totalLinks += list.length;
 
-const items = list.map(it=>{
-  const meta = listaMetaFromName(it.name);
+    const items = list.map(it=>{
+      const meta = listaMetaFromName(it.name);
+      const url = listaRepoGetLink(st, it.local, it.name, it.url);
+      const hasUrl = !!url;
+      const safeLocal = escapeHtml(it.local);
+      const safeName = escapeHtml(it.name);
 
-  return `
-    <a class="syItem" href="${escapeHtml(it.url)}" target="_blank" rel="noopener noreferrer">
-      <div class="syLeft">
-        <div class="syCourse">${escapeHtml(it.name)}</div>
-        <div class="syMeta">
-          <span class="dot" style="background:${meta.dot};"></span>
-          <span>${escapeHtml(loc)}</span>
+      return `
+        <div class="syItem syDisplayCard${LISTAS_LINK_EDIT_MODE ? " syEditing" : ""}" style="--syAccent:${escapeHtml(meta.dot)};">
+          <div class="syLeft">
+            <div class="syCourseRow">
+              <span class="syColorDot" aria-hidden="true"></span>
+              <div class="syCourse">${safeName}</div>
+            </div>
+            <div class="syMeta"><span>${escapeHtml(loc)}</span></div>
+          </div>
+          <div class="syBtns">
+            ${hasUrl ? `<a class="syOpen" href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">ABRIR</a>` : `<span class="syOpen disabled">SIN ENLACE</span>`}
+          </div>
+          ${(syCanEditLinks() && LISTAS_LINK_EDIT_MODE) ? `
+            <div class="syEditPanel">
+              <input class="listaLinkInput" type="text" value="${escapeHtml(url)}" placeholder="Pega aquí el enlace de ${safeName}" />
+              <button class="syBtn" type="button" data-lista-save="1" data-local="${safeLocal}" data-name="${safeName}">GUARDAR</button>
+              <button class="syBtn" type="button" data-lista-clear="1" data-local="${safeLocal}" data-name="${safeName}">LIMPIAR</button>
+            </div>
+          ` : ""}
         </div>
-      </div>
-      <div class="syOpen">ABRIR</div>
-    </a>
-  `;
-}).join("");
-
+      `;
+    }).join("");
 
     return `
       <div class="card panel12">
@@ -10932,6 +11106,7 @@ const items = list.map(it=>{
           <div class="cardtitle" style="margin:0;">${escapeHtml(loc)}</div>
           <div class="syKpis">
             <span class="syKpiPill">ENLACES: <b>${list.length}</b></span>
+            ${syCanEditLinks() ? `<span class="syKpiPill">MODO: <b>${LISTAS_LINK_EDIT_MODE ? "EDICIÓN" : "LIMPIO"}</b></span>` : ""}
           </div>
         </div>
         <div class="syWrap">
@@ -10952,6 +11127,7 @@ const items = list.map(it=>{
       <div style="color:var(--muted); font-weight:900;">No se encontraron listas para mostrar.</div>
     </div>
   `;
+  bindListaEditors();
 }
 // ===================== FIN LISTAS =====================
 
@@ -10991,17 +11167,66 @@ function getReportesCatalog(){
   return REPORTES.slice();
 }
 
+
+function reporteRepoGet(st, local, name, field, fallback){
+  const key = repoSafeKey(local, name);
+  const repo = st?.reportesRepo || {};
+  const rec = repo[key] || {};
+  if (Object.prototype.hasOwnProperty.call(rec, field)) return String(rec[field] || "").trim();
+  return String(fallback || "").trim();
+}
+function reporteRepoSet(st, local, name, reporte, carpeta){
+  if (!st.reportesRepo) st.reportesRepo = {};
+  st.reportesRepo[repoSafeKey(local, name)] = {
+    reporte: String(reporte || "").trim(),
+    carpeta: String(carpeta || "").trim()
+  };
+  return st;
+}
+function bindReporteEditors(){
+  if (!syCanEditLinks() || !REPORTES_LINK_EDIT_MODE) return;
+  document.querySelectorAll('[data-reporte-save="1"]').forEach(btn=>{
+    btn.addEventListener("click", ()=>{
+      const item = btn.closest(".syItem");
+      const local = btn.getAttribute("data-local") || "";
+      const name = btn.getAttribute("data-name") || "";
+      const rep = String(item?.querySelector(".reporteLinkInput")?.value || "").trim();
+      const car = String(item?.querySelector(".reporteCarpetaInput")?.value || "").trim();
+      const st = mcLoadStore();
+      reporteRepoSet(st, local, name, rep, car);
+      mcSaveStore(st);
+      toast("Enlaces de reporte guardados.");
+      renderReportes();
+    });
+  });
+  document.querySelectorAll('[data-reporte-clear="1"]').forEach(btn=>{
+    btn.addEventListener("click", ()=>{
+      const st = mcLoadStore();
+      reporteRepoSet(st, btn.getAttribute("data-local") || "", btn.getAttribute("data-name") || "", "", "");
+      mcSaveStore(st);
+      toast("Enlaces de reporte limpiados.");
+      renderReportes();
+    });
+  });
+}
+
 function ensureReportesLayout(){
   const el = document.getElementById("view_reportes");
   if (el.dataset.ready === "1") return;
 
   el.innerHTML = `
     <div class="card panel12">
-      <div class="cardtitle">FILTROS</div>
+      <div class="syLocalHead" style="margin-bottom:10px;">
+        <div class="cardtitle" style="margin:0;">FILTROS</div>
+        ${syCanEditLinks() ? `<button id="rEditToggle" class="syEditToggle" type="button">EDITAR ENLACES</button>` : ``}
+      </div>
       <div class="controls" style="justify-content:flex-start;">
         <select id="rLocal"></select>
         <input id="rQ" type="text" placeholder="Buscar (ej: agraria, escolar, pucp, u.lima, paralelo, adelanto, virtual)"/>
         <button id="rReset">VER TODO</button>
+      </div>
+      <div class="panelHint" id="rEditHint" style="margin-top:8px; color:var(--muted);">
+        ${syCanEditLinks() ? "Vista limpia activa. Usa EDITAR ENLACES solo cuando necesites actualizar reportes o carpetas." : "Los enlaces son de solo lectura."}
       </div>
     </div>
 
@@ -11028,6 +11253,10 @@ function ensureReportesLayout(){
   });
   document.getElementById("rLocal").addEventListener("change", renderReportes);
   document.getElementById("rQ").addEventListener("input", renderReportes);
+  document.getElementById("rEditToggle")?.addEventListener("click", ()=>{
+    REPORTES_LINK_EDIT_MODE = !REPORTES_LINK_EDIT_MODE;
+    renderReportes();
+  });
 
   el.dataset.ready = "1";
 }
@@ -11035,8 +11264,21 @@ function ensureReportesLayout(){
 function renderReportes(){
   ensureReportesLayout();
 
+  const editBtn = document.getElementById("rEditToggle");
+  if (editBtn){
+    editBtn.textContent = REPORTES_LINK_EDIT_MODE ? "VISTA LIMPIA" : "EDITAR ENLACES";
+    editBtn.classList.toggle("active", REPORTES_LINK_EDIT_MODE);
+  }
+  const hint = document.getElementById("rEditHint");
+  if (hint && syCanEditLinks()){
+    hint.textContent = REPORTES_LINK_EDIT_MODE
+      ? "Modo edición activo: actualiza reporte/carpeta y vuelve a VISTA LIMPIA al finalizar."
+      : "Vista limpia activa. Usa EDITAR ENLACES solo cuando necesites actualizar reportes o carpetas.";
+  }
+
   const fLocal = document.getElementById("rLocal").value;
   const q = low(document.getElementById("rQ").value);
+  const st = mcLoadStore();
 
   let base = getReportesCatalog();
   if (fLocal !== "__ALL__") base = base.filter(x=>x.local===fLocal);
@@ -11069,9 +11311,10 @@ function renderReportes(){
 
     const items = list.map(it=>{
       const meta = listaMetaFromName(it.name);
-
-      const rep = (it.reporte && String(it.reporte).trim()) ? String(it.reporte).trim() : "";
-      const car = (it.carpeta && String(it.carpeta).trim()) ? String(it.carpeta).trim() : "";
+      const rep = reporteRepoGet(st, it.local, it.name, "reporte", it.reporte);
+      const car = reporteRepoGet(st, it.local, it.name, "carpeta", it.carpeta);
+      const safeLocal = escapeHtml(it.local);
+      const safeName = escapeHtml(it.name);
 
       const repBtn = rep
         ? `<a class="syBtn" href="${escapeHtml(rep)}" target="_blank" rel="noopener noreferrer">REPORTE</a>`
@@ -11082,18 +11325,26 @@ function renderReportes(){
         : `<span class="syBtn disabled">CARPETA</span>`;
 
       return `
-        <div class="syItem">
+        <div class="syItem syDisplayCard${REPORTES_LINK_EDIT_MODE ? " syEditing" : ""}" style="--syAccent:${escapeHtml(meta.dot)};">
           <div class="syLeft">
-            <div class="syCourse">${escapeHtml(it.name)}</div>
-            <div class="syMeta">
-              <span class="dot" style="background:${meta.dot};"></span>
-              <span>${escapeHtml(loc)}</span>
+            <div class="syCourseRow">
+              <span class="syColorDot" aria-hidden="true"></span>
+              <div class="syCourse">${safeName}</div>
             </div>
+            <div class="syMeta"><span>${escapeHtml(loc)}</span></div>
           </div>
           <div class="syBtns">
             ${repBtn}
             ${carBtn}
           </div>
+          ${(syCanEditLinks() && REPORTES_LINK_EDIT_MODE) ? `
+            <div class="syEditPanel reportEditPanel">
+              <input class="reporteLinkInput" type="text" value="${escapeHtml(rep)}" placeholder="Enlace de REPORTE para ${safeName}" />
+              <input class="reporteCarpetaInput" type="text" value="${escapeHtml(car)}" placeholder="Enlace de CARPETA para ${safeName}" />
+              <button class="syBtn" type="button" data-reporte-save="1" data-local="${safeLocal}" data-name="${safeName}">GUARDAR</button>
+              <button class="syBtn" type="button" data-reporte-clear="1" data-local="${safeLocal}" data-name="${safeName}">LIMPIAR</button>
+            </div>
+          ` : ""}
         </div>
       `;
     }).join("");
@@ -11104,6 +11355,7 @@ function renderReportes(){
           <div class="cardtitle" style="margin:0;">${escapeHtml(loc)}</div>
           <div class="syKpis">
             <span class="syKpiPill">AULAS: <b>${list.length}</b></span>
+            ${syCanEditLinks() ? `<span class="syKpiPill">MODO: <b>${REPORTES_LINK_EDIT_MODE ? "EDICIÓN" : "LIMPIO"}</b></span>` : ""}
           </div>
         </div>
         <div class="syWrap">
@@ -11124,6 +11376,7 @@ function renderReportes(){
       <div style="color:var(--muted); font-weight:900;">No se encontraron reportes para mostrar.</div>
     </div>
   `;
+  bindReporteEditors();
 }
 // ===================== FIN REPORTES =====================
 
