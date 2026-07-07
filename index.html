@@ -1126,30 +1126,56 @@
       margin-top: 12px;
     }
     .syItem{
-      border:1px solid var(--border);
-      border-radius: 16px;
-      padding: 12px;
-      background:#fff;
+      --syAccent: var(--accent);
+      border:1px solid rgba(15,23,42,0.10);
+      border-radius: 18px;
+      padding: 13px 14px;
+      background: linear-gradient(180deg,#fff 0%,#fbfdff 100%);
       display:flex;
       align-items:center;
       justify-content:space-between;
-      gap:10px;
+      gap:12px;
       text-decoration:none;
       color: var(--text);
-      transition: transform .06s ease, box-shadow .06s ease, border-color .06s ease;
+      transition: transform .08s ease, box-shadow .08s ease, border-color .08s ease, background .08s ease;
+      position:relative;
+      overflow:hidden;
+    }
+    .syItem::before{
+      content:"";
+      position:absolute;
+      left:0; top:0; bottom:0;
+      width:4px;
+      background:var(--syAccent);
+      opacity:.82;
     }
     .syItem:hover{
       transform: translateY(-1px);
-      border-color: rgba(15,23,42,0.18);
+      border-color: color-mix(in srgb, var(--syAccent) 28%, rgba(15,23,42,0.16));
       box-shadow: 0 16px 40px rgba(15,23,42,0.12);
+      background:#fff;
     }
-    .syLeft{ min-width:0; display:flex; flex-direction:column; gap:6px; }
+    .syLeft{ min-width:0; display:flex; flex-direction:column; gap:6px; padding-left:4px; }
+    .syCourseRow{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      min-width:0;
+    }
+    .syColorDot{
+      width:12px;
+      height:12px;
+      border-radius:999px;
+      flex:0 0 auto;
+      background:var(--syAccent);
+      box-shadow:0 0 0 4px color-mix(in srgb, var(--syAccent) 18%, transparent);
+    }
     .syCourse{
       font-weight:950;
       text-transform:uppercase;
-      font-size:12px;
+      font-size:12.5px;
       line-height:1.15;
-      letter-spacing:.2px;
+      letter-spacing:.22px;
     }
     .syMeta{
       display:flex;
@@ -1173,6 +1199,7 @@
       font-size:12px;
       white-space:nowrap;
       color: var(--accent2);
+      text-decoration:none;
     }
     .syOpen:hover{
       border-color: rgba(209,11,11,0.35);
@@ -6971,16 +6998,20 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
     const canEdit = syCanEditLinks();
     const safeUni = escapeHtml(uni);
     const safeCourse = escapeHtml(it.name);
+    const dot = escapeHtml(uniDot(uni) || getCss("--accent"));
     return `
-      <div class="syItem" style="align-items:flex-start; flex-wrap:wrap;">
+      <div class="syItem" style="--syAccent:${dot}; align-items:flex-start; flex-wrap:wrap;">
         <div class="syLeft" style="flex:1 1 260px; min-width:240px;">
-          <div class="syCourse">${safeCourse}</div>
+          <div class="syCourseRow">
+            <span class="syColorDot" aria-hidden="true"></span>
+            <div class="syCourse">${safeCourse}</div>
+          </div>
         </div>
         <div class="syBtns" style="flex:0 0 auto;">
           <a class="syOpen${hasUrl ? "" : " disabled"}" href="${escapeHtml(hasUrl ? url : "#")}" target="_blank" rel="noopener noreferrer" style="${hasUrl ? "" : "pointer-events:none; opacity:.55;"}">ABRIR EXCEL</a>
         </div>
         ${canEdit ? `
-          <div style="flex:1 1 100%; display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-top:10px;">
+          <div style="flex:1 1 100%; display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-top:10px; padding-left:4px;">
             <input class="syLinkInput" type="text" value="${escapeHtml(url)}" placeholder="Pega aquí el link del sílabo de ${safeCourse}" style="flex:1 1 420px; min-width:260px; padding:8px 10px; border-radius:12px; border:1px solid var(--border); font-weight:900;"/>
             <button class="syBtn" type="button" data-sy-save="1" data-sy-uni="${safeUni}" data-sy-course="${safeCourse}">GUARDAR</button>
             <button class="syBtn" type="button" data-sy-clear="1" data-sy-uni="${safeUni}" data-sy-course="${safeCourse}">LIMPIAR</button>
