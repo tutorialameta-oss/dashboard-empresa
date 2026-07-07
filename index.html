@@ -10082,16 +10082,16 @@ function renderMateriales(){
         </label>
 
         <a id="mcOpen2" class="btn folder" target="_blank" rel="noopener" style="margin-left:6px; text-decoration:none;">CARPETA</a>
-        ${(canEdit && matEditOn) ? '<input id="mcLink2" type="text" placeholder="Link carpeta (Drive)" style="min-width:320px; padding:8px 10px; border-radius:12px; border:1px solid var(--border); font-weight:900;"/><button id="mcSaveLink2" class="btn ghost" type="button">GUARDAR LINK</button>' : ""}
+        ${(canEdit && matEditOn) ? '<input id="mcLink2" type="text" placeholder="Link de carpeta Drive" style="min-width:320px; padding:8px 10px; border-radius:12px; border:1px solid var(--border); font-weight:900;"/><button id="mcSaveLink2" class="btn ghost" type="button">GUARDAR CARPETA</button>' : ""}
         ${showSyllabusCol ? `
-          <span class="mcSyllabusTools">
+          <span class="mcSyllabusTools" title="Sílabo tomado desde la sección SÍLABOS. En Materiales solo se abre, no se edita.">
             <a id="mcOpenSyllabus2" class="btn folder" target="_blank" rel="noopener" style="text-decoration:none;">ABRIR SÍLABO</a>
             <span id="mcSyllabusStatus" class="mcSyllabusState">SÍLABO PENDIENTE</span>
           </span>
         ` : ""}
 
 ${(canEditRole && matEditOn) ? `<button id="mcClearCycleBtn" class="btn ghost" type="button" style="margin-left:6px; border-color:#dc2626; color:#991b1b; background:#fff5f5;">LIMPIAR CICLO</button>` : ""}
-${canWork ? `<button id="mcEditBtn" class="btn ${matEditOn?'primary':'ghost'}" type="button" style="margin-left:6px;">${matEditOn?'EDITANDO':'EDITAR'}</button>` : ""}
+${canWork ? `<button id="mcEditBtn" class="btn ${matEditOn?'primary':'ghost'}" type="button" title="Activa o desactiva la edición de checks; no edita enlaces de sílabo." style="margin-left:6px;">${matEditOn?'CHECKS ACTIVOS':'EDITAR CHECKS'}</button>` : ""}
       </div>
     </div>
 
