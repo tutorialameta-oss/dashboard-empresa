@@ -9902,6 +9902,27 @@ function mcSyllabusWeekCapacity(sourceTopics, classDates, holidayHits){
   return Math.max(1, Math.min(topicCount, Math.floor(topicCount * validSessions / totalSessions)));
 }
 
+
+function mcIsNivelacionWeekCode(value){
+  const key = mcNormLabel(value)
+    .replace(/[^A-Z0-9]/g, "")
+    .trim();
+  // La etapa de nivelación siempre usa códigos SEN, por ejemplo SEN1, SEN2, SEN3.
+  // SEN sin número se acepta como caso defensivo, pero no se confunde con textos largos.
+  return /^SEN\d*$/.test(key);
+}
+
+function mcWeekBelongsToNivelacion(week, fallbackCode=""){
+  return [week?.code, week?.displayCode, week?.colBLabel, fallbackCode]
+    .some(value=>mcIsNivelacionWeekCode(value));
+}
+
+function mcDropNivelacionCarry(carry){
+  for (let i=carry.length-1; i>=0; i--){
+    if (mcWeekBelongsToNivelacion(carry[i]?.sourceWeek)) carry.splice(i,1);
+  }
+}
+
 function mcAlignSyllabusTopics({weeks,codes,first,last,pStart,local,course,programType}){
   const byCode = new Map();
   const byDate = new Map();
@@ -9948,6 +9969,12 @@ function mcAlignSyllabusTopics({weeks,codes,first,last,pStart,local,course,progr
     const programWeekStart = pgxAddDays(pStart, i*7);
     programWeekStart.setHours(0,0,0,0);
     const programDateKey = mcDateKey(programWeekStart);
+
+    // Tope de NIVELACIÓN: los contenidos pendientes de semanas SEN solo pueden
+    // reubicarse dentro de la propia ventana SEN. Al entrar a SE/SEA/SER u otra
+    // etapa, cualquier nivelación pendiente se descarta y la nueva etapa inicia
+    // con su contenido normal.
+    if (!mcIsNivelacionWeekCode(codeKey)) mcDropNivelacionCarry(carry);
 
     let srcWeek = null;
     let matchedByDate = false;
