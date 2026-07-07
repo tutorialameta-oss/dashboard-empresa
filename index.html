@@ -9953,6 +9953,7 @@ function renderMateriales(){
     {id:"SAN_MIGUEL", label:"SAN MIGUEL"}
   ];
   const INTEGRAL_SPACES = [
+    {id:"EDITOR", label:"EDITOR"},
     {id:"LA_MOLINA", label:"LA MOLINA"},
     {id:"SAN_MIGUEL", label:"SAN MIGUEL"},
     {id:"SAN_BORJA", label:"SAN BORJA"}
@@ -10085,7 +10086,6 @@ function renderMateriales(){
         ${showSyllabusCol ? `
           <span class="mcSyllabusTools">
             <a id="mcOpenSyllabus2" class="btn folder" target="_blank" rel="noopener" style="text-decoration:none;">ABRIR SÍLABO</a>
-            ${(canEdit && matEditOn) ? '<input id="mcSyllabusLink2" type="text" placeholder="Link del sílabo (Google Sheets)" style="min-width:340px; padding:8px 10px; border-radius:12px; border:1px solid var(--border); font-weight:900;"/><button id="mcSaveSyllabus2" class="btn ghost" type="button">GUARDAR SÍLABO</button>' : ""}
             <span id="mcSyllabusStatus" class="mcSyllabusState">SÍLABO PENDIENTE</span>
           </span>
         ` : ""}
@@ -10132,8 +10132,6 @@ ${canWork ? `<button id="mcEditBtn" class="btn ${matEditOn?'primary':'ghost'}" t
   const syllabusRepoUni = isArsProgram ? "ESCOLARES ARS" : (isIntegralProgram ? "ESCOLARES INTEGRAL" : uni);
   const syllabusUrl = mcSyllabusLink(st0,pid0,cid0,syllabusRepoUni);
   const syllabusOpenBtn = card.querySelector("#mcOpenSyllabus2");
-  const syllabusLinkInp = card.querySelector("#mcSyllabusLink2");
-  const syllabusSaveBtn = card.querySelector("#mcSaveSyllabus2");
 
   if (openBtn){
     if (curUrl){
@@ -10149,7 +10147,6 @@ ${canWork ? `<button id="mcEditBtn" class="btn ${matEditOn?'primary':'ghost'}" t
     }
   }
   if (linkInp) linkInp.value = curUrl;
-  if (syllabusLinkInp) syllabusLinkInp.value = syllabusUrl;
   if (syllabusOpenBtn){
     if (syllabusUrl){
       syllabusOpenBtn.setAttribute("href",syllabusUrl);
@@ -10177,21 +10174,6 @@ ${canWork ? `<button id="mcEditBtn" class="btn ${matEditOn?'primary':'ghost'}" t
     renderMateriales();
   });
 
-  syllabusSaveBtn?.addEventListener("click", ()=>{
-    if (!canEdit || !showSyllabusCol) return toast("Solo Editor puede configurar el sílabo.");
-    const url = String(syllabusLinkInp?.value||"").trim();
-    if (url && !mcSyllabusCsvUrl(url)) return toast("Pega un enlace válido de Google Sheets.");
-    const st = mcLoadStore();
-    if (!st.syllabusLinks) st.syllabusLinks = {};
-    if (!st.syllabusLinks[pid0]) st.syllabusLinks[pid0] = {};
-    st.syllabusLinks[pid0][cid0] = url;
-    // También actualiza el repositorio manual de SÍLABOS para que Materiales y SÍLABOS usen el mismo enlace.
-    if (syllabusRepoUni) syRepoSetLink(st, syllabusRepoUni, cid0, url);
-    MC_ARS_SYLLABUS_CACHE.clear();
-    mcSaveStore(st);
-    toast(url ? "Sílabo guardado." : "Sílabo marcado como pendiente.");
-    renderMateriales();
-  });
 
   selP?.addEventListener("change", ()=>{
     localStorage.setItem(PROG_KEY, String(selP.value||""));
@@ -10249,19 +10231,20 @@ Esto afecta RECIBIDO, DIAGRAMADO e IMPRESO para todos los cursos y espacios de e
     ? "FERNANDO"
     : String(diaRule?.owner || DIAGRAMA_SPACE_LABEL[String(space||"").toUpperCase()] || "—");
   const impresor = mcPrinterBySpace(uni, cid, space);
-  const canEditByResponsable = canWork && (roleLower === "admin" || mcNormLabel(mcCurrentUserName()) === mcNormLabel(mcResponsableFor(uni, cid)));
-  const isTutor = (roleLower === "tutor");
-  const isSanBorja = (mcNormLabel(space) === "SAN_BORJA");
-  const canEditRecibido = (roleLower === "admin") && !isSanBorja && (mcNormLabel(space) === "EDITOR");
-  const canEditImpreso = isSanBorja ? canWork : (canWork && (isTutor || roleLower === "admin" || mcNormLabel(mcCurrentUserName()) === mcNormLabel(impresor)));
-  const canEditDiagramado = canWork && !isSanBorja && (
-    diaRule
-      ? (mcNormLabel(space) === mcNormLabel(diaRule.sourceSpace))
-      : (isTutor || roleLower === "admin" || canEditByResponsable)
-  );
-  const roMsg = "Solo editable por el editor";
-  const roDiaMsg = "Solo editable en espacio de diagramación";
-  const roImpMsg = "Solo editable por quien imprime";
+  const isLocalMaterialSpace = MC_SPACE_LOCALS.includes(String(space||"").toUpperCase());
+  const isEditorMaterialSpace = (mcNormLabel(space) === "EDITOR");
+
+  // Regla estándar de Materiales:
+  // - EDITOR marca únicamente RECIBIDO.
+  // - Cada local (LA MOLINA, SAN MIGUEL, SAN BORJA) marca su propio DIAGRAMADO e IMPRESO.
+  // - No hay restricciones por responsable ni sincronización cruzada de diagramado entre locales.
+  const canEditRecibido = canEditRole && isEditorMaterialSpace;
+  const canEditDiagramado = canWork && isLocalMaterialSpace;
+  const canEditImpreso = canWork && isLocalMaterialSpace;
+
+  const roMsg = "Solo editable en espacio EDITOR";
+  const roDiaMsg = "Editable desde el local seleccionado";
+  const roImpMsg = "Editable desde el local seleccionado";
 
   // dates per program
   const pStart = pgxParseDateYMD(String(prog?.meta?.startDate||"")) || pgxParseDateYMD(String(store.timeline?.startDate||"")) || new Date();
@@ -10406,9 +10389,6 @@ Esto afecta RECIBIDO, DIAGRAMADO e IMPRESO para todos los cursos y espacios de e
       mcSetFlag(st2, pid, statusCid, code, field, !!ch.checked);
       if (space === "EDITOR" && field === "rec"){
         mcSyncRecibidoFromEditor(st2, pid, cid, code, !!ch.checked);
-      }
-      if (field === "dia" && diaRule){
-        mcSyncDiagramadoByRule(st2, pid, cid, code, !!ch.checked, diaRule);
       }
       mcSaveStore(st2);
       renderMateriales();
