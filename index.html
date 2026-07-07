@@ -3084,6 +3084,88 @@
 }
 .reportEditPanel input{ flex:1 1 360px; }
 
+
+/* Ajuste v24: edición limpia para SÍLABOS, LISTAS y REPORTES */
+.syWrap.syEditGrid{
+  grid-template-columns:repeat(2, minmax(420px, 1fr));
+  gap:16px;
+  align-items:stretch;
+}
+.syDisplayCard.syEditing{
+  display:grid !important;
+  grid-template-columns:minmax(180px, 1fr) auto;
+  grid-template-areas:
+    "identity actions"
+    "editor editor";
+  align-items:center !important;
+  gap:14px 16px !important;
+  padding:16px 18px !important;
+  overflow:hidden;
+}
+.syDisplayCard.syEditing .syLeft{
+  grid-area:identity;
+  min-width:0 !important;
+  padding-left:4px;
+}
+.syDisplayCard.syEditing .syBtns{
+  grid-area:actions;
+  justify-self:end;
+  align-self:center;
+  flex-wrap:nowrap;
+}
+.syDisplayCard.syEditing .syEditPanel{
+  grid-area:editor;
+  width:100%;
+  min-width:0;
+  box-sizing:border-box;
+  margin-top:0;
+  padding:13px;
+  border-radius:18px;
+  display:grid;
+  grid-template-columns:minmax(0, 1fr) auto auto;
+  gap:10px;
+  align-items:center;
+  background:linear-gradient(180deg,rgba(248,250,252,.95),rgba(255,255,255,.98));
+  border:1px dashed rgba(148,163,184,.35);
+}
+.syDisplayCard.syEditing .syEditPanel input{
+  min-width:0 !important;
+  width:100%;
+  box-sizing:border-box;
+}
+.syDisplayCard.syEditing .syEditPanel .syBtn{
+  min-width:92px;
+}
+.syDisplayCard.syEditing .reportEditPanel{
+  grid-template-columns:minmax(0,1fr) minmax(0,1fr) auto auto;
+}
+.syDisplayCard.syEditing .syCourse{
+  max-width:100%;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.syDisplayCard.syEditing .syMeta{
+  line-height:1.25;
+}
+@media (max-width: 1250px){
+  .syWrap.syEditGrid{ grid-template-columns:1fr; }
+}
+@media (max-width: 720px){
+  .syDisplayCard.syEditing{
+    grid-template-columns:1fr;
+    grid-template-areas:
+      "identity"
+      "actions"
+      "editor";
+  }
+  .syDisplayCard.syEditing .syBtns{ justify-self:start; }
+  .syDisplayCard.syEditing .syEditPanel,
+  .syDisplayCard.syEditing .reportEditPanel{
+    grid-template-columns:1fr;
+  }
+}
+
 </style>
 </head>
 
@@ -7312,7 +7394,6 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
             <span class="syColorDot" aria-hidden="true"></span>
             <div class="syCourse">${safeCourse}</div>
           </div>
-          <div class="syCleanMeta">${hasUrl ? "Sílabo disponible" : "Sílabo pendiente"}</div>
         </div>
         <div class="syBtns" style="flex:0 0 auto;">
           <a class="syOpen${hasUrl ? "" : " disabled"}" href="${escapeHtml(hasUrl ? url : "#")}" target="_blank" rel="noopener noreferrer" style="${hasUrl ? "" : "pointer-events:none; opacity:.55;"}">ABRIR EXCEL</a>
@@ -11109,7 +11190,7 @@ function renderListas(){
             ${syCanEditLinks() ? `<span class="syKpiPill">MODO: <b>${LISTAS_LINK_EDIT_MODE ? "EDICIÓN" : "LIMPIO"}</b></span>` : ""}
           </div>
         </div>
-        <div class="syWrap">
+        <div class="syWrap${LISTAS_LINK_EDIT_MODE ? " syEditGrid" : ""}">
           ${items || `<div class="card panel12" style="box-shadow:none;">
             <div class="cardtitle">SIN RESULTADOS</div>
             <div style="color:var(--muted); font-weight:900;">No hay listas con el filtro actual.</div>
@@ -11358,7 +11439,7 @@ function renderReportes(){
             ${syCanEditLinks() ? `<span class="syKpiPill">MODO: <b>${REPORTES_LINK_EDIT_MODE ? "EDICIÓN" : "LIMPIO"}</b></span>` : ""}
           </div>
         </div>
-        <div class="syWrap">
+        <div class="syWrap${REPORTES_LINK_EDIT_MODE ? " syEditGrid" : ""}">
           ${items || `<div class="card panel12" style="box-shadow:none;">
             <div class="cardtitle">SIN RESULTADOS</div>
             <div style="color:var(--muted); font-weight:900;">No hay aulas con el filtro actual.</div>
