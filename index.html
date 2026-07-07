@@ -3166,6 +3166,37 @@
   }
 }
 
+
+
+/* === Materiales: carpetas generales editables, vista limpia/profesional === */
+.matRootPanel .syLocalHead{align-items:flex-start;}
+.matRootGrid{align-items:stretch;}
+.matRootCard{position:relative; overflow:hidden; border-radius:18px;}
+.matRootCard::before{
+  content:""; position:absolute; left:0; top:12px; bottom:12px; width:5px;
+  border-radius:0 999px 999px 0; background:var(--matRootAccent, var(--accent)); opacity:.9;
+}
+.matRootEditing{
+  display:grid !important; grid-template-columns:minmax(190px,.85fr) minmax(420px,1.35fr);
+  gap:18px; align-items:center; min-height:104px; padding-left:22px !important;
+}
+.matRootIdentity{min-width:0;}
+.matRootEditBox{
+  display:grid; grid-template-columns:1fr auto; gap:10px; align-items:center;
+  padding:12px; border:1px dashed rgba(100,116,139,.28); border-radius:18px; background:rgba(255,255,255,.72);
+}
+.matRootInput{
+  width:100%; min-width:0; border:1px solid var(--border); border-radius:14px; padding:11px 13px;
+  font-weight:900; color:var(--ink); background:#fff; box-shadow:inset 0 1px 0 rgba(15,23,42,.03);
+}
+.matRootInput:focus{outline:none; border-color:rgba(185,28,28,.36); box-shadow:0 0 0 4px rgba(185,28,28,.08);}
+.matRootEditActions{display:flex; gap:8px; align-items:center; flex-wrap:wrap; justify-content:flex-end;}
+@media (max-width: 980px){
+  .matRootEditing{grid-template-columns:1fr;}
+  .matRootEditBox{grid-template-columns:1fr;}
+  .matRootEditActions{justify-content:flex-start;}
+}
+
 </style>
 </head>
 
@@ -8395,6 +8426,24 @@ const MATERIALES = [
   { uni:"ESCOLARES ARS", url:"https://drive.google.com/drive/folders/1ZSH_nGZty0AildhLikEZ_BQ1h-waj_5p" },
 ];
 
+let MATERIALES_LINK_EDIT_MODE = false;
+
+function materialesRootKey(uni){
+  return mcNormLabel(String(uni || "")).replace(/\s+/g, " ").trim();
+}
+function materialesRootGetLink(st, uni, fallback){
+  const key = materialesRootKey(uni);
+  const repo = st?.materialesRootLinks || {};
+  if (Object.prototype.hasOwnProperty.call(repo, key)) return String(repo[key] || "").trim();
+  return String(fallback || "").trim();
+}
+function materialesRootSetLink(st, uni, url){
+  if (!st.materialesRootLinks) st.materialesRootLinks = {};
+  st.materialesRootLinks[materialesRootKey(uni)] = String(url || "").trim();
+  return st;
+}
+
+
 // ===================== NOTAS GENERALES (NUEVO) =====================
 const NOTAS_GENERALES = [
   // ✅ PUCP
@@ -8492,12 +8541,23 @@ function ensureMaterialesLayout(){
   if (el.dataset.ready === "1") return;
 
   el.innerHTML = `
-    <div class="card panel12">
-      <div class="cardtitle">MATERIALES</div>
-      <div style="color:var(--muted); font-weight:900; margin-bottom:12px;">
-        Acceso directo a carpetas por universidad (materiales listos / trabajados).
+    <div class="card panel12 matRootPanel">
+      <div class="syLocalHead" style="margin-bottom:10px;">
+        <div>
+          <div class="cardtitle" style="margin:0;">MATERIALES</div>
+          <div style="color:var(--muted); font-weight:900; margin-top:6px;">
+            Acceso directo a carpetas por universidad (materiales listos / trabajados).
+          </div>
+        </div>
+        <div class="syKpis">
+          <span class="syKpiPill">CARPETAS: <b>5</b></span>
+          ${syCanEditLinks() ? `<button id="mRootEditToggle" class="syEditToggle" type="button">EDITAR ENLACES</button>` : ``}
+        </div>
       </div>
-      <div class="iGrid" id="matGrid"></div>
+      <div class="panelHint" id="mRootEditHint" style="margin:8px 0 12px; color:var(--muted);">
+        ${syCanEditLinks() ? "Vista limpia activa. Usa EDITAR ENLACES solo cuando necesites actualizar carpetas generales." : "Los enlaces son de solo lectura."}
+      </div>
+      <div class="iGrid matRootGrid" id="matGrid"></div>
     </div>
 
     <div class="card panel12" id="matCursoCard">
@@ -8536,6 +8596,10 @@ function ensureMaterialesLayout(){
   document.getElementById("mcProgram")?.addEventListener("change", renderMateriales);
   document.getElementById("mcCourse")?.addEventListener("change", renderMateriales);
   document.getElementById("mcFilter")?.addEventListener("change", renderMateriales);
+  document.getElementById("mRootEditToggle")?.addEventListener("click", ()=>{
+    MATERIALES_LINK_EDIT_MODE = !MATERIALES_LINK_EDIT_MODE;
+    renderMateriales();
+  });
 
   document.getElementById("mcSaveLink")?.addEventListener("click", ()=>{
     const pid = document.getElementById("mcProgram").value || "__ALL__";
@@ -10380,16 +10444,52 @@ function renderMateriales(){
       return found || { uni:u, url:"" };
     });
 
+    const rootEditBtn = document.getElementById("mRootEditToggle");
+    if (rootEditBtn){
+      rootEditBtn.textContent = MATERIALES_LINK_EDIT_MODE ? "VISTA LIMPIA" : "EDITAR ENLACES";
+      rootEditBtn.classList.toggle("active", MATERIALES_LINK_EDIT_MODE);
+    }
+    const rootHint = document.getElementById("mRootEditHint");
+    if (rootHint && syCanEditLinks()){
+      rootHint.textContent = MATERIALES_LINK_EDIT_MODE
+        ? "Modo edición activo: pega o actualiza las carpetas generales y vuelve a VISTA LIMPIA al finalizar."
+        : "Vista limpia activa. Usa EDITAR ENLACES solo cuando necesites actualizar carpetas generales.";
+    }
+
+    const stRoot = mcLoadStore();
+
     grid.innerHTML = orderedMaterials.map(x=>{
       const u = String(x.uni||"").toUpperCase();
       const dot = MAT_UNI_COLOR[u] || getCss("--accent");
-      const href = String(x.url||"").trim();
+      const href = materialesRootGetLink(stRoot, u, x.url);
       const isReady = !!href;
       const caption = isReady ? "ABRIR CARPETA" : "CARPETA PENDIENTE";
 
+      if (MATERIALES_LINK_EDIT_MODE && syCanEditLinks()){
+        return `
+          <div class="iItem matRootCard matRootEditing" style="--matRootAccent:${escapeHtml(dot)};">
+            <div class="iLeft matRootIdentity">
+              <div class="iSalon">${escapeHtml(u)}</div>
+              <div class="iMeta">
+                <span class="dot" style="background:${dot};"></span>
+                <span>${caption}</span>
+              </div>
+            </div>
+            <div class="matRootEditBox">
+              <input class="matRootInput" type="text" value="${escapeHtml(href)}" placeholder="Pega aquí el enlace de carpeta de ${escapeHtml(u)}" />
+              <div class="matRootEditActions">
+                ${isReady ? `<a class="syBtn" href="${escapeHtml(href)}" target="_blank" rel="noopener noreferrer">ABRIR</a>` : `<span class="syBtn disabled">ABRIR</span>`}
+                <button class="syBtn" type="button" data-matroot-save="1" data-uni="${escapeHtml(u)}">GUARDAR</button>
+                <button class="syBtn" type="button" data-matroot-clear="1" data-uni="${escapeHtml(u)}">LIMPIAR</button>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+
       return `
-        <a class="iItem${isReady ? "" : " disabled"}" href="${escapeHtml(isReady ? href : "#")}" target="_blank" rel="noopener"
-           style="text-decoration:none; color:inherit;">
+        <a class="iItem${isReady ? "" : " disabled"} matRootCard" href="${escapeHtml(isReady ? href : "#")}" target="_blank" rel="noopener"
+           style="text-decoration:none; color:inherit; --matRootAccent:${escapeHtml(dot)};">
           <div class="iLeft">
             <div class="iSalon">${escapeHtml(u)}</div>
             <div class="iMeta">
@@ -10401,6 +10501,31 @@ function renderMateriales(){
         </a>
       `;
     }).join("");
+
+    if (MATERIALES_LINK_EDIT_MODE && syCanEditLinks()){
+      grid.querySelectorAll('[data-matroot-save="1"]').forEach(btn=>{
+        btn.addEventListener("click", ()=>{
+          const uniName = btn.getAttribute("data-uni") || "";
+          const item = btn.closest(".matRootCard");
+          const input = item?.querySelector(".matRootInput");
+          const url = String(input?.value || "").trim();
+          const st = mcLoadStore();
+          materialesRootSetLink(st, uniName, url);
+          mcSaveStore(st);
+          toast(url ? "Carpeta de materiales guardada." : "Carpeta marcada como pendiente.");
+          renderMateriales();
+        });
+      });
+      grid.querySelectorAll('[data-matroot-clear="1"]').forEach(btn=>{
+        btn.addEventListener("click", ()=>{
+          const st = mcLoadStore();
+          materialesRootSetLink(st, btn.getAttribute("data-uni") || "", "");
+          mcSaveStore(st);
+          toast("Carpeta de materiales limpiada.");
+          renderMateriales();
+        });
+      });
+    }
   }
 
   // ===== CONTROL POR CURSO (flujo profesional) =====
