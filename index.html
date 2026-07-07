@@ -9096,18 +9096,18 @@ function mcSyllabusNotesForWeek(notes, holidayHits, year, holidays, classDates){
 function mcCourseAliases(course){
   const c = mcNormLabel(course);
 
-  // Equivalencias usadas en Horarios y Materiales.
+  // Equivalencias usadas en Horarios, SÍLABOS y Materiales.
   // mcNormLabel elimina tildes, por eso ÁLG/ALG, FÍS/FIS, QUÍ/QUI son equivalentes.
-  if (c.includes("RAZONAMIENTO VERBAL") || c === "RV" || c.includes("RAZ VERBAL")){
+  if (c.includes("RAZONAMIENTO VERBAL") || c === "RV" || c.includes("RAZ VERBAL") || c.includes("RAZ. VERBAL")){
     return ["RV","RAZ VERBAL","RAZ. VERBAL","RAZONAMIENTO VERBAL"];
   }
-  if (c.includes("RAZONAMIENTO MATEMATICO") || c === "RM" || c.includes("RAZ MATEMATICO")){
+  if (c.includes("RAZONAMIENTO MATEMATICO") || c === "RM" || c.includes("RAZ MATEMATICO") || c.includes("RAZ. MATEMATICO")){
     return ["RM","RAZ MATEMATICO","RAZ. MATEMATICO","RAZONAMIENTO MATEMATICO"];
   }
   if (c.includes("ARITMETICA") || c === "ARI"){
     return ["ARI","ARITMETICA"];
   }
-  if (c.includes("ALGEBRA") || c === "ALG" || c === "ALG"){
+  if (c.includes("ALGEBRA") || c === "ALG"){
     return ["ALG","ALGEBRA"];
   }
   if (c.includes("GEOMETRIA Y MEDIDA") || c === "G&M" || c === "GM" || c === "G M"){
@@ -9128,11 +9128,23 @@ function mcCourseAliases(course){
   if (c.includes("BIOLOGIA") || c === "BIO"){
     return ["BIO","BIOLOGIA"];
   }
+  if (c.includes("ECONOMIA") || c === "ECO"){
+    return ["ECO","ECONOMIA"];
+  }
+  if (c.includes("HISTORIA") || c === "HIS"){
+    return ["HIS","HISTORIA"];
+  }
+  if (c.includes("GEOGRAFIA") || c === "GEOG" || c === "GGF"){
+    return ["GEOG","GGF","GEOGRAFIA"];
+  }
   if (c.includes("TEXTOS") || c.includes("TEXTO") || c === "TXT"){
     return ["TXT","TEXTO","TEXTOS"];
   }
   if (c.includes("NUMEROS Y OPERACIONES") || c === "N&O" || c === "N O" || c === "NO"){
     return ["N&O","N O","NO","NUMEROS Y OPERACIONES"];
+  }
+  if (c.includes("REFORZAMIENTO DE MATEMATICAS") || c === "REF MAT" || c === "REF MATES" || c === "REF. MATES"){
+    return ["REF MAT","REF MATES","REF. MATES","REFORZAMIENTO DE MATEMATICAS"];
   }
   if (c.includes("SIMULACRO") || c === "SIM"){
     return ["SIM","SIMULACRO","SIMULACROS"];
@@ -9142,8 +9154,11 @@ function mcCourseAliases(course){
 
 function mcCleanScheduleCourseLabel(value){
   return mcNormLabel(value)
-    .replace(/\b(PRE|REF|REFORZAMIENTO|VIRTUAL|VIRT)\b/g," ")
-    .replace(/\b[123456789]\b/g," ")
+    .replace(/(PRE|VIRTUAL|VIRT)/g," ")
+    .replace(/REF\.\s*MATES?/g,"REF MAT")
+    .replace(/REF\s*MATES?/g,"REF MAT")
+    .replace(/REFORZAMIENTO\s+DE\s+MATEMATICAS/g,"REF MAT")
+    .replace(/[123456789]/g," ")
     .replace(/\s+/g," ")
     .trim();
 }
@@ -9224,24 +9239,50 @@ function mcIsMaterialIntegralSchedule(s, loc){
   return false;
 }
 
+function mcIsMaterialAgrariaSchedule(s, loc){
+  const raw = mcScheduleMaterialRawKey(s);
+  const sLoc = mcMaterialLocalKey(s?.local);
+  if (sLoc !== loc) return false;
+  if (!["LA MOLINA","SAN MIGUEL","SAN BORJA"].includes(loc)) return false;
+
+  // AGRARIA regular debe tomarse solo de tarjetas/ciclos AGRARIA.
+  // Se excluyen tarjetas escolares como "ESC AGRARIA" o "AGRARIA ESCOLAR".
+  if (raw.includes("ESCOLAR") || raw.includes("ESCOLARES")) return false;
+  const explicitKey = String([s?.id,s?.uni,s?.salon,s?.__colKey,s?.__cardKey].join(" ")).toUpperCase();
+  if (explicitKey.includes("AGRARIA")) return true;
+  return mcNormLabel(s?.uni) === "AGRARIA";
+}
+
 function mcScheduleDaysForEscolaresMateriales(local, course, programType){
   let loc = mcMaterialLocalKey(local);
   const type = mcNormLabel(programType || "");
+  const wantAgraria = type === "AGRARIA" || type.includes("AGRARIA");
   const wantArs = type.includes("ARS") || type.includes("POP");
-  const wantIntegral = type.includes("INTEGRAL") || (!wantArs && type.includes("ESCOLARES"));
+  const wantIntegral = !wantAgraria && (type.includes("INTEGRAL") || (!wantArs && type.includes("ESCOLARES")));
 
   if (wantArs && (!loc || loc === "EDITOR")) loc = "SAN MIGUEL";
-  else if (!loc || loc === "EDITOR") return [];
-  if (wantIntegral && !["LA MOLINA","SAN MIGUEL","SAN BORJA"].includes(loc)) return [];
+  else if (!loc) return [];
+
+  let targetLocs = [loc];
+  if (wantAgraria && loc === "EDITOR"){
+    // En espacio Editor se muestra una vista consolidada del ciclo AGRARIA.
+    // Si el usuario selecciona un local, el cálculo vuelve a ser local-específico.
+    targetLocs = ["LA MOLINA","SAN MIGUEL","SAN BORJA"];
+  }else if (loc === "EDITOR"){
+    return [];
+  }
+
+  if ((wantAgraria || wantIntegral) && !targetLocs.every(x=>["LA MOLINA","SAN MIGUEL","SAN BORJA"].includes(x))) return [];
   if (typeof SCHEDULES === "undefined") return [];
 
   const dayMap = {LUNES:1,MARTES:2,MIERCOLES:3,"MIÉRCOLES":3,JUEVES:4,VIERNES:5,SABADO:6,"SÁBADO":6,DOMINGO:0};
 
   const schedules = (SCHEDULES||[]).filter(s=>{
     const sLoc = mcMaterialLocalKey(s?.local);
-    if (sLoc !== loc) return false;
-    if (wantArs) return mcIsMaterialArsSchedule(s, loc);
-    if (wantIntegral) return mcIsMaterialIntegralSchedule(s, loc);
+    if (!targetLocs.includes(sLoc)) return false;
+    if (wantAgraria) return mcIsMaterialAgrariaSchedule(s, sLoc);
+    if (wantArs) return mcIsMaterialArsSchedule(s, sLoc);
+    if (wantIntegral) return mcIsMaterialIntegralSchedule(s, sLoc);
     return false;
   });
 
@@ -9343,7 +9384,8 @@ function mcAlignSyllabusTopics({weeks,codes,first,last,pStart,local,course,progr
   const holidays = mcHolidaysFromSyllabusNotes(weeks, year);
   const classDays = mcScheduleDaysForEscolaresMateriales(local, course, programType);
   const schedulePending = !classDays.length;
-  const isIntegral = mcNormLabel(programType).includes("INTEGRAL");
+  const normProgramType = mcNormLabel(programType);
+  const isStructuredProgram = normProgramType.includes("INTEGRAL") || normProgramType.includes("AGRARIA");
   const carry = [];
   const result = [];
 
@@ -9368,8 +9410,8 @@ function mcAlignSyllabusTopics({weeks,codes,first,last,pStart,local,course,progr
     let matchedByDate = false;
     let matchedBySyllabus = false;
 
-    if (isIntegral){
-      // Regla estándar para ESCOLARES INTEGRAL:
+    if (isStructuredProgram){
+      // Regla estándar para ciclos con sílabo institucional (ESCOLARES INTEGRAL y AGRARIA):
       // 1) Primero se cruza por fecha de la semana del programa.
       // 2) Si no hay fecha, se cruza por código solo si la fecha del sílabo está vacía
       //    o coincide con la fecha del programa.
@@ -9675,7 +9717,7 @@ async function mcHydrateMaterialesSyllabus({pid,cid,codes,first,last,pStart,spac
       const item = MC_ACTIVE_SYLLABUS_ITEMS[index];
       td.innerHTML = mcSyllabusCellHtml(item, index);
 
-      // Para ESCOLARES INTEGRAL, cuando el código existe en el sílabo,
+      // Para ciclos con sílabo institucional, cuando el código existe en el sílabo,
       // la fecha visible de Materiales debe respetar la fecha de la hoja del sílabo.
       const absoluteWeek = first - 1 + index;
       const dateCell = document.querySelector(`[data-material-date-week="${absoluteWeek}"]`);
@@ -9890,7 +9932,7 @@ function renderMateriales(){
   const savedCourse = localStorage.getItem(COURSE_KEY) || "";
   const course = courses.includes(savedCourse) ? savedCourse : (courses[0]||"");
   const isSimulacroCourse = mcNormLabel(course).includes("SIMULACRO");
-  const showSyllabusCol = (isArsProgram || isIntegralProgram) && !isSimulacroCourse;
+  const showSyllabusCol = (uni === "AGRARIA" || isArsProgram || isIntegralProgram) && !isSimulacroCourse;
 
   // ESCOLARES ARS solo se dicta en SAN MIGUEL.
   // Por eso, en Materiales no se muestran LA MOLINA, SAN BORJA ni VIRTUAL para este ciclo.
@@ -10036,6 +10078,7 @@ function renderMateriales(){
           </span>
         ` : ""}
 
+${(canEditRole && matEditOn) ? `<button id="mcClearCycleBtn" class="btn ghost" type="button" style="margin-left:6px; border-color:#dc2626; color:#991b1b; background:#fff5f5;">LIMPIAR CICLO</button>` : ""}
 ${canWork ? `<button id="mcEditBtn" class="btn ${matEditOn?'primary':'ghost'}" type="button" style="margin-left:6px;">${matEditOn?'EDITANDO':'EDITAR'}</button>` : ""}
       </div>
     </div>
@@ -10152,6 +10195,28 @@ ${canWork ? `<button id="mcEditBtn" class="btn ${matEditOn?'primary':'ghost'}" t
   eb?.addEventListener("click", ()=>{
     const now = (localStorage.getItem(MAT_EDIT_KEY) === "1");
     localStorage.setItem(MAT_EDIT_KEY, now ? "0" : "1");
+    renderMateriales();
+  });
+
+  card.querySelector("#mcClearCycleBtn")?.addEventListener("click", ()=>{
+    if (!canEditRole) return toast("Solo Admin/Editor puede limpiar un ciclo.");
+    const pidClear = String(selP?.value || "");
+    if (!pidClear) return toast("Selecciona un programa/ciclo.");
+    const programName = String(prog?.meta?.name || mcMaterialDisplayProgramName(prog) || "PROGRAMA").toUpperCase();
+    const ok = confirm(`Vas a borrar TODOS los checks de materiales del ciclo/programa:
+
+${programName}
+
+Esto afecta RECIBIDO, DIAGRAMADO e IMPRESO para todos los cursos y espacios de este programa. ¿Deseas continuar?`);
+    if (!ok) return;
+    const code = prompt("Código de seguridad para limpiar el ciclo:");
+    if (String(code || "").trim() !== "LIMPIAR2026"){
+      return toast("Código incorrecto. No se limpió el ciclo.");
+    }
+    const st = mcLoadStore();
+    if (st.status && st.status[pidClear]) delete st.status[pidClear];
+    mcSaveStore(st);
+    toast("Checks del ciclo limpiados.");
     renderMateriales();
   });
 
@@ -10312,7 +10377,7 @@ ${canWork ? `<button id="mcEditBtn" class="btn ${matEditOn?'primary':'ghost'}" t
       pStart,
       space,
       url:syllabusUrl,
-      programType: isArsProgram ? "ESCOLARES ARS" : "ESCOLARES INTEGRAL"
+      programType: (uni === "AGRARIA") ? "AGRARIA" : (isArsProgram ? "ESCOLARES ARS" : "ESCOLARES INTEGRAL")
     });
   }
 
