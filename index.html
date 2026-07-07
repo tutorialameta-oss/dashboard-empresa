@@ -9108,7 +9108,7 @@ function mcSyllabusNotesForWeek(notes, holidayHits, year, holidays, classDates){
 function mcCourseAliases(course){
   const c = mcNormLabel(course);
 
-  // Equivalencias usadas en Horarios, SÍLABOS y Materiales.
+  // Equivalencias generales usadas en SÍLABOS y Materiales.
   // mcNormLabel elimina tildes, por eso ÁLG/ALG, FÍS/FIS, QUÍ/QUI son equivalentes.
   if (c.includes("RAZONAMIENTO VERBAL") || c === "RV" || c.includes("RAZ VERBAL") || c.includes("RAZ. VERBAL")){
     return ["RV","RAZ VERBAL","RAZ. VERBAL","RAZONAMIENTO VERBAL"];
@@ -9124,6 +9124,9 @@ function mcCourseAliases(course){
   }
   if (c.includes("GEOMETRIA Y MEDIDA") || c === "G&M" || c === "GM" || c === "G M"){
     return ["G&M","GM","G M","GEOMETRIA Y MEDIDA"];
+  }
+  if (c.includes("GEOMETRIA Y TRIGONOMETRIA") || c === "G&T" || c === "GT" || c === "G T"){
+    return ["G&T","GT","G T","GEOMETRIA Y TRIGONOMETRIA"];
   }
   if (c.includes("GEOMETRIA") || c === "GEO"){
     return ["GEO","GEOMETRIA"];
@@ -9147,10 +9150,19 @@ function mcCourseAliases(course){
     return ["HIS","HISTORIA"];
   }
   if (c.includes("GEOGRAFIA") || c === "GEOG" || c === "GGF"){
-    return ["GEOG","GGF","GEOGRAFIA"];
+    return ["GGF","GEOG","GEOGRAFIA"];
   }
   if (c.includes("TEXTOS") || c.includes("TEXTO") || c === "TXT"){
     return ["TXT","TEXTO","TEXTOS"];
+  }
+  if (c.includes("LENGUAJE") || c === "LEN" || c === "LENG"){
+    return ["LEN","LENG","LENGUAJE"];
+  }
+  if (c.includes("HABILIDAD OPERATIVA") || c === "HOP"){
+    return ["HOP","HABILIDAD OPERATIVA"];
+  }
+  if (c.includes("ESTADISTICA") || c === "EST"){
+    return ["EST","ESTADISTICA"];
   }
   if (c.includes("NUMEROS Y OPERACIONES") || c === "N&O" || c === "N O" || c === "NO"){
     return ["N&O","N O","NO","NUMEROS Y OPERACIONES"];
@@ -9164,22 +9176,104 @@ function mcCourseAliases(course){
   return [c];
 }
 
+function mcScheduleAliasesForProgram(course, programType=""){
+  const c = mcNormLabel(course);
+  const type = mcNormLabel(programType || "");
+  const wantPucp = type === "PUCP" || type.includes("PUCP");
+  const wantUlima = type === "U.LIMA" || type === "ULIMA" || type.includes("U LIMA") || type.includes("ULIMA");
+  const wantAgraria = type === "AGRARIA" || type.includes("AGRARIA");
+
+  if (wantPucp){
+    if (c.includes("GEOMETRIA Y MEDIDA") || c === "G&M" || c === "GM" || c === "G M") return ["G&M","GM","G M","GEOMETRIA Y MEDIDA"];
+    if (c.includes("NUMEROS Y OPERACIONES") || c === "N&O" || c === "N O" || c === "NO") return ["N&O","N O","NO","NUMEROS Y OPERACIONES"];
+    if (c.includes("TEXTOS") || c.includes("TEXTO") || c === "TXT") return ["TXT","TEXTO","TEXTOS"];
+    if (c.includes("ALGEBRA") || c === "ALG") return ["ALG","ALGEBRA"];
+    if (c.includes("HABILIDAD OPERATIVA") || c === "HOP") return ["HOP","HABILIDAD OPERATIVA"];
+    if (c.includes("ESTADISTICA") || c === "EST") return ["EST","ESTADISTICA"];
+    if (c.includes("SIMULACRO") || c === "SIM") return ["SIM","SIMULACRO","SIMULACROS"];
+    return [];
+  }
+
+  if (wantUlima){
+    if (c.includes("GEOMETRIA Y TRIGONOMETRIA") || c === "G&T" || c === "GT" || c === "G T") return ["G&T","GT","G T","GEOMETRIA Y TRIGONOMETRIA"];
+    if (c.includes("ARITMETICA") || c === "ARI") return ["ARI","ARITMETICA"];
+    if (c.includes("ALGEBRA") || c === "ALG") return ["ALG","ALGEBRA"];
+    if (c.includes("HABILIDAD OPERATIVA") || c === "HOP") return ["HOP","HABILIDAD OPERATIVA"];
+    if (c.includes("LENGUAJE") || c === "LEN" || c === "LENG") return ["LEN","LENG","LENGUAJE"];
+    if (c.includes("RAZONAMIENTO MATEMATICO") || c === "RM" || c.includes("RAZ MATEMATICO")) return ["RM","RAZONAMIENTO MATEMATICO"];
+    if (c.includes("TEXTOS") || c.includes("TEXTO") || c === "TXT") return ["TXT","TEXTO","TEXTOS"];
+    if (c.includes("SIMULACRO") || c === "SIM") return ["SIM","SIMULACRO","SIMULACROS"];
+    return [];
+  }
+
+  if (wantAgraria){
+    if (c.includes("RAZONAMIENTO VERBAL") || c === "RV" || c.includes("RAZ VERBAL")) return ["RV","RAZONAMIENTO VERBAL"];
+    if (c.includes("RAZONAMIENTO MATEMATICO") || c === "RM" || c.includes("RAZ MATEMATICO")) return ["RM","RAZONAMIENTO MATEMATICO"];
+    if (c.includes("ARITMETICA") || c === "ARI") return ["ARI","ARITMETICA"];
+    if (c.includes("ALGEBRA") || c === "ALG") return ["ALG","ALGEBRA"];
+    if (c.includes("GEOMETRIA") || c === "GEO") return ["GEO","GEOMETRIA"];
+    if (c.includes("TRIGONOMETRIA") || c === "TRI" || c === "TRIG") return ["TRI","TRIG","TRIGONOMETRIA"];
+    if (c.includes("TEXTOS") || c.includes("TEXTO") || c === "TXT") return ["TXT","TEXTO","TEXTOS"];
+    if (c.includes("FISICA") || c === "FIS") return ["FIS","FISICA"];
+    if (c.includes("QUIMICA") || c === "QUI") return ["QUI","QUIMICA"];
+    if (c.includes("BIOLOGIA") || c === "BIO") return ["BIO","BIOLOGIA"];
+    if (c.includes("GEOGRAFIA") || c === "GGF" || c === "GEOG") return ["GGF","GEOGRAFIA"];
+    if (c.includes("HISTORIA") || c === "HIS") return ["HIS","HISTORIA"];
+    if (c.includes("ECONOMIA") || c === "ECO") return ["ECO","ECONOMIA"];
+    if (c.includes("SIMULACRO") || c === "SIM") return ["SIM","SIMULACRO","SIMULACROS"];
+    return [];
+  }
+
+  return mcCourseAliases(course);
+}
+
 function mcCleanScheduleCourseLabel(value){
   return mcNormLabel(value)
-    .replace(/(PRE|VIRTUAL|VIRT)/g," ")
-    .replace(/REF\.\s*MATES?/g,"REF MAT")
-    .replace(/REF\s*MATES?/g,"REF MAT")
-    .replace(/REFORZAMIENTO\s+DE\s+MATEMATICAS/g,"REF MAT")
-    .replace(/[123456789]/g," ")
+    .replace(/\b(PRE|VIRTUAL|VIRT)\b/g," ")
+    .replace(/\bREF\.\s*MATES?\b/g,"REF MAT")
+    .replace(/\bREF\s*MATES?\b/g,"REF MAT")
+    .replace(/\bREFORZAMIENTO\s+DE\s+MATEMATICAS\b/g,"REF MAT")
+    .replace(/\bCEPRE\b/g,"CEPRE")
+    .replace(/\b[123456789]\b/g," ")
     .replace(/\s+/g," ")
     .trim();
 }
 
-function mcScheduleCourseMatches(blockCourse, course){
-  const rawCourse = mcCleanScheduleCourseLabel(blockCourse);
-  const aliases = mcCourseAliases(course).map(mcNormLabel);
+function mcSchedulePhraseMatches(haystack, needle){
+  const h = mcNormLabel(haystack).replace(/\s+/g," ").trim();
+  const n = mcNormLabel(needle).replace(/\s+/g," ").trim();
+  if (!h || !n) return false;
+  return h === n || h.startsWith(n + " ") || h.endsWith(" " + n) || h.includes(" " + n + " ");
+}
+
+function mcScheduleCourseMatches(blockCourse, course, programType=""){
+  const rawOriginal = mcNormLabel(blockCourse).replace(/\s+/g," ").trim();
+  if (!rawOriginal) return false;
+
+  // CEPRE TXT no debe contabilizarse como Textos, y en general CEPRE no se cruza
+  // con el sílabo regular de Materiales.
+  if (mcSchedulePhraseMatches(rawOriginal, "CEPRE")) return false;
+
+  const rawCourse = mcCleanScheduleCourseLabel(rawOriginal);
+  const aliases = mcScheduleAliasesForProgram(course, programType).map(mcNormLabel).filter(Boolean);
   if (!rawCourse || !aliases.length) return false;
-  return aliases.some(a=> rawCourse===a || rawCourse.startsWith(a+" ") || rawCourse.includes(" "+a+" "));
+
+  return aliases.some(a=>{
+    if (mcSchedulePhraseMatches(rawCourse, a)) return true;
+    if (mcSchedulePhraseMatches(rawOriginal, a)) return true;
+    return false;
+  });
+}
+
+function mcScheduleIsColumnOne(s){
+  const raw = mcScheduleMaterialRawKey(s);
+  const compact = raw.replace(/[._-]/g," ").replace(/\s+/g," ").trim();
+  // Si explícitamente dice ciclo/columna 2, se excluye. Si no tiene número,
+  // se considera columna 1 para mantener compatibilidad con tarjetas antiguas.
+  if (/(^|\s)(2|II)(\s|$)/.test(compact)) return false;
+  if (compact.includes(" U LIMA 2") || compact.includes(" ULIMA 2")) return false;
+  if (compact.includes(" AGRARIA 2")) return false;
+  return true;
 }
 
 function mcDefaultArsCourseDays(course){
@@ -9256,6 +9350,7 @@ function mcIsMaterialAgrariaSchedule(s, loc){
   const sLoc = mcMaterialLocalKey(s?.local);
   if (sLoc !== loc) return false;
   if (!["LA MOLINA","SAN MIGUEL","SAN BORJA"].includes(loc)) return false;
+  if (!mcScheduleIsColumnOne(s)) return false;
 
   // AGRARIA regular debe tomarse solo de tarjetas/ciclos AGRARIA.
   // Se excluyen tarjetas escolares como "ESC AGRARIA" o "AGRARIA ESCOLAR".
@@ -9270,9 +9365,11 @@ function mcIsMaterialUlimaSchedule(s, loc){
   const sLoc = mcMaterialLocalKey(s?.local);
   if (sLoc !== loc) return false;
   if (!["LA MOLINA","SAN MIGUEL","SAN BORJA"].includes(loc)) return false;
+  if (!mcScheduleIsColumnOne(s)) return false;
+  if (raw.includes("PRE U LIMA") || raw.includes("PRE ULIMA")) return false;
   if (raw.includes("ESCOLAR") || raw.includes("ESCOLARES") || raw.includes("ESC U LIMA")) return false;
   const sUni = mcNormLabel(s?.uni);
-  return sUni === "U.LIMA" || sUni === "ULIMA" || raw.includes("U LIMA") || raw.includes("ULIMA") || raw.includes("PRE U LIMA");
+  return sUni === "U.LIMA" || sUni === "ULIMA" || raw.includes("U LIMA") || raw.includes("ULIMA");
 }
 
 function mcIsMaterialPucpSchedule(s, loc){
@@ -9325,7 +9422,7 @@ function mcScheduleDaysForEscolaresMateriales(local, course, programType){
   const days = [];
   for (const sch of schedules){
     for (const block of (sch.blocks||[])){
-      if (!mcScheduleCourseMatches(block?.course, course)) continue;
+      if (!mcScheduleCourseMatches(block?.course, course, programType)) continue;
       const day = dayMap[String(block?.day||"").toUpperCase()];
       if (Number.isFinite(day)) days.push(day);
     }
