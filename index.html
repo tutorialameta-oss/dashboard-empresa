@@ -9265,26 +9265,48 @@ function mcIsMaterialAgrariaSchedule(s, loc){
   return mcNormLabel(s?.uni) === "AGRARIA";
 }
 
+function mcIsMaterialUlimaSchedule(s, loc){
+  const raw = mcScheduleMaterialRawKey(s);
+  const sLoc = mcMaterialLocalKey(s?.local);
+  if (sLoc !== loc) return false;
+  if (!["LA MOLINA","SAN MIGUEL","SAN BORJA"].includes(loc)) return false;
+  if (raw.includes("ESCOLAR") || raw.includes("ESCOLARES") || raw.includes("ESC U LIMA")) return false;
+  const sUni = mcNormLabel(s?.uni);
+  return sUni === "U.LIMA" || sUni === "ULIMA" || raw.includes("U LIMA") || raw.includes("ULIMA") || raw.includes("PRE U LIMA");
+}
+
+function mcIsMaterialPucpSchedule(s, loc){
+  const raw = mcScheduleMaterialRawKey(s);
+  const sLoc = mcMaterialLocalKey(s?.local);
+  if (sLoc !== loc) return false;
+  if (!["LA MOLINA","SAN MIGUEL","SAN BORJA"].includes(loc)) return false;
+  if (raw.includes("ESCOLAR") || raw.includes("ESCOLARES") || raw.includes("ESC PUCP")) return false;
+  const sUni = mcNormLabel(s?.uni);
+  return sUni === "PUCP" || raw.includes("PUCP");
+}
+
 function mcScheduleDaysForEscolaresMateriales(local, course, programType){
   let loc = mcMaterialLocalKey(local);
   const type = mcNormLabel(programType || "");
   const wantAgraria = type === "AGRARIA" || type.includes("AGRARIA");
+  const wantUlima = type === "U.LIMA" || type === "ULIMA" || type.includes("U LIMA") || type.includes("ULIMA");
+  const wantPucp = type === "PUCP" || type.includes("PUCP");
   const wantArs = type.includes("ARS") || type.includes("POP");
-  const wantIntegral = !wantAgraria && (type.includes("INTEGRAL") || (!wantArs && type.includes("ESCOLARES")));
+  const wantIntegral = !wantAgraria && !wantUlima && !wantPucp && (type.includes("INTEGRAL") || (!wantArs && type.includes("ESCOLARES")));
 
   if (wantArs && (!loc || loc === "EDITOR")) loc = "SAN MIGUEL";
   else if (!loc) return [];
 
   let targetLocs = [loc];
-  if (wantAgraria && loc === "EDITOR"){
-    // En espacio Editor se muestra una vista consolidada del ciclo AGRARIA.
+  if ((wantAgraria || wantUlima || wantPucp) && loc === "EDITOR"){
+    // En espacio Editor se usa una vista consolidada para revisar el ciclo.
     // Si el usuario selecciona un local, el cálculo vuelve a ser local-específico.
     targetLocs = ["LA MOLINA","SAN MIGUEL","SAN BORJA"];
   }else if (loc === "EDITOR"){
     return [];
   }
 
-  if ((wantAgraria || wantIntegral) && !targetLocs.every(x=>["LA MOLINA","SAN MIGUEL","SAN BORJA"].includes(x))) return [];
+  if ((wantAgraria || wantUlima || wantPucp || wantIntegral) && !targetLocs.every(x=>["LA MOLINA","SAN MIGUEL","SAN BORJA"].includes(x))) return [];
   if (typeof SCHEDULES === "undefined") return [];
 
   const dayMap = {LUNES:1,MARTES:2,MIERCOLES:3,"MIÉRCOLES":3,JUEVES:4,VIERNES:5,SABADO:6,"SÁBADO":6,DOMINGO:0};
@@ -9293,6 +9315,8 @@ function mcScheduleDaysForEscolaresMateriales(local, course, programType){
     const sLoc = mcMaterialLocalKey(s?.local);
     if (!targetLocs.includes(sLoc)) return false;
     if (wantAgraria) return mcIsMaterialAgrariaSchedule(s, sLoc);
+    if (wantUlima) return mcIsMaterialUlimaSchedule(s, sLoc);
+    if (wantPucp) return mcIsMaterialPucpSchedule(s, sLoc);
     if (wantArs) return mcIsMaterialArsSchedule(s, sLoc);
     if (wantIntegral) return mcIsMaterialIntegralSchedule(s, sLoc);
     return false;
@@ -9397,7 +9421,7 @@ function mcAlignSyllabusTopics({weeks,codes,first,last,pStart,local,course,progr
   const classDays = mcScheduleDaysForEscolaresMateriales(local, course, programType);
   const schedulePending = !classDays.length;
   const normProgramType = mcNormLabel(programType);
-  const isStructuredProgram = normProgramType.includes("INTEGRAL") || normProgramType.includes("AGRARIA");
+  const isStructuredProgram = normProgramType.includes("INTEGRAL") || normProgramType.includes("AGRARIA") || normProgramType.includes("PUCP") || normProgramType.includes("U.LIMA") || normProgramType.includes("ULIMA");
   const carry = [];
   const result = [];
 
@@ -9853,9 +9877,9 @@ function renderMateriales(){
   const roleLower = String(CURRENT_ROLE||"").toLowerCase();
   const canEditRole = (roleLower === "admin"); // links: solo Admin en espacio Editor
   const canWork = (roleLower === "admin" || roleLower === "tutor"); // marcar estados (Tutor/Admin)
-  const MAT_EDIT_KEY = "LM_MAT_EDIT_MODE";
-  const matEditDefault = (roleLower === "tutor");
-  const matEditOn = (localStorage.getItem(MAT_EDIT_KEY) ?? (matEditDefault ? "1" : "0")) === "1";
+  // Materiales queda editable por defecto según permisos del rol/espacio.
+  // Ya no se requiere botón para activar/desactivar checks.
+  const matEditOn = true;
 
   const store = pgxLoadStore();
     const baseWeeks = pgxTotalWeeks();
@@ -9944,7 +9968,8 @@ function renderMateriales(){
   const savedCourse = localStorage.getItem(COURSE_KEY) || "";
   const course = courses.includes(savedCourse) ? savedCourse : (courses[0]||"");
   const isSimulacroCourse = mcNormLabel(course).includes("SIMULACRO");
-  const showSyllabusCol = (uni === "AGRARIA" || isArsProgram || isIntegralProgram) && !isSimulacroCourse;
+  // SÍLABO visible de forma estándar para todos los ciclos/cursos, excepto Simulacros.
+  const showSyllabusCol = !isSimulacroCourse;
 
   // ESCOLARES ARS solo se dicta en SAN MIGUEL.
   // Por eso, en Materiales no se muestran LA MOLINA, SAN BORJA ni VIRTUAL para este ciclo.
@@ -10091,7 +10116,7 @@ function renderMateriales(){
         ` : ""}
 
 ${(canEditRole && matEditOn) ? `<button id="mcClearCycleBtn" class="btn ghost" type="button" style="margin-left:6px; border-color:#dc2626; color:#991b1b; background:#fff5f5;">LIMPIAR CICLO</button>` : ""}
-${canWork ? `<button id="mcEditBtn" class="btn ${matEditOn?'primary':'ghost'}" type="button" title="Activa o desactiva la edición de checks; no edita enlaces de sílabo." style="margin-left:6px;">${matEditOn?'CHECKS ACTIVOS':'EDITAR CHECKS'}</button>` : ""}
+
       </div>
     </div>
 
@@ -10181,14 +10206,6 @@ ${canWork ? `<button id="mcEditBtn" class="btn ${matEditOn?'primary':'ghost'}" t
   });
   selC?.addEventListener("change", ()=>{
     localStorage.setItem(COURSE_KEY, String(selC.value||""));
-    renderMateriales();
-  });
-
-  // toggle edición de materiales (marcar checkboxes)
-  const eb = card.querySelector("#mcEditBtn");
-  eb?.addEventListener("click", ()=>{
-    const now = (localStorage.getItem(MAT_EDIT_KEY) === "1");
-    localStorage.setItem(MAT_EDIT_KEY, now ? "0" : "1");
     renderMateriales();
   });
 
@@ -10372,7 +10389,7 @@ Esto afecta RECIBIDO, DIAGRAMADO e IMPRESO para todos los cursos y espacios de e
       pStart,
       space,
       url:syllabusUrl,
-      programType: (uni === "AGRARIA") ? "AGRARIA" : (isArsProgram ? "ESCOLARES ARS" : "ESCOLARES INTEGRAL")
+      programType: isArsProgram ? "ESCOLARES ARS" : (isIntegralProgram ? "ESCOLARES INTEGRAL" : uni)
     });
   }
 
