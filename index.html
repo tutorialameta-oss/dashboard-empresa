@@ -551,7 +551,25 @@
       align-items:flex-start;
       justify-content:space-between;
       gap:12px;
+      flex-wrap:wrap;
     }
+    .schHead .hActions{
+      display:flex;
+      gap:8px;
+      align-items:center;
+      justify-content:flex-end;
+      flex-wrap:wrap;
+      flex:0 0 auto;
+      max-width:100%;
+    }
+    .schEditTools{
+      display:flex;
+      gap:8px;
+      align-items:center;
+      flex-wrap:wrap;
+      padding:0 14px 10px;
+    }
+    body.exportMode .schEditTools{ display:none !important; }
     .schHead .hLeft{
       display:flex;
       flex-direction:column;
@@ -629,6 +647,34 @@
       cursor:default;
       user-select:none;
     }
+
+    .schColorTools,
+    .schRangeTools{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      padding:6px 8px;
+      border:1px solid rgba(15,23,42,0.12);
+      border-radius:999px;
+      background:#fff;
+      color:var(--muted);
+      font-size:10px;
+      font-weight:950;
+      text-transform:uppercase;
+      white-space:nowrap;
+    }
+    .schColorTools label,
+    .schRangeTools label{ display:flex; align-items:center; gap:5px; }
+    .schColorTools input[type="color"]{
+      min-width:0;
+      width:28px;
+      height:24px;
+      padding:2px;
+      border-radius:8px;
+      cursor:pointer;
+    }
+    body.exportMode .schColorTools,
+    body.exportMode .schRangeTools{ display:none !important; }
 
     .schEdit{
       padding:8px 12px;
@@ -3402,6 +3448,7 @@ function pgxProgramSpec(kind){
   if (raw === "PRE U.LIMA" || raw === "PRE ULIMA") return { kind:"PRE U.LIMA", scope:"U.LIMA", theme:"PRE U.LIMA" };
   if (raw === "U.LIMA" || raw === "ULIMA" || raw === "UL") return { kind:"U.LIMA", scope:"U.LIMA", theme:"U.LIMA" };
   if (raw === "PUCP") return { kind:"PUCP", scope:"PUCP", theme:"PUCP" };
+  if (raw === "ESCOLARES U.LIMA" || raw === "ESCOLAR U.LIMA" || raw === "ESC U.LIMA") return { kind:"ESCOLARES U.LIMA", scope:"ESCOLARES", theme:"ESCOLARES" };
   if (raw === "ESCOLARES" || raw === "ESCOLAR") return { kind:"ESCOLARES", scope:"ESCOLARES", theme:"ESCOLARES" };
   return { kind:"AGRARIA", scope:"AGRARIA", theme:"AGRARIA" };
 }
@@ -4366,7 +4413,7 @@ if (zoom) zoom.value = pgxZoomOption(pgxGetZoom());
 
         <label>SCOPE
           <select id="pgsScope">
-            ${["ALL","AGRARIA","PUCP","U.LIMA"].map(x=>`<option value="${x}"${String(p.meta?.scope||"ALL").toUpperCase()===x?" selected":""}>${x}</option>`).join("")}
+            ${["ALL","AGRARIA","PUCP","U.LIMA","ESCOLARES"].map(x=>`<option value="${x}"${String(p.meta?.scope||"ALL").toUpperCase()===x?" selected":""}>${x}</option>`).join("")}
           </select>
         </label>
 
@@ -4670,6 +4717,7 @@ const tw = pgxTotalWeeks();
             <option value="PRE U.LIMA">CICLO: PRE U.LIMA</option>
             <option value="PUCP">CICLO: PUCP</option>
             <option value="ESCOLARES">CICLO: ESCOLARES</option>
+            <option value="ESCOLARES U.LIMA">CICLO: ESCOLARES U.LIMA</option>
           </select>
           <button id="pgxCreate" class="btn ghost" type="button">+ CREAR PROGRAMA</button>
         </div>
@@ -6636,6 +6684,20 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
     return base;
   }
 
+  function expandEscolaresImpresionesRows(rows){
+    const out = [];
+    for (const row of (rows||[])){
+      const salon = mcNormLabel(row?.salon || "");
+      if (/^ESCOLARES?(?:\s+(?:LM|SM|SB))?$/.test(salon)){
+        out.push({...row, salon:"ESCOLAR U.LIMA"});
+        out.push({...row, salon:"ESCOLAR PUCP", count:0});
+      }else{
+        out.push(row);
+      }
+    }
+    return out;
+  }
+
   function ensureImpresionesLayout(){
     const el = document.getElementById("view_impresiones");
     if (el.dataset.ready === "1") return;
@@ -6772,11 +6834,11 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
       if (!res.ok) throw new Error("HTTP "+res.status);
       const text = await res.text();
 
-      state.imprRows = ensurePreUlimaImpresionesRows(parseImpresionesCSV(text));
+      state.imprRows = ensurePreUlimaImpresionesRows(expandEscolaresImpresionesRows(parseImpresionesCSV(text)));
       state.imprUpdatedAt = Date.now(); // se conserva, pero ya no se muestra en pantalla
     } catch(e){
       console.error("IMPRESIONES:", e);
-      state.imprRows = ensurePreUlimaImpresionesRows(state.imprRows || []);
+      state.imprRows = ensurePreUlimaImpresionesRows(expandEscolaresImpresionesRows(state.imprRows || []));
     }
   }
   // ===================== FIN IMPRESIONES =====================
@@ -6830,6 +6892,13 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
       { name:"TEXTOS", url:"https://docs.google.com/spreadsheets/d/13hVQ3aU8tGTTCLulDKqvEPjfPig6mJmT/edit?usp=drive_link&ouid=109996193497961946614&rtpof=true&sd=true" },
       { name:"ÁLGEBRA", url:"https://docs.google.com/spreadsheets/d/1xCleoX70pd__IPvAJmxIXLg7PbqYSZWl/edit?usp=drive_link&ouid=109996193497961946614&rtpof=true&sd=true" },
       { name:"GEOMETRÍA Y MEDIDA", url:"https://docs.google.com/spreadsheets/d/1hiDjBKA481mnXIRNWQ855JOEd3SZMpgk/edit?usp=drive_link&ouid=109996193497961946614&rtpof=true&sd=true" },
+    ],
+    "ESCOLAR U.LIMA": [
+      { name:"TEXTOS", url:"https://docs.google.com/spreadsheets/d/1ILTmyKaVYUDhTv3KOit67iOh3MlgsCVtSi0ri2ejPgU/edit?gid=11988891#gid=11988891" },
+      { name:"RAZONAMIENTO MATEMÁTICO", url:"https://docs.google.com/spreadsheets/d/1u-Y8dvVsuQ9zCqX3SNHZgGZgW_j8QJSMmbNwh8qxtS0/edit?gid=11988891#gid=11988891" },
+      { name:"ÁLGEBRA", url:"https://docs.google.com/spreadsheets/d/18_38udXwAgCbA3ysr1R9cpWVY0Z_nIaOdXzYVPV8_D8/edit?gid=11988891#gid=11988891" },
+      { name:"ARITMÉTICA", url:"https://docs.google.com/spreadsheets/d/1VvgKuQHSuU1j-HVWCojynMw6N3b5LwBBgymTq_K_6Ck/edit?gid=11988891#gid=11988891" },
+      { name:"GEOMETRÍA Y TRIGONOMETRÍA", url:"https://docs.google.com/spreadsheets/d/1-aWi7hmJcCkrZAIy8E5riX6jFFTvEn5qnuwqC5cGF2o/edit?gid=11988891#gid=11988891" },
     ]
   };
 
@@ -6838,6 +6907,7 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
     if (uni==="U.LIMA") return getCss("--ulima");
     if (uni==="PUCP") return getCss("--pucp");
     if (uni==="ESCOLARES ARS") return getCss("--pucp");
+    if (uni==="ESCOLAR U.LIMA") return getCss("--schHead_ESC");
     if (uni==="ESCOLARES" || uni==="ESCOLARES INTEGRAL") return getCss("--schHead_ESC");
     return getCss("--ulima");
   }
@@ -6909,6 +6979,7 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
           <span class="pill"><span class="dot pucp"></span>PUCP</span>
           <span class="pill"><span class="dot escolares"></span>ESCOLARES INTEGRAL</span>
           <span class="pill"><span class="dot pucp"></span>ESCOLARES ARS</span>
+          <span class="pill"><span class="dot escolares"></span>ESCOLAR U.LIMA</span>
         </div>
         <div class="panelHint" style="margin-top:8px; color:var(--muted);">
         </div>
@@ -6919,7 +6990,7 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
           <div class="cardtitle" style="margin:0;">RESUMEN GENERAL</div>
           <div class="syKpis">
             <span class="syKpiPill">CURSOS: <b id="sTotal">0</b></span>
-            <span class="syKpiPill">UNIVERSIDADES: <b id="sUnis">5</b></span>
+          <span class="syKpiPill">UNIVERSIDADES: <b id="sUnis">6</b></span>
           </div>
         </div>
       </div>
@@ -6927,7 +6998,7 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
       <div class="panel12" id="sBlocks"></div>
     `;
 
-    fillSelectKeep("sUni", ["AGRARIA","U.LIMA","PUCP","ESCOLARES INTEGRAL","ESCOLARES ARS"], "UNIVERSIDAD: TODAS");
+    fillSelectKeep("sUni", ["AGRARIA","U.LIMA","PUCP","ESCOLARES INTEGRAL","ESCOLARES ARS","ESCOLAR U.LIMA"], "UNIVERSIDAD: TODAS");
 
     document.getElementById("sReset").addEventListener("click", ()=>{
       document.getElementById("sUni").value="__ALL__";
@@ -7013,7 +7084,7 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
     const fUni = document.getElementById("sUni").value;
     const q = low(document.getElementById("sQ").value);
 
-    const uniOrder = ["AGRARIA","U.LIMA","PUCP","ESCOLARES INTEGRAL","ESCOLARES ARS"];
+    const uniOrder = ["AGRARIA","U.LIMA","PUCP","ESCOLARES INTEGRAL","ESCOLARES ARS","ESCOLAR U.LIMA"];
     let unis = uniOrder.slice();
     if (fUni !== "__ALL__") unis = unis.filter(u=>u===fUni);
 
@@ -7811,17 +7882,33 @@ const MATERIALES = [
 // ===================== NOTAS GENERALES (NUEVO) =====================
 const NOTAS_GENERALES = [
   // ✅ PUCP
-  { id:"PUCP",   uni:"PUCP",   label:"NOTAS GENERALES PUCP",   url:"https://docs.google.com/spreadsheets/d/1ocBp2agEOpgkmveUJkFDmDjMvf6Zp4kPlXtfMlPmgY0/edit?usp=drive_link" },
+  { id:"PUCP",   uni:"PUCP",   label:"NOTAS PUCP",   url:"https://docs.google.com/spreadsheets/d/1ocBp2agEOpgkmveUJkFDmDjMvf6Zp4kPlXtfMlPmgY0/edit?usp=drive_link" },
 
   // ✅ U.LIMA
-  { id:"ULIMA",  uni:"U.LIMA", label:"NOTAS GENERALES U.LIMA", url:"https://docs.google.com/spreadsheets/d/1jHx33yKbl9LFVbX9fB7pacnvhF7UmTbd9Z5t8qyPfWM/edit?usp=drive_link" },
+  { id:"ULIMA",  uni:"U.LIMA", label:"NOTAS U.LIMA", url:"https://docs.google.com/spreadsheets/d/1jHx33yKbl9LFVbX9fB7pacnvhF7UmTbd9Z5t8qyPfWM/edit?usp=drive_link" },
 
   // ⏳ AGRARIA (pendiente: cuando exista, pega aquí el enlace)
-  { id:"AGRARIA", uni:"AGRARIA", label:"NOTAS GENERALES AGRARIA", url:"https://docs.google.com/spreadsheets/d/1q5PWgltXQBVcwQpwFqvkxtjGKP8HDlfWzZFs8zByFCo/edit?usp=drive_link" },
+  { id:"AGRARIA", uni:"AGRARIA", label:"NOTAS AGRARIA", url:"https://docs.google.com/spreadsheets/d/1q5PWgltXQBVcwQpwFqvkxtjGKP8HDlfWzZFs8zByFCo/edit?usp=drive_link" },
 
-  // ✅ ESCOLARES
-  { id:"ESCOLARES", uni:"ESCOLARES", label:"NOTAS GENERALES ESCOLARES", url:"https://docs.google.com/spreadsheets/d/1Aa5MiVY85fDbU2M_OYynooBHwgf0fqXelAiVvf4N2DY/edit?usp=drive_link" },
+  // ⏳ ESCOLARES POR CICLO (enlaces configurables desde EDITAR ENLACES)
+  { id:"ESCOLARES_AGRARIA", uni:"ESCOLARES AGRARIA", label:"NOTAS ESCOLARES AGRARIA", url:"" },
+  { id:"ESCOLARES_ULIMA", uni:"ESCOLARES U.LIMA", label:"NOTAS ESCOLARES U.LIMA", url:"" },
+  { id:"ESCOLARES_PUCP", uni:"ESCOLARES PUCP", label:"NOTAS ESCOLARES PUCP", url:"" },
+
+  // ✅ ESCOLARES GENERAL: se mantiene después de los tres ciclos escolares
+  { id:"ESCOLARES", uni:"ESCOLARES", label:"NOTAS ESCOLARES", url:"https://docs.google.com/spreadsheets/d/1Aa5MiVY85fDbU2M_OYynooBHwgf0fqXelAiVvf4N2DY/edit?usp=drive_link" },
 ];
+const NOTAS_LINKS_KEY = "LM_NOTAS_GENERALES_LINKS_V1";
+const NOTAS_EDIT_KEY = "LM_NOTAS_GENERALES_EDIT_V1";
+
+function notasLinksLoad(){
+  try{ return JSON.parse(localStorage.getItem(NOTAS_LINKS_KEY) || "{}"); }
+  catch(_){ return {}; }
+}
+
+function notasLinksSave(links){
+  try{ localStorage.setItem(NOTAS_LINKS_KEY, JSON.stringify(links || {})); }catch(_){ }
+}
 
 function ensureNotasLayout(){
   const el = document.getElementById("view_notas");
@@ -7832,9 +7919,15 @@ function ensureNotasLayout(){
       <div class="cardtitle">NOTAS GENERALES</div>
       <div style="color:var(--muted); font-weight:900; margin-bottom:12px;">
       </div>
+      ${CURRENT_ROLE === "admin" ? '<button id="notasEdit" class="btn ghost" type="button" style="margin-bottom:12px;">EDITAR ENLACES</button>' : ''}
       <div class="iGrid" id="notasGrid"></div>
     </div>
   `;
+  document.getElementById("notasEdit")?.addEventListener("click", ()=>{
+    const on = localStorage.getItem(NOTAS_EDIT_KEY) === "1";
+    localStorage.setItem(NOTAS_EDIT_KEY, on ? "0" : "1");
+    renderNotasGenerales();
+  });
   el.dataset.ready = "1";
 }
 
@@ -7843,18 +7936,15 @@ function renderNotasGenerales(){
 
   const grid = document.getElementById("notasGrid");
   if (!grid) return;
+  const overrides = notasLinksLoad();
+  const editOn = CURRENT_ROLE === "admin" && localStorage.getItem(NOTAS_EDIT_KEY) === "1";
+  const editBtn = document.getElementById("notasEdit");
+  if (editBtn) editBtn.textContent = editOn ? "SALIR DE EDICIÓN" : "EDITAR ENLACES";
 
+  const notasOrder = ["AGRARIA","ULIMA","PUCP","ESCOLARES_AGRARIA","ESCOLARES_ULIMA","ESCOLARES_PUCP","ESCOLARES"];
   const notasOrdered = NOTAS_GENERALES.slice().sort((a,b)=>{
-    const rank = (u)=>{
-      const t = String(u||"").toUpperCase();
-      if (t.includes("AGRARIA")) return 0;
-      if (t.includes("U.LIMA") || t.includes("ULIMA")) return 1;
-      if (t.includes("PUCP")) return 2;
-      if (t.includes("ESCOLAR")) return 3;
-      return 9;
-    };
-    const ra = rank(a.uni);
-    const rb = rank(b.uni);
+    const ra = notasOrder.indexOf(a.id);
+    const rb = notasOrder.indexOf(b.id);
     if (ra !== rb) return ra - rb;
     return String(a.label||"").localeCompare(String(b.label||""), "es");
   });
@@ -7862,11 +7952,23 @@ function renderNotasGenerales(){
   grid.innerHTML = notasOrdered.map(x => {
     const dot =
       x.uni === "AGRARIA" ? getCss("--agraria") :
-      x.uni === "ESCOLARES" ? getCss("--schHead_ESC") :
+      x.uni.includes("ESCOLARES") ? getCss("--schHead_ESC") :
       x.uni === "PUCP"    ? getCss("--pucp") :
                             getCss("--ulima");
 
-    const url = String(x.url || "").trim();
+    const url = String(overrides[x.id] ?? x.url ?? "").trim();
+    if (editOn){
+      return `
+        <div class="iItem" style="align-items:flex-start; gap:12px;">
+          <div class="iLeft" style="flex:1; min-width:0;">
+            <div class="iSalon">${escapeHtml(x.label)}</div>
+            <div class="iMeta"><span class="dot" style="background:${dot};"></span><span>${escapeHtml(x.uni)}</span></div>
+            <input class="notasLinkInput" data-nota-id="${escapeHtml(x.id)}" value="${escapeHtml(url)}" placeholder="Pega el enlace de notas" style="width:100%; min-width:0; margin-top:8px;"/>
+          </div>
+          <button class="btn ghost notasLinkSave" data-nota-id="${escapeHtml(x.id)}" type="button">GUARDAR</button>
+        </div>
+      `;
+    }
     if (url){
       return `
         <a class="iItem" href="${escapeHtml(url)}" target="_blank" rel="noopener"
@@ -7895,6 +7997,16 @@ function renderNotasGenerales(){
       </div>
     `;
   }).join("");
+
+  grid.querySelectorAll(".notasLinkSave").forEach(btn=>btn.addEventListener("click", ()=>{
+    const id = String(btn.getAttribute("data-nota-id") || "");
+    const input = grid.querySelector(`.notasLinkInput[data-nota-id="${id}"]`);
+    const links = notasLinksLoad();
+    links[id] = String(input?.value || "").trim();
+    notasLinksSave(links);
+    toast("Enlace de notas guardado.");
+    renderNotasGenerales();
+  }));
 }
 
 
@@ -8491,6 +8603,13 @@ function mcSyllabusIsNonTopicColumnHeader(value){
   return false;
 }
 
+function mcSyllabusHeaderMatchesCourse(headerValue, courseName){
+  const h = mcSyllabusHeaderKey(headerValue);
+  if (!h || !courseName) return false;
+  const aliases = mcCourseAliases(courseName).map(mcSyllabusHeaderKey).filter(Boolean);
+  return aliases.some(a => h === a || h.includes(a) || a.includes(h));
+}
+
 function mcSyllabusSplitTopics(value){
   const raw = String(value||"").replace(/\r/g,"\n").trim();
   if (!raw) return [];
@@ -8501,7 +8620,7 @@ function mcSyllabusSplitTopics(value){
   return parts.filter(x=>!mcSyllabusIsCourseOnly(x));
 }
 
-function mcParseSyllabusRows(rows){
+function mcParseSyllabusRows(rows, courseName=""){
   rows = (rows||[]).map(r => (r||[]).map(v=>String(v ?? "")));
   let headerRow = -1;
   let codeIdx = -1, dateIdx = -1, blockIdx = -1, notesIdx = -1;
@@ -8510,22 +8629,27 @@ function mcParseSyllabusRows(rows){
 
   for (let r=0; r<Math.min(rows.length, 60); r++){
     const keys = rows[r].map(mcSyllabusHeaderKey);
-    const c = keys.findIndex(x=>x === "CODIGO" || x === "CÓDIGO" || x === "COD" || x === "SEM");
-    const d = keys.findIndex(x=>x === "SEMANA" || x.includes("FECHA"));
-    const b = keys.findIndex(x=>x === "BLOQUE" || x === "CLASE" || x === "SESION" || x === "SESIÓN");
+    const c = keys.findIndex(x=>x === "CODIGO" || x === "COD" || x === "SEM" || x === "CODIGO DE SEMANA" || x === "CODIGO SEMANA");
+    const d = keys.findIndex(x=>x === "SEMANA" || x === "FECHA" || x === "FECHAS" || x.includes("FECHA"));
+    const b = keys.findIndex(x=>x === "BLOQUE" || x === "BLOQUES" || x === "BLOQUE POR SEMANA" || x === "BLOQUES POR SEMANA" || x === "CLASE" || x === "SESION");
+    const courseTopicIdxs = keys
+      .map((x,i)=>({x,i}))
+      .filter(o => mcSyllabusHeaderMatchesCourse(o.x, courseName) && o.i !== b && o.i !== d && o.i !== c)
+      .map(o=>o.i);
     const explicitTopics = keys
       .map((x,i)=>({x,i}))
-      .filter(o => /(^| )(TEMA|TEMAS|CONTENIDO|CONTENIDOS|TEMARIO|ACTIVIDAD|SESION|SESIÓN)( |$)/.test(o.x) && o.i !== b && o.i !== d && o.i !== c)
+      .filter(o => /(^| )(TEMA|TEMAS|CONTENIDO|CONTENIDOS|TEMARIO|ACTIVIDAD|SESION)( |$)/.test(o.x) && o.i !== b && o.i !== d && o.i !== c)
       .map(o=>o.i);
     const hasWeek = c >= 0 || d >= 0 || keys.some(x=>/^SEMANA\s*\d+|^SEM\s*\d+|^SE\s*\d+/i.test(x));
-    const hasTopicHead = explicitTopics.length > 0 || b >= 0;
+    const hasTopicHead = courseTopicIdxs.length > 0 || explicitTopics.length > 0 || b >= 0;
     if (hasWeek && hasTopicHead){
       headerRow = r;
       codeIdx = c;
       dateIdx = d;
       blockIdx = b;
       notesIdx = keys.findIndex(x=>x.includes("OBSERV") || x === "NOTAS" || x === "NOTA" || x.includes("FERIADO"));
-      if (explicitTopics.length) topicIdxs = explicitTopics;
+      if (courseTopicIdxs.length) topicIdxs = courseTopicIdxs;
+      else if (explicitTopics.length) topicIdxs = explicitTopics;
       else if (blockIdx >= 0){
         const stop = notesIdx >= 0 ? notesIdx : rows[r].length;
         topicIdxs = [];
@@ -8572,8 +8696,8 @@ function mcParseSyllabusRows(rows){
   return weeks.filter(w=>w.code || w.dateRaw || w.topics.length || w.notes.length);
 }
 
-function mcParseSyllabusCsv(raw){
-  return mcParseSyllabusRows(mcParseCsv(raw));
+function mcParseSyllabusCsv(raw, courseName=""){
+  return mcParseSyllabusRows(mcParseCsv(raw), courseName);
 }
 
 function mcMonthNumber(raw){
@@ -8700,10 +8824,18 @@ function mcSyllabusNotesForWeek(notes, holidayHits, year, holidays, classDates){
 
 function mcCourseAliases(course){
   const c = mcNormLabel(course);
-  if (c.includes("NUMEROS Y OPERACIONES")) return ["N&O","NO","NUMEROS Y OPERACIONES"];
-  if (c.includes("GEOMETRIA Y MEDIDA")) return ["G&M","GM","GEOMETRIA Y MEDIDA"];
-  if (c.includes("ALGEBRA")) return ["ALG","ALGEBRA"];
-  if (c.includes("TEXTOS")) return ["TXT","TEXTO","TEXTOS"];
+  if (c.includes("RAZONAMIENTO VERBAL") || c === "RV" || c.includes("RAZ VERBAL")) return ["RV","RAZ VERBAL","RAZONAMIENTO VERBAL"];
+  if (c.includes("RAZONAMIENTO MATEMATICO") || c === "RM" || c.includes("RAZ MATEMATICO")) return ["RM","RAZ MATEMATICO","RAZONAMIENTO MATEMATICO"];
+  if (c.includes("ARITMETICA") || c === "ARI") return ["ARI","ARITMETICA"];
+  if (c.includes("ALGEBRA") || c === "ALG") return ["ALG","ALGEBRA"];
+  if (c.includes("GEOMETRIA Y MEDIDA") || c === "G&M" || c === "GM") return ["G&M","GM","GEOMETRIA Y MEDIDA"];
+  if (c.includes("GEOMETRIA") || c === "GEO") return ["GEO","GEOMETRIA"];
+  if (c.includes("TRIGONOMETRIA") || c === "TRIG" || c === "TRI") return ["TRI","TRIG","TRIGONOMETRIA"];
+  if (c.includes("FISICA") || c === "FIS") return ["FIS","FISICA"];
+  if (c.includes("QUIMICA") || c === "QUI") return ["QUI","QUIMICA"];
+  if (c.includes("BIOLOGIA") || c === "BIO") return ["BIO","BIOLOGIA"];
+  if (c.includes("TEXTOS") || c.includes("TEXTO") || c === "TXT") return ["TXT","TEXTO","TEXTOS"];
+  if (c.includes("NUMEROS Y OPERACIONES") || c === "N&O" || c === "NO") return ["N&O","NO","NUMEROS Y OPERACIONES"];
   if (c.includes("SIMULACRO")) return ["SIM","SIMULACRO","SIMULACROS"];
   return [c];
 }
@@ -8737,29 +8869,38 @@ function mcDefaultArsCourseDays(course){
   return [];
 }
 
-function mcScheduleDaysForArs(local, course){
-  let loc = mcNormLabel(local);
+function mcMaterialLocalKey(value){
+  return mcNormLabel(value).replace(/_/g, " ").replace(/\s+/g, " ").trim();
+}
 
-  // En Materiales, el espacio EDITOR administra el ciclo, pero ESCOLARES ARS se dicta
-  // físicamente en San Miguel. Por eso el sílabo debe alinearse al horario de San Miguel.
-  if (!loc || loc === "EDITOR") loc = "SAN MIGUEL";
+function mcScheduleDaysForEscolaresMateriales(local, course, programType){
+  let loc = mcMaterialLocalKey(local);
+  const type = mcNormLabel(programType || "");
+  const wantArs = type.includes("ARS") || type.includes("POP");
+  const wantIntegral = type.includes("INTEGRAL") || (!wantArs && type.includes("ESCOLARES"));
 
-  const fallbackDays = mcDefaultArsCourseDays(course);
-  if (typeof SCHEDULES === "undefined") return fallbackDays;
+  if (wantArs && (!loc || loc === "EDITOR")) loc = "SAN MIGUEL";
+  else if (!loc || loc === "EDITOR") return [];
+  if (wantIntegral && !["LA MOLINA","SAN MIGUEL","SAN BORJA"].includes(loc)) return [];
+  if (typeof SCHEDULES === "undefined") return [];
 
   const dayMap = {LUNES:1,MARTES:2,MIERCOLES:3,"MIÉRCOLES":3,JUEVES:4,VIERNES:5,SABADO:6,"SÁBADO":6,DOMINGO:0};
 
-  // Para ARS no se deben mezclar horarios de ESC PUCP / ESC INTEGRALES.
-  // El error detectado venía de considerar "PUCP" como si fuera ARS; eso agregaba
-  // días de clase falsos y activaba reprogramaciones por feriados que no tocaban al curso.
-  let schedules = (SCHEDULES||[]).filter(s=>{
-    const sLoc = mcNormLabel(s?.local);
+  const schedules = (SCHEDULES||[]).filter(s=>{
+    const sLoc = mcMaterialLocalKey(s?.local);
+    if (sLoc !== loc) return false;
     const raw = mcNormLabel([s?.id,s?.salon,s?.uni,s?.__colKey,s?.__cardKey].join(" "));
     const sUni = mcNormLabel(s?.uni);
     const sSalon = mcNormLabel(s?.salon);
-    const isEscolares = sUni === "ESCOLARES" || sSalon.includes("ESCOLAR") || /(^|\s)ESC(\s|$)/.test(sSalon) || raw.includes("ESCOLARES");
-    const isArs = raw.includes("ARS") || raw.includes("POP");
-    return sLoc === loc && isEscolares && isArs;
+    const isEscolares = sUni === "ESCOLARES" || sSalon.includes("ESCOLAR") || raw.includes("ESCOLARES") || /(^|\s)ESC(\s|$)/.test(sSalon);
+    if (!isEscolares) return false;
+
+    const isArs = raw.includes("ARS") || raw.includes("POP") || (sLoc === "SAN MIGUEL" && (raw.includes("SCH_ESCOLARES_SM") || raw.includes("ESCOLARES_SM") || raw.includes("ESCOLARES SM")));
+    const isIntegral = !isArs && (raw.includes("ESCOLARES_INTEGRALES") || raw.includes("ESCOLARES INTEGRALES") || sSalon.includes("ESCOLAR") || sSalon === "ESCOLARES" || raw.includes("ESCOLARES"));
+
+    if (wantArs) return isArs;
+    if (wantIntegral) return isIntegral;
+    return false;
   });
 
   const days = [];
@@ -8770,17 +8911,11 @@ function mcScheduleDaysForArs(local, course){
       if (Number.isFinite(day)) days.push(day);
     }
   }
+  return Array.from(new Set(days)).sort((a,b)=>a-b);
+}
 
-  const detected = Array.from(new Set(days)).sort((a,b)=>a-b);
-
-  // Regla de seguridad para ARS: cada curso base tiene un día oficial único.
-  // Si el horario detectado devuelve cero, múltiples días o un día distinto, se usa
-  // el día oficial para evitar reprogramaciones falsas.
-  if (fallbackDays.length === 1){
-    if (detected.length !== 1 || detected[0] !== fallbackDays[0]) return fallbackDays;
-  }
-
-  return detected.length ? detected : fallbackDays;
+function mcScheduleDaysForArs(local, course){
+  return mcScheduleDaysForEscolaresMateriales(local, course, "ESCOLARES ARS");
 }
 
 function mcProgramWeekDate(start, weekIndex, weekday){
@@ -8790,13 +8925,13 @@ function mcProgramWeekDate(start, weekIndex, weekday){
   return pgxAddDays(base, offset);
 }
 
-function mcSyllabusClassDatesForWeek({pStart, weekIndex, classDays, sourceWeek, year}){
+function mcSyllabusClassDatesForWeek({pStart, weekIndex, classDays, sourceWeek, year, strictSchedule=false}){
   const dates = [];
   for (const day of (classDays||[])){
     const d = mcProgramWeekDate(pStart, weekIndex, day);
     if (d && !Number.isNaN(d.getTime())) dates.push(d);
   }
-  if (!dates.length){
+  if (!dates.length && !strictSchedule){
     const fromSheet = mcParseSheetDate(sourceWeek?.dateRaw, year);
     if (fromSheet) dates.push(fromSheet);
     else {
@@ -8824,12 +8959,12 @@ function mcSyllabusWeekCapacity(sourceTopics, classDates, holidayHits){
   return Math.max(1, Math.min(topicCount, Math.floor(topicCount * validSessions / totalSessions)));
 }
 
-function mcAlignSyllabusTopics({weeks,codes,first,last,pStart,local,course}){
+function mcAlignSyllabusTopics({weeks,codes,first,last,pStart,local,course,programType}){
   const byCode = new Map((weeks||[]).map(w=>[mcNormLabel(w.code),w]));
   const year = pStart.getFullYear();
-  const holidays = mcPeruHolidays(year);
-  for (const [key,name] of mcHolidaysFromSyllabusNotes(weeks,year)) holidays.set(key,name);
-  const classDays = mcScheduleDaysForArs(local,course);
+  const holidays = mcHolidaysFromSyllabusNotes(weeks, year);
+  const classDays = mcScheduleDaysForEscolaresMateriales(local, course, programType);
+  const schedulePending = !classDays.length;
   const carry = [];
   const result = [];
 
@@ -8837,7 +8972,7 @@ function mcAlignSyllabusTopics({weeks,codes,first,last,pStart,local,course}){
     const code = String(codes[i]||`SEM${i+1}`);
     const srcWeek = byCode.get(mcNormLabel(code)) || weeks[i] || {topics:[],notes:[]};
     const sourceTopics = (srcWeek.topics||[]).slice(0,3);
-    const classDates = mcSyllabusClassDatesForWeek({pStart, weekIndex:i, classDays, sourceWeek:srcWeek, year});
+    const classDates = mcSyllabusClassDatesForWeek({pStart, weekIndex:i, classDays, sourceWeek:srcWeek, year, strictSchedule:true});
     const holidayHits = [];
     for (const d of classDates){
       const name = holidays.get(mcDateKey(d));
@@ -8845,7 +8980,7 @@ function mcAlignSyllabusTopics({weeks,codes,first,last,pStart,local,course}){
     }
 
     carry.push(...sourceTopics.map(topic=>({topic, sourceWeek:srcWeek})));
-    const capacity = mcSyllabusWeekCapacity(sourceTopics, classDates, holidayHits);
+    const capacity = schedulePending ? sourceTopics.length : mcSyllabusWeekCapacity(sourceTopics, classDates, holidayHits);
     const selected = carry.splice(0, Math.min(3, capacity));
     const topicSourceWeek = selected[0]?.sourceWeek || srcWeek;
     const topics = selected.map(x=>x.topic);
@@ -8864,16 +8999,17 @@ function mcAlignSyllabusTopics({weeks,codes,first,last,pStart,local,course}){
       sourceDisplayCode: sourceLabel,
       sourceColBLabel: topicSourceWeek?.colBLabel || "",
       sourceDateRaw: topicSourceWeek?.dateRaw || "",
-      shifted: !!(topics.length && sourceLabel && currentLabel && mcNormLabel(sourceLabel) !== mcNormLabel(currentLabel))
+      shifted: !!(topics.length && sourceLabel && currentLabel && mcNormLabel(sourceLabel) !== mcNormLabel(currentLabel)),
+      schedulePending
     });
   }
   return result;
 }
 
-function mcManualSyllabusAligned({cid,codes,first,last,pStart,local}){
+function mcManualSyllabusAligned({cid,codes,first,last,pStart,local,programType}){
   const manual = MC_ARS_MANUAL_SYLLABUS[mcNormLabel(cid)];
   if (!manual || !manual.length) return null;
-  const aligned = mcAlignSyllabusTopics({weeks:manual,codes,first,last,pStart,local,course:cid});
+  const aligned = mcAlignSyllabusTopics({weeks:manual,codes,first,last,pStart,local,course:cid,programType});
   return aligned.map((item,index)=>{
     const absoluteIndex = first - 1 + index;
     const code = mcNormLabel(String(codes[absoluteIndex]||""));
@@ -8893,6 +9029,9 @@ function mcManualSyllabusAligned({cid,codes,first,last,pStart,local}){
 }
 
 function mcSyllabusCellHtml(item, idx){
+  if (item?.schedulePending){
+    return `<div class="mcSyllabusCell"><span class="mcSyllabusPending">HORARIO PENDIENTE</span></div>`;
+  }
   const topics = (item?.topics||[]).slice(0,3);
   const notes = (item?.notes||[]).slice();
   const noteCount = notes.length + ((item?.holidayHits||[]).length || 0);
@@ -8989,17 +9128,18 @@ function mcBindSyllabusButtons(scope){
   });
 }
 
-async function mcLoadSyllabusData(url){
+async function mcLoadSyllabusData(url, courseName=""){
   const key = String(url||"").trim();
+  const cacheKey = `${key}::${mcNormLabel(courseName)}`;
   if (!key) throw new Error("Enlace de sílabo pendiente.");
-  if (MC_ARS_SYLLABUS_CACHE.has(key)) return await MC_ARS_SYLLABUS_CACHE.get(key);
+  if (MC_ARS_SYLLABUS_CACHE.has(cacheKey)) return await MC_ARS_SYLLABUS_CACHE.get(cacheKey);
   const promise = (async ()=>{
     if (!mcSyllabusSheetInfo(key)) throw new Error("El enlace debe ser de Google Sheets o CSV publicado.");
     const errors = [];
 
     try{
       const rows = await mcLoadSyllabusGvizRows(key);
-      const weeks = mcParseSyllabusRows(rows);
+      const weeks = mcParseSyllabusRows(rows, courseName);
       if (weeks.length) return weeks;
       errors.push("GViz: hoja vacía");
     }catch(e){ errors.push("GViz: " + (e?.message || String(e))); }
@@ -9011,7 +9151,7 @@ async function mcLoadSyllabusData(url){
         if (!res.ok){ errors.push(`CSV ${res.status}`); continue; }
         const raw = await res.text();
         if (mcIsLikelyHtml(raw)){ errors.push("CSV devolvió HTML, no datos"); continue; }
-        const weeks = mcParseSyllabusCsv(raw);
+        const weeks = mcParseSyllabusCsv(raw, courseName);
         if (weeks.length) return weeks;
         errors.push("CSV: hoja sin semanas reconocibles");
       }catch(e){ errors.push("CSV: " + (e?.message || String(e))); }
@@ -9019,12 +9159,12 @@ async function mcLoadSyllabusData(url){
 
     throw new Error("No se pudo leer la hoja. Debe estar compartida como 'Cualquier usuario con el enlace' o publicada como CSV. " + errors.slice(0,2).join(" | "));
   })();
-  MC_ARS_SYLLABUS_CACHE.set(key,promise);
+  MC_ARS_SYLLABUS_CACHE.set(cacheKey,promise);
   try{ return await promise; }
-  catch(err){ MC_ARS_SYLLABUS_CACHE.delete(key); throw err; }
+  catch(err){ MC_ARS_SYLLABUS_CACHE.delete(cacheKey); throw err; }
 }
 
-async function mcHydrateArsSyllabus({pid,cid,codes,first,last,pStart,space,url}){
+async function mcHydrateMaterialesSyllabus({pid,cid,codes,first,last,pStart,space,url,programType}){
   const status = document.getElementById("mcSyllabusStatus");
   const cells = Array.from(document.querySelectorAll('[data-syllabus-week]'));
   if (!cells.length) return;
@@ -9039,13 +9179,13 @@ async function mcHydrateArsSyllabus({pid,cid,codes,first,last,pStart,space,url})
     if (status) status.textContent = weeksLabel;
   };
 
-  const manualAligned = mcManualSyllabusAligned({cid,codes,first,last,pStart,local:space});
+  const manualAligned = mcManualSyllabusAligned({cid,codes,first,last,pStart,local:space,programType});
 
   if (url){
     try{
       if (status) status.textContent = "CARGANDO SÍLABO…";
-      const weeks = await mcLoadSyllabusData(url);
-      const aligned = mcAlignSyllabusTopics({weeks,codes,first,last,pStart,local:space,course:cid});
+      const weeks = await mcLoadSyllabusData(url, cid);
+      const aligned = mcAlignSyllabusTopics({weeks,codes,first,last,pStart,local:space,course:cid,programType});
       applyAligned(aligned, `SÍLABO ACTIVO · ${weeks.length} SEMANAS`);
       return;
     }catch(err){
@@ -9053,14 +9193,16 @@ async function mcHydrateArsSyllabus({pid,cid,codes,first,last,pStart,space,url})
         applyAligned(manualAligned, `SÍLABO TEMPORAL · ${manualAligned.length} SEMANAS · REVISAR LINK`);
         return;
       }
+      console.error("[MATERIALES SÍLABO]", { pid, cid, programType, space, url, err });
+      const msg = String(err?.message || err || "Error desconocido").slice(0, 140);
       cells.forEach(td=>td.innerHTML='<div class="mcSyllabusCell"><span class="mcSyllabusPending">PENDIENTE</span></div>');
-      if (status) status.textContent = "REVISAR SÍLABO";
+      if (status) status.textContent = "REVISAR SÍLABO: " + msg;
       return;
     }
   }
 
   if (manualAligned){
-    applyAligned(manualAligned, `SÍLABO ACTIVO · ${manualAligned.length} SEMANAS · FERIADOS APLICADOS`);
+    applyAligned(manualAligned, `SÍLABO ACTIVO · ${manualAligned.length} SEMANAS`);
     return;
   }
 
@@ -9200,6 +9342,14 @@ function renderMateriales(){
     "Textos",
     "Simulacros"
   ];
+  const ESCOLARES_ULIMA_COURSES = [
+    "Textos",
+    "Razonamiento Matemático",
+    "Álgebra",
+    "Aritmética",
+    "Geometría y Trigonometría",
+    "Simulacros"
+  ];
 
   function mcMaterialProgramNameRaw(program){
     return String(program?.meta?.name || "").trim();
@@ -9209,6 +9359,7 @@ function renderMateriales(){
     const normalized = raw.toUpperCase().replace(/\s+/g, " ").trim();
     if (normalized === "ESCOLARES AGRARIA" || normalized === "ESCOLARES AGRARAI") return "ESCOLARES INTEGRAL";
     if (normalized.includes("ARS") || normalized.includes("POP")) return "ESCOLARES ARS";
+    if (normalized.includes("ESCOLAR") && (normalized.includes("U.LIMA") || normalized.includes("ULIMA"))) return "ESCOLARES U.LIMA";
     return normalized || "(SIN PROGRAMAS)";
   }
   function mcMaterialCoursesFor(uniLabel, program){
@@ -9216,6 +9367,7 @@ function renderMateriales(){
     if (uniNorm !== "ESCOLARES") return COURSES[uniNorm] || [];
     const name = mcMaterialProgramNameRaw(program).toUpperCase();
     if (name.includes("ARS")) return ESCOLARES_ARS_COURSES;
+    if (name.includes("U.LIMA") || name.includes("ULIMA")) return ESCOLARES_ULIMA_COURSES;
     return ESCOLARES_INTEGRAL_COURSES;
   }
 
@@ -9231,12 +9383,14 @@ function renderMateriales(){
   const progIdSaved = localStorage.getItem(PROG_KEY) || "";
   const prog = uniPrograms.find(p=>p.id===progIdSaved) || uniPrograms[0] || null;
   const isArsProgram = (uni === "ESCOLARES" && mcIsArsProgram(prog));
+  const isEscolaresProgram = (uni === "ESCOLARES");
+  const isIntegralProgram = isEscolaresProgram && !isArsProgram;
 
   const courses = mcMaterialCoursesFor(uni, prog);
   const savedCourse = localStorage.getItem(COURSE_KEY) || "";
   const course = courses.includes(savedCourse) ? savedCourse : (courses[0]||"");
   const isSimulacroCourse = mcNormLabel(course).includes("SIMULACRO");
-  const showSyllabusCol = isArsProgram && !isSimulacroCourse;
+  const showSyllabusCol = (isArsProgram || isIntegralProgram) && !isSimulacroCourse;
 
   // ESCOLARES ARS solo se dicta en SAN MIGUEL.
   // Por eso, en Materiales no se muestran LA MOLINA, SAN BORJA ni VIRTUAL para este ciclo.
@@ -9244,9 +9398,14 @@ function renderMateriales(){
     {id:"EDITOR", label:"EDITOR"},
     {id:"SAN_MIGUEL", label:"SAN MIGUEL"}
   ];
+  const INTEGRAL_SPACES = [
+    {id:"LA_MOLINA", label:"LA MOLINA"},
+    {id:"SAN_MIGUEL", label:"SAN MIGUEL"},
+    {id:"SAN_BORJA", label:"SAN BORJA"}
+  ];
   const materialSpaces = isArsProgram
     ? ARS_SPACES
-    : MC_SPACES;
+    : (isIntegralProgram ? INTEGRAL_SPACES : MC_SPACES);
   const availableSpaces = (roleLower === "admin")
     ? materialSpaces
     : materialSpaces.filter(x=>x.id !== "EDITOR");
@@ -9257,7 +9416,7 @@ function renderMateriales(){
   const space = availableSpaces.find(x=>x.id===savedSpace)
     ? savedSpace
     : (availableSpaces[0]?.id || defaultSpace);
-  const canEdit = (canEditRole && space === "EDITOR");
+  const canEdit = (canEditRole && (space === "EDITOR" || isEscolaresProgram));
 
   // helpers
   function fmtDM(d){
@@ -9641,7 +9800,7 @@ ${canWork ? `<button id="mcEditBtn" class="btn ${matEditOn?'primary':'ghost'}" t
   `;
 
   if (showSyllabusCol){
-    mcHydrateArsSyllabus({
+    mcHydrateMaterialesSyllabus({
       pid,
       cid,
       codes,
@@ -9649,7 +9808,8 @@ ${canWork ? `<button id="mcEditBtn" class="btn ${matEditOn?'primary':'ghost'}" t
       last:range.last,
       pStart,
       space,
-      url:syllabusUrl
+      url:syllabusUrl,
+      programType: isArsProgram ? "ESCOLARES ARS" : "ESCOLARES INTEGRAL"
     });
   }
 
@@ -9711,7 +9871,8 @@ const LISTAS = [
   { local:"SAN BORJA", name:"U.LIMA 1",  url:"https://docs.google.com/spreadsheets/d/1-NMJf7AV7xUDEr8azb8UUCiqFjNSsqwc25ifUrCwfX0/edit?usp=drive_link" },
   { local:"SAN BORJA", name:"PRE U.LIMA", url:"https://docs.google.com/spreadsheets/d/1xMCd6Xhe5rvs_eCmu7dWj0gX9gAGMu8Uo13akNTcr80/edit?gid=412178933#gid=412178933" },
 //  { local:"SAN BORJA", name:"U.LIMA 2",  url:"https://docs.google.com/spreadsheets/d/1BJSLmUr2ECAfanxuI2py0R2Yi_eqovmkHuLcUNgMFSw/edit?usp=drive_web&ouid=109996193497961946614" },
-  { local:"SAN BORJA", name:"ESCOLAR",  url:"https://docs.google.com/spreadsheets/d/1hKYufMBq_ObOjmP4BpDVgTRq-aqOwQET-TZIsz36iC8/edit?usp=drive_link"},
+  { local:"SAN BORJA", name:"ESC U.LIMA",  url:"https://docs.google.com/spreadsheets/d/1hKYufMBq_ObOjmP4BpDVgTRq-aqOwQET-TZIsz36iC8/edit?usp=drive_link"},
+  { local:"SAN BORJA", name:"ESC PUCP",  url:"https://docs.google.com/spreadsheets/d/1hKYufMBq_ObOjmP4BpDVgTRq-aqOwQET-TZIsz36iC8/edit?usp=drive_link"},
 
   // ================= VIRTUAL =================
   { local:"VIRTUAL", name:"AGRARIA",   url:"https://docs.google.com/spreadsheets/d/1A06U7wDDHBmRrxnlai4hm5shaNJcF9qjWRa8xcusZVg/edit?usp=drive_link" },
@@ -9898,12 +10059,18 @@ const REPORTES = [
   { local:"LA MOLINA", name:"AGRARIA LM 2",      reporte:"https://colab.research.google.com/drive/1-nCsEiJvFYCOeHlNaYVGNPWrYs79cGYN?usp=drive_link" , carpeta:"https://drive.google.com/drive/folders/1IrYwFVCr-wnM_F_1R_t6WR1l710Hmt5l?usp=drive_link" },
   { local:"LA MOLINA", name:"PUCP LM",           reporte:"https://colab.research.google.com/drive/16O_gwow6VfrvIlj37RDyfw2bleWBRgLq" , carpeta:"https://drive.google.com/drive/folders/1iyJaiozUgIQfGzqtKGNKKv51Z69m3b8y?usp=drive_link" },
   { local:"LA MOLINA", name:"U.LIMA LM 1",         reporte:"https://colab.research.google.com/drive/1h6ioZbLEKsB72xZGR0AYc5NQ0zuWKLGS" , carpeta:"https://drive.google.com/drive/folders/1AWE4_Tp6cG_rmw5WG3S6evx0v3esO0V9?usp=drive_link" },
+  { local:"LA MOLINA", name:"ESC AGRARIA", reporte:"", carpeta:"" },
+  { local:"LA MOLINA", name:"ESC U.LIMA", reporte:"", carpeta:"" },
+  { local:"LA MOLINA", name:"ESC PUCP", reporte:"", carpeta:"" },
  // { local:"LA MOLINA", name:"ADELANTO LM",       reporte:"https://colab.research.google.com/drive/1GmBZNfVlXi7z6DUTg3hnVMiW0DlONKJ-" , carpeta:"https://drive.google.com/drive/folders/1_pfkbWLqGj7xBXn4_u967d7qYQzNFicF?usp=drive_link" },
 
   // ================= SAN MIGUEL =================
   { local:"SAN MIGUEL", name:"AGRARIA SM",       reporte:"https://colab.research.google.com/drive/1C__V_81I9fH1ftZ8zH8yMBvIpBtLGZF7" , carpeta:"https://drive.google.com/drive/folders/1GZiz03ezHkJJyO1lc5d4hwf0x53Tkg2N?usp=drive_link" },
   { local:"SAN MIGUEL", name:"PUCP SM",          reporte:"https://colab.research.google.com/drive/10k30iOTwt6jAH1zw1GUSJjl8GkqaSPgt" , carpeta:"https://drive.google.com/drive/folders/1NyH2Uk7dUDvb1Nea6_Rw1WMKcYAwCDed?usp=drive_link" },
   { local:"SAN MIGUEL", name:"U.LIMA SM 1",      reporte:"https://colab.research.google.com/drive/19s-VUMOqGhSaTpqDiAYQ890mf3ftyk4X" , carpeta:"https://drive.google.com/drive/folders/1vW8kb030RB9kAwpwKMI_wW3MRqt-DFP1?usp=drive_link" },
+  { local:"SAN MIGUEL", name:"ESC AGRARIA", reporte:"", carpeta:"" },
+  { local:"SAN MIGUEL", name:"ESC U.LIMA", reporte:"", carpeta:"" },
+  { local:"SAN MIGUEL", name:"ESC PUCP", reporte:"", carpeta:"" },
   //{ local:"SAN MIGUEL", name:"U.LIMA SM 2",      reporte:"https://colab.research.google.com/drive/1AKoWoQ4LzXg7DCJNF_Vaqw9kmUXxuuWu" , carpeta:"https://drive.google.com/drive/folders/1tx-fLVA6MXtqah0yQbXXPNfjUrxUE7Kd?usp=drive_link" },
  //{ local:"SAN MIGUEL", name:"ADELANTO SM",      reporte:"https://colab.research.google.com/drive/1K_LFFycdNc6KS_LMCb5-2groejZlvBXI" , carpeta:"https://drive.google.com/drive/folders/1D5j3HXKQW1vz5Ybz3Wh0yZsf_jz4XZ6x?usp=drive_link" },
 
@@ -9911,6 +10078,8 @@ const REPORTES = [
   { local:"SAN BORJA",  name:"AGRARIA SB",       reporte:"https://colab.research.google.com/drive/1AqLVAqCWepspc6rZ_LeH83Jhl7wVls7-" , carpeta:"https://drive.google.com/drive/folders/1HqI3RCFvou5nRZOK3xGl-qU0IKXYlIik?usp=drive_link" },
   { local:"SAN BORJA",  name:"PUCP SB",          reporte:"https://colab.research.google.com/drive/1RuA_pajmIPZkX993vCZhYUsihn3Y6mM4?usp=drive_link" , carpeta:"https://drive.google.com/drive/folders/1ESy4PUxeUPcNmaJb8E2i1P_90IgGtQvO?usp=drive_link" },
   { local:"SAN BORJA",  name:"U.LIMA SB 1",      reporte:"https://colab.research.google.com/drive/1ov_JylNXZTJyYhgw_9V3F_DI3ArQZSu1?usp=drive_link" , carpeta:"https://drive.google.com/drive/folders/1BcZpMa8dCEcabgopswRbP2UGSizPwnqs?usp=drive_link" },
+  { local:"SAN BORJA", name:"ESC U.LIMA", reporte:"", carpeta:"" },
+  { local:"SAN BORJA", name:"ESC PUCP", reporte:"", carpeta:"" },
  // { local:"SAN BORJA",  name:"U.LIMA SB 2",      reporte:"https://colab.research.google.com/drive/19KkIWlb1oNy4VoRCflfv6GWXPlQNO6-u" , carpeta:"https://drive.google.com/drive/folders/1gKBqvM2nxMPi8DQUqLis8nTl2LV25P0M?usp=drive_link" },
 
   // ================= VIRTUAL =================
@@ -10007,13 +10176,13 @@ function renderReportes(){
       const rep = (it.reporte && String(it.reporte).trim()) ? String(it.reporte).trim() : "";
       const car = (it.carpeta && String(it.carpeta).trim()) ? String(it.carpeta).trim() : "";
 
-      const repBtn = rep
+      const repBtn = CURRENT_ROLE === "admin" && rep
         ? `<a class="syBtn" href="${escapeHtml(rep)}" target="_blank" rel="noopener noreferrer">REPORTE</a>`
-        : `<span class="syBtn disabled">REPORTE</span>`;
+        : (CURRENT_ROLE === "admin" ? `<span class="syBtn disabled">REPORTE</span>` : ``);
 
       const carBtn = car
-        ? `<a class="syBtn" href="${escapeHtml(car)}" target="_blank" rel="noopener noreferrer">CARPETA</a>`
-        : `<span class="syBtn disabled">CARPETA</span>`;
+        ? `<a class="syBtn" href="${escapeHtml(car)}" target="_blank" rel="noopener noreferrer">VER REPORTES</a>`
+        : `<span class="syBtn disabled">VER REPORTES</span>`;
 
       return `
         <div class="syItem">
@@ -10106,13 +10275,21 @@ function renderReportes(){
     { start:"20:30", end:"21:00", label:"20:30 - 21:00" },
   ];
 
+  const TIME_ROWS_FULL = [
+    ...TIME_ROWS,
+    { start:"18:00", end:"18:30", label:"18:00 - 18:30" },
+    { start:"18:30", end:"19:00", label:"18:30 - 19:00" },
+    { start:"19:00", end:"19:30", label:"19:00 - 19:30" },
+    { start:"19:30", end:"20:00", label:"19:30 - 20:00" },
+    { start:"20:00", end:"20:30", label:"20:00 - 20:30" },
+    { start:"20:30", end:"21:00", label:"20:30 - 21:00" },
+  ];
+
   function timeMarksFromRows(rows){
     const marks = rows.map(r=>r.start);
     if (rows.length) marks.push(rows[rows.length-1].end);
     return marks;
   }
-
-  const TIME_ROWS_PRE_ULIMA = TIME_ROWS.filter(r=>r.start >= "15:00" && r.end <= "18:00");
 
   function isPreUlimaKey(value){
     return String(value||"").toUpperCase().startsWith("PRE_ULIMA_");
@@ -10127,22 +10304,43 @@ function renderReportes(){
     return mcNormLabel(uni) === "ESCOLARES" ? TIME_ROWS_ESCOLARES : TIME_ROWS;
   }
 
-  function getTimeRowsForSchedule(schedule){
+  const TIME_MARKS = timeMarksFromRows(TIME_ROWS);
+  const TIME_MARKS_ESCOLARES = timeMarksFromRows(TIME_ROWS_ESCOLARES);
+  const TIME_MARKS_FULL = timeMarksFromRows(TIME_ROWS_FULL);
+  const TIME_ROWS_PRE_ULIMA = TIME_ROWS.filter(r=>r.start >= "15:00" && r.end <= "18:00");
+  const TIME_MARKS_PRE_ULIMA = timeMarksFromRows(TIME_ROWS_PRE_ULIMA);
+
+  function getScheduleTimeRange(schedule){
+    const start = String(schedule?.timeRange?.start || "");
+    const end = String(schedule?.timeRange?.end || "");
+    const is = TIME_MARKS_FULL.indexOf(start);
+    const ie = TIME_MARKS_FULL.indexOf(end);
+    if (is >= 0 && ie >= 0 && is < ie) return { start, end };
+    return null;
+  }
+
+  function timeRowsFromRange(range){
+    if (!range) return null;
+    const rows = TIME_ROWS_FULL.filter(r=>r.start >= range.start && r.end <= range.end);
+    return rows.length ? rows : null;
+  }
+
+  function getDefaultTimeRowsForSchedule(schedule){
     if (isPreUlimaSchedule(schedule)) return TIME_ROWS_PRE_ULIMA;
+    if (isEscolaresArsSchedule(schedule)) return TIME_ROWS;
     return getTimeRowsForUni(schedule?.uni);
   }
 
-  const TIME_MARKS = timeMarksFromRows(TIME_ROWS);
-  const TIME_MARKS_ESCOLARES = timeMarksFromRows(TIME_ROWS_ESCOLARES);
-  const TIME_MARKS_PRE_ULIMA = timeMarksFromRows(TIME_ROWS_PRE_ULIMA);
+  function getTimeRowsForSchedule(schedule){
+    return timeRowsFromRange(getScheduleTimeRange(schedule)) || getDefaultTimeRowsForSchedule(schedule);
+  }
 
   function getTimeMarksForUni(uni){
     return mcNormLabel(uni) === "ESCOLARES" ? TIME_MARKS_ESCOLARES : TIME_MARKS;
   }
 
   function getTimeMarksForSchedule(schedule){
-    if (isPreUlimaSchedule(schedule)) return TIME_MARKS_PRE_ULIMA;
-    return getTimeMarksForUni(schedule?.uni);
+    return timeMarksFromRows(getTimeRowsForSchedule(schedule));
   }
 
   function idxMark(t, uni){ return getTimeMarksForUni(uni).indexOf(t); }
@@ -10292,6 +10490,58 @@ function renderReportes(){
     return getCss("--ulima");
   }
 
+  function normalizeHexColor(value, fallback){
+    const v = String(value || "").trim();
+    return /^#[0-9a-f]{6}$/i.test(v) ? v : fallback;
+  }
+
+  function scheduleThemeColors(s){
+    const temp = document.createElement("div");
+    temp.className = "schCard";
+    temp.setAttribute("data-uni", s?.uni || "");
+    if (s?.__colKey) temp.setAttribute("data-cycle", s.__colKey);
+    document.body.appendChild(temp);
+    const cs = getComputedStyle(temp);
+    const fallbackHead = (cs.getPropertyValue("--schHead") || getCss("--schHead_ESC") || "#d4a200").trim();
+    const fallbackCell = (cs.getPropertyValue("--schCell") || getCss("--schCell_ESC") || "#fff4cc").trim();
+    temp.remove();
+    return {
+      head: normalizeHexColor(s?.colors?.head, fallbackHead),
+      cell: normalizeHexColor(s?.colors?.cell, fallbackCell)
+    };
+  }
+
+  function scheduleColorToolsHtml(s, colors){
+    if (CURRENT_ROLE !== "admin" || !HORARIOS_EDIT_MODE) return "";
+    return `
+      <div class="schColorTools" title="Colores visibles solo en modo edición">
+        <label>Enc.<input type="color" class="schColorInput" data-part="head" data-sid="${escapeAttr(s.id)}" value="${escapeAttr(colors.head)}"></label>
+        <label>Celdas<input type="color" class="schColorInput" data-part="cell" data-sid="${escapeAttr(s.id)}" value="${escapeAttr(colors.cell)}"></label>
+      </div>
+    `;
+  }
+
+  function timeRangeOptionsHtml(selected){
+    const sel = String(selected || "");
+    return TIME_MARKS_FULL.map(t=>`<option value="${t}" ${t===sel ? "selected" : ""}>${t}</option>`).join("");
+  }
+
+  function scheduleRangeToolsHtml(s){
+    if (CURRENT_ROLE !== "admin" || !HORARIOS_EDIT_MODE) return "";
+    const rows = getTimeRowsForSchedule(s);
+    const current = getScheduleTimeRange(s) || { start: rows[0]?.start || "08:00", end: rows[rows.length-1]?.end || "18:00" };
+    return `
+      <div class="schRangeTools" title="Rango visible del horario; no cambia los bloques programados">
+        <label>Rango
+          <select class="schRangeInput" data-part="start" data-sid="${escapeAttr(s.id)}">${timeRangeOptionsHtml(current.start)}</select>
+        </label>
+        <label>a
+          <select class="schRangeInput" data-part="end" data-sid="${escapeAttr(s.id)}">${timeRangeOptionsHtml(current.end)}</select>
+        </label>
+      </div>
+    `;
+  }
+
   function getCornerLabelByCycle(cycle){
     const c = String(cycle||"").toUpperCase();
     if (c.startsWith("AGRARIA_") || c === "AGRARIA") return "AG";
@@ -10303,6 +10553,7 @@ function renderReportes(){
 
   function scheduleToHtmlCard(s){
     const dot = uniDotColor(s.uni);
+    const colors = scheduleThemeColors(s);
     const timeRows = getTimeRowsForSchedule(s);
     const matrix = buildScheduleMatrix(s);
 
@@ -10343,14 +10594,14 @@ function renderReportes(){
     }).join("");
 
     return `
-      <div class="schCard" data-id="${escapeHtml(s.id)}" data-local="${escapeHtml(s.local)}" data-uni="${escapeHtml(s.uni)}" data-salon="${escapeHtml(s.salon)}">
+      <div class="schCard" style="--schHead:${escapeAttr(colors.head)}; --schCell:${escapeAttr(colors.cell)};" data-id="${escapeHtml(s.id)}" data-local="${escapeHtml(s.local)}" data-uni="${escapeHtml(s.uni)}" data-salon="${escapeHtml(s.salon)}">
         <div class="schHead">
           <div class="hLeft">
             <p class="loc">${escapeHtml(s.local)}</p>
             <p class="sal">${escapeHtml(s.salon)}</p>
           </div>
 
-          <div class="hActions" style="display:flex; gap:10px; align-items:center;">
+          <div class="hActions">
             <div class="schUniPill">
               <span class="b" style="background:${dot};"></span>
               ${escapeHtml(s.uni)}
@@ -10358,6 +10609,8 @@ function renderReportes(){
             <button class="schDl" data-sid="${escapeHtml(s.id)}">DESCARGAR PNG</button>${(CURRENT_ROLE==="admin" && HORARIOS_EDIT_MODE) ? `<button class="schEdit" data-sid="${escapeHtml(s.id)}">EDITAR</button>` : ``}
           </div>
         </div>
+
+        ${(CURRENT_ROLE==="admin" && HORARIOS_EDIT_MODE) ? `<div class="schEditTools">${scheduleColorToolsHtml(s, colors)}${scheduleRangeToolsHtml(s)}</div>` : ``}
 
         <div class="schTableWrap">
           <table class="schTable">
@@ -10905,6 +11158,10 @@ function renderReportes(){
 
   // ===================== HORARIOS (PERSISTENCIA) =====================
   const SCHEDULES_KEY = "LM_SCHEDULES_v1";
+  const SCHEDULES_SYNC_GRACE_MS = 30000;
+  let SCH_LAST_LOCAL_SAVE_AT = 0;
+  let SCH_PUSH_PENDING = false;
+  let SCH_PUSH_IN_FLIGHT = false;
 
   const MANDATORY_PRE_ULIMA_SCHEDULES = [
     { id:"PRE_UL_LM", local:"LA MOLINA", uni:"U.LIMA", salon:"PRE U.LIMA LM", blocks:[] },
@@ -10929,10 +11186,10 @@ function renderReportes(){
     for (const b of x.blocks){
       if (!b) return false;
       if (!b.day || !b.start || !b.end) return false;
-      const is = idxMark(b.start, x.uni);
-      const ie = idxMark(b.end, x.uni);
-      if (is < 0 || ie < 0) return false;
-      if (is >= ie) return false;
+      // Validar formato y orden, no contra el rango visible ni contra marcas rígidas.
+      // El rango visible puede ocultar filas y algunos horarios históricos usan cortes como 14:00.
+      if (!/^\d{2}:\d{2}$/.test(String(b.start)) || !/^\d{2}:\d{2}$/.test(String(b.end))) return false;
+      if (timeToMin(b.start) >= timeToMin(b.end)) return false;
     }
     return true;
   }
@@ -10950,6 +11207,8 @@ function renderReportes(){
   }
 
   function saveSchedules(){
+    SCH_LAST_LOCAL_SAVE_AT = Date.now();
+    SCH_PUSH_PENDING = true;
     try{ localStorage.setItem(SCHEDULES_KEY, JSON.stringify(SCHEDULES)); }catch(e){}
     // push a store compartido
     schSyncPush_();
@@ -10962,13 +11221,22 @@ function renderReportes(){
 
   // ===================== HORARIOS (SYNC CENTRAL) =====================
   async function schSyncPullOnce_(){
+    // Evita que un pull periódico traiga una copia remota antigua justo después de guardar.
+    // Ese era el origen de la sensación de inestabilidad: el cambio aparecía y luego se borraba.
+    if (SCH_PUSH_IN_FLIGHT || SCH_PUSH_PENDING || (Date.now() - SCH_LAST_LOCAL_SAVE_AT) < SCHEDULES_SYNC_GRACE_MS){
+      if (SCH_PUSH_PENDING && !SCH_PUSH_IN_FLIGHT) schSyncPush_();
+      return;
+    }
+
     const remote = await lmRemoteGet_(LM_MODULE_HORARIOS);
     if (!Array.isArray(remote) || !remote.length) return;
+    const cleaned = ensureMandatorySchedules(remote).filter(isValidScheduleObj);
+    if (!cleaned.length) return;
     try{
-      localStorage.setItem(SCHEDULES_KEY, JSON.stringify(ensureMandatorySchedules(remote)));
+      localStorage.setItem(SCHEDULES_KEY, JSON.stringify(cleaned));
     }catch(_){}
     try{
-      SCHEDULES = sortSchedules(ensureMandatorySchedules(remote));
+      SCHEDULES = sortSchedules(cleaned);
     }catch(_){}
     // refresca UI si corresponde
     if (typeof state !== "undefined" && state && state.view === "horarios" && typeof renderHorarios === "function"){
@@ -10977,9 +11245,17 @@ function renderReportes(){
   }
 
   async function schSyncPush_(){
+    if (SCH_PUSH_IN_FLIGHT) return;
+    SCH_PUSH_IN_FLIGHT = true;
     try{
       await lmRemoteSet_(LM_MODULE_HORARIOS, Array.isArray(SCHEDULES) ? SCHEDULES : []);
-    }catch(_){}
+      SCH_PUSH_PENDING = false;
+      SCH_LAST_LOCAL_SAVE_AT = Date.now();
+    }catch(_){
+      SCH_PUSH_PENDING = true;
+    }finally{
+      SCH_PUSH_IN_FLIGHT = false;
+    }
   }
 
 ;
@@ -11277,14 +11553,24 @@ el.dataset.ready = "1";
   }
 
   function isEscolaresArsSchedule(sch){
-    const raw = [
-      String(sch?.id || ""),
-      String(sch?.salon || ""),
-      String(sch?.uni || ""),
-      String(sch?.__colKey || ""),
-      String(sch?.__cardKey || "")
-    ].join(" ").toUpperCase();
-    return raw.includes("ARS") || raw.includes("POP");
+    const id = String(sch?.id || "").toUpperCase();
+    const salon = String(sch?.salon || "").toUpperCase();
+    const uni = String(sch?.uni || "").toUpperCase();
+    const local = String(sch?.local || "").toUpperCase();
+    const colKey = String(sch?.__colKey || "").toUpperCase();
+    const cardKey = String(sch?.__cardKey || "").toUpperCase();
+    const raw = [id, salon, uni, local, colKey, cardKey].join(" ");
+
+    if (raw.includes("ARS") || raw.includes("POP")) return true;
+
+    // La tarjeta fija de la matriz para ESCOLARES ARS en SAN MIGUEL usa el key ESCOLARES_SM.
+    // Al guardar desde el editor puede quedar como SCH_ESCOLARES_SM / ESCOLARES SM; sin esta
+    // regla el horario se reclasifica como ESCOLARES INTEGRALES y desaparece de la columna ARS.
+    if (/^SCH_ESCOLARES_(LM|SM|SB|VIRT)$/.test(id)) return true;
+    if (/^ESCOLARES_(LM|SM|SB|VIRT)$/.test(colKey) || /ESCOLARES_(LM|SM|SB|VIRT)/.test(cardKey)) return true;
+    if (uni === "ESCOLARES" && ["LA MOLINA","SAN MIGUEL","SAN BORJA","VIRTUAL"].includes(local) && /^ESCOLARES (LM|SM|SB|VIRT)$/.test(salon)) return true;
+
+    return false;
   }
 
   function isEscolaresIntegralesSchedule(sch){
@@ -11359,7 +11645,7 @@ el.dataset.ready = "1";
     if (t === "ESCOLARES"){
       const c = String(colKey||"").toUpperCase();
       if (c.startsWith("ESCOLARES_INTEGRALES_")) return "ESCOLARES";
-      if (local === "SAN MIGUEL") return "ESCOLARES ARS";
+      if (c.startsWith("ESCOLARES_")) return "ESCOLARES ARS";
       return "ESCOLARES";
     }
     return fallback || `${t} ${lc}`;
@@ -11396,7 +11682,10 @@ el.dataset.ready = "1";
     const view = Object.assign({}, s, {
       uni: uniType,
       salon: inferSalonByCardKey(s.local, colKey, s.salon),
-      cornerLabel: getCornerLabelByCycle(colKey)
+      cornerLabel: getCornerLabelByCycle(colKey),
+      colors: s.colors || null,
+      timeRange: s.timeRange || null,
+      __colKey: colKey
     });
     let html = scheduleToHtmlCard(view);
     html = html.replace('<div class="schCard"', `<div class="schCard" data-cycle="${escapeAttr(colKey)}" data-colkey="${escapeAttr(colKey)}" data-cardkey="${escapeAttr(cardKey)}"`);
@@ -11512,11 +11801,6 @@ el.dataset.ready = "1";
     const rows = LOCS.map(loc=>{
       const cells = COLS.map(c=>{
         const key = expandColKeyForLocal(loc, c.key);
-
-        // ESCOLARES ARS solo corresponde a SAN MIGUEL. En otros locales no se genera tarjeta ni placeholder.
-        if (c.key === "ESCOLARES" && loc !== "SAN MIGUEL"){
-          return `<div class="mxCell"><div class="mxEmpty">NO APLICA</div></div>`;
-        }
 
         const list = sortSchedules((by.get(key) || []).slice());
         const inner = list.length
@@ -11644,7 +11928,15 @@ el.dataset.ready = "1";
     const start = document.getElementById("hceStart").value;
     const end = document.getElementById("hceEnd").value;
 
-    const timeMarksCtx = isPreUlimaKey(HORARIOS_CELL_EDIT_CTX.colKey || HORARIOS_CELL_EDIT_CTX.phColKey || "") ? TIME_MARKS_PRE_ULIMA : getTimeMarksForUni(HORARIOS_CELL_EDIT_CTX.uni);
+    const timeMarksCtx = getTimeMarksForSchedule({
+      id: HORARIOS_CELL_EDIT_CTX.scheduleId || "",
+      local: HORARIOS_CELL_EDIT_CTX.phLocal || "",
+      uni: HORARIOS_CELL_EDIT_CTX.uni || "",
+      salon: "",
+      timeRange: HORARIOS_CELL_EDIT_CTX.timeRange || null,
+      __colKey: HORARIOS_CELL_EDIT_CTX.colKey || HORARIOS_CELL_EDIT_CTX.phColKey || "",
+      __cardKey: HORARIOS_CELL_EDIT_CTX.cardKey || ""
+    });
     const is = timeMarksCtx.indexOf(start);
     const ie = timeMarksCtx.indexOf(end);
     if (!DAYS.includes(day) || is < 0 || ie < 0 || is >= ie){
@@ -11870,8 +12162,14 @@ el.dataset.ready = "1";
         const eEl = tr.querySelector(".heEnd");
         const sVal = String(sEl?.value||"");
         const eVal = String(eEl?.value||"");
-        if (sEl) sEl.innerHTML = timeOptionsHtml(sVal, uni);
-        if (eEl) eEl.innerHTML = timeOptionsHtml(eVal, uni);
+        const ctx = {
+          id: document.getElementById("heId")?.value || "",
+          local: document.getElementById("heLocal")?.value || "",
+          uni,
+          salon: document.getElementById("heSalon")?.value || ""
+        };
+        if (sEl) sEl.innerHTML = timeOptionsHtml(sVal, uni, ctx);
+        if (eEl) eEl.innerHTML = timeOptionsHtml(eVal, uni, ctx);
       });
     });
 
@@ -11924,7 +12222,7 @@ el.dataset.ready = "1";
     const tb = document.getElementById("heTbody");
     tb.innerHTML = "";
     const blocks = (s && Array.isArray(s.blocks)) ? s.blocks : [];
-    for (const b of blocks) appendHorarioBlockRow(b, heUni.value);
+    for (const b of blocks) appendHorarioBlockRow(Object.assign({__scheduleCtx:s}, b), heUni.value);
 
     overlay.style.display = "flex";
   }
@@ -11940,9 +12238,11 @@ el.dataset.ready = "1";
     return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
   }
 
-  function timeOptionsHtml(selected, uni){
+  function timeOptionsHtml(selected, uni, scheduleCtx=null){
     const sel = String(selected||"");
-    return getTimeMarksForUni(uni).map(t=>`<option value="${t}" ${t===sel ? "selected" : ""}>${t}</option>`).join("");
+    let marks = TIME_MARKS_FULL.slice();
+    if (sel && !marks.includes(sel)) marks = marks.concat([sel]).sort();
+    return marks.map(t=>`<option value="${t}" ${t===sel ? "selected" : ""}>${t}</option>`).join("");
   }
 
   function dayOptionsHtml(selected){
@@ -11957,14 +12257,15 @@ el.dataset.ready = "1";
     const day = normalizeDayKey(b.day || "LUNES");
     const start = b.start || "08:00";
     const end = b.end || "09:50";
+    const scheduleCtx = b.__scheduleCtx || null;
     const course = b.course || "";
     const teacher = b.teacher || "";
 
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td><select class="heDay hInpSm">${dayOptionsHtml(day)}</select></td>
-      <td><select class="heStart hInpSm">${timeOptionsHtml(start, uni)}</select></td>
-      <td><select class="heEnd hInpSm">${timeOptionsHtml(end, uni)}</select></td>
+      <td><select class="heStart hInpSm">${timeOptionsHtml(start, uni, scheduleCtx)}</select></td>
+      <td><select class="heEnd hInpSm">${timeOptionsHtml(end, uni, scheduleCtx)}</select></td>
       <td><input class="heCourse hInpSm" value="${escapeAttr(course)}" placeholder="Ej: RV / ÁLG 1"/></td>
       <td><input class="heTeacher hInpSm" value="${escapeAttr(teacher)}" placeholder="Ej: TABER"/></td>
       <td><button class="hBtn hBtnTiny hBtnDanger heDel">✕</button></td>
@@ -11979,6 +12280,15 @@ el.dataset.ready = "1";
     const uni = document.getElementById("heUni")?.value || "";
     const rows = Array.from(tb.querySelectorAll("tr"));
     const blocks = [];
+    const invalidRows = [];
+    const local = document.getElementById("heLocal")?.value || "";
+    const salon = document.getElementById("heSalon")?.value || "";
+    const id = document.getElementById("heId")?.value || "";
+    const existing = SCHEDULES.find(x=>x.id===(HORARIOS_EDIT_CURRENT_ID || id)) || null;
+    // En el editor completo se permiten todos los cortes disponibles; el rango visible
+    // se ajusta al guardar para que bloques largos (ej. 17:00-18:30) sí se dibujen.
+    const marks = TIME_MARKS_FULL;
+
     for (const r of rows){
       const day = normalizeDayKey(r.querySelector(".heDay").value);
       const start = r.querySelector(".heStart").value;
@@ -11986,11 +12296,19 @@ el.dataset.ready = "1";
       const course = r.querySelector(".heCourse").value.trim();
       const teacher = r.querySelector(".heTeacher").value.trim();
 
-      const is = idxMark(start, uni);
-      const ie = idxMark(end, uni);
-      if (is < 0 || ie < 0 || is >= ie) continue;
+      const is = marks.indexOf(start);
+      const ie = marks.indexOf(end);
+      if (is < 0 || ie < 0 || is >= ie){
+        invalidRows.push(`${day} ${start}-${end}`);
+        continue;
+      }
 
       blocks.push({ day, start, end, course, teacher });
+    }
+
+    if (invalidRows.length){
+      alert(`Hay rangos inválidos o fuera del rango visible del horario:\n${invalidRows.join("\n")}\n\nAjusta el rango visible de la tarjeta o corrige las horas.`);
+      return null;
     }
     return blocks;
   }
@@ -12000,8 +12318,14 @@ el.dataset.ready = "1";
 
     const local = document.getElementById("heLocal").value;
     const uni   = document.getElementById("heUni").value;
-    const salon = document.getElementById("heSalon").value.trim();
+    let salon = document.getElementById("heSalon").value.trim();
     const id    = document.getElementById("heId").value.trim();
+
+    if (isEscolaresArsSchedule({ id, local, uni, salon })){
+      salon = "ESCOLARES ARS";
+      const heSalon = document.getElementById("heSalon");
+      if (heSalon) heSalon.value = salon;
+    }
 
     if (!local || !uni || !salon || !id){
       alert("Completa LOCAL / UNIVERSIDAD / SALÓN / ID.");
@@ -12009,7 +12333,21 @@ el.dataset.ready = "1";
     }
 
     const blocks = collectEditorBlocks();
+    if (!blocks) return;
+    const existing = SCHEDULES.find(x=>x.id===(HORARIOS_EDIT_CURRENT_ID || id)) || null;
     const obj = { id, local, uni, salon, blocks };
+    if (existing?.colors) obj.colors = existing.colors;
+    if (existing?.timeRange) obj.timeRange = existing.timeRange;
+
+    if (blocks.length){
+      const idxs = blocks.flatMap(b=>[TIME_MARKS_FULL.indexOf(b.start), TIME_MARKS_FULL.indexOf(b.end)]).filter(i=>i >= 0);
+      if (idxs.length){
+        const needed = { start: TIME_MARKS_FULL[Math.min(...idxs)], end: TIME_MARKS_FULL[Math.max(...idxs)] };
+        const current = getScheduleTimeRange(obj);
+        const coversNeeded = current && TIME_MARKS_FULL.indexOf(current.start) <= TIME_MARKS_FULL.indexOf(needed.start) && TIME_MARKS_FULL.indexOf(current.end) >= TIME_MARKS_FULL.indexOf(needed.end);
+        if (!coversNeeded) obj.timeRange = needed;
+      }
+    }
 
     if (HORARIOS_EDIT_IS_NEW){
       if (SCHEDULES.some(x=>x.id===id)){
@@ -12137,7 +12475,8 @@ el.dataset.ready = "1";
       colKey: cell.dataset.colKey || card.getAttribute("data-colkey") || "",
       isPlaceholder: cell.dataset.placeholder === "1",
       phLocal: cell.dataset.phLocal || "",
-      phColKey: cell.dataset.phColKey || ""
+      phColKey: cell.dataset.phColKey || "",
+      timeRange: (SCHEDULES.find(x=>x.id===(cell.dataset.scheduleId || card.getAttribute("data-id"))) || {}).timeRange || null
     });
   });
 
@@ -12161,6 +12500,53 @@ el.dataset.ready = "1";
       e.preventDefault();
       setHorariosMatrixFullscreen(false);
     }
+  });
+
+  function ensureScheduleFromCard(card, sid){
+    let sch = SCHEDULES.find(x=>x.id===sid) || null;
+    if (!sch && card){
+      sch = { id: sid, local: card.getAttribute("data-local") || "LA MOLINA", uni: card.getAttribute("data-uni") || "AGRARIA", salon: card.getAttribute("data-salon") || "NUEVO SALON", blocks: [] };
+      SCHEDULES.push(sch);
+    }
+    return sch;
+  }
+
+  document.addEventListener("input", (e)=>{
+    const inp = e.target.closest(".schColorInput");
+    if (!inp || CURRENT_ROLE !== "admin" || !HORARIOS_EDIT_MODE) return;
+    const card = inp.closest(".schCard");
+    const sid = inp.getAttribute("data-sid") || card?.getAttribute("data-id") || "";
+    const part = inp.getAttribute("data-part");
+    const val = normalizeHexColor(inp.value, part === "cell" ? "#fff4cc" : "#d4a200");
+    if (card) card.style.setProperty(part === "cell" ? "--schCell" : "--schHead", val);
+    const sch = ensureScheduleFromCard(card, sid);
+    if (!sch) return;
+    sch.colors = Object.assign({}, sch.colors || {});
+    sch.colors[part === "cell" ? "cell" : "head"] = val;
+    saveSchedules();
+  });
+
+  document.addEventListener("change", (e)=>{
+    const inp = e.target.closest(".schRangeInput");
+    if (!inp || CURRENT_ROLE !== "admin" || !HORARIOS_EDIT_MODE) return;
+    const card = inp.closest(".schCard");
+    const sid = inp.getAttribute("data-sid") || card?.getAttribute("data-id") || "";
+    const sch = ensureScheduleFromCard(card, sid);
+    if (!sch) return;
+
+    const start = card?.querySelector('.schRangeInput[data-part="start"]')?.value || "";
+    const end = card?.querySelector('.schRangeInput[data-part="end"]')?.value || "";
+    const is = TIME_MARKS_FULL.indexOf(start);
+    const ie = TIME_MARKS_FULL.indexOf(end);
+    if (is < 0 || ie < 0 || is >= ie){
+      alert("Rango horario inválido. El inicio debe ser menor que el fin.");
+      renderHorarios();
+      return;
+    }
+
+    sch.timeRange = { start, end };
+    saveSchedules();
+    renderHorarios();
   });
 
   document.addEventListener("click", (e)=>{
