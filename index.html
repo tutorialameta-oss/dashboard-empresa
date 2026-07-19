@@ -3448,6 +3448,7 @@ function pgxProgramSpec(kind){
   if (raw === "PRE U.LIMA" || raw === "PRE ULIMA") return { kind:"PRE U.LIMA", scope:"U.LIMA", theme:"PRE U.LIMA" };
   if (raw === "U.LIMA" || raw === "ULIMA" || raw === "UL") return { kind:"U.LIMA", scope:"U.LIMA", theme:"U.LIMA" };
   if (raw === "PUCP") return { kind:"PUCP", scope:"PUCP", theme:"PUCP" };
+  if (raw === "ESCOLARES U.LIMA" || raw === "ESCOLAR U.LIMA" || raw === "ESC U.LIMA") return { kind:"ESCOLARES U.LIMA", scope:"ESCOLARES", theme:"ESCOLARES" };
   if (raw === "ESCOLARES" || raw === "ESCOLAR") return { kind:"ESCOLARES", scope:"ESCOLARES", theme:"ESCOLARES" };
   return { kind:"AGRARIA", scope:"AGRARIA", theme:"AGRARIA" };
 }
@@ -4412,7 +4413,7 @@ if (zoom) zoom.value = pgxZoomOption(pgxGetZoom());
 
         <label>SCOPE
           <select id="pgsScope">
-            ${["ALL","AGRARIA","PUCP","U.LIMA"].map(x=>`<option value="${x}"${String(p.meta?.scope||"ALL").toUpperCase()===x?" selected":""}>${x}</option>`).join("")}
+            ${["ALL","AGRARIA","PUCP","U.LIMA","ESCOLARES"].map(x=>`<option value="${x}"${String(p.meta?.scope||"ALL").toUpperCase()===x?" selected":""}>${x}</option>`).join("")}
           </select>
         </label>
 
@@ -4716,6 +4717,7 @@ const tw = pgxTotalWeeks();
             <option value="PRE U.LIMA">CICLO: PRE U.LIMA</option>
             <option value="PUCP">CICLO: PUCP</option>
             <option value="ESCOLARES">CICLO: ESCOLARES</option>
+            <option value="ESCOLARES U.LIMA">CICLO: ESCOLARES U.LIMA</option>
           </select>
           <button id="pgxCreate" class="btn ghost" type="button">+ CREAR PROGRAMA</button>
         </div>
@@ -6682,6 +6684,20 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
     return base;
   }
 
+  function expandEscolaresImpresionesRows(rows){
+    const out = [];
+    for (const row of (rows||[])){
+      const salon = mcNormLabel(row?.salon || "");
+      if (/^ESCOLARES?(?:\s+(?:LM|SM|SB))?$/.test(salon)){
+        out.push({...row, salon:"ESCOLAR U.LIMA"});
+        out.push({...row, salon:"ESCOLAR PUCP", count:0});
+      }else{
+        out.push(row);
+      }
+    }
+    return out;
+  }
+
   function ensureImpresionesLayout(){
     const el = document.getElementById("view_impresiones");
     if (el.dataset.ready === "1") return;
@@ -6818,11 +6834,11 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
       if (!res.ok) throw new Error("HTTP "+res.status);
       const text = await res.text();
 
-      state.imprRows = ensurePreUlimaImpresionesRows(parseImpresionesCSV(text));
+      state.imprRows = ensurePreUlimaImpresionesRows(expandEscolaresImpresionesRows(parseImpresionesCSV(text)));
       state.imprUpdatedAt = Date.now(); // se conserva, pero ya no se muestra en pantalla
     } catch(e){
       console.error("IMPRESIONES:", e);
-      state.imprRows = ensurePreUlimaImpresionesRows(state.imprRows || []);
+      state.imprRows = ensurePreUlimaImpresionesRows(expandEscolaresImpresionesRows(state.imprRows || []));
     }
   }
   // ===================== FIN IMPRESIONES =====================
@@ -6876,6 +6892,13 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
       { name:"TEXTOS", url:"https://docs.google.com/spreadsheets/d/13hVQ3aU8tGTTCLulDKqvEPjfPig6mJmT/edit?usp=drive_link&ouid=109996193497961946614&rtpof=true&sd=true" },
       { name:"ÁLGEBRA", url:"https://docs.google.com/spreadsheets/d/1xCleoX70pd__IPvAJmxIXLg7PbqYSZWl/edit?usp=drive_link&ouid=109996193497961946614&rtpof=true&sd=true" },
       { name:"GEOMETRÍA Y MEDIDA", url:"https://docs.google.com/spreadsheets/d/1hiDjBKA481mnXIRNWQ855JOEd3SZMpgk/edit?usp=drive_link&ouid=109996193497961946614&rtpof=true&sd=true" },
+    ],
+    "ESCOLAR U.LIMA": [
+      { name:"TEXTOS", url:"https://docs.google.com/spreadsheets/d/1ILTmyKaVYUDhTv3KOit67iOh3MlgsCVtSi0ri2ejPgU/edit?gid=11988891#gid=11988891" },
+      { name:"RAZONAMIENTO MATEMÁTICO", url:"https://docs.google.com/spreadsheets/d/1u-Y8dvVsuQ9zCqX3SNHZgGZgW_j8QJSMmbNwh8qxtS0/edit?gid=11988891#gid=11988891" },
+      { name:"ÁLGEBRA", url:"https://docs.google.com/spreadsheets/d/18_38udXwAgCbA3ysr1R9cpWVY0Z_nIaOdXzYVPV8_D8/edit?gid=11988891#gid=11988891" },
+      { name:"ARITMÉTICA", url:"https://docs.google.com/spreadsheets/d/1VvgKuQHSuU1j-HVWCojynMw6N3b5LwBBgymTq_K_6Ck/edit?gid=11988891#gid=11988891" },
+      { name:"GEOMETRÍA Y TRIGONOMETRÍA", url:"https://docs.google.com/spreadsheets/d/1-aWi7hmJcCkrZAIy8E5riX6jFFTvEn5qnuwqC5cGF2o/edit?gid=11988891#gid=11988891" },
     ]
   };
 
@@ -6884,6 +6907,7 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
     if (uni==="U.LIMA") return getCss("--ulima");
     if (uni==="PUCP") return getCss("--pucp");
     if (uni==="ESCOLARES ARS") return getCss("--pucp");
+    if (uni==="ESCOLAR U.LIMA") return getCss("--schHead_ESC");
     if (uni==="ESCOLARES" || uni==="ESCOLARES INTEGRAL") return getCss("--schHead_ESC");
     return getCss("--ulima");
   }
@@ -6955,6 +6979,7 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
           <span class="pill"><span class="dot pucp"></span>PUCP</span>
           <span class="pill"><span class="dot escolares"></span>ESCOLARES INTEGRAL</span>
           <span class="pill"><span class="dot pucp"></span>ESCOLARES ARS</span>
+          <span class="pill"><span class="dot escolares"></span>ESCOLAR U.LIMA</span>
         </div>
         <div class="panelHint" style="margin-top:8px; color:var(--muted);">
         </div>
@@ -6965,7 +6990,7 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
           <div class="cardtitle" style="margin:0;">RESUMEN GENERAL</div>
           <div class="syKpis">
             <span class="syKpiPill">CURSOS: <b id="sTotal">0</b></span>
-            <span class="syKpiPill">UNIVERSIDADES: <b id="sUnis">5</b></span>
+          <span class="syKpiPill">UNIVERSIDADES: <b id="sUnis">6</b></span>
           </div>
         </div>
       </div>
@@ -6973,7 +6998,7 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
       <div class="panel12" id="sBlocks"></div>
     `;
 
-    fillSelectKeep("sUni", ["AGRARIA","U.LIMA","PUCP","ESCOLARES INTEGRAL","ESCOLARES ARS"], "UNIVERSIDAD: TODAS");
+    fillSelectKeep("sUni", ["AGRARIA","U.LIMA","PUCP","ESCOLARES INTEGRAL","ESCOLARES ARS","ESCOLAR U.LIMA"], "UNIVERSIDAD: TODAS");
 
     document.getElementById("sReset").addEventListener("click", ()=>{
       document.getElementById("sUni").value="__ALL__";
@@ -7059,7 +7084,7 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
     const fUni = document.getElementById("sUni").value;
     const q = low(document.getElementById("sQ").value);
 
-    const uniOrder = ["AGRARIA","U.LIMA","PUCP","ESCOLARES INTEGRAL","ESCOLARES ARS"];
+    const uniOrder = ["AGRARIA","U.LIMA","PUCP","ESCOLARES INTEGRAL","ESCOLARES ARS","ESCOLAR U.LIMA"];
     let unis = uniOrder.slice();
     if (fUni !== "__ALL__") unis = unis.filter(u=>u===fUni);
 
@@ -7868,6 +7893,17 @@ const NOTAS_GENERALES = [
   // ✅ ESCOLARES
   { id:"ESCOLARES", uni:"ESCOLARES", label:"NOTAS GENERALES ESCOLARES", url:"https://docs.google.com/spreadsheets/d/1Aa5MiVY85fDbU2M_OYynooBHwgf0fqXelAiVvf4N2DY/edit?usp=drive_link" },
 ];
+const NOTAS_LINKS_KEY = "LM_NOTAS_GENERALES_LINKS_V1";
+const NOTAS_EDIT_KEY = "LM_NOTAS_GENERALES_EDIT_V1";
+
+function notasLinksLoad(){
+  try{ return JSON.parse(localStorage.getItem(NOTAS_LINKS_KEY) || "{}"); }
+  catch(_){ return {}; }
+}
+
+function notasLinksSave(links){
+  try{ localStorage.setItem(NOTAS_LINKS_KEY, JSON.stringify(links || {})); }catch(_){ }
+}
 
 function ensureNotasLayout(){
   const el = document.getElementById("view_notas");
@@ -7878,9 +7914,15 @@ function ensureNotasLayout(){
       <div class="cardtitle">NOTAS GENERALES</div>
       <div style="color:var(--muted); font-weight:900; margin-bottom:12px;">
       </div>
+      ${CURRENT_ROLE === "admin" ? '<button id="notasEdit" class="btn ghost" type="button" style="margin-bottom:12px;">EDITAR ENLACES</button>' : ''}
       <div class="iGrid" id="notasGrid"></div>
     </div>
   `;
+  document.getElementById("notasEdit")?.addEventListener("click", ()=>{
+    const on = localStorage.getItem(NOTAS_EDIT_KEY) === "1";
+    localStorage.setItem(NOTAS_EDIT_KEY, on ? "0" : "1");
+    renderNotasGenerales();
+  });
   el.dataset.ready = "1";
 }
 
@@ -7889,6 +7931,10 @@ function renderNotasGenerales(){
 
   const grid = document.getElementById("notasGrid");
   if (!grid) return;
+  const overrides = notasLinksLoad();
+  const editOn = CURRENT_ROLE === "admin" && localStorage.getItem(NOTAS_EDIT_KEY) === "1";
+  const editBtn = document.getElementById("notasEdit");
+  if (editBtn) editBtn.textContent = editOn ? "SALIR DE EDICIÓN" : "EDITAR ENLACES";
 
   const notasOrdered = NOTAS_GENERALES.slice().sort((a,b)=>{
     const rank = (u)=>{
@@ -7912,7 +7958,19 @@ function renderNotasGenerales(){
       x.uni === "PUCP"    ? getCss("--pucp") :
                             getCss("--ulima");
 
-    const url = String(x.url || "").trim();
+    const url = String(overrides[x.id] ?? x.url ?? "").trim();
+    if (editOn){
+      return `
+        <div class="iItem" style="align-items:flex-start; gap:12px;">
+          <div class="iLeft" style="flex:1; min-width:0;">
+            <div class="iSalon">${escapeHtml(x.label)}</div>
+            <div class="iMeta"><span class="dot" style="background:${dot};"></span><span>${escapeHtml(x.uni)}</span></div>
+            <input class="notasLinkInput" data-nota-id="${escapeHtml(x.id)}" value="${escapeHtml(url)}" placeholder="Pega el enlace de notas" style="width:100%; min-width:0; margin-top:8px;"/>
+          </div>
+          <button class="btn ghost notasLinkSave" data-nota-id="${escapeHtml(x.id)}" type="button">GUARDAR</button>
+        </div>
+      `;
+    }
     if (url){
       return `
         <a class="iItem" href="${escapeHtml(url)}" target="_blank" rel="noopener"
@@ -7941,6 +7999,16 @@ function renderNotasGenerales(){
       </div>
     `;
   }).join("");
+
+  grid.querySelectorAll(".notasLinkSave").forEach(btn=>btn.addEventListener("click", ()=>{
+    const id = String(btn.getAttribute("data-nota-id") || "");
+    const input = grid.querySelector(`.notasLinkInput[data-nota-id="${id}"]`);
+    const links = notasLinksLoad();
+    links[id] = String(input?.value || "").trim();
+    notasLinksSave(links);
+    toast("Enlace de notas guardado.");
+    renderNotasGenerales();
+  }));
 }
 
 
@@ -9276,6 +9344,14 @@ function renderMateriales(){
     "Textos",
     "Simulacros"
   ];
+  const ESCOLARES_ULIMA_COURSES = [
+    "Textos",
+    "Razonamiento Matemático",
+    "Álgebra",
+    "Aritmética",
+    "Geometría y Trigonometría",
+    "Simulacros"
+  ];
 
   function mcMaterialProgramNameRaw(program){
     return String(program?.meta?.name || "").trim();
@@ -9285,6 +9361,7 @@ function renderMateriales(){
     const normalized = raw.toUpperCase().replace(/\s+/g, " ").trim();
     if (normalized === "ESCOLARES AGRARIA" || normalized === "ESCOLARES AGRARAI") return "ESCOLARES INTEGRAL";
     if (normalized.includes("ARS") || normalized.includes("POP")) return "ESCOLARES ARS";
+    if (normalized.includes("ESCOLAR") && (normalized.includes("U.LIMA") || normalized.includes("ULIMA"))) return "ESCOLARES U.LIMA";
     return normalized || "(SIN PROGRAMAS)";
   }
   function mcMaterialCoursesFor(uniLabel, program){
@@ -9292,6 +9369,7 @@ function renderMateriales(){
     if (uniNorm !== "ESCOLARES") return COURSES[uniNorm] || [];
     const name = mcMaterialProgramNameRaw(program).toUpperCase();
     if (name.includes("ARS")) return ESCOLARES_ARS_COURSES;
+    if (name.includes("U.LIMA") || name.includes("ULIMA")) return ESCOLARES_ULIMA_COURSES;
     return ESCOLARES_INTEGRAL_COURSES;
   }
 
@@ -9795,7 +9873,8 @@ const LISTAS = [
   { local:"SAN BORJA", name:"U.LIMA 1",  url:"https://docs.google.com/spreadsheets/d/1-NMJf7AV7xUDEr8azb8UUCiqFjNSsqwc25ifUrCwfX0/edit?usp=drive_link" },
   { local:"SAN BORJA", name:"PRE U.LIMA", url:"https://docs.google.com/spreadsheets/d/1xMCd6Xhe5rvs_eCmu7dWj0gX9gAGMu8Uo13akNTcr80/edit?gid=412178933#gid=412178933" },
 //  { local:"SAN BORJA", name:"U.LIMA 2",  url:"https://docs.google.com/spreadsheets/d/1BJSLmUr2ECAfanxuI2py0R2Yi_eqovmkHuLcUNgMFSw/edit?usp=drive_web&ouid=109996193497961946614" },
-  { local:"SAN BORJA", name:"ESCOLAR",  url:"https://docs.google.com/spreadsheets/d/1hKYufMBq_ObOjmP4BpDVgTRq-aqOwQET-TZIsz36iC8/edit?usp=drive_link"},
+  { local:"SAN BORJA", name:"ESC U.LIMA",  url:"https://docs.google.com/spreadsheets/d/1hKYufMBq_ObOjmP4BpDVgTRq-aqOwQET-TZIsz36iC8/edit?usp=drive_link"},
+  { local:"SAN BORJA", name:"ESC PUCP",  url:"https://docs.google.com/spreadsheets/d/1hKYufMBq_ObOjmP4BpDVgTRq-aqOwQET-TZIsz36iC8/edit?usp=drive_link"},
 
   // ================= VIRTUAL =================
   { local:"VIRTUAL", name:"AGRARIA",   url:"https://docs.google.com/spreadsheets/d/1A06U7wDDHBmRrxnlai4hm5shaNJcF9qjWRa8xcusZVg/edit?usp=drive_link" },
@@ -9982,12 +10061,18 @@ const REPORTES = [
   { local:"LA MOLINA", name:"AGRARIA LM 2",      reporte:"https://colab.research.google.com/drive/1-nCsEiJvFYCOeHlNaYVGNPWrYs79cGYN?usp=drive_link" , carpeta:"https://drive.google.com/drive/folders/1IrYwFVCr-wnM_F_1R_t6WR1l710Hmt5l?usp=drive_link" },
   { local:"LA MOLINA", name:"PUCP LM",           reporte:"https://colab.research.google.com/drive/16O_gwow6VfrvIlj37RDyfw2bleWBRgLq" , carpeta:"https://drive.google.com/drive/folders/1iyJaiozUgIQfGzqtKGNKKv51Z69m3b8y?usp=drive_link" },
   { local:"LA MOLINA", name:"U.LIMA LM 1",         reporte:"https://colab.research.google.com/drive/1h6ioZbLEKsB72xZGR0AYc5NQ0zuWKLGS" , carpeta:"https://drive.google.com/drive/folders/1AWE4_Tp6cG_rmw5WG3S6evx0v3esO0V9?usp=drive_link" },
+  { local:"LA MOLINA", name:"ESC AGRARIA", reporte:"", carpeta:"" },
+  { local:"LA MOLINA", name:"ESC U.LIMA", reporte:"", carpeta:"" },
+  { local:"LA MOLINA", name:"ESC PUCP", reporte:"", carpeta:"" },
  // { local:"LA MOLINA", name:"ADELANTO LM",       reporte:"https://colab.research.google.com/drive/1GmBZNfVlXi7z6DUTg3hnVMiW0DlONKJ-" , carpeta:"https://drive.google.com/drive/folders/1_pfkbWLqGj7xBXn4_u967d7qYQzNFicF?usp=drive_link" },
 
   // ================= SAN MIGUEL =================
   { local:"SAN MIGUEL", name:"AGRARIA SM",       reporte:"https://colab.research.google.com/drive/1C__V_81I9fH1ftZ8zH8yMBvIpBtLGZF7" , carpeta:"https://drive.google.com/drive/folders/1GZiz03ezHkJJyO1lc5d4hwf0x53Tkg2N?usp=drive_link" },
   { local:"SAN MIGUEL", name:"PUCP SM",          reporte:"https://colab.research.google.com/drive/10k30iOTwt6jAH1zw1GUSJjl8GkqaSPgt" , carpeta:"https://drive.google.com/drive/folders/1NyH2Uk7dUDvb1Nea6_Rw1WMKcYAwCDed?usp=drive_link" },
   { local:"SAN MIGUEL", name:"U.LIMA SM 1",      reporte:"https://colab.research.google.com/drive/19s-VUMOqGhSaTpqDiAYQ890mf3ftyk4X" , carpeta:"https://drive.google.com/drive/folders/1vW8kb030RB9kAwpwKMI_wW3MRqt-DFP1?usp=drive_link" },
+  { local:"SAN MIGUEL", name:"ESC AGRARIA", reporte:"", carpeta:"" },
+  { local:"SAN MIGUEL", name:"ESC U.LIMA", reporte:"", carpeta:"" },
+  { local:"SAN MIGUEL", name:"ESC PUCP", reporte:"", carpeta:"" },
   //{ local:"SAN MIGUEL", name:"U.LIMA SM 2",      reporte:"https://colab.research.google.com/drive/1AKoWoQ4LzXg7DCJNF_Vaqw9kmUXxuuWu" , carpeta:"https://drive.google.com/drive/folders/1tx-fLVA6MXtqah0yQbXXPNfjUrxUE7Kd?usp=drive_link" },
  //{ local:"SAN MIGUEL", name:"ADELANTO SM",      reporte:"https://colab.research.google.com/drive/1K_LFFycdNc6KS_LMCb5-2groejZlvBXI" , carpeta:"https://drive.google.com/drive/folders/1D5j3HXKQW1vz5Ybz3Wh0yZsf_jz4XZ6x?usp=drive_link" },
 
@@ -9995,6 +10080,8 @@ const REPORTES = [
   { local:"SAN BORJA",  name:"AGRARIA SB",       reporte:"https://colab.research.google.com/drive/1AqLVAqCWepspc6rZ_LeH83Jhl7wVls7-" , carpeta:"https://drive.google.com/drive/folders/1HqI3RCFvou5nRZOK3xGl-qU0IKXYlIik?usp=drive_link" },
   { local:"SAN BORJA",  name:"PUCP SB",          reporte:"https://colab.research.google.com/drive/1RuA_pajmIPZkX993vCZhYUsihn3Y6mM4?usp=drive_link" , carpeta:"https://drive.google.com/drive/folders/1ESy4PUxeUPcNmaJb8E2i1P_90IgGtQvO?usp=drive_link" },
   { local:"SAN BORJA",  name:"U.LIMA SB 1",      reporte:"https://colab.research.google.com/drive/1ov_JylNXZTJyYhgw_9V3F_DI3ArQZSu1?usp=drive_link" , carpeta:"https://drive.google.com/drive/folders/1BcZpMa8dCEcabgopswRbP2UGSizPwnqs?usp=drive_link" },
+  { local:"SAN BORJA", name:"ESC U.LIMA", reporte:"", carpeta:"" },
+  { local:"SAN BORJA", name:"ESC PUCP", reporte:"", carpeta:"" },
  // { local:"SAN BORJA",  name:"U.LIMA SB 2",      reporte:"https://colab.research.google.com/drive/19KkIWlb1oNy4VoRCflfv6GWXPlQNO6-u" , carpeta:"https://drive.google.com/drive/folders/1gKBqvM2nxMPi8DQUqLis8nTl2LV25P0M?usp=drive_link" },
 
   // ================= VIRTUAL =================
@@ -10091,13 +10178,13 @@ function renderReportes(){
       const rep = (it.reporte && String(it.reporte).trim()) ? String(it.reporte).trim() : "";
       const car = (it.carpeta && String(it.carpeta).trim()) ? String(it.carpeta).trim() : "";
 
-      const repBtn = rep
+      const repBtn = CURRENT_ROLE === "admin" && rep
         ? `<a class="syBtn" href="${escapeHtml(rep)}" target="_blank" rel="noopener noreferrer">REPORTE</a>`
-        : `<span class="syBtn disabled">REPORTE</span>`;
+        : (CURRENT_ROLE === "admin" ? `<span class="syBtn disabled">REPORTE</span>` : ``);
 
       const carBtn = car
-        ? `<a class="syBtn" href="${escapeHtml(car)}" target="_blank" rel="noopener noreferrer">CARPETA</a>`
-        : `<span class="syBtn disabled">CARPETA</span>`;
+        ? `<a class="syBtn" href="${escapeHtml(car)}" target="_blank" rel="noopener noreferrer">VER REPORTES</a>`
+        : `<span class="syBtn disabled">VER REPORTES</span>`;
 
       return `
         <div class="syItem">
