@@ -7,7 +7,7 @@
   <meta http-equiv="Pragma" content="no-cache"/>
   <meta http-equiv="Expires" content="0"/>
   <title>LA META | DASHBOARD</title>
-  <!-- revisión: materiales ARS v2026-06-14f · corrección ARS: feriados solo en día real del curso -->
+  <!-- revisión: materiales ARS/Integral v2026-07-06b · avisos de feriado visibles sin reprogramar si no coinciden con el día real -->
 
   <!-- Charts -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
@@ -1126,30 +1126,56 @@
       margin-top: 12px;
     }
     .syItem{
-      border:1px solid var(--border);
-      border-radius: 16px;
-      padding: 12px;
-      background:#fff;
+      --syAccent: var(--accent);
+      border:1px solid rgba(15,23,42,0.10);
+      border-radius: 18px;
+      padding: 13px 14px;
+      background: linear-gradient(180deg,#fff 0%,#fbfdff 100%);
       display:flex;
       align-items:center;
       justify-content:space-between;
-      gap:10px;
+      gap:12px;
       text-decoration:none;
       color: var(--text);
-      transition: transform .06s ease, box-shadow .06s ease, border-color .06s ease;
+      transition: transform .08s ease, box-shadow .08s ease, border-color .08s ease, background .08s ease;
+      position:relative;
+      overflow:hidden;
+    }
+    .syItem::before{
+      content:"";
+      position:absolute;
+      left:0; top:0; bottom:0;
+      width:4px;
+      background:var(--syAccent);
+      opacity:.82;
     }
     .syItem:hover{
       transform: translateY(-1px);
-      border-color: rgba(15,23,42,0.18);
+      border-color: color-mix(in srgb, var(--syAccent) 28%, rgba(15,23,42,0.16));
       box-shadow: 0 16px 40px rgba(15,23,42,0.12);
+      background:#fff;
     }
-    .syLeft{ min-width:0; display:flex; flex-direction:column; gap:6px; }
+    .syLeft{ min-width:0; display:flex; flex-direction:column; gap:6px; padding-left:4px; }
+    .syCourseRow{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      min-width:0;
+    }
+    .syColorDot{
+      width:12px;
+      height:12px;
+      border-radius:999px;
+      flex:0 0 auto;
+      background:var(--syAccent);
+      box-shadow:0 0 0 4px color-mix(in srgb, var(--syAccent) 18%, transparent);
+    }
     .syCourse{
       font-weight:950;
       text-transform:uppercase;
-      font-size:12px;
+      font-size:12.5px;
       line-height:1.15;
-      letter-spacing:.2px;
+      letter-spacing:.22px;
     }
     .syMeta{
       display:flex;
@@ -1173,6 +1199,7 @@
       font-size:12px;
       white-space:nowrap;
       color: var(--accent2);
+      text-decoration:none;
     }
     .syOpen:hover{
       border-color: rgba(209,11,11,0.35);
@@ -2756,6 +2783,465 @@
     .mcTableWrap{ overflow-x:auto !important; }
     .mcTable{ min-width:980px !important; }
   }
+
+
+
+    /* ======================================================================
+      V20 · ACABADO VISUAL PREMIUM LA META
+      Solo capa estética: no cambia datos, permisos, horarios, sílabos ni flujos.
+    ====================================================================== */
+    :root{
+      --bg:#f7f8fc;
+      --card:rgba(255,255,255,.96);
+      --text:#071226;
+      --muted:#667085;
+      --border:rgba(15,23,42,.105);
+      --accent:#e31b23;
+      --accent2:#8f0d12;
+      --soft:#fff1f2;
+      --shadow:0 18px 48px rgba(15,23,42,.105);
+      --shadow2:0 10px 26px rgba(143,13,18,.09);
+      --radius:20px;
+    }
+
+    body{
+      background:
+        radial-gradient(circle at 12% -8%, rgba(227,27,35,.105) 0, transparent 34%),
+        radial-gradient(circle at 96% 0%, rgba(143,13,18,.075) 0, transparent 30%),
+        linear-gradient(180deg,#ffffff 0%,#f8fafc 42%,#f3f5f9 100%);
+      -webkit-font-smoothing:antialiased;
+      text-rendering:geometricPrecision;
+    }
+    .topbar{
+      background:linear-gradient(90deg,#62070b 0%,#b20f16 42%,#f04438 100%);
+      box-shadow:0 6px 24px rgba(143,13,18,.24);
+    }
+    .sidebar{
+      background:
+        linear-gradient(180deg,rgba(255,255,255,.97),rgba(255,255,255,.90)),
+        radial-gradient(circle at 0% 0%, rgba(227,27,35,.085), transparent 48%);
+      backdrop-filter: blur(10px);
+      box-shadow:8px 0 28px rgba(15,23,42,.045);
+    }
+    .brand{
+      background:
+        linear-gradient(135deg,rgba(255,255,255,.98),rgba(255,247,247,.92));
+      border-color:rgba(227,27,35,.14);
+      box-shadow:0 18px 40px rgba(15,23,42,.08), inset 0 1px 0 rgba(255,255,255,.9);
+    }
+    .brand img{
+      box-shadow:0 12px 28px rgba(143,13,18,.13);
+      border-color:rgba(227,27,35,.18);
+    }
+    .brand h1,
+    .title h2{
+      color:#061123;
+      letter-spacing:.28px;
+    }
+    .nav button{
+      background:linear-gradient(180deg,#ffffff 0%,#fbfcfe 100%);
+      box-shadow:0 8px 22px rgba(15,23,42,.045);
+      transition:transform .12s ease, box-shadow .12s ease, border-color .12s ease, background .12s ease;
+    }
+    .nav button:hover{
+      transform:translateY(-1px);
+      box-shadow:0 14px 30px rgba(15,23,42,.075);
+      border-color:rgba(227,27,35,.22);
+    }
+    .nav button.active{
+      background:linear-gradient(135deg,rgba(255,241,242,.98),rgba(255,255,255,.92));
+      border-color:rgba(227,27,35,.34);
+      box-shadow:0 0 0 4px rgba(227,27,35,.075), 0 14px 30px rgba(143,13,18,.08);
+    }
+    .card,
+    .schCard,
+    .iItem,
+    .syItem,
+    .mcTableWrap,
+    .mcSyllabusModal{
+      border-color:rgba(15,23,42,.095) !important;
+      box-shadow:var(--shadow);
+    }
+    .card{
+      background:linear-gradient(180deg,rgba(255,255,255,.98) 0%,rgba(252,253,255,.96) 100%);
+    }
+    .cardtitle{
+      color:#667085;
+      letter-spacing:.35px;
+    }
+    select,
+    input,
+    button,
+    .btn,
+    .syOpen,
+    .mcSyllabusBtn,
+    .mcSyllabusState,
+    .syKpiPill,
+    .pill{
+      box-shadow:0 6px 16px rgba(15,23,42,.035);
+    }
+    select:focus,
+    input:focus{
+      border-color:rgba(227,27,35,.42);
+      box-shadow:0 0 0 4px rgba(227,27,35,.095), 0 8px 18px rgba(15,23,42,.05);
+    }
+    button,
+    .btn{
+      background:linear-gradient(180deg,#fff7f7 0%,#fff 100%);
+      border-color:rgba(227,27,35,.24);
+      transition:transform .12s ease, box-shadow .12s ease, background .12s ease, border-color .12s ease;
+    }
+    button:hover,
+    .btn:hover{
+      transform:translateY(-1px);
+      box-shadow:0 12px 24px rgba(143,13,18,.10);
+      background:linear-gradient(180deg,#fff0f1 0%,#ffffff 100%);
+    }
+    .semBadge{
+      box-shadow:inset 0 1px 0 rgba(255,255,255,.75), 0 7px 16px rgba(15,23,42,.045);
+    }
+    .schCard{
+      background:linear-gradient(180deg,rgba(255,255,255,.98),rgba(250,252,255,.96));
+      overflow:hidden;
+    }
+    .schCard .schHead,
+    .schTop,
+    .syLocalHead,
+    .alSectionHead{
+      background:linear-gradient(90deg,rgba(255,255,255,.96),rgba(248,250,252,.78));
+      border-radius:18px;
+    }
+    .schTable{
+      filter:drop-shadow(0 8px 14px rgba(15,23,42,.045));
+    }
+    .schTable thead th,
+    .mcTable thead th{
+      text-shadow:0 1px 0 rgba(255,255,255,.18);
+      letter-spacing:.18px;
+    }
+    .mcTableWrap{
+      background:linear-gradient(180deg,#ffffff,#fbfcff);
+      border-radius:18px;
+    }
+    .mcTable tbody tr{
+      transition:background .12s ease;
+    }
+    .mcTable tbody tr:hover td{
+      background:rgba(227,27,35,.025);
+    }
+    .mcTable tbody tr.mcCurrentWeekRow td{
+      background:linear-gradient(90deg,rgba(34,197,94,.12),rgba(255,255,255,.92)) !important;
+    }
+    .mcTableWrap input[type="checkbox"]{
+      filter:drop-shadow(0 4px 8px rgba(22,163,74,.14));
+    }
+    .mcSyllabusBtn{
+      background:linear-gradient(180deg,#eaf4ff,#f7fbff);
+      border-color:rgba(31,78,121,.20);
+      color:#0b2a4a;
+    }
+    .mcSyllabusPending{
+      background:linear-gradient(180deg,#fff7ed,#fffaf3);
+      border-color:rgba(245,158,11,.26);
+    }
+    .syItem{
+      background:
+        linear-gradient(180deg,rgba(255,255,255,.99) 0%,rgba(249,251,255,.97) 100%);
+      box-shadow:0 12px 30px rgba(15,23,42,.065);
+    }
+    .syItem:hover{
+      transform:translateY(-2px);
+      box-shadow:0 20px 44px rgba(15,23,42,.11);
+    }
+    .syOpen{
+      background:linear-gradient(180deg,#ffffff,#f8fafc);
+      border-color:rgba(15,23,42,.10);
+    }
+    .iItem{
+      background:linear-gradient(135deg,rgba(255,255,255,.98),rgba(250,252,255,.94));
+      transition:transform .12s ease, box-shadow .12s ease;
+    }
+    .iItem:not(.disabled):hover{
+      transform:translateY(-2px);
+      box-shadow:0 18px 40px rgba(15,23,42,.10);
+    }
+    .kpi .value{
+      background:linear-gradient(90deg,var(--accent2),var(--accent));
+      -webkit-background-clip:text;
+      background-clip:text;
+      color:transparent;
+    }
+    .mcSyllabusOverlay{
+      backdrop-filter: blur(4px);
+    }
+    .mcSyllabusModal{
+      background:linear-gradient(180deg,#ffffff,#fbfcff);
+    }
+    .mcTopic{
+      box-shadow:inset 0 1px 0 rgba(255,255,255,.75), 0 6px 16px rgba(31,78,121,.055);
+    }
+
+
+
+  /* Semana actual: resaltado limpio en verde institucional operativo */
+  .mcTable tbody tr.mcCurrentWeekRow td{
+    background:linear-gradient(180deg,#ffffff 0%, #f1fbf4 100%) !important;
+    border-top:1px solid rgba(34,197,94,.22) !important;
+    border-bottom:1px solid rgba(22,163,74,.20) !important;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.86);
+  }
+  .mcTable tbody tr.mcCurrentWeekRow td:first-child{
+    position:relative;
+    box-shadow:
+      inset 4px 0 0 rgba(34,197,94,.92),
+      inset 0 1px 0 rgba(255,255,255,.86);
+  }
+  .mcTable tbody tr.mcCurrentWeekRow td:first-child::after{
+    content:"";
+    position:absolute;
+    left:8px;
+    top:50%;
+    width:6px;
+    height:6px;
+    border-radius:999px;
+    transform:translateY(-50%);
+    background:linear-gradient(135deg,#16a34a,#22c55e);
+    box-shadow:0 0 0 3px rgba(34,197,94,.13);
+  }
+  .mcTable tbody tr.mcCurrentWeekRow:hover td{
+    background:linear-gradient(180deg,#fbfffc 0%, #eaf9ef 100%) !important;
+  }
+
+
+/* Limpieza visual de enlaces editables: Sílabos, Listas y Reportes */
+.syEditToggle{
+  border:1px solid rgba(165,24,32,.22);
+  background:linear-gradient(180deg,#fff 0%,#fff7f7 100%);
+  color:#941018;
+  border-radius:999px;
+  font-weight:950;
+  letter-spacing:.02em;
+  padding:10px 16px;
+  cursor:pointer;
+  box-shadow:0 8px 18px rgba(165,24,32,.06);
+}
+.syEditToggle.active{
+  background:linear-gradient(135deg,#a51820,#d63b3f);
+  color:#fff;
+  border-color:transparent;
+  box-shadow:0 12px 26px rgba(165,24,32,.18);
+}
+.syDisplayCard{
+  position:relative;
+  overflow:hidden;
+  border-left:4px solid var(--syAccent, var(--accent));
+  background:linear-gradient(135deg,#ffffff 0%,#fbfdff 100%);
+}
+.syDisplayCard:hover{
+  transform:translateY(-1px);
+  box-shadow:0 14px 32px rgba(15,23,42,.08);
+}
+.syCourseRow{
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+.syColorDot{
+  width:12px;
+  height:12px;
+  border-radius:50%;
+  background:var(--syAccent, var(--accent));
+  box-shadow:0 0 0 5px color-mix(in srgb, var(--syAccent, var(--accent)) 16%, transparent);
+  flex:0 0 auto;
+}
+.syCleanMeta{
+  margin-top:6px;
+  color:var(--muted);
+  font-size:12px;
+  font-weight:900;
+  letter-spacing:.02em;
+}
+.syEditPanel{
+  flex:1 1 100%;
+  display:flex;
+  gap:8px;
+  align-items:center;
+  flex-wrap:wrap;
+  margin-top:12px;
+  padding:12px;
+  border-radius:16px;
+  background:rgba(248,250,252,.82);
+  border:1px dashed rgba(100,116,139,.28);
+}
+.syEditPanel input{
+  flex:1 1 420px;
+  min-width:260px;
+  padding:9px 11px;
+  border-radius:12px;
+  border:1px solid var(--border);
+  font-weight:900;
+  background:#fff;
+}
+.reportEditPanel input{ flex:1 1 360px; }
+
+
+/* Ajuste v24: edición limpia para SÍLABOS, LISTAS y REPORTES */
+.syWrap.syEditGrid{
+  grid-template-columns:repeat(2, minmax(420px, 1fr));
+  gap:16px;
+  align-items:stretch;
+}
+.syDisplayCard.syEditing{
+  display:grid !important;
+  grid-template-columns:minmax(180px, 1fr) auto;
+  grid-template-areas:
+    "identity actions"
+    "editor editor";
+  align-items:center !important;
+  gap:14px 16px !important;
+  padding:16px 18px !important;
+  overflow:hidden;
+}
+.syDisplayCard.syEditing .syLeft{
+  grid-area:identity;
+  min-width:0 !important;
+  padding-left:4px;
+}
+.syDisplayCard.syEditing .syBtns{
+  grid-area:actions;
+  justify-self:end;
+  align-self:center;
+  flex-wrap:nowrap;
+}
+.syDisplayCard.syEditing .syEditPanel{
+  grid-area:editor;
+  width:100%;
+  min-width:0;
+  box-sizing:border-box;
+  margin-top:0;
+  padding:13px;
+  border-radius:18px;
+  display:grid;
+  grid-template-columns:minmax(0, 1fr) auto auto;
+  gap:10px;
+  align-items:center;
+  background:linear-gradient(180deg,rgba(248,250,252,.95),rgba(255,255,255,.98));
+  border:1px dashed rgba(148,163,184,.35);
+}
+.syDisplayCard.syEditing .syEditPanel input{
+  min-width:0 !important;
+  width:100%;
+  box-sizing:border-box;
+}
+.syDisplayCard.syEditing .syEditPanel .syBtn{
+  min-width:92px;
+}
+.syDisplayCard.syEditing .reportEditPanel{
+  grid-template-columns:minmax(0,1fr) minmax(0,1fr) auto auto;
+}
+.syDisplayCard.syEditing .syCourse{
+  max-width:100%;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.syDisplayCard.syEditing .syMeta{
+  line-height:1.25;
+}
+@media (max-width: 1250px){
+  .syWrap.syEditGrid{ grid-template-columns:1fr; }
+}
+@media (max-width: 720px){
+  .syDisplayCard.syEditing{
+    grid-template-columns:1fr;
+    grid-template-areas:
+      "identity"
+      "actions"
+      "editor";
+  }
+  .syDisplayCard.syEditing .syBtns{ justify-self:start; }
+  .syDisplayCard.syEditing .syEditPanel,
+  .syDisplayCard.syEditing .reportEditPanel{
+    grid-template-columns:1fr;
+  }
+}
+
+
+
+/* === Materiales: carpetas generales editables, vista limpia/profesional === */
+.matRootPanel .syLocalHead{align-items:flex-start;}
+.matRootGrid{align-items:stretch;}
+.matRootCard{position:relative; overflow:hidden; border-radius:18px;}
+.matRootCard::before{
+  content:""; position:absolute; left:0; top:12px; bottom:12px; width:5px;
+  border-radius:0 999px 999px 0; background:var(--matRootAccent, var(--accent)); opacity:.9;
+}
+.matRootEditing{
+  display:grid !important; grid-template-columns:minmax(190px,.85fr) minmax(420px,1.35fr);
+  gap:18px; align-items:center; min-height:104px; padding-left:22px !important;
+}
+.matRootIdentity{min-width:0;}
+.matRootEditBox{
+  display:grid; grid-template-columns:1fr auto; gap:10px; align-items:center;
+  padding:12px; border:1px dashed rgba(100,116,139,.28); border-radius:18px; background:rgba(255,255,255,.72);
+}
+.matRootInput{
+  width:100%; min-width:0; border:1px solid var(--border); border-radius:14px; padding:11px 13px;
+  font-weight:900; color:var(--ink); background:#fff; box-shadow:inset 0 1px 0 rgba(15,23,42,.03);
+}
+.matRootInput:focus{outline:none; border-color:rgba(185,28,28,.36); box-shadow:0 0 0 4px rgba(185,28,28,.08);}
+.matRootEditActions{display:flex; gap:8px; align-items:center; flex-wrap:wrap; justify-content:flex-end;}
+@media (max-width: 980px){
+  .matRootEditing{grid-template-columns:1fr;}
+  .matRootEditBox{grid-template-columns:1fr;}
+  .matRootEditActions{justify-content:flex-start;}
+}
+
+
+/* === FIX v27: Materiales superiores editables visibles a zoom 100% ===
+   En modo edición, las tarjetas de carpetas generales usan una composición vertical
+   para que el input y los botones GUARDAR/LIMPIAR/ABRIR no se corten ni se oculten. */
+#matGrid:has(.matRootEditing){
+  grid-template-columns: repeat(auto-fit, minmax(520px, 1fr));
+  gap: 16px;
+}
+.matRootEditing{
+  grid-template-columns: 1fr !important;
+  align-items: stretch !important;
+  min-height: 172px;
+  gap: 12px !important;
+  padding: 18px 18px 18px 24px !important;
+}
+.matRootEditing .matRootIdentity{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+}
+.matRootEditing .matRootIdentity .iMeta{
+  margin-top:6px;
+}
+.matRootEditBox{
+  grid-template-columns: 1fr !important;
+  gap: 12px !important;
+  align-items: stretch !important;
+  min-width: 0;
+}
+.matRootInput{
+  width:100% !important;
+  max-width:100% !important;
+  box-sizing:border-box;
+}
+.matRootEditActions{
+  justify-content:flex-start !important;
+  width:100%;
+}
+.matRootEditActions .syBtn{
+  min-width: 92px;
+}
+@media (max-width: 1100px){
+  #matGrid:has(.matRootEditing){ grid-template-columns:1fr; }
+}
 
 </style>
 </head>
@@ -6858,6 +7344,7 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
     "AGRARIA": [
       { name:"RAZ. MATEMÁTICO", url:"https://docs.google.com/spreadsheets/d/18p6FOxX2w4DxgG1eVXdAUt9q-56EIfTyYDbEC4J0G9Y/edit?gid=11988891#gid=11988891" },
       { name:"RAZ. VERBAL", url:"https://docs.google.com/spreadsheets/d/1hSp4h3q_p0lWWYIBD_Zlr08e_JSM57SDi3Ih6Kl790Q/edit" },
+      { name:"TEXTOS", url:"" },
       { name:"ARITMÉTICA", url:"https://docs.google.com/spreadsheets/d/1QsTH-iYZe7fTl_5KpDVbsvYUrfx_k1EI2NZyhS-jrMc/edit?usp=drive_link" },
       { name:"ÁLGEBRA", url:"https://docs.google.com/spreadsheets/d/1OvggaurE7NZ0bWwom7zdyFWZNz8d4RC6Rb89fVRBkpw/edit?usp=drive_link" },
       { name:"GEOMETRÍA", url:"https://docs.google.com/spreadsheets/d/1jAhW0n4DCqK44Kfir4pG5O7XQOuR0UyxoSOjcSdL-I8/edit?usp=drive_link" },
@@ -6887,15 +7374,15 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
       { name:"HABILIDAD OPERATIVA", url:"https://docs.google.com/spreadsheets/d/1GrTdfQVKnTjor-e6sso2s1ydN9nh0DbF8uj1VY9ZbVQ/edit?gid=11988891#gid=11988891" },
     ],
     "ESCOLARES INTEGRAL": [
-      { name:"RAZONAMIENTO VERBAL", url:"https://docs.google.com/spreadsheets/d/1_5Uv3ej180TWxwNJSV4-qVL_GL9ErWrYEann35wtioY/edit?usp=drive_link" },
-      { name:"RAZONAMIENTO MATEMÁTICO", url:"https://docs.google.com/spreadsheets/d/1p1fpN4v9Zly4EhHRf3qMRbdceQFDmBSpUE1zjrpnbo0/edit?usp=drive_link" },
-      { name:"ARITMÉTICA", url:"https://docs.google.com/spreadsheets/d/1-H9iMGTMPsVD6TlRyU60QArWnTbTs-49-wVxUfmXfoU/edit?usp=drive_link" },
-      { name:"ÁLGEBRA", url:"https://docs.google.com/spreadsheets/d/1gEHKQV3Fa-NQkMaMFl0N7iM9D-MEfKEMKQ1xaAuFPTY/edit?usp=drive_link" },
-      { name:"GEOMETRÍA", url:"https://docs.google.com/spreadsheets/d/1GVqc3MoXmyi9yfRCxW_v2mQNo_8USxAMV3SBPcoyK9g/edit?usp=drive_link" },
-      { name:"TRIGONOMETRÍA", url:"https://docs.google.com/spreadsheets/d/1ywA_V1NxzeSgYpJq_E1TTJzwBM6UHh0Am1pINlOyh8Y/edit?usp=drive_link" },
-      { name:"FÍSICA", url:"https://docs.google.com/spreadsheets/d/1sUAs7uN9FK4i52Kfc840Nv5XkyL4PcqxKQSYX3boKO4/edit?usp=drive_link" },
-      { name:"QUÍMICA", url:"https://docs.google.com/spreadsheets/d/1XW3amXv3IsjBdwKcqc6j4g2y1VLCeO_CyctS_j9dsPc/edit?usp=drive_link" },
-      { name:"BIOLOGÍA", url:"https://docs.google.com/spreadsheets/d/1OKo9aSm8jk4RCeTA-Xt9i0zpVvJSJqxZ-DQvuHQPQbI/edit?usp=drive_link" },
+      { name:"RAZONAMIENTO VERBAL", url:"https://docs.google.com/spreadsheets/d/1tJA_wAwD74EvMe0z5PM7CVtHnBQHZ6Rcu7OzeTht90I/edit?gid=2060340658#gid=2060340658" },
+      { name:"RAZONAMIENTO MATEMÁTICO", url:"https://docs.google.com/spreadsheets/d/1-k2K2pvM7qCmKR-MwVUCjjUWlkr0I4ulaIgB2Ax8F9g/edit?gid=2060340658#gid=2060340658" },
+      { name:"ARITMÉTICA", url:"https://docs.google.com/spreadsheets/d/1oomoHD-7neoHcB3_RPfoaFfkg2eT6m-STg30FXOcseQ/edit?gid=2060340658#gid=2060340658" },
+      { name:"ÁLGEBRA", url:"https://docs.google.com/spreadsheets/d/1xyYxO7j5F-FQ8kUDjZtQnZE-uM6kT7RqIPxiqnt5hCQ/edit?gid=2060340658#gid=2060340658" },
+      { name:"GEOMETRÍA", url:"https://docs.google.com/spreadsheets/d/1qpz8je57nJNxY1TS7cBSCBUjWl2xDrjnookmguZCb0I/edit?gid=2060340658#gid=2060340658" },
+      { name:"TRIGONOMETRÍA", url:"https://docs.google.com/spreadsheets/d/1xJ6M1km4f_grz_BPixuU62eP37kmikgvw_GottD1yik/edit?gid=2060340658#gid=2060340658" },
+      { name:"FÍSICA", url:"https://docs.google.com/spreadsheets/d/1pEVsGTQiO7Yf4GcV6IsCQk6uhCTp_TyL24Kv0ChumRQ/edit?gid=2060340658#gid=2060340658" },
+      { name:"QUÍMICA", url:"https://docs.google.com/spreadsheets/d/1nTf434yk7tqTQuK8fbK-lzVTdJYbb7YR5z3EdijjkpI/edit?gid=2060340658#gid=2060340658" },
+      { name:"BIOLOGÍA", url:"https://docs.google.com/spreadsheets/d/1nCoTiW4C7hj_vW_gjGkcmNCjX80CHM3GMWdyPIENrd8/edit?gid=2060340658#gid=2060340658" },
     ],
     "ESCOLARES ARS": [
       { name:"NÚMEROS Y OPERACIONES", url:"https://docs.google.com/spreadsheets/d/1DiO4Xo6soJP6RJoGLl9MzdMgLqxtX3lR/edit?usp=drive_link&ouid=109996193497961946614&rtpof=true&sd=true" },
@@ -6926,7 +7413,145 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
     const u = String(uniRaw || "").toUpperCase().trim();
     if (u === "ESCOLARES") return "ESCOLARES INTEGRAL";
     if (u.includes("ESCOLARES ARS") || u.includes("ARS") || u.includes("POP")) return "ESCOLARES ARS";
+    if (u.includes("INTEGRAL")) return "ESCOLARES INTEGRAL";
     return uniRaw;
+  }
+
+  function syCanEditLinks(){
+    const r = String(CURRENT_ROLE || "").toLowerCase();
+    return r === "admin" || r === "editor";
+  }
+
+  function syCourseKey(value){
+    return mcNormLabel(value).replace(/\s+/g," ").trim();
+  }
+
+  function syProgramToRepoUni(value){
+    const v = mcNormLabel(value || "");
+    if (v.includes("ARS") || v.includes("POP")) return "ESCOLARES ARS";
+    if (v.includes("ESCOLARES") && v.includes("INTEGRAL")) return "ESCOLARES INTEGRAL";
+    if (v === "ESCOLARES") return "ESCOLARES INTEGRAL";
+    if (["AGRARIA","U.LIMA","PUCP","ESCOLARES INTEGRAL","ESCOLARES ARS"].includes(v)) return v;
+    return "";
+  }
+
+  function syDefaultItem(uni, course){
+    const u = silaboUniKey(uni);
+    const target = syCourseKey(course);
+    const aliases = (typeof mcCourseAliases === "function" ? mcCourseAliases(course) : [course]).map(syCourseKey);
+    return (SILABOS[u] || []).find(it=>{
+      const k = syCourseKey(it.name);
+      return k === target || aliases.includes(k) || aliases.some(a=>a && (k === a || k.includes(a) || a.includes(k)));
+    }) || null;
+  }
+
+  function syDefaultLink(uni, course){
+    return String(syDefaultItem(uni, course)?.url || "").trim();
+  }
+
+  function syRepoGetManual(st, uni, course){
+    const u = silaboUniKey(uni);
+    const repo = st?.silabosRepo || {};
+    const group = repo[u] || {};
+    const target = syCourseKey(course);
+    if (Object.prototype.hasOwnProperty.call(group, target)) return String(group[target] || "").trim();
+
+    const aliases = (typeof mcCourseAliases === "function" ? mcCourseAliases(course) : [course]).map(syCourseKey);
+    for (const [k,v] of Object.entries(group)){
+      const kk = syCourseKey(k);
+      if (kk === target || aliases.includes(kk)) return String(v || "").trim();
+    }
+    return "";
+  }
+
+  function syRepoGetLink(st, uni, course, includeDefault=true){
+    const manual = syRepoGetManual(st, uni, course);
+    if (manual) return manual;
+    return includeDefault ? syDefaultLink(uni, course) : "";
+  }
+
+  function syRepoSetLink(st, uni, course, url){
+    const u = silaboUniKey(uni);
+    const c = syCourseKey(course);
+    if (!st.silabosRepo) st.silabosRepo = {};
+    if (!st.silabosRepo[u]) st.silabosRepo[u] = {};
+    st.silabosRepo[u][c] = String(url || "").trim();
+    return st;
+  }
+
+  function syRepoLinkForMateriales(st, programTypeOrUni, course){
+    const repoUni = syProgramToRepoUni(programTypeOrUni);
+    if (!repoUni) return "";
+    return syRepoGetLink(st, repoUni, course, true);
+  }
+
+  let SY_LINK_EDIT_MODE = false;
+  let LISTAS_LINK_EDIT_MODE = false;
+  let REPORTES_LINK_EDIT_MODE = false;
+
+  function syRenderItem(uni, it, idx){
+    const st = mcLoadStore();
+    const url = syRepoGetLink(st, uni, it.name, true);
+    const hasUrl = !!url;
+    const canEdit = syCanEditLinks();
+    const editing = canEdit && SY_LINK_EDIT_MODE;
+    const safeUni = escapeHtml(uni);
+    const safeCourse = escapeHtml(it.name);
+    const dot = escapeHtml(uniDot(uni) || getCss("--accent"));
+    return `
+      <div class="syItem syDisplayCard${editing ? " syEditing" : ""}" style="--syAccent:${dot}; align-items:flex-start; flex-wrap:wrap;">
+        <div class="syLeft" style="flex:1 1 260px; min-width:240px;">
+          <div class="syCourseRow">
+            <span class="syColorDot" aria-hidden="true"></span>
+            <div class="syCourse">${safeCourse}</div>
+          </div>
+        </div>
+        <div class="syBtns" style="flex:0 0 auto;">
+          <a class="syOpen${hasUrl ? "" : " disabled"}" href="${escapeHtml(hasUrl ? url : "#")}" target="_blank" rel="noopener noreferrer" style="${hasUrl ? "" : "pointer-events:none; opacity:.55;"}">ABRIR EXCEL</a>
+        </div>
+        ${editing ? `
+          <div class="syEditPanel">
+            <input class="syLinkInput" type="text" value="${escapeHtml(url)}" placeholder="Pega aquí el link del sílabo de ${safeCourse}" />
+            <button class="syBtn" type="button" data-sy-save="1" data-sy-uni="${safeUni}" data-sy-course="${safeCourse}">GUARDAR</button>
+            <button class="syBtn" type="button" data-sy-clear="1" data-sy-uni="${safeUni}" data-sy-course="${safeCourse}">LIMPIAR</button>
+          </div>
+        ` : ""}
+      </div>
+    `;
+  }
+
+  function syBindEditors(){
+    if (!syCanEditLinks()) return;
+    document.querySelectorAll('[data-sy-save="1"]').forEach(btn=>{
+      btn.addEventListener("click", ()=>{
+        const item = btn.closest(".syItem");
+        const input = item?.querySelector(".syLinkInput");
+        const uni = btn.getAttribute("data-sy-uni") || "";
+        const course = btn.getAttribute("data-sy-course") || "";
+        const url = String(input?.value || "").trim();
+        if (url && typeof mcSyllabusSheetInfo === "function" && !mcSyllabusSheetInfo(url)){
+          return toast("Pega un enlace válido de Google Sheets o CSV publicado.");
+        }
+        const st = mcLoadStore();
+        syRepoSetLink(st, uni, course, url);
+        MC_ARS_SYLLABUS_CACHE?.clear?.();
+        mcSaveStore(st);
+        toast(url ? "Sílabo guardado." : "Sílabo marcado como pendiente.");
+        renderSilabos();
+      });
+    });
+    document.querySelectorAll('[data-sy-clear="1"]').forEach(btn=>{
+      btn.addEventListener("click", ()=>{
+        const uni = btn.getAttribute("data-sy-uni") || "";
+        const course = btn.getAttribute("data-sy-course") || "";
+        const st = mcLoadStore();
+        syRepoSetLink(st, uni, course, "");
+        MC_ARS_SYLLABUS_CACHE?.clear?.();
+        mcSaveStore(st);
+        toast("Sílabo limpiado. Se usará el enlace base si existe.");
+        renderSilabos();
+      });
+    });
   }
 
   function ensureSilabosLayout(){
@@ -6977,7 +7602,10 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
     // Admin/Tutor: filtros completos
     el.innerHTML = `
       <div class="card panel12">
-        <div class="cardtitle">FILTROS</div>
+        <div class="syLocalHead" style="margin-bottom:10px;">
+          <div class="cardtitle" style="margin:0;">FILTROS</div>
+          ${syCanEditLinks() ? `<button id="sEditToggle" class="syEditToggle" type="button">EDITAR ENLACES</button>` : ``}
+        </div>
         <div class="controls" style="justify-content:flex-start;">
           <select id="sUni"></select>
           <input id="sQ" type="text" placeholder="Buscar curso (ej: álgebra, física, textos)"/>
@@ -6991,7 +7619,8 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
           <span class="pill"><span class="dot pucp"></span>ESCOLARES ARS</span>
           <span class="pill"><span class="dot escolares"></span>ESCOLAR U.LIMA</span>
         </div>
-        <div class="panelHint" style="margin-top:8px; color:var(--muted);">
+        <div class="panelHint" style="margin-top:8px; color:var(--muted);" id="sEditHint">
+          ${syCanEditLinks() ? "Vista limpia activa. Usa EDITAR ENLACES solo cuando necesites actualizar el repositorio." : "Los enlaces son de solo lectura."}
         </div>
       </div>
 
@@ -7017,6 +7646,10 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
     });
     document.getElementById("sUni").addEventListener("change", renderSilabos);
     document.getElementById("sQ").addEventListener("input", renderSilabos);
+    document.getElementById("sEditToggle")?.addEventListener("click", ()=>{
+      SY_LINK_EDIT_MODE = !SY_LINK_EDIT_MODE;
+      renderSilabos();
+    });
 
     el.dataset.ready = "1";
   }
@@ -7024,7 +7657,9 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
   function renderSilabos(){
     ensureSilabosLayout();
 
-    // Alumno: forzar su universidad
+    const canEdit = syCanEditLinks();
+
+    // Alumno: forzar su universidad, solo lectura
     if (CURRENT_ROLE === "alumno"){
       const prof = getAlumnoProfile();
       const q = low(document.getElementById("sQ")?.value || "");
@@ -7056,20 +7691,7 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
         uniPill.innerHTML = `<span class="dot" style="background:${uniDot(uni)};"></span><b>${escapeHtml(uni)}</b>`;
       }
 
-      const items = list.map(it=>{
-        return `
-          <a class="syItem" href="${escapeHtml(it.url)}" target="_blank" rel="noopener noreferrer">
-            <div class="syLeft">
-              <div class="syCourse">${escapeHtml(it.name)}</div>
-              <div class="syMeta">
-                <span class="dot" style="background:${uniDot(uni)};"></span>
-                <span>${escapeHtml(uni)}</span>
-              </div>
-            </div>
-            <div class="syOpen">ABRIR EXCEL</div>
-          </a>
-        `;
-      }).join("");
+      const items = list.map((it,idx)=>syRenderItem(uni,it,idx)).join("");
 
       blocksWrap.innerHTML = `
         <div class="card panel12">
@@ -7090,7 +7712,19 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
       return;
     }
 
-    // Admin/Tutor: filtros normales
+    // Admin/Tutor: filtros normales; Admin/Editor puede cambiar links manualmente al activar edición.
+    const sEditBtn = document.getElementById("sEditToggle");
+    if (sEditBtn){
+      sEditBtn.textContent = SY_LINK_EDIT_MODE ? "VISTA LIMPIA" : "EDITAR ENLACES";
+      sEditBtn.classList.toggle("active", SY_LINK_EDIT_MODE);
+    }
+    const sEditHint = document.getElementById("sEditHint");
+    if (sEditHint && syCanEditLinks()){
+      sEditHint.textContent = SY_LINK_EDIT_MODE
+        ? "Modo edición activo: pega, guarda o limpia enlaces. Al terminar, vuelve a VISTA LIMPIA."
+        : "Vista limpia activa. Usa EDITAR ENLACES solo cuando necesites actualizar el repositorio.";
+    }
+
     const fUni = document.getElementById("sUni").value;
     const q = low(document.getElementById("sQ").value);
 
@@ -7101,29 +7735,10 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
     let totalCourses = 0;
 
     const blocks = unis.map(uni=>{
-      const dot = uniDot(uni);
       let list = (SILABOS[uni] || []).slice();
-
-      if (q){
-        list = list.filter(x => low(x.name).includes(q));
-      }
-
+      if (q) list = list.filter(x => low(x.name).includes(q));
       totalCourses += list.length;
-
-      const items = list.map(it=>{
-        return `
-          <a class="syItem" href="${escapeHtml(it.url)}" target="_blank" rel="noopener noreferrer">
-            <div class="syLeft">
-              <div class="syCourse">${escapeHtml(it.name)}</div>
-              <div class="syMeta">
-                <span class="dot" style="background:${dot};"></span>
-                <span>${escapeHtml(uni)}</span>
-              </div>
-            </div>
-            <div class="syOpen">ABRIR EXCEL</div>
-          </a>
-        `;
-      }).join("");
+      const items = list.map((it,idx)=>syRenderItem(uni,it,idx)).join("");
 
       return `
         <div class="card panel12">
@@ -7133,6 +7748,7 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
             </div>
             <div class="syKpis">
               <span class="syKpiPill">CURSOS: <b>${list.length}</b></span>
+              ${canEdit ? `<span class="syKpiPill">MODO: <b>${SY_LINK_EDIT_MODE ? "EDICIÓN" : "LIMPIO"}</b></span>` : ""}
             </div>
           </div>
           <div class="syWrap">
@@ -7150,6 +7766,8 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
 
     const sTotal = document.getElementById("sTotal");
     if (sTotal) sTotal.textContent = String(totalCourses);
+
+    syBindEditors();
   }
   // ===================== FIN SÍLABOS =====================
 
@@ -7889,6 +8507,24 @@ const MATERIALES = [
   { uni:"ESCOLARES ARS", url:"https://drive.google.com/drive/folders/1ZSH_nGZty0AildhLikEZ_BQ1h-waj_5p" },
 ];
 
+let MATERIALES_LINK_EDIT_MODE = false;
+
+function materialesRootKey(uni){
+  return mcNormLabel(String(uni || "")).replace(/\s+/g, " ").trim();
+}
+function materialesRootGetLink(st, uni, fallback){
+  const key = materialesRootKey(uni);
+  const repo = st?.materialesRootLinks || {};
+  if (Object.prototype.hasOwnProperty.call(repo, key)) return String(repo[key] || "").trim();
+  return String(fallback || "").trim();
+}
+function materialesRootSetLink(st, uni, url){
+  if (!st.materialesRootLinks) st.materialesRootLinks = {};
+  st.materialesRootLinks[materialesRootKey(uni)] = String(url || "").trim();
+  return st;
+}
+
+
 // ===================== NOTAS GENERALES (NUEVO) =====================
 const NOTAS_GENERALES = [
   // ✅ PUCP
@@ -8027,12 +8663,23 @@ function ensureMaterialesLayout(){
   if (el.dataset.ready === "1") return;
 
   el.innerHTML = `
-    <div class="card panel12">
-      <div class="cardtitle">MATERIALES</div>
-      <div style="color:var(--muted); font-weight:900; margin-bottom:12px;">
-        Acceso directo a carpetas por universidad (materiales listos / trabajados).
+    <div class="card panel12 matRootPanel">
+      <div class="syLocalHead" style="margin-bottom:10px;">
+        <div>
+          <div class="cardtitle" style="margin:0;">MATERIALES</div>
+          <div style="color:var(--muted); font-weight:900; margin-top:6px;">
+            Acceso directo a carpetas por universidad (materiales listos / trabajados).
+          </div>
+        </div>
+        <div class="syKpis">
+          <span class="syKpiPill">CARPETAS: <b>5</b></span>
+          ${syCanEditLinks() ? `<button id="mRootEditToggle" class="syEditToggle" type="button">EDITAR ENLACES</button>` : ``}
+        </div>
       </div>
-      <div class="iGrid" id="matGrid"></div>
+      <div class="panelHint" id="mRootEditHint" style="margin:8px 0 12px; color:var(--muted);">
+        ${syCanEditLinks() ? "Vista limpia activa. Usa EDITAR ENLACES solo cuando necesites actualizar carpetas generales." : "Los enlaces son de solo lectura."}
+      </div>
+      <div class="iGrid matRootGrid" id="matGrid"></div>
     </div>
 
     <div class="card panel12" id="matCursoCard">
@@ -8071,6 +8718,10 @@ function ensureMaterialesLayout(){
   document.getElementById("mcProgram")?.addEventListener("change", renderMateriales);
   document.getElementById("mcCourse")?.addEventListener("change", renderMateriales);
   document.getElementById("mcFilter")?.addEventListener("change", renderMateriales);
+  document.getElementById("mRootEditToggle")?.addEventListener("click", ()=>{
+    MATERIALES_LINK_EDIT_MODE = !MATERIALES_LINK_EDIT_MODE;
+    renderMateriales();
+  });
 
   document.getElementById("mcSaveLink")?.addEventListener("click", ()=>{
     const pid = document.getElementById("mcProgram").value || "__ALL__";
@@ -8486,7 +9137,11 @@ function mcIsArsProgram(program){
   return raw.includes("ARS") || raw.includes("POP");
 }
 
-function mcSyllabusLink(st, pid, cid){
+function mcSyllabusLink(st, pid, cid, programTypeOrUni=""){
+  // Para Materiales, el repositorio editable de la sección SÍLABOS es la fuente principal.
+  // Si no hay enlace guardado allí, conserva compatibilidad con el enlace propio de Materiales.
+  const repoUrl = syRepoLinkForMateriales(st, programTypeOrUni, cid);
+  if (repoUrl) return repoUrl;
   return String(st?.syllabusLinks?.[pid]?.[cid] || "").trim();
 }
 
@@ -8593,8 +9248,11 @@ function mcSyllabusIsCourseOnly(value){
   const s = mcSyllabusHeaderKey(value);
   if (!s) return true;
   if (/^(A|B|C|BLOQUE|SEMANA|CODIGO|COD|FECHA|FECHAS|OBS|OBSERVACION|OBSERVACIONES|NOTA|NOTAS)$/i.test(s)) return true;
-  if (/^(ALGEBRA|TEXTOS|TEXTO|NUMEROS Y OPERACIONES|N O|NO|GEOMETRIA Y MEDIDA|SIMULACRO|SIMULACROS|REPASO|FERIADO)$/i.test(s)) return true;
+  if (/^(RV|RM|ARI|ALG|GEO|TRI|TRIG|FIS|QUI|BIO|TXT|N O|NO|G M|ALGEBRA|TEXTOS|TEXTO|NUMEROS Y OPERACIONES|GEOMETRIA Y MEDIDA|GEOMETRIA|TRIGONOMETRIA|FISICA|QUIMICA|BIOLOGIA|ARITMETICA|RAZONAMIENTO VERBAL|RAZONAMIENTO MATEMATICO|SIMULACRO|SIMULACROS|FERIADO)$/i.test(s)) return true;
   if (/^(CURSO|TEMA|TEMAS|CONTENIDO|CONTENIDOS|SESION|SESIONES)$/i.test(s)) return true;
+
+  // REPASO sí puede ser un contenido válido del sílabo (ej. U.LIMA Textos SEA6).
+  // Por eso no se filtra aquí como encabezado administrativo.
 
   // No tratar como tema los códigos de simulacro que aparecen en la columna F
   // del sílabo: S1, S2, SN1, SR1, SIM1, etc.
@@ -8632,12 +9290,19 @@ function mcSyllabusSplitTopics(value){
 
 function mcParseSyllabusRows(rows, courseName=""){
   rows = (rows||[]).map(r => (r||[]).map(v=>String(v ?? "")));
+
+  // Ruta prioritaria y más robusta: leer por filas reales de semana.
+  // Esto permite que Física, Química y Biología carguen igual que los demás cursos,
+  // aunque la columna de temas esté vacía y solo existan observaciones/feriados.
+  const directWeeks = mcParseSyllabusByWeekRows(rows, courseName);
+  if (directWeeks.length) return directWeeks;
+
   let headerRow = -1;
   let codeIdx = -1, dateIdx = -1, blockIdx = -1, notesIdx = -1;
-  const displayIdx = 1; // Columna B: etiqueta visible para mensajes de reprogramación.
+  let displayIdx = 1;
   let topicIdxs = [];
 
-  for (let r=0; r<Math.min(rows.length, 60); r++){
+  for (let r=0; r<Math.min(rows.length, 80); r++){
     const keys = rows[r].map(mcSyllabusHeaderKey);
     const c = keys.findIndex(x=>x === "CODIGO" || x === "COD" || x === "SEM" || x === "CODIGO DE SEMANA" || x === "CODIGO SEMANA");
     const d = keys.findIndex(x=>x === "SEMANA" || x === "FECHA" || x === "FECHAS" || x.includes("FECHA"));
@@ -8664,9 +9329,7 @@ function mcParseSyllabusRows(rows, courseName=""){
         const stop = notesIdx >= 0 ? notesIdx : rows[r].length;
         topicIdxs = [];
         for (let i=blockIdx+1; i<stop; i++){
-          // En formatos como: BLOQUE | CURSO | SIMULACROS | OBSERVACIONES,
-          // solo debe leerse la columna del curso/contenido.
-          // La columna SIMULACROS contiene códigos como S1/S2/SN1 y no es tema.
+          if (i === notesIdx) continue;
           if (mcSyllabusIsNonTopicColumnHeader(keys[i])) continue;
           topicIdxs.push(i);
         }
@@ -8674,8 +9337,9 @@ function mcParseSyllabusRows(rows, courseName=""){
       break;
     }
   }
+
   if (headerRow < 0) throw new Error("No se encontraron columnas reconocibles de semana/bloque/tema.");
-  if (!topicIdxs.length) throw new Error("No se encontraron columnas de temas.");
+  if (!topicIdxs.length && notesIdx < 0) throw new Error("No se encontraron columnas de temas ni observaciones.");
 
   const weeks = [];
   let current = null;
@@ -8684,24 +9348,23 @@ function mcParseSyllabusRows(rows, courseName=""){
     const firstNonEmpty = cells.find(v=>String(v||"").trim()) || "";
     const code = codeIdx >= 0 ? String(cells[codeIdx]||"").trim() : (/^\s*(SEM\w*\s*\d+|SE\s*\d+)/i.test(firstNonEmpty) ? String(firstNonEmpty).trim() : "");
     const dateRaw = dateIdx >= 0 ? String(cells[dateIdx]||"").trim() : "";
-    const block = blockIdx >= 0 ? String(cells[blockIdx]||"").trim().toUpperCase() : "";
     const notes = notesIdx >= 0 ? String(cells[notesIdx]||"").replace(/\s+/g," ").trim() : "";
     const colBLabel = String(cells[1]||"").replace(/\s+/g," ").trim();
     const displayCode = String(cells[displayIdx]||"").replace(/\s+/g," ").trim();
 
     if (code || dateRaw){
-      current = { code, displayCode: displayCode || code, colBLabel, dateRaw, topics:[], notes:[] };
+      current = { code: mcSyllabusCleanWeekCode(code), displayCode: displayCode || code, colBLabel, dateRaw, topics:[], notes:[] };
       weeks.push(current);
     }
     if (!current) continue;
 
     for (const idx of topicIdxs){
+      if (idx === notesIdx) continue;
       for (const topic of mcSyllabusSplitTopics(cells[idx])){
         if (!current.topics.includes(topic) && current.topics.length < 3) current.topics.push(topic);
       }
     }
     if (notes && !current.notes.includes(notes)) current.notes.push(notes);
-    if (block && !["A","B","C","1","2","3"].includes(block) && !code && !dateRaw && !topicIdxs.some(i=>String(cells[i]||"").trim()) && !notes) current = null;
   }
   return weeks.filter(w=>w.code || w.dateRaw || w.topics.length || w.notes.length);
 }
@@ -8813,21 +9476,17 @@ function mcHolidaysFromSyllabusNotes(weeks, year){
 
 function mcSyllabusNotesForWeek(notes, holidayHits, year, holidays, classDates){
   const hitKeys = new Set((holidayHits||[]).map(h=>mcDateKey(h.date)).filter(Boolean));
-  const classKeys = new Set((classDates||[]).map(mcDateKey).filter(Boolean));
-  const holidayMap = holidays instanceof Map ? holidays : new Map();
 
   return (notes||[]).filter(note=>{
     const keys = mcDateKeysFromText(note, year);
     if (!keys.length) return true;
 
-    // Si el feriado sí coincidió con el día real del curso, se muestra como FERIADO,
-    // no como aviso duplicado.
+    // Si el feriado coincide con el día real de clase, se muestra como FERIADO
+    // mediante holidayHits para evitar duplicarlo como AVISO.
     if (keys.some(k=>hitKeys.has(k))) return false;
 
-    // Si la observación solo corresponde a un feriado que NO cae en el día de clase
-    // del curso seleccionado, se ignora. Ej.: feriado domingo o lunes para un curso martes.
-    if (keys.some(k=>holidayMap.has(k)) && !keys.some(k=>classKeys.has(k))) return false;
-
+    // Si el feriado está en el sílabo pero no afecta al día real del curso,
+    // igual se muestra como AVISO para orientar al usuario. No reprograma.
     return true;
   });
 }
@@ -8850,19 +9509,104 @@ function mcCourseAliases(course){
   return [c];
 }
 
+function mcScheduleAliasesForProgram(course, programType=""){
+  const c = mcNormLabel(course);
+  const type = mcNormLabel(programType || "");
+  const wantPucp = type === "PUCP" || type.includes("PUCP");
+  const wantUlima = type === "U.LIMA" || type === "ULIMA" || type.includes("U LIMA") || type.includes("ULIMA");
+  const wantAgraria = type === "AGRARIA" || type.includes("AGRARIA");
+
+  if (wantPucp){
+    if (c.includes("GEOMETRIA Y MEDIDA") || c === "G&M" || c === "GM" || c === "G M") return ["G&M","GM","G M","GEOMETRIA Y MEDIDA"];
+    if (c.includes("NUMEROS Y OPERACIONES") || c === "N&O" || c === "N O" || c === "NO") return ["N&O","N O","NO","NUMEROS Y OPERACIONES"];
+    if (c.includes("TEXTOS") || c.includes("TEXTO") || c === "TXT") return ["TXT","TEXTO","TEXTOS"];
+    if (c.includes("ALGEBRA") || c === "ALG") return ["ALG","ALGEBRA"];
+    if (c.includes("HABILIDAD OPERATIVA") || c === "HOP") return ["HOP","HABILIDAD OPERATIVA"];
+    if (c.includes("ESTADISTICA") || c === "EST") return ["EST","ESTADISTICA"];
+    if (c.includes("SIMULACRO") || c === "SIM") return ["SIM","SIMULACRO","SIMULACROS"];
+    return [];
+  }
+
+  if (wantUlima){
+    if (c.includes("GEOMETRIA Y TRIGONOMETRIA") || c === "G&T" || c === "GT" || c === "G T") return ["G&T","GT","G T","GEOMETRIA Y TRIGONOMETRIA"];
+    if (c.includes("ARITMETICA") || c === "ARI") return ["ARI","ARITMETICA"];
+    if (c.includes("ALGEBRA") || c === "ALG") return ["ALG","ALGEBRA"];
+    if (c.includes("HABILIDAD OPERATIVA") || c === "HOP") return ["HOP","HABILIDAD OPERATIVA"];
+    if (c.includes("LENGUAJE") || c === "LEN" || c === "LENG") return ["LEN","LENG","LENGUAJE"];
+    if (c.includes("RAZONAMIENTO MATEMATICO") || c === "RM" || c.includes("RAZ MATEMATICO")) return ["RM","RAZONAMIENTO MATEMATICO"];
+    if (c.includes("TEXTOS") || c.includes("TEXTO") || c === "TXT") return ["TXT","TEXTO","TEXTOS"];
+    if (c.includes("SIMULACRO") || c === "SIM") return ["SIM","SIMULACRO","SIMULACROS"];
+    return [];
+  }
+
+  if (wantAgraria){
+    if (c.includes("RAZONAMIENTO VERBAL") || c === "RV" || c.includes("RAZ VERBAL")) return ["RV","RAZONAMIENTO VERBAL"];
+    if (c.includes("RAZONAMIENTO MATEMATICO") || c === "RM" || c.includes("RAZ MATEMATICO")) return ["RM","RAZONAMIENTO MATEMATICO"];
+    if (c.includes("ARITMETICA") || c === "ARI") return ["ARI","ARITMETICA"];
+    if (c.includes("ALGEBRA") || c === "ALG") return ["ALG","ALGEBRA"];
+    if (c.includes("GEOMETRIA") || c === "GEO") return ["GEO","GEOMETRIA"];
+    if (c.includes("TRIGONOMETRIA") || c === "TRI" || c === "TRIG") return ["TRI","TRIG","TRIGONOMETRIA"];
+    if (c.includes("TEXTOS") || c.includes("TEXTO") || c === "TXT") return ["TXT","TEXTO","TEXTOS"];
+    if (c.includes("FISICA") || c === "FIS") return ["FIS","FISICA"];
+    if (c.includes("QUIMICA") || c === "QUI") return ["QUI","QUIMICA"];
+    if (c.includes("BIOLOGIA") || c === "BIO") return ["BIO","BIOLOGIA"];
+    if (c.includes("GEOGRAFIA") || c === "GGF" || c === "GEOG") return ["GGF","GEOGRAFIA"];
+    if (c.includes("HISTORIA") || c === "HIS") return ["HIS","HISTORIA"];
+    if (c.includes("ECONOMIA") || c === "ECO") return ["ECO","ECONOMIA"];
+    if (c.includes("SIMULACRO") || c === "SIM") return ["SIM","SIMULACRO","SIMULACROS"];
+    return [];
+  }
+
+  return mcCourseAliases(course);
+}
+
 function mcCleanScheduleCourseLabel(value){
   return mcNormLabel(value)
-    .replace(/\b(PRE|REF|REFORZAMIENTO|VIRTUAL|VIRT)\b/g," ")
+    .replace(/\b(PRE|VIRTUAL|VIRT)\b/g," ")
+    .replace(/\bREF\.\s*MATES?\b/g,"REF MAT")
+    .replace(/\bREF\s*MATES?\b/g,"REF MAT")
+    .replace(/\bREFORZAMIENTO\s+DE\s+MATEMATICAS\b/g,"REF MAT")
+    .replace(/\bCEPRE\b/g,"CEPRE")
     .replace(/\b[123456789]\b/g," ")
     .replace(/\s+/g," ")
     .trim();
 }
 
-function mcScheduleCourseMatches(blockCourse, course){
-  const rawCourse = mcCleanScheduleCourseLabel(blockCourse);
-  const aliases = mcCourseAliases(course).map(mcNormLabel);
+function mcSchedulePhraseMatches(haystack, needle){
+  const h = mcNormLabel(haystack).replace(/\s+/g," ").trim();
+  const n = mcNormLabel(needle).replace(/\s+/g," ").trim();
+  if (!h || !n) return false;
+  return h === n || h.startsWith(n + " ") || h.endsWith(" " + n) || h.includes(" " + n + " ");
+}
+
+function mcScheduleCourseMatches(blockCourse, course, programType=""){
+  const rawOriginal = mcNormLabel(blockCourse).replace(/\s+/g," ").trim();
+  if (!rawOriginal) return false;
+
+  // CEPRE TXT no debe contabilizarse como Textos, y en general CEPRE no se cruza
+  // con el sílabo regular de Materiales.
+  if (mcSchedulePhraseMatches(rawOriginal, "CEPRE")) return false;
+
+  const rawCourse = mcCleanScheduleCourseLabel(rawOriginal);
+  const aliases = mcScheduleAliasesForProgram(course, programType).map(mcNormLabel).filter(Boolean);
   if (!rawCourse || !aliases.length) return false;
-  return aliases.some(a=> rawCourse===a || rawCourse.startsWith(a+" ") || rawCourse.includes(" "+a+" "));
+
+  return aliases.some(a=>{
+    if (mcSchedulePhraseMatches(rawCourse, a)) return true;
+    if (mcSchedulePhraseMatches(rawOriginal, a)) return true;
+    return false;
+  });
+}
+
+function mcScheduleIsColumnOne(s){
+  const raw = mcScheduleMaterialRawKey(s);
+  const compact = raw.replace(/[._-]/g," ").replace(/\s+/g," ").trim();
+  // Si explícitamente dice ciclo/columna 2, se excluye. Si no tiene número,
+  // se considera columna 1 para mantener compatibilidad con tarjetas antiguas.
+  if (/(^|\s)(2|II)(\s|$)/.test(compact)) return false;
+  if (compact.includes(" U LIMA 2") || compact.includes(" ULIMA 2")) return false;
+  if (compact.includes(" AGRARIA 2")) return false;
+  return true;
 }
 
 function mcDefaultArsCourseDays(course){
@@ -8916,7 +9660,7 @@ function mcScheduleDaysForEscolaresMateriales(local, course, programType){
   const days = [];
   for (const sch of schedules){
     for (const block of (sch.blocks||[])){
-      if (!mcScheduleCourseMatches(block?.course, course)) continue;
+      if (!mcScheduleCourseMatches(block?.course, course, programType)) continue;
       const day = dayMap[String(block?.day||"").toUpperCase()];
       if (Number.isFinite(day)) days.push(day);
     }
@@ -8959,6 +9703,24 @@ function mcSyllabusClassDatesForWeek({pStart, weekIndex, classDays, sourceWeek, 
   });
 }
 
+function mcClassDatesFromBaseWeek({baseDate, classDays}){
+  const dates = [];
+  if (!(baseDate instanceof Date) || Number.isNaN(baseDate.getTime())) return dates;
+  const base = new Date(baseDate.getFullYear(), baseDate.getMonth(), baseDate.getDate());
+  for (const day of (classDays||[])){
+    const offset = (day - base.getDay() + 7) % 7;
+    const d = pgxAddDays(base, offset);
+    if (d && !Number.isNaN(d.getTime())) dates.push(d);
+  }
+  const seen = new Set();
+  return dates.filter(d=>{
+    const key = mcDateKey(d);
+    if (!key || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
 function mcSyllabusWeekCapacity(sourceTopics, classDates, holidayHits){
   const topicCount = (sourceTopics||[]).length;
   if (!topicCount) return 0;
@@ -8978,15 +9740,86 @@ function mcAlignSyllabusTopics({weeks,codes,first,last,pStart,local,course,progr
   const carry = [];
   const result = [];
 
+  const pickByCodeStrictDate = (codeKey, programDateKey)=>{
+    const list = byCode.get(codeKey) || [];
+    if (!list.length) return null;
+    const sameDate = list.find(w=>mcDateKey(mcParseSheetDate(w?.dateRaw, year)) === programDateKey);
+    if (sameDate) return sameDate;
+    // Solo aceptar coincidencia por código si la fila del sílabo no tiene fecha.
+    // Esto evita cruces falsos cuando SE01, SE02, etc. se repiten en otra etapa/mes.
+    return list.find(w=>!mcDateKey(mcParseSheetDate(w?.dateRaw, year))) || null;
+  };
+
   for (let i=first-1; i<=last-1; i++){
     const code = String(codes[i]||`SEM${i+1}`);
-    const srcWeek = byCode.get(mcNormLabel(code)) || weeks[i] || {topics:[],notes:[]};
+    const codeKey = mcNormLabel(code);
+    const programWeekStart = pgxAddDays(pStart, i*7);
+    programWeekStart.setHours(0,0,0,0);
+    const programDateKey = mcDateKey(programWeekStart);
+
+    // Tope de NIVELACIÓN: los contenidos pendientes de semanas SEN solo pueden
+    // reubicarse dentro de la propia ventana SEN. Al entrar a SE/SEA/SER u otra
+    // etapa, cualquier nivelación pendiente se descarta y la nueva etapa inicia
+    // con su contenido normal.
+    if (!mcIsNivelacionWeekCode(codeKey)) mcDropNivelacionCarry(carry);
+
+    let srcWeek = null;
+    let matchedByDate = false;
+    let matchedBySyllabus = false;
+
+    if (isStructuredProgram){
+      // Regla estándar para ciclos con sílabo institucional (ESCOLARES INTEGRAL y AGRARIA):
+      // 1) Primero se cruza por fecha de la semana del programa.
+      // 2) Si no hay fecha, se cruza por código solo si la fecha del sílabo está vacía
+      //    o coincide con la fecha del programa.
+      // Nunca se cruza por posición del array.
+      const dateList = byDate.get(programDateKey) || [];
+      if (dateList.length){
+        srcWeek = dateList[0];
+        matchedByDate = true;
+        matchedBySyllabus = true;
+      }else{
+        srcWeek = pickByCodeStrictDate(codeKey, programDateKey);
+        matchedBySyllabus = !!srcWeek;
+      }
+    }else{
+      srcWeek = pickByCodeStrictDate(codeKey, programDateKey) || (weeks[i] || null);
+      matchedBySyllabus = !!srcWeek;
+    }
+
+    const baseEmpty = {
+      code,
+      displayCode: code,
+      dateRaw: "",
+      topics: [],
+      notes: [],
+      holidayHits: [],
+      delayed: carry.length,
+      currentWeek: null,
+      sourceWeek: null,
+      sourceCode: "",
+      sourceDisplayCode: "",
+      sourceColBLabel: "",
+      sourceDateRaw: "",
+      shifted: false,
+      schedulePending,
+      matchedByDate: false,
+      matchedBySyllabus: false
+    };
+
+    if (!srcWeek){
+      result.push(baseEmpty);
+      continue;
+    }
+
     const sourceTopics = (srcWeek.topics||[]).slice(0,3);
     const classDates = mcSyllabusClassDatesForWeek({pStart, weekIndex:i, classDays, sourceWeek:srcWeek, year, strictSchedule:true});
     const holidayHits = [];
-    for (const d of classDates){
-      const name = holidays.get(mcDateKey(d));
-      if (name) holidayHits.push({date:d,name});
+    if (!schedulePending){
+      for (const d of classDates){
+        const name = holidays.get(mcDateKey(d));
+        if (name) holidayHits.push({date:d,name});
+      }
     }
 
     carry.push(...sourceTopics.map(topic=>({topic, sourceWeek:srcWeek})));
@@ -8999,6 +9832,9 @@ function mcAlignSyllabusTopics({weeks,codes,first,last,pStart,local,course,progr
     const currentLabel = String(srcWeek?.displayCode || srcWeek?.code || code);
 
     result.push({
+      code,
+      displayCode: srcWeek?.displayCode || srcWeek?.code || code,
+      dateRaw: srcWeek?.dateRaw || "",
       topics,
       notes: currentNotes,
       holidayHits,
@@ -9045,6 +9881,14 @@ function mcSyllabusCellHtml(item, idx){
   const topics = (item?.topics||[]).slice(0,3);
   const notes = (item?.notes||[]).slice();
   const noteCount = notes.length + ((item?.holidayHits||[]).length || 0);
+
+  // Regla estándar: el horario es obligatorio para que Materiales evalúe el sílabo
+  // de un curso. Si el curso no aparece en Horarios, no se clasifican feriados ni
+  // reprogramaciones; se informa HORARIO PENDIENTE para todos los cursos por igual.
+  if (item?.schedulePending){
+    return `<div class="mcSyllabusCell"><span class="mcSyllabusPending">HORARIO PENDIENTE</span></div>`;
+  }
+
   if (!topics.length && !noteCount){
     return `<div class="mcSyllabusCell"><span class="mcSyllabusPending">PENDIENTE</span></div>`;
   }
@@ -9110,24 +9954,33 @@ function mcOpenSyllabusModal(idx){
     subParts.push(sourceLabel ? `CONTENIDO REPROGRAMADO: ${sourceLabel}` : "CONTENIDO REPROGRAMADO");
   }
   if (sub) sub.textContent = subParts.join(" · ") || "Contenido semanal";
-  const topicsHtml = (item.topics||[]).map((topic,i)=>`
-    <div class="mcTopic"><span class="mcTopicNum">${i+1}</span><span>${escapeHtml(topic)}</span></div>
-  `).join("");
-  const isHolidayWithoutTopics = !(item.topics||[]).length && (item.holidayHits||[]).length;
-  const emptyHtml = isHolidayWithoutTopics
-    ? '<div class="mcSyllabusModalEmpty"><b>Semana no lectiva por feriado.</b><br/>No se programan temas para esta fecha. El contenido se traslada a la siguiente clase efectiva.</div>'
-    : '<div class="mcSyllabusModalEmpty">No hay temas cargados para esta semana.</div>';
-  const shiftHtml = (isShiftedContent && (item.topics||[]).length)
+
+  const topics = (item.topics||[]).slice(0,3);
+  const notes = (item.notes||[]).slice();
+  const holidays = (item.holidayHits||[]).slice();
+  const hasAvisos = notes.length || holidays.length;
+
+  const topicsHtml = topics.length
+    ? topics.map((topic,i)=>`
+        <div class="mcTopic"><span class="mcTopicNum">${i+1}</span><span>${escapeHtml(topic)}</span></div>
+      `).join("")
+    : (hasAvisos
+        ? '<div class="mcTopic"><span class="mcTopicNum">—</span><span>-</span></div>'
+        : '');
+
+  const emptyHtml = '<div class="mcSyllabusModalEmpty">No hay temas cargados para esta semana.</div>';
+  const shiftHtml = (isShiftedContent && topics.length)
     ? `<div class="mcHolidayNote"><span>REPROGRAMADO</span><span>${sourceLabel ? `Contenido trasladado desde ${escapeHtml(sourceLabel)}.` : "Contenido reprogramado."}</span></div>`
     : "";
   const notesHtml = [
     shiftHtml,
-    ...((item.notes||[]).map(n=>`<div class="mcHolidayNote"><span>AVISO</span><span>${escapeHtml(n)}</span></div>`)),
-    ...((item.holidayHits||[]).map(h=>`<div class="mcHolidayNote"><span>FERIADO</span><span>${escapeHtml(mcFmtDM(h.date))} · ${escapeHtml(h.name)}</span></div>`))
+    ...notes.map(n=>`<div class="mcHolidayNote"><span>AVISO</span><span>${escapeHtml(n)}</span></div>`),
+    ...holidays.map(h=>`<div class="mcHolidayNote"><span>FERIADO</span><span>${escapeHtml(mcFmtDM(h.date))} · ${escapeHtml(h.name)}</span></div>`)
   ].join("");
   body.innerHTML = `${topicsHtml || emptyHtml}${notesHtml}`;
   overlay.classList.add("on");
 }
+
 
 function mcBindSyllabusButtons(scope){
   (scope || document).querySelectorAll("[data-syllabus-open]").forEach(btn=>{
@@ -9179,12 +10032,46 @@ async function mcHydrateMaterialesSyllabus({pid,cid,codes,first,last,pStart,spac
   const cells = Array.from(document.querySelectorAll('[data-syllabus-week]'));
   if (!cells.length) return;
 
+  // Regla estándar para ARS e INTEGRAL:
+  // primero se valida si el curso existe en Horarios para el local/espacio elegido.
+  // Si no existe, no se intenta interpretar feriados ni reprogramaciones desde el sílabo,
+  // y todos los cursos se comportan igual: HORARIO PENDIENTE.
+  const preClassDays = mcScheduleDaysForEscolaresMateriales(space, cid, programType);
+  if (!preClassDays.length){
+    MC_ACTIVE_SYLLABUS_ITEMS = cells.map((_, index)=>({
+      code: String(codes[first-1+index] || `SEM${first+index}`),
+      topics: [],
+      notes: [],
+      holidayHits: [],
+      schedulePending: true,
+      matchedBySyllabus: false
+    }));
+    cells.forEach(td=>{
+      td.innerHTML = '<div class="mcSyllabusCell"><span class="mcSyllabusPending">HORARIO PENDIENTE</span></div>';
+    });
+    if (status) status.textContent = "HORARIO PENDIENTE · agrega este curso en Horarios";
+    return;
+  }
+
   const applyAligned = (aligned, weeksLabel)=>{
     MC_ACTIVE_SYLLABUS_ITEMS = aligned.map((item, index)=>({
       ...item,
       code: String(codes[first-1+index] || item?.code || `SEM${first+index}`)
     }));
-    cells.forEach((td,index)=>{ td.innerHTML = mcSyllabusCellHtml(MC_ACTIVE_SYLLABUS_ITEMS[index], index); });
+    cells.forEach((td,index)=>{
+      const item = MC_ACTIVE_SYLLABUS_ITEMS[index];
+      td.innerHTML = mcSyllabusCellHtml(item, index);
+
+      // Para ciclos con sílabo institucional, cuando el código existe en el sílabo,
+      // la fecha visible de Materiales debe respetar la fecha de la hoja del sílabo.
+      const absoluteWeek = first - 1 + index;
+      const dateCell = document.querySelector(`[data-material-date-week="${absoluteWeek}"]`);
+      const sheetDate = mcParseSheetDate(item?.dateRaw, pStart.getFullYear());
+      if (dateCell && sheetDate && (item?.matchedByDate || item?.matchedBySyllabus)){
+        dateCell.textContent = mcFmtDM(sheetDate);
+        dateCell.title = "Fecha tomada del sílabo";
+      }
+    });
     mcBindSyllabusButtons(document.getElementById("mcBody2") || document);
     if (status) status.textContent = weeksLabel;
   };
@@ -9268,16 +10155,52 @@ function renderMateriales(){
       return found || { uni:u, url:"" };
     });
 
+    const rootEditBtn = document.getElementById("mRootEditToggle");
+    if (rootEditBtn){
+      rootEditBtn.textContent = MATERIALES_LINK_EDIT_MODE ? "VISTA LIMPIA" : "EDITAR ENLACES";
+      rootEditBtn.classList.toggle("active", MATERIALES_LINK_EDIT_MODE);
+    }
+    const rootHint = document.getElementById("mRootEditHint");
+    if (rootHint && syCanEditLinks()){
+      rootHint.textContent = MATERIALES_LINK_EDIT_MODE
+        ? "Modo edición activo: pega o actualiza las carpetas generales y vuelve a VISTA LIMPIA al finalizar."
+        : "Vista limpia activa. Usa EDITAR ENLACES solo cuando necesites actualizar carpetas generales.";
+    }
+
+    const stRoot = mcLoadStore();
+
     grid.innerHTML = orderedMaterials.map(x=>{
       const u = String(x.uni||"").toUpperCase();
       const dot = MAT_UNI_COLOR[u] || getCss("--accent");
-      const href = String(x.url||"").trim();
+      const href = materialesRootGetLink(stRoot, u, x.url);
       const isReady = !!href;
       const caption = isReady ? "ABRIR CARPETA" : "CARPETA PENDIENTE";
 
+      if (MATERIALES_LINK_EDIT_MODE && syCanEditLinks()){
+        return `
+          <div class="iItem matRootCard matRootEditing" style="--matRootAccent:${escapeHtml(dot)};">
+            <div class="iLeft matRootIdentity">
+              <div class="iSalon">${escapeHtml(u)}</div>
+              <div class="iMeta">
+                <span class="dot" style="background:${dot};"></span>
+                <span>${caption}</span>
+              </div>
+            </div>
+            <div class="matRootEditBox">
+              <input class="matRootInput" type="text" value="${escapeHtml(href)}" placeholder="Pega aquí el enlace de carpeta de ${escapeHtml(u)}" />
+              <div class="matRootEditActions">
+                ${isReady ? `<a class="syBtn" href="${escapeHtml(href)}" target="_blank" rel="noopener noreferrer">ABRIR</a>` : `<span class="syBtn disabled">ABRIR</span>`}
+                <button class="syBtn" type="button" data-matroot-save="1" data-uni="${escapeHtml(u)}">GUARDAR</button>
+                <button class="syBtn" type="button" data-matroot-clear="1" data-uni="${escapeHtml(u)}">LIMPIAR</button>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+
       return `
-        <a class="iItem${isReady ? "" : " disabled"}" href="${escapeHtml(isReady ? href : "#")}" target="_blank" rel="noopener"
-           style="text-decoration:none; color:inherit;">
+        <a class="iItem${isReady ? "" : " disabled"} matRootCard" href="${escapeHtml(isReady ? href : "#")}" target="_blank" rel="noopener"
+           style="text-decoration:none; color:inherit; --matRootAccent:${escapeHtml(dot)};">
           <div class="iLeft">
             <div class="iSalon">${escapeHtml(u)}</div>
             <div class="iMeta">
@@ -9289,6 +10212,31 @@ function renderMateriales(){
         </a>
       `;
     }).join("");
+
+    if (MATERIALES_LINK_EDIT_MODE && syCanEditLinks()){
+      grid.querySelectorAll('[data-matroot-save="1"]').forEach(btn=>{
+        btn.addEventListener("click", ()=>{
+          const uniName = btn.getAttribute("data-uni") || "";
+          const item = btn.closest(".matRootCard");
+          const input = item?.querySelector(".matRootInput");
+          const url = String(input?.value || "").trim();
+          const st = mcLoadStore();
+          materialesRootSetLink(st, uniName, url);
+          mcSaveStore(st);
+          toast(url ? "Carpeta de materiales guardada." : "Carpeta marcada como pendiente.");
+          renderMateriales();
+        });
+      });
+      grid.querySelectorAll('[data-matroot-clear="1"]').forEach(btn=>{
+        btn.addEventListener("click", ()=>{
+          const st = mcLoadStore();
+          materialesRootSetLink(st, btn.getAttribute("data-uni") || "", "");
+          mcSaveStore(st);
+          toast("Carpeta de materiales limpiada.");
+          renderMateriales();
+        });
+      });
+    }
   }
 
   // ===== CONTROL POR CURSO (flujo profesional) =====
@@ -9299,9 +10247,9 @@ function renderMateriales(){
   const roleLower = String(CURRENT_ROLE||"").toLowerCase();
   const canEditRole = (roleLower === "admin"); // links: solo Admin en espacio Editor
   const canWork = (roleLower === "admin" || roleLower === "tutor"); // marcar estados (Tutor/Admin)
-  const MAT_EDIT_KEY = "LM_MAT_EDIT_MODE";
-  const matEditDefault = (roleLower === "tutor");
-  const matEditOn = (localStorage.getItem(MAT_EDIT_KEY) ?? (matEditDefault ? "1" : "0")) === "1";
+  // Materiales queda editable por defecto según permisos del rol/espacio.
+  // Ya no se requiere botón para activar/desactivar checks.
+  const matEditOn = true;
 
   const store = pgxLoadStore();
     const baseWeeks = pgxTotalWeeks();
@@ -9537,16 +10485,16 @@ function renderMateriales(){
         </label>
 
         <a id="mcOpen2" class="btn folder" target="_blank" rel="noopener" style="margin-left:6px; text-decoration:none;">CARPETA</a>
-        ${(canEdit && matEditOn) ? '<input id="mcLink2" type="text" placeholder="Link carpeta (Drive)" style="min-width:320px; padding:8px 10px; border-radius:12px; border:1px solid var(--border); font-weight:900;"/><button id="mcSaveLink2" class="btn ghost" type="button">GUARDAR LINK</button>' : ""}
+        ${(canEdit && matEditOn) ? '<input id="mcLink2" type="text" placeholder="Link de carpeta Drive" style="min-width:320px; padding:8px 10px; border-radius:12px; border:1px solid var(--border); font-weight:900;"/><button id="mcSaveLink2" class="btn ghost" type="button">GUARDAR CARPETA</button>' : ""}
         ${showSyllabusCol ? `
-          <span class="mcSyllabusTools">
+          <span class="mcSyllabusTools" title="Sílabo tomado desde la sección SÍLABOS. En Materiales solo se abre, no se edita.">
             <a id="mcOpenSyllabus2" class="btn folder" target="_blank" rel="noopener" style="text-decoration:none;">ABRIR SÍLABO</a>
-            ${(canEdit && matEditOn) ? '<input id="mcSyllabusLink2" type="text" placeholder="Link del sílabo (Google Sheets)" style="min-width:340px; padding:8px 10px; border-radius:12px; border:1px solid var(--border); font-weight:900;"/><button id="mcSaveSyllabus2" class="btn ghost" type="button">GUARDAR SÍLABO</button>' : ""}
             <span id="mcSyllabusStatus" class="mcSyllabusState">SÍLABO PENDIENTE</span>
           </span>
         ` : ""}
 
-${canWork ? `<button id="mcEditBtn" class="btn ${matEditOn?'primary':'ghost'}" type="button" style="margin-left:6px;">${matEditOn?'EDITANDO':'EDITAR'}</button>` : ""}
+${(canEditRole && matEditOn) ? `<button id="mcClearCycleBtn" class="btn ghost" type="button" style="margin-left:6px; border-color:#dc2626; color:#991b1b; background:#fff5f5;">LIMPIAR CICLO</button>` : ""}
+
       </div>
     </div>
 
@@ -9584,10 +10532,9 @@ ${canWork ? `<button id="mcEditBtn" class="btn ${matEditOn?'primary':'ghost'}" t
   const openBtn = card.querySelector("#mcOpen2");
   const linkInp = card.querySelector("#mcLink2");
   const saveBtn = card.querySelector("#mcSaveLink2");
-  const syllabusUrl = mcSyllabusLink(st0,pid0,cid0);
+  const syllabusRepoUni = isArsProgram ? "ESCOLARES ARS" : (isIntegralProgram ? "ESCOLARES INTEGRAL" : uni);
+  const syllabusUrl = mcSyllabusLink(st0,pid0,cid0,syllabusRepoUni);
   const syllabusOpenBtn = card.querySelector("#mcOpenSyllabus2");
-  const syllabusLinkInp = card.querySelector("#mcSyllabusLink2");
-  const syllabusSaveBtn = card.querySelector("#mcSaveSyllabus2");
 
   if (openBtn){
     if (curUrl){
@@ -9603,7 +10550,6 @@ ${canWork ? `<button id="mcEditBtn" class="btn ${matEditOn?'primary':'ghost'}" t
     }
   }
   if (linkInp) linkInp.value = curUrl;
-  if (syllabusLinkInp) syllabusLinkInp.value = syllabusUrl;
   if (syllabusOpenBtn){
     if (syllabusUrl){
       syllabusOpenBtn.setAttribute("href",syllabusUrl);
@@ -9631,19 +10577,6 @@ ${canWork ? `<button id="mcEditBtn" class="btn ${matEditOn?'primary':'ghost'}" t
     renderMateriales();
   });
 
-  syllabusSaveBtn?.addEventListener("click", ()=>{
-    if (!canEdit || !showSyllabusCol) return toast("Solo Editor puede configurar el sílabo.");
-    const url = String(syllabusLinkInp?.value||"").trim();
-    if (url && !mcSyllabusCsvUrl(url)) return toast("Pega un enlace válido de Google Sheets.");
-    const st = mcLoadStore();
-    if (!st.syllabusLinks) st.syllabusLinks = {};
-    if (!st.syllabusLinks[pid0]) st.syllabusLinks[pid0] = {};
-    st.syllabusLinks[pid0][cid0] = url;
-    MC_ARS_SYLLABUS_CACHE.clear();
-    mcSaveStore(st);
-    toast(url ? "Sílabo guardado." : "Sílabo marcado como pendiente.");
-    renderMateriales();
-  });
 
   selP?.addEventListener("change", ()=>{
     localStorage.setItem(PROG_KEY, String(selP.value||""));
@@ -9654,11 +10587,25 @@ ${canWork ? `<button id="mcEditBtn" class="btn ${matEditOn?'primary':'ghost'}" t
     renderMateriales();
   });
 
-  // toggle edición de materiales (marcar checkboxes)
-  const eb = card.querySelector("#mcEditBtn");
-  eb?.addEventListener("click", ()=>{
-    const now = (localStorage.getItem(MAT_EDIT_KEY) === "1");
-    localStorage.setItem(MAT_EDIT_KEY, now ? "0" : "1");
+  card.querySelector("#mcClearCycleBtn")?.addEventListener("click", ()=>{
+    if (!canEditRole) return toast("Solo Admin/Editor puede limpiar un ciclo.");
+    const pidClear = String(selP?.value || "");
+    if (!pidClear) return toast("Selecciona un programa/ciclo.");
+    const programName = String(prog?.meta?.name || mcMaterialDisplayProgramName(prog) || "PROGRAMA").toUpperCase();
+    const ok = confirm(`Vas a borrar TODOS los checks de materiales del ciclo/programa:
+
+${programName}
+
+Esto afecta RECIBIDO, DIAGRAMADO e IMPRESO para todos los cursos y espacios de este programa. ¿Deseas continuar?`);
+    if (!ok) return;
+    const code = prompt("Código de seguridad para limpiar el ciclo:");
+    if (String(code || "").trim() !== "LIMPIAR2026"){
+      return toast("Código incorrecto. No se limpió el ciclo.");
+    }
+    const st = mcLoadStore();
+    if (st.status && st.status[pidClear]) delete st.status[pidClear];
+    mcSaveStore(st);
+    toast("Checks del ciclo limpiados.");
     renderMateriales();
   });
 
@@ -9679,19 +10626,20 @@ ${canWork ? `<button id="mcEditBtn" class="btn ${matEditOn?'primary':'ghost'}" t
     ? "FERNANDO"
     : String(diaRule?.owner || DIAGRAMA_SPACE_LABEL[String(space||"").toUpperCase()] || "—");
   const impresor = mcPrinterBySpace(uni, cid, space);
-  const canEditByResponsable = canWork && (roleLower === "admin" || mcNormLabel(mcCurrentUserName()) === mcNormLabel(mcResponsableFor(uni, cid)));
-  const isTutor = (roleLower === "tutor");
-  const isSanBorja = (mcNormLabel(space) === "SAN_BORJA");
-  const canEditRecibido = (roleLower === "admin") && !isSanBorja && (mcNormLabel(space) === "EDITOR");
-  const canEditImpreso = isSanBorja ? canWork : (canWork && (isTutor || roleLower === "admin" || mcNormLabel(mcCurrentUserName()) === mcNormLabel(impresor)));
-  const canEditDiagramado = canWork && !isSanBorja && (
-    diaRule
-      ? (mcNormLabel(space) === mcNormLabel(diaRule.sourceSpace))
-      : (isTutor || roleLower === "admin" || canEditByResponsable)
-  );
-  const roMsg = "Solo editable por el editor";
-  const roDiaMsg = "Solo editable en espacio de diagramación";
-  const roImpMsg = "Solo editable por quien imprime";
+  const isLocalMaterialSpace = MC_SPACE_LOCALS.includes(String(space||"").toUpperCase());
+  const isEditorMaterialSpace = (mcNormLabel(space) === "EDITOR");
+
+  // Regla estándar de Materiales:
+  // - EDITOR marca únicamente RECIBIDO.
+  // - Cada local (LA MOLINA, SAN MIGUEL, SAN BORJA) marca su propio DIAGRAMADO e IMPRESO.
+  // - No hay restricciones por responsable ni sincronización cruzada de diagramado entre locales.
+  const canEditRecibido = canEditRole && isEditorMaterialSpace;
+  const canEditDiagramado = canWork && isLocalMaterialSpace;
+  const canEditImpreso = canWork && isLocalMaterialSpace;
+
+  const roMsg = "Solo editable en espacio EDITOR";
+  const roDiaMsg = "Editable desde el local seleccionado";
+  const roImpMsg = "Editable desde el local seleccionado";
 
   // dates per program
   const pStart = pgxParseDateYMD(String(prog?.meta?.startDate||"")) || pgxParseDateYMD(String(store.timeline?.startDate||"")) || new Date();
@@ -9755,7 +10703,7 @@ ${canWork ? `<button id="mcEditBtn" class="btn ${matEditOn?'primary':'ghost'}" t
     rows.push(`
       <tr class="${isCurrentWeek ? "mcCurrentWeekRow" : ""}">
         <td class="mcIdxCol" style="font-weight:950;">${idx}</td>
-        <td class="mcDateCol">${escapeHtml(date)}</td>
+        <td class="mcDateCol" data-material-date-week="${i}">${escapeHtml(date)}</td>
         <td class="mcWeekCol" style="font-weight:950;">${escapeHtml(code)}</td>
 
         <td class="mcPctCol"><span class="semBadge ${semClass}"><span class="semDot"></span>${wkPct}%</span></td>
@@ -9837,9 +10785,6 @@ ${canWork ? `<button id="mcEditBtn" class="btn ${matEditOn?'primary':'ghost'}" t
       if (space === "EDITOR" && field === "rec"){
         mcSyncRecibidoFromEditor(st2, pid, cid, code, !!ch.checked);
       }
-      if (field === "dia" && diaRule){
-        mcSyncDiagramadoByRule(st2, pid, cid, code, !!ch.checked, diaRule);
-      }
       mcSaveStore(st2);
       renderMateriales();
     });
@@ -9900,17 +10845,65 @@ function sortListasByLocalOrder(values){
   });
 }
 
+
+function repoSafeKey(){
+  return Array.from(arguments).map(v=>mcNormLabel(String(v||"")).replace(/\s+/g," ").trim()).join("||");
+}
+function listaRepoGetLink(st, local, name, fallback){
+  const key = repoSafeKey(local, name);
+  const repo = st?.listasRepo || {};
+  if (Object.prototype.hasOwnProperty.call(repo, key)) return String(repo[key] || "").trim();
+  return String(fallback || "").trim();
+}
+function listaRepoSetLink(st, local, name, url){
+  if (!st.listasRepo) st.listasRepo = {};
+  st.listasRepo[repoSafeKey(local, name)] = String(url || "").trim();
+  return st;
+}
+function bindListaEditors(){
+  if (!syCanEditLinks() || !LISTAS_LINK_EDIT_MODE) return;
+  document.querySelectorAll('[data-lista-save="1"]').forEach(btn=>{
+    btn.addEventListener("click", ()=>{
+      const item = btn.closest(".syItem");
+      const input = item?.querySelector(".listaLinkInput");
+      const local = btn.getAttribute("data-local") || "";
+      const name = btn.getAttribute("data-name") || "";
+      const url = String(input?.value || "").trim();
+      const st = mcLoadStore();
+      listaRepoSetLink(st, local, name, url);
+      mcSaveStore(st);
+      toast(url ? "Lista guardada." : "Lista marcada como pendiente.");
+      renderListas();
+    });
+  });
+  document.querySelectorAll('[data-lista-clear="1"]').forEach(btn=>{
+    btn.addEventListener("click", ()=>{
+      const st = mcLoadStore();
+      listaRepoSetLink(st, btn.getAttribute("data-local") || "", btn.getAttribute("data-name") || "", "");
+      mcSaveStore(st);
+      toast("Lista limpiada.");
+      renderListas();
+    });
+  });
+}
+
 function ensureListasLayout(){
   const el = document.getElementById("view_listas");
   if (el.dataset.ready === "1") return;
 
   el.innerHTML = `
     <div class="card panel12">
-      <div class="cardtitle">FILTROS</div>
+      <div class="syLocalHead" style="margin-bottom:10px;">
+        <div class="cardtitle" style="margin:0;">FILTROS</div>
+        ${syCanEditLinks() ? `<button id="lEditToggle" class="syEditToggle" type="button">EDITAR ENLACES</button>` : ``}
+      </div>
       <div class="controls" style="justify-content:flex-start;">
         <select id="lLocal"></select>
         <input id="lQ" type="text" placeholder="Buscar (ej: agraria, pucp, paralelo, adelanto)"/>
         <button id="lReset">VER TODO</button>
+      </div>
+      <div class="panelHint" id="lEditHint" style="margin-top:8px; color:var(--muted);">
+        ${syCanEditLinks() ? "Vista limpia activa. Usa EDITAR ENLACES solo cuando necesites actualizar listas." : "Los enlaces son de solo lectura."}
       </div>
     </div>
 
@@ -9937,6 +10930,10 @@ function ensureListasLayout(){
   });
   document.getElementById("lLocal").addEventListener("change", renderListas);
   document.getElementById("lQ").addEventListener("input", renderListas);
+  document.getElementById("lEditToggle")?.addEventListener("click", ()=>{
+    LISTAS_LINK_EDIT_MODE = !LISTAS_LINK_EDIT_MODE;
+    renderListas();
+  });
 
   el.dataset.ready = "1";
 }
@@ -9981,8 +10978,21 @@ function listaMetaFromName(name){
 function renderListas(){
   ensureListasLayout();
 
+  const editBtn = document.getElementById("lEditToggle");
+  if (editBtn){
+    editBtn.textContent = LISTAS_LINK_EDIT_MODE ? "VISTA LIMPIA" : "EDITAR ENLACES";
+    editBtn.classList.toggle("active", LISTAS_LINK_EDIT_MODE);
+  }
+  const hint = document.getElementById("lEditHint");
+  if (hint && syCanEditLinks()){
+    hint.textContent = LISTAS_LINK_EDIT_MODE
+      ? "Modo edición activo: actualiza los enlaces de listas y vuelve a VISTA LIMPIA al finalizar."
+      : "Vista limpia activa. Usa EDITAR ENLACES solo cuando necesites actualizar listas.";
+  }
+
   const fLocal = document.getElementById("lLocal").value;
   const q = low(document.getElementById("lQ").value);
+  const st = mcLoadStore();
 
   let base = LISTAS.slice();
   if (fLocal !== "__ALL__") base = base.filter(x=>x.local===fLocal);
@@ -10013,23 +11023,35 @@ function renderListas(){
 
     totalLinks += list.length;
 
-const items = list.map(it=>{
-  const meta = listaMetaFromName(it.name);
+    const items = list.map(it=>{
+      const meta = listaMetaFromName(it.name);
+      const url = listaRepoGetLink(st, it.local, it.name, it.url);
+      const hasUrl = !!url;
+      const safeLocal = escapeHtml(it.local);
+      const safeName = escapeHtml(it.name);
 
-  return `
-    <a class="syItem" href="${escapeHtml(it.url)}" target="_blank" rel="noopener noreferrer">
-      <div class="syLeft">
-        <div class="syCourse">${escapeHtml(it.name)}</div>
-        <div class="syMeta">
-          <span class="dot" style="background:${meta.dot};"></span>
-          <span>${escapeHtml(loc)}</span>
+      return `
+        <div class="syItem syDisplayCard${LISTAS_LINK_EDIT_MODE ? " syEditing" : ""}" style="--syAccent:${escapeHtml(meta.dot)};">
+          <div class="syLeft">
+            <div class="syCourseRow">
+              <span class="syColorDot" aria-hidden="true"></span>
+              <div class="syCourse">${safeName}</div>
+            </div>
+            <div class="syMeta"><span>${escapeHtml(loc)}</span></div>
+          </div>
+          <div class="syBtns">
+            ${hasUrl ? `<a class="syOpen" href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">ABRIR</a>` : `<span class="syOpen disabled">SIN ENLACE</span>`}
+          </div>
+          ${(syCanEditLinks() && LISTAS_LINK_EDIT_MODE) ? `
+            <div class="syEditPanel">
+              <input class="listaLinkInput" type="text" value="${escapeHtml(url)}" placeholder="Pega aquí el enlace de ${safeName}" />
+              <button class="syBtn" type="button" data-lista-save="1" data-local="${safeLocal}" data-name="${safeName}">GUARDAR</button>
+              <button class="syBtn" type="button" data-lista-clear="1" data-local="${safeLocal}" data-name="${safeName}">LIMPIAR</button>
+            </div>
+          ` : ""}
         </div>
-      </div>
-      <div class="syOpen">ABRIR</div>
-    </a>
-  `;
-}).join("");
-
+      `;
+    }).join("");
 
     return `
       <div class="card panel12">
@@ -10037,9 +11059,10 @@ const items = list.map(it=>{
           <div class="cardtitle" style="margin:0;">${escapeHtml(loc)}</div>
           <div class="syKpis">
             <span class="syKpiPill">ENLACES: <b>${list.length}</b></span>
+            ${syCanEditLinks() ? `<span class="syKpiPill">MODO: <b>${LISTAS_LINK_EDIT_MODE ? "EDICIÓN" : "LIMPIO"}</b></span>` : ""}
           </div>
         </div>
-        <div class="syWrap">
+        <div class="syWrap${LISTAS_LINK_EDIT_MODE ? " syEditGrid" : ""}">
           ${items || `<div class="card panel12" style="box-shadow:none;">
             <div class="cardtitle">SIN RESULTADOS</div>
             <div style="color:var(--muted); font-weight:900;">No hay listas con el filtro actual.</div>
@@ -10057,6 +11080,7 @@ const items = list.map(it=>{
       <div style="color:var(--muted); font-weight:900;">No se encontraron listas para mostrar.</div>
     </div>
   `;
+  bindListaEditors();
 }
 // ===================== FIN LISTAS =====================
 
@@ -10104,17 +11128,66 @@ function getReportesCatalog(){
   return REPORTES.slice();
 }
 
+
+function reporteRepoGet(st, local, name, field, fallback){
+  const key = repoSafeKey(local, name);
+  const repo = st?.reportesRepo || {};
+  const rec = repo[key] || {};
+  if (Object.prototype.hasOwnProperty.call(rec, field)) return String(rec[field] || "").trim();
+  return String(fallback || "").trim();
+}
+function reporteRepoSet(st, local, name, reporte, carpeta){
+  if (!st.reportesRepo) st.reportesRepo = {};
+  st.reportesRepo[repoSafeKey(local, name)] = {
+    reporte: String(reporte || "").trim(),
+    carpeta: String(carpeta || "").trim()
+  };
+  return st;
+}
+function bindReporteEditors(){
+  if (!syCanEditLinks() || !REPORTES_LINK_EDIT_MODE) return;
+  document.querySelectorAll('[data-reporte-save="1"]').forEach(btn=>{
+    btn.addEventListener("click", ()=>{
+      const item = btn.closest(".syItem");
+      const local = btn.getAttribute("data-local") || "";
+      const name = btn.getAttribute("data-name") || "";
+      const rep = String(item?.querySelector(".reporteLinkInput")?.value || "").trim();
+      const car = String(item?.querySelector(".reporteCarpetaInput")?.value || "").trim();
+      const st = mcLoadStore();
+      reporteRepoSet(st, local, name, rep, car);
+      mcSaveStore(st);
+      toast("Enlaces de reporte guardados.");
+      renderReportes();
+    });
+  });
+  document.querySelectorAll('[data-reporte-clear="1"]').forEach(btn=>{
+    btn.addEventListener("click", ()=>{
+      const st = mcLoadStore();
+      reporteRepoSet(st, btn.getAttribute("data-local") || "", btn.getAttribute("data-name") || "", "", "");
+      mcSaveStore(st);
+      toast("Enlaces de reporte limpiados.");
+      renderReportes();
+    });
+  });
+}
+
 function ensureReportesLayout(){
   const el = document.getElementById("view_reportes");
   if (el.dataset.ready === "1") return;
 
   el.innerHTML = `
     <div class="card panel12">
-      <div class="cardtitle">FILTROS</div>
+      <div class="syLocalHead" style="margin-bottom:10px;">
+        <div class="cardtitle" style="margin:0;">FILTROS</div>
+        ${syCanEditLinks() ? `<button id="rEditToggle" class="syEditToggle" type="button">EDITAR ENLACES</button>` : ``}
+      </div>
       <div class="controls" style="justify-content:flex-start;">
         <select id="rLocal"></select>
         <input id="rQ" type="text" placeholder="Buscar (ej: agraria, escolar, pucp, u.lima, paralelo, adelanto, virtual)"/>
         <button id="rReset">VER TODO</button>
+      </div>
+      <div class="panelHint" id="rEditHint" style="margin-top:8px; color:var(--muted);">
+        ${syCanEditLinks() ? "Vista limpia activa. Usa EDITAR ENLACES solo cuando necesites actualizar reportes o carpetas." : "Los enlaces son de solo lectura."}
       </div>
     </div>
 
@@ -10141,6 +11214,10 @@ function ensureReportesLayout(){
   });
   document.getElementById("rLocal").addEventListener("change", renderReportes);
   document.getElementById("rQ").addEventListener("input", renderReportes);
+  document.getElementById("rEditToggle")?.addEventListener("click", ()=>{
+    REPORTES_LINK_EDIT_MODE = !REPORTES_LINK_EDIT_MODE;
+    renderReportes();
+  });
 
   el.dataset.ready = "1";
 }
@@ -10148,8 +11225,21 @@ function ensureReportesLayout(){
 function renderReportes(){
   ensureReportesLayout();
 
+  const editBtn = document.getElementById("rEditToggle");
+  if (editBtn){
+    editBtn.textContent = REPORTES_LINK_EDIT_MODE ? "VISTA LIMPIA" : "EDITAR ENLACES";
+    editBtn.classList.toggle("active", REPORTES_LINK_EDIT_MODE);
+  }
+  const hint = document.getElementById("rEditHint");
+  if (hint && syCanEditLinks()){
+    hint.textContent = REPORTES_LINK_EDIT_MODE
+      ? "Modo edición activo: actualiza reporte/carpeta y vuelve a VISTA LIMPIA al finalizar."
+      : "Vista limpia activa. Usa EDITAR ENLACES solo cuando necesites actualizar reportes o carpetas.";
+  }
+
   const fLocal = document.getElementById("rLocal").value;
   const q = low(document.getElementById("rQ").value);
+  const st = mcLoadStore();
 
   let base = getReportesCatalog();
   if (fLocal !== "__ALL__") base = base.filter(x=>x.local===fLocal);
@@ -10182,6 +11272,10 @@ function renderReportes(){
 
     const items = list.map(it=>{
       const meta = listaMetaFromName(it.name);
+      const rep = reporteRepoGet(st, it.local, it.name, "reporte", it.reporte);
+      const car = reporteRepoGet(st, it.local, it.name, "carpeta", it.carpeta);
+      const safeLocal = escapeHtml(it.local);
+      const safeName = escapeHtml(it.name);
 
       const rep = (it.reporte && String(it.reporte).trim()) ? String(it.reporte).trim() : "";
       const car = (it.carpeta && String(it.carpeta).trim()) ? String(it.carpeta).trim() : "";
@@ -10195,18 +11289,26 @@ function renderReportes(){
         : `<span class="syBtn disabled">VER REPORTES</span>`;
 
       return `
-        <div class="syItem">
+        <div class="syItem syDisplayCard${REPORTES_LINK_EDIT_MODE ? " syEditing" : ""}" style="--syAccent:${escapeHtml(meta.dot)};">
           <div class="syLeft">
-            <div class="syCourse">${escapeHtml(it.name)}</div>
-            <div class="syMeta">
-              <span class="dot" style="background:${meta.dot};"></span>
-              <span>${escapeHtml(loc)}</span>
+            <div class="syCourseRow">
+              <span class="syColorDot" aria-hidden="true"></span>
+              <div class="syCourse">${safeName}</div>
             </div>
+            <div class="syMeta"><span>${escapeHtml(loc)}</span></div>
           </div>
           <div class="syBtns">
             ${repBtn}
             ${carBtn}
           </div>
+          ${(syCanEditLinks() && REPORTES_LINK_EDIT_MODE) ? `
+            <div class="syEditPanel reportEditPanel">
+              <input class="reporteLinkInput" type="text" value="${escapeHtml(rep)}" placeholder="Enlace de REPORTE para ${safeName}" />
+              <input class="reporteCarpetaInput" type="text" value="${escapeHtml(car)}" placeholder="Enlace de CARPETA para ${safeName}" />
+              <button class="syBtn" type="button" data-reporte-save="1" data-local="${safeLocal}" data-name="${safeName}">GUARDAR</button>
+              <button class="syBtn" type="button" data-reporte-clear="1" data-local="${safeLocal}" data-name="${safeName}">LIMPIAR</button>
+            </div>
+          ` : ""}
         </div>
       `;
     }).join("");
@@ -10217,9 +11319,10 @@ function renderReportes(){
           <div class="cardtitle" style="margin:0;">${escapeHtml(loc)}</div>
           <div class="syKpis">
             <span class="syKpiPill">AULAS: <b>${list.length}</b></span>
+            ${syCanEditLinks() ? `<span class="syKpiPill">MODO: <b>${REPORTES_LINK_EDIT_MODE ? "EDICIÓN" : "LIMPIO"}</b></span>` : ""}
           </div>
         </div>
-        <div class="syWrap">
+        <div class="syWrap${REPORTES_LINK_EDIT_MODE ? " syEditGrid" : ""}">
           ${items || `<div class="card panel12" style="box-shadow:none;">
             <div class="cardtitle">SIN RESULTADOS</div>
             <div style="color:var(--muted); font-weight:900;">No hay aulas con el filtro actual.</div>
@@ -10237,6 +11340,7 @@ function renderReportes(){
       <div style="color:var(--muted); font-weight:900;">No se encontraron reportes para mostrar.</div>
     </div>
   `;
+  bindReporteEditors();
 }
 // ===================== FIN REPORTES =====================
 
@@ -10616,6 +11720,8 @@ function renderReportes(){
               <span class="b" style="background:${dot};"></span>
               ${escapeHtml(s.uni)}
             </div>
+            ${scheduleColorToolsHtml(s, colors)}
+            ${scheduleRangeToolsHtml(s)}
             <button class="schDl" data-sid="${escapeHtml(s.id)}">DESCARGAR PNG</button>${(CURRENT_ROLE==="admin" && HORARIOS_EDIT_MODE) ? `<button class="schEdit" data-sid="${escapeHtml(s.id)}">EDITAR</button>` : ``}
           </div>
         </div>
