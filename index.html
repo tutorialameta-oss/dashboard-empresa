@@ -3256,9 +3256,9 @@
       <p class="authSub">Seleccione su tipo de acceso. Si es alumno, use su USUARIO y CONTRASEÑA de matrícula.</p>
 
       <div class="roleRow">
-        <button id="roleAdmin" class="roleBtn active" type="button" onclick="authRoleFallback('admin')">ADMIN</button>
-        <button id="roleTutor" class="roleBtn" type="button" onclick="authRoleFallback('tutor')">TUTOR</button>
-        <button id="roleAlumno" class="roleBtn" type="button" onclick="authRoleFallback('alumno')">ALUMNO</button>
+        <button id="roleAdmin" class="roleBtn" type="button">ADMIN</button>
+        <button id="roleTutor" class="roleBtn" type="button">TUTOR</button>
+        <button id="roleAlumno" class="roleBtn" type="button">ALUMNO</button>
       </div>
 
       <div class="authRow" id="authUserRow" style="display:none;">
@@ -3267,48 +3267,12 @@
 
       <div class="authRow">
         <input id="authPass" type="password" placeholder="Clave" autocomplete="current-password" />
-        <button id="btnLogin" type="button" onclick="authLoginFallback()">ENTRAR</button>
+        <button id="btnLogin" type="button">ENTRAR</button>
       </div>
 
       <div id="authErr" class="authErr">Datos incorrectos o rol no seleccionado.</div>
     </div>
   </div>
-
-  <!-- Acceso mínimo independiente del script principal. Los onclick permiten
-       seleccionar e ingresar incluso si otro módulo falla al inicializarse. -->
-  <script>
-    var AUTH_FALLBACK_ROLE = "admin";
-    function authRoleFallback(role){
-      AUTH_FALLBACK_ROLE = role;
-      var admin = document.getElementById("roleAdmin");
-      var tutor = document.getElementById("roleTutor");
-      var alumno = document.getElementById("roleAlumno");
-      var userRow = document.getElementById("authUserRow");
-      var pass = document.getElementById("authPass");
-      if (admin) admin.classList.toggle("active", role === "admin");
-      if (tutor) tutor.classList.toggle("active", role === "tutor");
-      if (alumno) alumno.classList.toggle("active", role === "alumno");
-      if (userRow) userRow.style.display = role === "alumno" ? "" : "none";
-      if (pass) pass.placeholder = role === "alumno" ? "Contraseña" : "Clave";
-    }
-    function authLoginFallback(){
-      if (AUTH_FALLBACK_ROLE === "alumno") return;
-      var pass = document.getElementById("authPass");
-      var err = document.getElementById("authErr");
-      var value = pass ? String(pass.value || "") : "";
-      var valid = (AUTH_FALLBACK_ROLE === "admin" && value === "202619") ||
-                  (AUTH_FALLBACK_ROLE === "tutor" && value === "MBMLaMeta");
-      if (!valid){
-        if (err){ err.textContent = "Clave incorrecta."; err.style.display = "block"; }
-        return;
-      }
-      try { localStorage.setItem("lameta_role", AUTH_FALLBACK_ROLE); } catch(e){}
-      var overlay = document.getElementById("authOverlay");
-      var app = document.getElementById("appShell");
-      if (overlay) overlay.style.display = "none";
-      if (app) app.style.display = "grid";
-    }
-  </script>
 
   <div id="appShell" class="app" style="display:none;">
     <aside class="sidebar">
@@ -3631,12 +3595,6 @@ if (btnSil) btnSil.style.display = "";
   }
 
   function initAuth(){
-    const overlay = document.getElementById("authOverlay");
-    if (overlay?.dataset.authInitialized === "1"){
-      return !!loadRole();
-    }
-    if (overlay) overlay.dataset.authInitialized = "1";
-
     const saved = loadRole();
     if (saved){
       CURRENT_ROLE = saved;
@@ -3753,6 +3711,7 @@ if (btnSil) btnSil.style.display = "";
     if (pass) pass.addEventListener("keydown", (e)=>{ if (e.key === "Enter") doLogin(); });
     if (user) user.addEventListener("keydown", (e)=>{ if (e.key === "Enter") doLogin(); });
 
+    const overlay = document.getElementById("authOverlay");
     if (overlay && !overlay.dataset.authDelegated){
       overlay.dataset.authDelegated = "1";
       overlay.addEventListener("click", (ev)=>{
@@ -3769,30 +3728,6 @@ if (btnSil) btnSil.style.display = "";
     pick("admin");
     return false;
   }
-
-  // Registrar el acceso inmediatamente, antes de inicializar los módulos del
-  // dashboard. Así un error posterior de Programa, Horarios o Materiales no
-  // puede dejar los botones de rol sin eventos.
-  function bootstrapDashboard(){
-    const overlay = document.getElementById("authOverlay");
-    if (overlay?.dataset.dashboardBootstrapped === "1") return;
-    if (overlay) overlay.dataset.dashboardBootstrapped = "1";
-
-    const hasSession = initAuth();
-    if (!hasSession){
-      const observer = new MutationObserver(() => {
-        if (overlay && overlay.style.display === "none"){
-          observer.disconnect();
-          startApp();
-        }
-      });
-      observer.observe(overlay || document.body, { attributes:true, attributeFilter:["style"] });
-      return;
-    }
-    startApp();
-  }
-
-  window.addEventListener("DOMContentLoaded", bootstrapDashboard);
 
 const SALONES = [
     { local:"LA MOLINA", ciclo:"AGRARIA",  salon:"AGRARIA LM 1", gid:818929525 },
@@ -3999,7 +3934,6 @@ function pgxProgramSpec(kind){
   if (raw === "PRE U.LIMA" || raw === "PRE ULIMA") return { kind:"PRE U.LIMA", scope:"U.LIMA", theme:"PRE U.LIMA" };
   if (raw === "U.LIMA" || raw === "ULIMA" || raw === "UL") return { kind:"U.LIMA", scope:"U.LIMA", theme:"U.LIMA" };
   if (raw === "PUCP") return { kind:"PUCP", scope:"PUCP", theme:"PUCP" };
-  if (raw === "ESCOLARES U.LIMA" || raw === "ESCOLAR U.LIMA" || raw === "ESC U.LIMA") return { kind:"ESCOLARES U.LIMA", scope:"ESCOLARES", theme:"ESCOLARES" };
   if (raw === "ESCOLARES" || raw === "ESCOLAR") return { kind:"ESCOLARES", scope:"ESCOLARES", theme:"ESCOLARES" };
   return { kind:"AGRARIA", scope:"AGRARIA", theme:"AGRARIA" };
 }
@@ -4250,26 +4184,16 @@ function pgxProgramSpec(kind){
 }
 
 
-  // La sincronización se inicia desde startApp(), cuando todos los módulos y
-  // estados (Horarios/Materiales/Programa) ya terminaron de inicializarse.
-  let LM_BACKGROUND_SYNC_STARTED = false;
-  function startBackgroundSync(){
-    if (LM_BACKGROUND_SYNC_STARTED) return;
-    LM_BACKGROUND_SYNC_STARTED = true;
-    pgxSyncPullOnce_();
-    setInterval(()=>{ pgxSyncPullOnce_(); }, 5000);
-    schSyncPullOnce_();
-    setInterval(()=>{ schSyncPullOnce_(); }, 7000);
-    mcSyncPullOnce_();
-    setInterval(()=>{ mcSyncPullOnce_(); }, 9000);
-    document.addEventListener("visibilitychange", ()=>{
-      if (!document.hidden){
-        pgxSyncPullOnce_();
-        schSyncPullOnce_();
-        mcSyncPullOnce_();
-      }
-    });
-  }
+  // Pull periódico para ver cambios de otros (quasi-tiempo real)
+  pgxSyncPullOnce_();
+  setInterval(()=>{ pgxSyncPullOnce_(); }, 5000);
+  schSyncPullOnce_();
+  setInterval(()=>{ schSyncPullOnce_(); }, 7000);
+  mcSyncPullOnce_();
+  setInterval(()=>{ mcSyncPullOnce_(); }, 9000);
+  document.addEventListener("visibilitychange", ()=>{
+    if (!document.hidden) pgxSyncPullOnce_();
+  });
 
 function pgxEnsure(){
     const store = pgxLoadStore();
@@ -4974,7 +4898,7 @@ if (zoom) zoom.value = pgxZoomOption(pgxGetZoom());
 
         <label>SCOPE
           <select id="pgsScope">
-            ${["ALL","AGRARIA","PUCP","U.LIMA","ESCOLARES"].map(x=>`<option value="${x}"${String(p.meta?.scope||"ALL").toUpperCase()===x?" selected":""}>${x}</option>`).join("")}
+            ${["ALL","AGRARIA","PUCP","U.LIMA"].map(x=>`<option value="${x}"${String(p.meta?.scope||"ALL").toUpperCase()===x?" selected":""}>${x}</option>`).join("")}
           </select>
         </label>
 
@@ -5278,7 +5202,6 @@ const tw = pgxTotalWeeks();
             <option value="PRE U.LIMA">CICLO: PRE U.LIMA</option>
             <option value="PUCP">CICLO: PUCP</option>
             <option value="ESCOLARES">CICLO: ESCOLARES</option>
-            <option value="ESCOLARES U.LIMA">CICLO: ESCOLARES U.LIMA</option>
           </select>
           <button id="pgxCreate" class="btn ghost" type="button">+ CREAR PROGRAMA</button>
         </div>
@@ -7245,20 +7168,6 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
     return base;
   }
 
-  function expandEscolaresImpresionesRows(rows){
-    const out = [];
-    for (const row of (rows||[])){
-      const salon = mcNormLabel(row?.salon || "");
-      if (/^ESCOLARES?(?:\s+(?:LM|SM|SB))?$/.test(salon)){
-        out.push({...row, salon:"ESCOLAR U.LIMA"});
-        out.push({...row, salon:"ESCOLAR PUCP", count:0});
-      }else{
-        out.push(row);
-      }
-    }
-    return out;
-  }
-
   function ensureImpresionesLayout(){
     const el = document.getElementById("view_impresiones");
     if (el.dataset.ready === "1") return;
@@ -7395,11 +7304,11 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
       if (!res.ok) throw new Error("HTTP "+res.status);
       const text = await res.text();
 
-      state.imprRows = ensurePreUlimaImpresionesRows(expandEscolaresImpresionesRows(parseImpresionesCSV(text)));
+      state.imprRows = ensurePreUlimaImpresionesRows(parseImpresionesCSV(text));
       state.imprUpdatedAt = Date.now(); // se conserva, pero ya no se muestra en pantalla
     } catch(e){
       console.error("IMPRESIONES:", e);
-      state.imprRows = ensurePreUlimaImpresionesRows(expandEscolaresImpresionesRows(state.imprRows || []));
+      state.imprRows = ensurePreUlimaImpresionesRows(state.imprRows || []);
     }
   }
   // ===================== FIN IMPRESIONES =====================
@@ -7450,17 +7359,10 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
       { name:"BIOLOGÍA", url:"https://docs.google.com/spreadsheets/d/1nCoTiW4C7hj_vW_gjGkcmNCjX80CHM3GMWdyPIENrd8/edit?gid=2060340658#gid=2060340658" },
     ],
     "ESCOLARES ARS": [
-      { name:"NÚMEROS Y OPERACIONES", url:"https://docs.google.com/spreadsheets/d/1DiO4Xo6soJP6RJoGLl9MzdMgLqxtX3lR/edit?usp=drive_link&ouid=109996193497961946614&rtpof=true&sd=true" },
-      { name:"TEXTOS", url:"https://docs.google.com/spreadsheets/d/13hVQ3aU8tGTTCLulDKqvEPjfPig6mJmT/edit?usp=drive_link&ouid=109996193497961946614&rtpof=true&sd=true" },
-      { name:"ÁLGEBRA", url:"https://docs.google.com/spreadsheets/d/1xCleoX70pd__IPvAJmxIXLg7PbqYSZWl/edit?usp=drive_link&ouid=109996193497961946614&rtpof=true&sd=true" },
-      { name:"GEOMETRÍA Y MEDIDA", url:"https://docs.google.com/spreadsheets/d/1hiDjBKA481mnXIRNWQ855JOEd3SZMpgk/edit?usp=drive_link&ouid=109996193497961946614&rtpof=true&sd=true" },
-    ],
-    "ESCOLAR U.LIMA": [
-      { name:"TEXTOS", url:"https://docs.google.com/spreadsheets/d/1ILTmyKaVYUDhTv3KOit67iOh3MlgsCVtSi0ri2ejPgU/edit?gid=11988891#gid=11988891" },
-      { name:"RAZONAMIENTO MATEMÁTICO", url:"https://docs.google.com/spreadsheets/d/1u-Y8dvVsuQ9zCqX3SNHZgGZgW_j8QJSMmbNwh8qxtS0/edit?gid=11988891#gid=11988891" },
-      { name:"ÁLGEBRA", url:"https://docs.google.com/spreadsheets/d/18_38udXwAgCbA3ysr1R9cpWVY0Z_nIaOdXzYVPV8_D8/edit?gid=11988891#gid=11988891" },
-      { name:"ARITMÉTICA", url:"https://docs.google.com/spreadsheets/d/1VvgKuQHSuU1j-HVWCojynMw6N3b5LwBBgymTq_K_6Ck/edit?gid=11988891#gid=11988891" },
-      { name:"GEOMETRÍA Y TRIGONOMETRÍA", url:"https://docs.google.com/spreadsheets/d/1-aWi7hmJcCkrZAIy8E5riX6jFFTvEn5qnuwqC5cGF2o/edit?gid=11988891#gid=11988891" },
+      { name:"NÚMEROS Y OPERACIONES", url:"https://docs.google.com/spreadsheets/d/1WTYo_zUtlxu7fKY2Br4W63hwN26xr6yMxj2pHQD9ImI/edit?gid=466907362#gid=466907362/edit?usp=drive_link" },
+      { name:"TEXTOS", url:"https://docs.google.com/spreadsheets/d/1RJXP4gXi_gSLJEVE7m86Bw58H9o_bHtenBipZMKiaQs/edit?gid=1869413083#gid=1869413083/edit?usp=drive_link" },
+      { name:"ÁLGEBRA", url:"https://docs.google.com/spreadsheets/d/1M6D8eN3HsMUuIdEjIk7ODyaxK-teeDNLvG1FL2uHrlo/edit?gid=1542781761#gid=1542781761/edit?usp=drive_link" },
+      { name:"GEOMETRÍA Y MEDIDA", url:"https://docs.google.com/spreadsheets/d/1GIerJ44sNfslbXQgVw7M5dvjJUe5Z_Sl74n1nYAwAgM/edit?gid=1560070772#gid=1560070772/edit?usp=drive_link" },
     ]
   };
 
@@ -7469,7 +7371,6 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
     if (uni==="U.LIMA") return getCss("--ulima");
     if (uni==="PUCP") return getCss("--pucp");
     if (uni==="ESCOLARES ARS") return getCss("--pucp");
-    if (uni==="ESCOLAR U.LIMA") return getCss("--schHead_ESC");
     if (uni==="ESCOLARES" || uni==="ESCOLARES INTEGRAL") return getCss("--schHead_ESC");
     return getCss("--ulima");
   }
@@ -7682,7 +7583,6 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
           <span class="pill"><span class="dot pucp"></span>PUCP</span>
           <span class="pill"><span class="dot escolares"></span>ESCOLARES INTEGRAL</span>
           <span class="pill"><span class="dot pucp"></span>ESCOLARES ARS</span>
-          <span class="pill"><span class="dot escolares"></span>ESCOLAR U.LIMA</span>
         </div>
         <div class="panelHint" style="margin-top:8px; color:var(--muted);" id="sEditHint">
           ${syCanEditLinks() ? "Vista limpia activa. Usa EDITAR ENLACES solo cuando necesites actualizar el repositorio." : "Los enlaces son de solo lectura."}
@@ -7694,7 +7594,7 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
           <div class="cardtitle" style="margin:0;">RESUMEN GENERAL</div>
           <div class="syKpis">
             <span class="syKpiPill">CURSOS: <b id="sTotal">0</b></span>
-          <span class="syKpiPill">UNIVERSIDADES: <b id="sUnis">6</b></span>
+            <span class="syKpiPill">UNIVERSIDADES: <b id="sUnis">5</b></span>
           </div>
         </div>
       </div>
@@ -7702,7 +7602,7 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
       <div class="panel12" id="sBlocks"></div>
     `;
 
-    fillSelectKeep("sUni", ["AGRARIA","U.LIMA","PUCP","ESCOLARES INTEGRAL","ESCOLARES ARS","ESCOLAR U.LIMA"], "UNIVERSIDAD: TODAS");
+    fillSelectKeep("sUni", ["AGRARIA","U.LIMA","PUCP","ESCOLARES INTEGRAL","ESCOLARES ARS"], "UNIVERSIDAD: TODAS");
 
     document.getElementById("sReset").addEventListener("click", ()=>{
       document.getElementById("sUni").value="__ALL__";
@@ -7793,7 +7693,7 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
     const fUni = document.getElementById("sUni").value;
     const q = low(document.getElementById("sQ").value);
 
-    const uniOrder = ["AGRARIA","U.LIMA","PUCP","ESCOLARES INTEGRAL","ESCOLARES ARS","ESCOLAR U.LIMA"];
+    const uniOrder = ["AGRARIA","U.LIMA","PUCP","ESCOLARES INTEGRAL","ESCOLARES ARS"];
     let unis = uniOrder.slice();
     if (fUni !== "__ALL__") unis = unis.filter(u=>u===fUni);
 
@@ -8593,33 +8493,17 @@ function materialesRootSetLink(st, uni, url){
 // ===================== NOTAS GENERALES (NUEVO) =====================
 const NOTAS_GENERALES = [
   // ✅ PUCP
-  { id:"PUCP",   uni:"PUCP",   label:"NOTAS PUCP",   url:"https://docs.google.com/spreadsheets/d/1ocBp2agEOpgkmveUJkFDmDjMvf6Zp4kPlXtfMlPmgY0/edit?usp=drive_link" },
+  { id:"PUCP",   uni:"PUCP",   label:"NOTAS GENERALES PUCP",   url:"https://docs.google.com/spreadsheets/d/1ocBp2agEOpgkmveUJkFDmDjMvf6Zp4kPlXtfMlPmgY0/edit?usp=drive_link" },
 
   // ✅ U.LIMA
-  { id:"ULIMA",  uni:"U.LIMA", label:"NOTAS U.LIMA", url:"https://docs.google.com/spreadsheets/d/1jHx33yKbl9LFVbX9fB7pacnvhF7UmTbd9Z5t8qyPfWM/edit?usp=drive_link" },
+  { id:"ULIMA",  uni:"U.LIMA", label:"NOTAS GENERALES U.LIMA", url:"https://docs.google.com/spreadsheets/d/1jHx33yKbl9LFVbX9fB7pacnvhF7UmTbd9Z5t8qyPfWM/edit?usp=drive_link" },
 
   // ⏳ AGRARIA (pendiente: cuando exista, pega aquí el enlace)
-  { id:"AGRARIA", uni:"AGRARIA", label:"NOTAS AGRARIA", url:"https://docs.google.com/spreadsheets/d/1q5PWgltXQBVcwQpwFqvkxtjGKP8HDlfWzZFs8zByFCo/edit?usp=drive_link" },
+  { id:"AGRARIA", uni:"AGRARIA", label:"NOTAS GENERALES AGRARIA", url:"https://docs.google.com/spreadsheets/d/1q5PWgltXQBVcwQpwFqvkxtjGKP8HDlfWzZFs8zByFCo/edit?usp=drive_link" },
 
-  // ⏳ ESCOLARES POR CICLO (enlaces configurables desde EDITAR ENLACES)
-  { id:"ESCOLARES_AGRARIA", uni:"ESCOLARES AGRARIA", label:"NOTAS ESCOLARES AGRARIA", url:"" },
-  { id:"ESCOLARES_ULIMA", uni:"ESCOLARES U.LIMA", label:"NOTAS ESCOLARES U.LIMA", url:"" },
-  { id:"ESCOLARES_PUCP", uni:"ESCOLARES PUCP", label:"NOTAS ESCOLARES PUCP", url:"" },
-
-  // ✅ ESCOLARES GENERAL: se mantiene después de los tres ciclos escolares
-  { id:"ESCOLARES", uni:"ESCOLARES", label:"NOTAS ESCOLARES", url:"https://docs.google.com/spreadsheets/d/1Aa5MiVY85fDbU2M_OYynooBHwgf0fqXelAiVvf4N2DY/edit?usp=drive_link" },
+  // ✅ ESCOLARES
+  { id:"ESCOLARES", uni:"ESCOLARES", label:"NOTAS GENERALES ESCOLARES", url:"https://docs.google.com/spreadsheets/d/1Aa5MiVY85fDbU2M_OYynooBHwgf0fqXelAiVvf4N2DY/edit?usp=drive_link" },
 ];
-const NOTAS_LINKS_KEY = "LM_NOTAS_GENERALES_LINKS_V1";
-const NOTAS_EDIT_KEY = "LM_NOTAS_GENERALES_EDIT_V1";
-
-function notasLinksLoad(){
-  try{ return JSON.parse(localStorage.getItem(NOTAS_LINKS_KEY) || "{}"); }
-  catch(_){ return {}; }
-}
-
-function notasLinksSave(links){
-  try{ localStorage.setItem(NOTAS_LINKS_KEY, JSON.stringify(links || {})); }catch(_){ }
-}
 
 function ensureNotasLayout(){
   const el = document.getElementById("view_notas");
@@ -8630,15 +8514,9 @@ function ensureNotasLayout(){
       <div class="cardtitle">NOTAS GENERALES</div>
       <div style="color:var(--muted); font-weight:900; margin-bottom:12px;">
       </div>
-      ${CURRENT_ROLE === "admin" ? '<button id="notasEdit" class="btn ghost" type="button" style="margin-bottom:12px;">EDITAR ENLACES</button>' : ''}
       <div class="iGrid" id="notasGrid"></div>
     </div>
   `;
-  document.getElementById("notasEdit")?.addEventListener("click", ()=>{
-    const on = localStorage.getItem(NOTAS_EDIT_KEY) === "1";
-    localStorage.setItem(NOTAS_EDIT_KEY, on ? "0" : "1");
-    renderNotasGenerales();
-  });
   el.dataset.ready = "1";
 }
 
@@ -8647,15 +8525,18 @@ function renderNotasGenerales(){
 
   const grid = document.getElementById("notasGrid");
   if (!grid) return;
-  const overrides = notasLinksLoad();
-  const editOn = CURRENT_ROLE === "admin" && localStorage.getItem(NOTAS_EDIT_KEY) === "1";
-  const editBtn = document.getElementById("notasEdit");
-  if (editBtn) editBtn.textContent = editOn ? "SALIR DE EDICIÓN" : "EDITAR ENLACES";
 
-  const notasOrder = ["AGRARIA","ULIMA","PUCP","ESCOLARES_AGRARIA","ESCOLARES_ULIMA","ESCOLARES_PUCP","ESCOLARES"];
   const notasOrdered = NOTAS_GENERALES.slice().sort((a,b)=>{
-    const ra = notasOrder.indexOf(a.id);
-    const rb = notasOrder.indexOf(b.id);
+    const rank = (u)=>{
+      const t = String(u||"").toUpperCase();
+      if (t.includes("AGRARIA")) return 0;
+      if (t.includes("U.LIMA") || t.includes("ULIMA")) return 1;
+      if (t.includes("PUCP")) return 2;
+      if (t.includes("ESCOLAR")) return 3;
+      return 9;
+    };
+    const ra = rank(a.uni);
+    const rb = rank(b.uni);
     if (ra !== rb) return ra - rb;
     return String(a.label||"").localeCompare(String(b.label||""), "es");
   });
@@ -8663,23 +8544,11 @@ function renderNotasGenerales(){
   grid.innerHTML = notasOrdered.map(x => {
     const dot =
       x.uni === "AGRARIA" ? getCss("--agraria") :
-      x.uni.includes("ESCOLARES") ? getCss("--schHead_ESC") :
+      x.uni === "ESCOLARES" ? getCss("--schHead_ESC") :
       x.uni === "PUCP"    ? getCss("--pucp") :
                             getCss("--ulima");
 
-    const url = String(overrides[x.id] ?? x.url ?? "").trim();
-    if (editOn){
-      return `
-        <div class="iItem" style="align-items:flex-start; gap:12px;">
-          <div class="iLeft" style="flex:1; min-width:0;">
-            <div class="iSalon">${escapeHtml(x.label)}</div>
-            <div class="iMeta"><span class="dot" style="background:${dot};"></span><span>${escapeHtml(x.uni)}</span></div>
-            <input class="notasLinkInput" data-nota-id="${escapeHtml(x.id)}" value="${escapeHtml(url)}" placeholder="Pega el enlace de notas" style="width:100%; min-width:0; margin-top:8px;"/>
-          </div>
-          <button class="btn ghost notasLinkSave" data-nota-id="${escapeHtml(x.id)}" type="button">GUARDAR</button>
-        </div>
-      `;
-    }
+    const url = String(x.url || "").trim();
     if (url){
       return `
         <a class="iItem" href="${escapeHtml(url)}" target="_blank" rel="noopener"
@@ -8708,16 +8577,6 @@ function renderNotasGenerales(){
       </div>
     `;
   }).join("");
-
-  grid.querySelectorAll(".notasLinkSave").forEach(btn=>btn.addEventListener("click", ()=>{
-    const id = String(btn.getAttribute("data-nota-id") || "");
-    const input = grid.querySelector(`.notasLinkInput[data-nota-id="${id}"]`);
-    const links = notasLinksLoad();
-    links[id] = String(input?.value || "").trim();
-    notasLinksSave(links);
-    toast("Enlace de notas guardado.");
-    renderNotasGenerales();
-  }));
 }
 
 
@@ -9336,11 +9195,32 @@ function mcSyllabusIsNonTopicColumnHeader(value){
   return false;
 }
 
+function mcRegexEscape(value){
+  return String(value || "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
 function mcSyllabusHeaderMatchesCourse(headerValue, courseName){
   const h = mcSyllabusHeaderKey(headerValue);
   if (!h || !courseName) return false;
+
+  // Nunca tomar columnas administrativas como columna de temas.
+  // Esto evita el bug de RV: "OBSERVACIONES" contiene la secuencia "RV"
+  // y antes se interpretaba como si fuera Razonamiento Verbal.
+  if (mcSyllabusIsNonTopicColumnHeader(h)) return false;
+
   const aliases = mcCourseAliases(courseName).map(mcSyllabusHeaderKey).filter(Boolean);
-  return aliases.some(a => h === a || h.includes(a) || a.includes(h));
+  return aliases.some(a => {
+    if (!a) return false;
+    if (h === a) return true;
+
+    // Alias cortos como RV, RM, GEO, TRI, ALG, ARI, FIS, QUI, BIO, TXT
+    // solo deben coincidir como token completo, no dentro de otra palabra.
+    if (a.length <= 4){
+      const rx = new RegExp("(^|\\s)" + mcRegexEscape(a) + "(\\s|$)");
+      return rx.test(h);
+    }
+
+    return h.includes(a) || a.includes(h);
+  });
 }
 
 function mcSyllabusSplitTopics(value){
@@ -9351,6 +9231,193 @@ function mcSyllabusSplitTopics(value){
     .map(x=>String(x||"").replace(/^[-–—\d\.\)\s]+/,"").replace(/\s+/g," ").trim())
     .filter(Boolean);
   return parts.filter(x=>!mcSyllabusIsCourseOnly(x));
+}
+
+function mcSyllabusExtractWeekCode(value){
+  const s = mcSyllabusHeaderKey(value).replace(/\s+/g, "");
+  if (!s) return "";
+
+  // Códigos normales: SEN1, SEN2, SEA1, SE01, SE16, SR01, etc.
+  // Se exige que el código completo termine en número para evitar falsos positivos
+  // con textos como SEPARATAS, SEMINARIO o SIMULACROS.
+  const m = s.match(/^(SEN|SEA|SER|SE|SN|SA|SR|S)(\d+)$/i);
+  if (m) return (m[1] + m[2]).toUpperCase();
+
+  // Algunos sílabos escriben la semana de repaso final como SER o SR, mientras
+  // el programa la maneja como SER1/SR1. Se normaliza para que esa última semana
+  // no quede pegada a la semana anterior.
+  if (s === "SER") return "SER1";
+  if (s === "SR") return "SR1";
+
+  return "";
+}
+
+function mcSyllabusLooksLikeWeekCode(value){
+  return !!mcSyllabusExtractWeekCode(value);
+}
+
+function mcSyllabusLooksLikeDate(value){
+  const s = String(value||"").trim();
+  if (!s) return false;
+  return /\d{1,2}\s*[-\/]\s*(ene|feb|mar|abr|may|jun|jul|ago|sep|oct|nov|dic|enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre|\d{1,2})/i.test(s) || /\d{1,2}\s+de\s+[a-záéíóúñ]+/i.test(s);
+}
+
+function mcSyllabusCleanWeekCode(value){
+  return mcSyllabusExtractWeekCode(value) || mcSyllabusHeaderKey(value).replace(/\s+/g, "");
+}
+
+function mcSyllabusFindNotesIdx(rows, dataStart, fallbackIdx){
+  let notesIdx = -1;
+  const scanUntil = Math.min(Math.max(0, dataStart), rows.length - 1);
+  for (let r=0; r<=scanUntil; r++){
+    const keys = (rows[r]||[]).map(mcSyllabusHeaderKey);
+    const idx = keys.findIndex(x=>x.includes("OBSERV") || x === "NOTAS" || x === "NOTA" || x.includes("FERIADO"));
+    if (idx >= 0) notesIdx = idx;
+  }
+  if (notesIdx >= 0) return notesIdx;
+  if (Number.isFinite(fallbackIdx) && fallbackIdx >= 0) return fallbackIdx;
+  return -1;
+}
+
+function mcSyllabusFindCourseTopicIdxs(rows, courseName, dataStart, codeIdx, dateIdx, blockIdx, notesIdx){
+  const out = [];
+  const scanUntil = Math.min(Math.max(0, dataStart), rows.length - 1);
+
+  // 1) Preferir una columna cuyo encabezado sea exactamente el curso del desplegable.
+  for (let r=0; r<=scanUntil; r++){
+    const keys = (rows[r]||[]).map(mcSyllabusHeaderKey);
+    for (let i=0; i<keys.length; i++){
+      if ([codeIdx,dateIdx,blockIdx,notesIdx].includes(i)) continue;
+      if (mcSyllabusIsNonTopicColumnHeader(keys[i])) continue;
+      if (mcSyllabusHeaderMatchesCourse(keys[i], courseName)) out.push(i);
+    }
+    if (out.length) return Array.from(new Set(out));
+  }
+
+  // 2) Formato fijo del sílabo integral: D = bloques, E = curso, F = simulacros, G = observaciones.
+  if (blockIdx >= 0){
+    const candidate = blockIdx + 1;
+    if (candidate !== notesIdx) return [candidate];
+  }
+  return [];
+}
+
+function mcParseSyllabusByWeekRows(rows, courseName=""){
+  rows = (rows||[]).map(r => (r||[]).map(v=>String(v ?? "")));
+
+  const normalizeRows = rows;
+  const maxCols = Math.max(0, ...normalizeRows.map(r=>r.length));
+  const cell = (r,c)=> String((normalizeRows[r]||[])[c] ?? "").trim();
+  const addUnique = (arr, value)=>{
+    const v = String(value||"").replace(/\s+/g," ").trim();
+    if (v && !arr.includes(v)) arr.push(v);
+  };
+
+  const findHeaderInfo = ()=>{
+    let best = null;
+    for (let r=0; r<Math.min(normalizeRows.length, 80); r++){
+      const keys = (normalizeRows[r]||[]).map(mcSyllabusHeaderKey);
+      const codeIdx = keys.findIndex(x=>x === "CODIGO" || x === "COD" || x === "SEM" || x === "CODIGO DE SEMANA" || x === "CODIGO SEMANA");
+      const dateIdx = keys.findIndex(x=>x === "FECHA" || x === "FECHAS" || x.includes("FECHA"));
+      const blockIdx = keys.findIndex(x=>x === "BLOQUE" || x === "BLOQUES" || x === "BLOQUE POR SEMANA" || x === "BLOQUES POR SEMANA");
+      const notesIdx = keys.findIndex(x=>x.includes("OBSERV") || x === "NOTAS" || x === "NOTA" || x.includes("FERIADO"));
+      if (codeIdx >= 0 || dateIdx >= 0 || blockIdx >= 0 || notesIdx >= 0){
+        best = {row:r, codeIdx, dateIdx, blockIdx, notesIdx};
+      }
+    }
+    return best;
+  };
+
+  const build = ({codeIdx, dateIdx, blockIdx, topicIdxs, notesIdx, dataStart})=>{
+    const weeks = [];
+    let current = null;
+
+    for (let r=Math.max(0, dataStart); r<normalizeRows.length; r++){
+      const rawCode = codeIdx >= 0 ? cell(r, codeIdx) : "";
+      const code = mcSyllabusLooksLikeWeekCode(rawCode) ? mcSyllabusCleanWeekCode(rawCode) : "";
+      const rawDate = dateIdx >= 0 ? cell(r, dateIdx) : "";
+      const hasDate = mcSyllabusLooksLikeDate(rawDate);
+
+      // Solo una fila con código real de semana inicia una nueva semana.
+      // La fecha por sí sola no inicia semana, porque en OBSERVACIONES también hay fechas.
+      if (code){
+        current = {
+          code,
+          displayCode: code,
+          colBLabel: rawCode || code,
+          dateRaw: hasDate ? rawDate : "",
+          topics: [],
+          notes: []
+        };
+        weeks.push(current);
+      }
+      if (!current) continue;
+      if (!current.dateRaw && hasDate) current.dateRaw = rawDate;
+
+      for (const idx of (topicIdxs||[])){
+        if (idx === notesIdx || idx < 0) continue;
+        const rawTopic = cell(r, idx);
+        if (!rawTopic) continue;
+        for (const topic of mcSyllabusSplitTopics(rawTopic)){
+          if (!current.topics.includes(topic) && current.topics.length < 3) current.topics.push(topic);
+        }
+      }
+
+      const rawNote = notesIdx >= 0 ? cell(r, notesIdx) : "";
+      if (rawNote) addUnique(current.notes, rawNote);
+    }
+
+    return weeks.filter(w=>w.code || w.dateRaw || w.topics.length || w.notes.length);
+  };
+
+  // Formato institucional de ESCOLARES INTEGRAL y ARS exportado desde Google Sheets:
+  // A=ETAPAS, B=CÓDIGO DE SEMANA, C=FECHA, D=BLOQUES POR SEMANA, E=CURSO, F=SIMULACROS, G=OBSERVACIONES.
+  // Esta ruta no depende del horario ni de que haya temas en la columna E.
+  let fixedStart = -1;
+  for (let r=0; r<normalizeRows.length; r++){
+    if (mcSyllabusLooksLikeWeekCode(cell(r,1))){ fixedStart = r; break; }
+  }
+  if (fixedStart >= 0){
+    const fixed = build({codeIdx:1, dateIdx:2, blockIdx:3, topicIdxs:[4], notesIdx:6, dataStart:fixedStart});
+    if (fixed.length) return fixed;
+  }
+
+  // Ruta por encabezados para otros formatos equivalentes.
+  const header = findHeaderInfo();
+  if (header){
+    const codeIdx = header.codeIdx >= 0 ? header.codeIdx : 1;
+    const dateIdx = header.dateIdx >= 0 ? header.dateIdx : 2;
+    const blockIdx = header.blockIdx >= 0 ? header.blockIdx : 3;
+    const notesIdx = header.notesIdx >= 0 ? header.notesIdx : mcSyllabusFindNotesIdx(normalizeRows, header.row, 6);
+    let topicIdxs = mcSyllabusFindCourseTopicIdxs(normalizeRows, courseName, header.row, codeIdx, dateIdx, blockIdx, notesIdx);
+    if (!topicIdxs.length && blockIdx >= 0) topicIdxs = [blockIdx + 1];
+    topicIdxs = topicIdxs.filter(i=>Number.isFinite(i) && i >= 0 && i !== notesIdx);
+    const firstData = normalizeRows.findIndex((row,idx)=>idx>header.row && mcSyllabusLooksLikeWeekCode(row?.[codeIdx]));
+    const byHeader = build({codeIdx, dateIdx, blockIdx, topicIdxs, notesIdx, dataStart:firstData >= 0 ? firstData : header.row + 1});
+    if (byHeader.length) return byHeader;
+  }
+
+  // Último respaldo: buscar cualquier columna con códigos SEN/SEA/SE/SN.
+  for (let c=0; c<Math.min(maxCols, 12); c++){
+    const start = normalizeRows.findIndex(row=>mcSyllabusLooksLikeWeekCode(row?.[c]));
+    if (start < 0) continue;
+    const dateIdx = c + 1;
+    const blockIdx = c + 2;
+    const notesIdx = mcSyllabusFindNotesIdx(normalizeRows, start, c + 5);
+    let topicIdxs = mcSyllabusFindCourseTopicIdxs(normalizeRows, courseName, start, c, dateIdx, blockIdx, notesIdx);
+    if (!topicIdxs.length) topicIdxs = [blockIdx + 1];
+    topicIdxs = topicIdxs.filter(i=>Number.isFinite(i) && i >= 0 && i !== notesIdx);
+    const built = build({codeIdx:c, dateIdx, blockIdx, topicIdxs, notesIdx, dataStart:start});
+    if (built.length) return built;
+  }
+
+  return [];
+}
+
+function mcGuessSyllabusLayout(rows, courseName=""){
+  const weeks = mcParseSyllabusByWeekRows(rows, courseName);
+  if (!weeks.length) return null;
+  return { weeks };
 }
 
 function mcParseSyllabusRows(rows, courseName=""){
@@ -9372,22 +9439,24 @@ function mcParseSyllabusRows(rows, courseName=""){
     const c = keys.findIndex(x=>x === "CODIGO" || x === "COD" || x === "SEM" || x === "CODIGO DE SEMANA" || x === "CODIGO SEMANA");
     const d = keys.findIndex(x=>x === "SEMANA" || x === "FECHA" || x === "FECHAS" || x.includes("FECHA"));
     const b = keys.findIndex(x=>x === "BLOQUE" || x === "BLOQUES" || x === "BLOQUE POR SEMANA" || x === "BLOQUES POR SEMANA" || x === "CLASE" || x === "SESION");
+    const n = keys.findIndex(x=>x.includes("OBSERV") || x === "NOTAS" || x === "NOTA" || x.includes("FERIADO"));
     const courseTopicIdxs = keys
       .map((x,i)=>({x,i}))
-      .filter(o => mcSyllabusHeaderMatchesCourse(o.x, courseName) && o.i !== b && o.i !== d && o.i !== c)
+      .filter(o => mcSyllabusHeaderMatchesCourse(o.x, courseName) && o.i !== b && o.i !== d && o.i !== c && o.i !== n)
       .map(o=>o.i);
     const explicitTopics = keys
       .map((x,i)=>({x,i}))
-      .filter(o => /(^| )(TEMA|TEMAS|CONTENIDO|CONTENIDOS|TEMARIO|ACTIVIDAD|SESION)( |$)/.test(o.x) && o.i !== b && o.i !== d && o.i !== c)
+      .filter(o => !mcSyllabusIsNonTopicColumnHeader(o.x) && /(^| )(TEMA|TEMAS|CONTENIDO|CONTENIDOS|TEMARIO|ACTIVIDAD|SESION)( |$)/.test(o.x) && o.i !== b && o.i !== d && o.i !== c && o.i !== n)
       .map(o=>o.i);
     const hasWeek = c >= 0 || d >= 0 || keys.some(x=>/^SEMANA\s*\d+|^SEM\s*\d+|^SE\s*\d+/i.test(x));
-    const hasTopicHead = courseTopicIdxs.length > 0 || explicitTopics.length > 0 || b >= 0;
+    const hasTopicHead = courseTopicIdxs.length > 0 || explicitTopics.length > 0 || b >= 0 || n >= 0;
     if (hasWeek && hasTopicHead){
       headerRow = r;
       codeIdx = c;
       dateIdx = d;
       blockIdx = b;
-      notesIdx = keys.findIndex(x=>x.includes("OBSERV") || x === "NOTAS" || x === "NOTA" || x.includes("FERIADO"));
+      notesIdx = n;
+      displayIdx = codeIdx >= 0 ? codeIdx : 1;
       if (courseTopicIdxs.length) topicIdxs = courseTopicIdxs;
       else if (explicitTopics.length) topicIdxs = explicitTopics;
       else if (blockIdx >= 0){
@@ -9558,19 +9627,72 @@ function mcSyllabusNotesForWeek(notes, holidayHits, year, holidays, classDates){
 
 function mcCourseAliases(course){
   const c = mcNormLabel(course);
-  if (c.includes("RAZONAMIENTO VERBAL") || c === "RV" || c.includes("RAZ VERBAL")) return ["RV","RAZ VERBAL","RAZONAMIENTO VERBAL"];
-  if (c.includes("RAZONAMIENTO MATEMATICO") || c === "RM" || c.includes("RAZ MATEMATICO")) return ["RM","RAZ MATEMATICO","RAZONAMIENTO MATEMATICO"];
-  if (c.includes("ARITMETICA") || c === "ARI") return ["ARI","ARITMETICA"];
-  if (c.includes("ALGEBRA") || c === "ALG") return ["ALG","ALGEBRA"];
-  if (c.includes("GEOMETRIA Y MEDIDA") || c === "G&M" || c === "GM") return ["G&M","GM","GEOMETRIA Y MEDIDA"];
-  if (c.includes("GEOMETRIA") || c === "GEO") return ["GEO","GEOMETRIA"];
-  if (c.includes("TRIGONOMETRIA") || c === "TRIG" || c === "TRI") return ["TRI","TRIG","TRIGONOMETRIA"];
-  if (c.includes("FISICA") || c === "FIS") return ["FIS","FISICA"];
-  if (c.includes("QUIMICA") || c === "QUI") return ["QUI","QUIMICA"];
-  if (c.includes("BIOLOGIA") || c === "BIO") return ["BIO","BIOLOGIA"];
-  if (c.includes("TEXTOS") || c.includes("TEXTO") || c === "TXT") return ["TXT","TEXTO","TEXTOS"];
-  if (c.includes("NUMEROS Y OPERACIONES") || c === "N&O" || c === "NO") return ["N&O","NO","NUMEROS Y OPERACIONES"];
-  if (c.includes("SIMULACRO")) return ["SIM","SIMULACRO","SIMULACROS"];
+
+  // Equivalencias generales usadas en SÍLABOS y Materiales.
+  // mcNormLabel elimina tildes, por eso ÁLG/ALG, FÍS/FIS, QUÍ/QUI son equivalentes.
+  if (c.includes("RAZONAMIENTO VERBAL") || c === "RV" || c.includes("RAZ VERBAL") || c.includes("RAZ. VERBAL")){
+    return ["RV","RAZ VERBAL","RAZ. VERBAL","RAZONAMIENTO VERBAL"];
+  }
+  if (c.includes("RAZONAMIENTO MATEMATICO") || c === "RM" || c.includes("RAZ MATEMATICO") || c.includes("RAZ. MATEMATICO")){
+    return ["RM","RAZ MATEMATICO","RAZ. MATEMATICO","RAZONAMIENTO MATEMATICO"];
+  }
+  if (c.includes("ARITMETICA") || c === "ARI"){
+    return ["ARI","ARITMETICA"];
+  }
+  if (c.includes("ALGEBRA") || c === "ALG"){
+    return ["ALG","ALGEBRA"];
+  }
+  if (c.includes("GEOMETRIA Y MEDIDA") || c === "G&M" || c === "GM" || c === "G M"){
+    return ["G&M","GM","G M","GEOMETRIA Y MEDIDA"];
+  }
+  if (c.includes("GEOMETRIA Y TRIGONOMETRIA") || c === "G&T" || c === "GT" || c === "G T"){
+    return ["G&T","GT","G T","GEOMETRIA Y TRIGONOMETRIA"];
+  }
+  if (c.includes("GEOMETRIA") || c === "GEO"){
+    return ["GEO","GEOMETRIA"];
+  }
+  if (c.includes("TRIGONOMETRIA") || c === "TRIG" || c === "TRI"){
+    return ["TRI","TRIG","TRIGONOMETRIA"];
+  }
+  if (c.includes("FISICA") || c === "FIS"){
+    return ["FIS","FISICA"];
+  }
+  if (c.includes("QUIMICA") || c === "QUI"){
+    return ["QUI","QUIMICA"];
+  }
+  if (c.includes("BIOLOGIA") || c === "BIO"){
+    return ["BIO","BIOLOGIA"];
+  }
+  if (c.includes("ECONOMIA") || c === "ECO"){
+    return ["ECO","ECONOMIA"];
+  }
+  if (c.includes("HISTORIA") || c === "HIS"){
+    return ["HIS","HISTORIA"];
+  }
+  if (c.includes("GEOGRAFIA") || c === "GEOG" || c === "GGF"){
+    return ["GGF","GEOG","GEOGRAFIA"];
+  }
+  if (c.includes("TEXTOS") || c.includes("TEXTO") || c === "TXT"){
+    return ["TXT","TEXTO","TEXTOS"];
+  }
+  if (c.includes("LENGUAJE") || c === "LEN" || c === "LENG"){
+    return ["LEN","LENG","LENGUAJE"];
+  }
+  if (c.includes("HABILIDAD OPERATIVA") || c === "HOP"){
+    return ["HOP","HABILIDAD OPERATIVA"];
+  }
+  if (c.includes("ESTADISTICA") || c === "EST"){
+    return ["EST","ESTADISTICA"];
+  }
+  if (c.includes("NUMEROS Y OPERACIONES") || c === "N&O" || c === "N O" || c === "NO"){
+    return ["N&O","N O","NO","NUMEROS Y OPERACIONES"];
+  }
+  if (c.includes("REFORZAMIENTO DE MATEMATICAS") || c === "REF MAT" || c === "REF MATES" || c === "REF. MATES"){
+    return ["REF MAT","REF MATES","REF. MATES","REFORZAMIENTO DE MATEMATICAS"];
+  }
+  if (c.includes("SIMULACRO") || c === "SIM"){
+    return ["SIM","SIMULACRO","SIMULACROS"];
+  }
   return [c];
 }
 
@@ -9692,33 +9814,128 @@ function mcMaterialLocalKey(value){
   return mcNormLabel(value).replace(/_/g, " ").replace(/\s+/g, " ").trim();
 }
 
+function mcScheduleMaterialRawKey(s){
+  return mcNormLabel([
+    s?.id,
+    s?.salon,
+    s?.uni,
+    s?.__colKey,
+    s?.__cardKey,
+    s?.cycle,
+    s?.dataCycle
+  ].join(" "))
+    .replace(/_/g," ")
+    .replace(/\s+/g," ")
+    .trim();
+}
+
+function mcIsMaterialArsSchedule(s, loc){
+  const raw = mcScheduleMaterialRawKey(s);
+  const sLoc = mcMaterialLocalKey(s?.local);
+  if (sLoc !== loc) return false;
+
+  // ARS/POP se reconoce solo por marcas explícitas del ciclo.
+  if (raw.includes("ARS") || raw.includes("POP")) return true;
+
+  // En Materiales ARS solo aplica a San Miguel. Esta regla mantiene compatible
+  // la tarjeta histórica SCH_ESCOLARES_SM / ESCOLARES_SM, sin mezclar LM/SB.
+  if (loc === "SAN MIGUEL"){
+    if (raw.includes("SCH ESCOLARES SM")) return true;
+    if (raw.includes("ESCOLARES SM")) return true;
+  }
+  return false;
+}
+
+function mcIsMaterialIntegralSchedule(s, loc){
+  const raw = mcScheduleMaterialRawKey(s);
+  const sLoc = mcMaterialLocalKey(s?.local);
+  if (sLoc !== loc) return false;
+  if (!["LA MOLINA","SAN MIGUEL","SAN BORJA"].includes(loc)) return false;
+
+  // Integral debe reconocerse por una marca explícita de ESCOLARES INTEGRALES.
+  // No basta con que el salón diga "ESCOLAR", porque eso puede pertenecer a
+  // AGRARIA ESCOLAR, U.LIMA ESCOLAR u otros ciclos.
+  if (raw.includes("ESCOLARES INTEGRALES")) return true;
+  if (raw.includes("ESCOLAR INTEGRAL")) return true;
+  if (raw.includes("INTEGRAL") && raw.includes("ESCOLAR")) return true;
+
+  const explicitKey = String([s?.id,s?.__colKey,s?.__cardKey].join(" ")).toUpperCase();
+  if (explicitKey.includes("ESCOLARES_INTEGRALES")) return true;
+
+  return false;
+}
+
+function mcIsMaterialAgrariaSchedule(s, loc){
+  const raw = mcScheduleMaterialRawKey(s);
+  const sLoc = mcMaterialLocalKey(s?.local);
+  if (sLoc !== loc) return false;
+  if (!["LA MOLINA","SAN MIGUEL","SAN BORJA"].includes(loc)) return false;
+  if (!mcScheduleIsColumnOne(s)) return false;
+
+  // AGRARIA regular debe tomarse solo de tarjetas/ciclos AGRARIA.
+  // Se excluyen tarjetas escolares como "ESC AGRARIA" o "AGRARIA ESCOLAR".
+  if (raw.includes("ESCOLAR") || raw.includes("ESCOLARES")) return false;
+  const explicitKey = String([s?.id,s?.uni,s?.salon,s?.__colKey,s?.__cardKey].join(" ")).toUpperCase();
+  if (explicitKey.includes("AGRARIA")) return true;
+  return mcNormLabel(s?.uni) === "AGRARIA";
+}
+
+function mcIsMaterialUlimaSchedule(s, loc){
+  const raw = mcScheduleMaterialRawKey(s);
+  const sLoc = mcMaterialLocalKey(s?.local);
+  if (sLoc !== loc) return false;
+  if (!["LA MOLINA","SAN MIGUEL","SAN BORJA"].includes(loc)) return false;
+  if (!mcScheduleIsColumnOne(s)) return false;
+  if (raw.includes("PRE U LIMA") || raw.includes("PRE ULIMA")) return false;
+  if (raw.includes("ESCOLAR") || raw.includes("ESCOLARES") || raw.includes("ESC U LIMA")) return false;
+  const sUni = mcNormLabel(s?.uni);
+  return sUni === "U.LIMA" || sUni === "ULIMA" || raw.includes("U LIMA") || raw.includes("ULIMA");
+}
+
+function mcIsMaterialPucpSchedule(s, loc){
+  const raw = mcScheduleMaterialRawKey(s);
+  const sLoc = mcMaterialLocalKey(s?.local);
+  if (sLoc !== loc) return false;
+  if (!["LA MOLINA","SAN MIGUEL","SAN BORJA"].includes(loc)) return false;
+  if (raw.includes("ESCOLAR") || raw.includes("ESCOLARES") || raw.includes("ESC PUCP")) return false;
+  const sUni = mcNormLabel(s?.uni);
+  return sUni === "PUCP" || raw.includes("PUCP");
+}
+
 function mcScheduleDaysForEscolaresMateriales(local, course, programType){
   let loc = mcMaterialLocalKey(local);
   const type = mcNormLabel(programType || "");
+  const wantAgraria = type === "AGRARIA" || type.includes("AGRARIA");
+  const wantUlima = type === "U.LIMA" || type === "ULIMA" || type.includes("U LIMA") || type.includes("ULIMA");
+  const wantPucp = type === "PUCP" || type.includes("PUCP");
   const wantArs = type.includes("ARS") || type.includes("POP");
-  const wantIntegral = type.includes("INTEGRAL") || (!wantArs && type.includes("ESCOLARES"));
+  const wantIntegral = !wantAgraria && !wantUlima && !wantPucp && (type.includes("INTEGRAL") || (!wantArs && type.includes("ESCOLARES")));
 
   if (wantArs && (!loc || loc === "EDITOR")) loc = "SAN MIGUEL";
-  else if (!loc || loc === "EDITOR") return [];
-  if (wantIntegral && !["LA MOLINA","SAN MIGUEL","SAN BORJA"].includes(loc)) return [];
+  else if (!loc) return [];
+
+  let targetLocs = [loc];
+  if ((wantAgraria || wantUlima || wantPucp) && loc === "EDITOR"){
+    // En espacio Editor se usa una vista consolidada para revisar el ciclo.
+    // Si el usuario selecciona un local, el cálculo vuelve a ser local-específico.
+    targetLocs = ["LA MOLINA","SAN MIGUEL","SAN BORJA"];
+  }else if (loc === "EDITOR"){
+    return [];
+  }
+
+  if ((wantAgraria || wantUlima || wantPucp || wantIntegral) && !targetLocs.every(x=>["LA MOLINA","SAN MIGUEL","SAN BORJA"].includes(x))) return [];
   if (typeof SCHEDULES === "undefined") return [];
 
   const dayMap = {LUNES:1,MARTES:2,MIERCOLES:3,"MIÉRCOLES":3,JUEVES:4,VIERNES:5,SABADO:6,"SÁBADO":6,DOMINGO:0};
 
   const schedules = (SCHEDULES||[]).filter(s=>{
     const sLoc = mcMaterialLocalKey(s?.local);
-    if (sLoc !== loc) return false;
-    const raw = mcNormLabel([s?.id,s?.salon,s?.uni,s?.__colKey,s?.__cardKey].join(" "));
-    const sUni = mcNormLabel(s?.uni);
-    const sSalon = mcNormLabel(s?.salon);
-    const isEscolares = sUni === "ESCOLARES" || sSalon.includes("ESCOLAR") || raw.includes("ESCOLARES") || /(^|\s)ESC(\s|$)/.test(sSalon);
-    if (!isEscolares) return false;
-
-    const isArs = raw.includes("ARS") || raw.includes("POP") || (sLoc === "SAN MIGUEL" && (raw.includes("SCH_ESCOLARES_SM") || raw.includes("ESCOLARES_SM") || raw.includes("ESCOLARES SM")));
-    const isIntegral = !isArs && (raw.includes("ESCOLARES_INTEGRALES") || raw.includes("ESCOLARES INTEGRALES") || sSalon.includes("ESCOLAR") || sSalon === "ESCOLARES" || raw.includes("ESCOLARES"));
-
-    if (wantArs) return isArs;
-    if (wantIntegral) return isIntegral;
+    if (!targetLocs.includes(sLoc)) return false;
+    if (wantAgraria) return mcIsMaterialAgrariaSchedule(s, sLoc);
+    if (wantUlima) return mcIsMaterialUlimaSchedule(s, sLoc);
+    if (wantPucp) return mcIsMaterialPucpSchedule(s, sLoc);
+    if (wantArs) return mcIsMaterialArsSchedule(s, sLoc);
+    if (wantIntegral) return mcIsMaterialIntegralSchedule(s, sLoc);
     return false;
   });
 
@@ -9732,7 +9949,6 @@ function mcScheduleDaysForEscolaresMateriales(local, course, programType){
   }
   return Array.from(new Set(days)).sort((a,b)=>a-b);
 }
-
 function mcScheduleDaysForArs(local, course){
   return mcScheduleDaysForEscolaresMateriales(local, course, "ESCOLARES ARS");
 }
@@ -9796,12 +10012,54 @@ function mcSyllabusWeekCapacity(sourceTopics, classDates, holidayHits){
   return Math.max(1, Math.min(topicCount, Math.floor(topicCount * validSessions / totalSessions)));
 }
 
+
+function mcIsNivelacionWeekCode(value){
+  const key = mcNormLabel(value)
+    .replace(/[^A-Z0-9]/g, "")
+    .trim();
+  // La etapa de nivelación siempre usa códigos SEN, por ejemplo SEN1, SEN2, SEN3.
+  // SEN sin número se acepta como caso defensivo, pero no se confunde con textos largos.
+  return /^SEN\d*$/.test(key);
+}
+
+function mcWeekBelongsToNivelacion(week, fallbackCode=""){
+  return [week?.code, week?.displayCode, week?.colBLabel, fallbackCode]
+    .some(value=>mcIsNivelacionWeekCode(value));
+}
+
+function mcDropNivelacionCarry(carry){
+  for (let i=carry.length-1; i>=0; i--){
+    if (mcWeekBelongsToNivelacion(carry[i]?.sourceWeek)) carry.splice(i,1);
+  }
+}
+
 function mcAlignSyllabusTopics({weeks,codes,first,last,pStart,local,course,programType}){
-  const byCode = new Map((weeks||[]).map(w=>[mcNormLabel(w.code),w]));
+  const byCode = new Map();
+  const byDate = new Map();
   const year = pStart.getFullYear();
+
+  for (const w of (weeks||[])){
+    const keys = [w?.code, w?.displayCode, w?.colBLabel]
+      .map(x=>mcNormLabel(x))
+      .filter(Boolean);
+    for (const k of keys){
+      if (!byCode.has(k)) byCode.set(k, []);
+      byCode.get(k).push(w);
+    }
+
+    const d = mcParseSheetDate(w?.dateRaw, year);
+    const dk = mcDateKey(d);
+    if (dk){
+      if (!byDate.has(dk)) byDate.set(dk, []);
+      byDate.get(dk).push(w);
+    }
+  }
+
   const holidays = mcHolidaysFromSyllabusNotes(weeks, year);
   const classDays = mcScheduleDaysForEscolaresMateriales(local, course, programType);
   const schedulePending = !classDays.length;
+  const normProgramType = mcNormLabel(programType);
+  const isStructuredProgram = normProgramType.includes("INTEGRAL") || normProgramType.includes("AGRARIA") || normProgramType.includes("PUCP") || normProgramType.includes("U.LIMA") || normProgramType.includes("ULIMA");
   const carry = [];
   const result = [];
 
@@ -9878,7 +10136,11 @@ function mcAlignSyllabusTopics({weeks,codes,first,last,pStart,local,course,progr
     }
 
     const sourceTopics = (srcWeek.topics||[]).slice(0,3);
-    const classDates = mcSyllabusClassDatesForWeek({pStart, weekIndex:i, classDays, sourceWeek:srcWeek, year, strictSchedule:true});
+    const sheetBaseDate = mcParseSheetDate(srcWeek?.dateRaw, year);
+    const classDates = (!schedulePending && sheetBaseDate)
+      ? mcClassDatesFromBaseWeek({baseDate: sheetBaseDate, classDays})
+      : (!schedulePending ? mcSyllabusClassDatesForWeek({pStart, weekIndex:i, classDays, sourceWeek:srcWeek, year, strictSchedule:true}) : []);
+
     const holidayHits = [];
     if (!schedulePending){
       for (const d of classDates){
@@ -9887,12 +10149,21 @@ function mcAlignSyllabusTopics({weeks,codes,first,last,pStart,local,course,progr
       }
     }
 
-    carry.push(...sourceTopics.map(topic=>({topic, sourceWeek:srcWeek})));
-    const capacity = schedulePending ? sourceTopics.length : mcSyllabusWeekCapacity(sourceTopics, classDates, holidayHits);
-    const selected = carry.splice(0, Math.min(3, capacity));
-    const topicSourceWeek = selected[0]?.sourceWeek || srcWeek;
-    const topics = selected.map(x=>x.topic);
-    const currentNotes = mcSyllabusNotesForWeek(srcWeek.notes||[], holidayHits, year, holidays, classDates);
+    let topics = [];
+    let topicSourceWeek = srcWeek;
+
+    if (!schedulePending){
+      // Solo cuando existe horario se evalúa capacidad/reprogramación.
+      carry.push(...sourceTopics.map(topic=>({topic, sourceWeek:srcWeek})));
+      const capacity = mcSyllabusWeekCapacity(sourceTopics, classDates, holidayHits);
+      const selected = carry.splice(0, Math.min(3, capacity));
+      topicSourceWeek = selected[0]?.sourceWeek || srcWeek;
+      topics = selected.map(x=>x.topic);
+    }
+
+    // Si no hay horario, no se clasifican feriados ni se reprograma. La celda mostrará
+    // HORARIO PENDIENTE de forma estándar para cualquier curso.
+    const currentNotes = schedulePending ? [] : mcSyllabusNotesForWeek(srcWeek.notes||[], holidayHits, year, holidays, classDates);
     const sourceLabel = String(topicSourceWeek?.displayCode || topicSourceWeek?.code || "");
     const currentLabel = String(srcWeek?.displayCode || srcWeek?.code || code);
 
@@ -9910,8 +10181,10 @@ function mcAlignSyllabusTopics({weeks,codes,first,last,pStart,local,course,progr
       sourceDisplayCode: sourceLabel,
       sourceColBLabel: topicSourceWeek?.colBLabel || "",
       sourceDateRaw: topicSourceWeek?.dateRaw || "",
-      shifted: !!(topics.length && sourceLabel && currentLabel && mcNormLabel(sourceLabel) !== mcNormLabel(currentLabel)),
-      schedulePending
+      shifted: !!(!schedulePending && topics.length && sourceLabel && currentLabel && mcNormLabel(sourceLabel) !== mcNormLabel(currentLabel)),
+      schedulePending,
+      matchedByDate,
+      matchedBySyllabus
     });
   }
   return result;
@@ -9940,9 +10213,6 @@ function mcManualSyllabusAligned({cid,codes,first,last,pStart,local,programType}
 }
 
 function mcSyllabusCellHtml(item, idx){
-  if (item?.schedulePending){
-    return `<div class="mcSyllabusCell"><span class="mcSyllabusPending">HORARIO PENDIENTE</span></div>`;
-  }
   const topics = (item?.topics||[]).slice(0,3);
   const notes = (item?.notes||[]).slice();
   const noteCount = notes.length + ((item?.holidayHits||[]).length || 0);
@@ -10365,14 +10635,6 @@ function renderMateriales(){
     "Textos",
     "Simulacros"
   ];
-  const ESCOLARES_ULIMA_COURSES = [
-    "Textos",
-    "Razonamiento Matemático",
-    "Álgebra",
-    "Aritmética",
-    "Geometría y Trigonometría",
-    "Simulacros"
-  ];
 
   function mcMaterialProgramNameRaw(program){
     return String(program?.meta?.name || "").trim();
@@ -10382,7 +10644,6 @@ function renderMateriales(){
     const normalized = raw.toUpperCase().replace(/\s+/g, " ").trim();
     if (normalized === "ESCOLARES AGRARIA" || normalized === "ESCOLARES AGRARAI") return "ESCOLARES INTEGRAL";
     if (normalized.includes("ARS") || normalized.includes("POP")) return "ESCOLARES ARS";
-    if (normalized.includes("ESCOLAR") && (normalized.includes("U.LIMA") || normalized.includes("ULIMA"))) return "ESCOLARES U.LIMA";
     return normalized || "(SIN PROGRAMAS)";
   }
   function mcMaterialCoursesFor(uniLabel, program){
@@ -10390,7 +10651,6 @@ function renderMateriales(){
     if (uniNorm !== "ESCOLARES") return COURSES[uniNorm] || [];
     const name = mcMaterialProgramNameRaw(program).toUpperCase();
     if (name.includes("ARS")) return ESCOLARES_ARS_COURSES;
-    if (name.includes("U.LIMA") || name.includes("ULIMA")) return ESCOLARES_ULIMA_COURSES;
     return ESCOLARES_INTEGRAL_COURSES;
   }
 
@@ -10413,7 +10673,8 @@ function renderMateriales(){
   const savedCourse = localStorage.getItem(COURSE_KEY) || "";
   const course = courses.includes(savedCourse) ? savedCourse : (courses[0]||"");
   const isSimulacroCourse = mcNormLabel(course).includes("SIMULACRO");
-  const showSyllabusCol = (isArsProgram || isIntegralProgram) && !isSimulacroCourse;
+  // SÍLABO visible de forma estándar para todos los ciclos/cursos, excepto Simulacros.
+  const showSyllabusCol = !isSimulacroCourse;
 
   // ESCOLARES ARS solo se dicta en SAN MIGUEL.
   // Por eso, en Materiales no se muestran LA MOLINA, SAN BORJA ni VIRTUAL para este ciclo.
@@ -10422,6 +10683,7 @@ function renderMateriales(){
     {id:"SAN_MIGUEL", label:"SAN MIGUEL"}
   ];
   const INTEGRAL_SPACES = [
+    {id:"EDITOR", label:"EDITOR"},
     {id:"LA_MOLINA", label:"LA MOLINA"},
     {id:"SAN_MIGUEL", label:"SAN MIGUEL"},
     {id:"SAN_BORJA", label:"SAN BORJA"}
@@ -10832,7 +11094,7 @@ Esto afecta RECIBIDO, DIAGRAMADO e IMPRESO para todos los cursos y espacios de e
       pStart,
       space,
       url:syllabusUrl,
-      programType: isArsProgram ? "ESCOLARES ARS" : "ESCOLARES INTEGRAL"
+      programType: isArsProgram ? "ESCOLARES ARS" : (isIntegralProgram ? "ESCOLARES INTEGRAL" : uni)
     });
   }
 
@@ -10891,8 +11153,7 @@ const LISTAS = [
   { local:"SAN BORJA", name:"U.LIMA 1",  url:"https://docs.google.com/spreadsheets/d/1-NMJf7AV7xUDEr8azb8UUCiqFjNSsqwc25ifUrCwfX0/edit?usp=drive_link" },
   { local:"SAN BORJA", name:"PRE U.LIMA", url:"https://docs.google.com/spreadsheets/d/1xMCd6Xhe5rvs_eCmu7dWj0gX9gAGMu8Uo13akNTcr80/edit?gid=412178933#gid=412178933" },
 //  { local:"SAN BORJA", name:"U.LIMA 2",  url:"https://docs.google.com/spreadsheets/d/1BJSLmUr2ECAfanxuI2py0R2Yi_eqovmkHuLcUNgMFSw/edit?usp=drive_web&ouid=109996193497961946614" },
-  { local:"SAN BORJA", name:"ESC U.LIMA",  url:"https://docs.google.com/spreadsheets/d/1hKYufMBq_ObOjmP4BpDVgTRq-aqOwQET-TZIsz36iC8/edit?usp=drive_link"},
-  { local:"SAN BORJA", name:"ESC PUCP",  url:"https://docs.google.com/spreadsheets/d/1hKYufMBq_ObOjmP4BpDVgTRq-aqOwQET-TZIsz36iC8/edit?usp=drive_link"},
+  { local:"SAN BORJA", name:"ESCOLAR",  url:"https://docs.google.com/spreadsheets/d/1hKYufMBq_ObOjmP4BpDVgTRq-aqOwQET-TZIsz36iC8/edit?usp=drive_link"},
 
   // ================= VIRTUAL =================
   { local:"VIRTUAL", name:"AGRARIA",   url:"https://docs.google.com/spreadsheets/d/1A06U7wDDHBmRrxnlai4hm5shaNJcF9qjWRa8xcusZVg/edit?usp=drive_link" },
@@ -11158,18 +11419,12 @@ const REPORTES = [
   { local:"LA MOLINA", name:"AGRARIA LM 2",      reporte:"https://colab.research.google.com/drive/1-nCsEiJvFYCOeHlNaYVGNPWrYs79cGYN?usp=drive_link" , carpeta:"https://drive.google.com/drive/folders/1IrYwFVCr-wnM_F_1R_t6WR1l710Hmt5l?usp=drive_link" },
   { local:"LA MOLINA", name:"PUCP LM",           reporte:"https://colab.research.google.com/drive/16O_gwow6VfrvIlj37RDyfw2bleWBRgLq" , carpeta:"https://drive.google.com/drive/folders/1iyJaiozUgIQfGzqtKGNKKv51Z69m3b8y?usp=drive_link" },
   { local:"LA MOLINA", name:"U.LIMA LM 1",         reporte:"https://colab.research.google.com/drive/1h6ioZbLEKsB72xZGR0AYc5NQ0zuWKLGS" , carpeta:"https://drive.google.com/drive/folders/1AWE4_Tp6cG_rmw5WG3S6evx0v3esO0V9?usp=drive_link" },
-  { local:"LA MOLINA", name:"ESC AGRARIA", reporte:"", carpeta:"" },
-  { local:"LA MOLINA", name:"ESC U.LIMA", reporte:"", carpeta:"" },
-  { local:"LA MOLINA", name:"ESC PUCP", reporte:"", carpeta:"" },
  // { local:"LA MOLINA", name:"ADELANTO LM",       reporte:"https://colab.research.google.com/drive/1GmBZNfVlXi7z6DUTg3hnVMiW0DlONKJ-" , carpeta:"https://drive.google.com/drive/folders/1_pfkbWLqGj7xBXn4_u967d7qYQzNFicF?usp=drive_link" },
 
   // ================= SAN MIGUEL =================
   { local:"SAN MIGUEL", name:"AGRARIA SM",       reporte:"https://colab.research.google.com/drive/1C__V_81I9fH1ftZ8zH8yMBvIpBtLGZF7" , carpeta:"https://drive.google.com/drive/folders/1GZiz03ezHkJJyO1lc5d4hwf0x53Tkg2N?usp=drive_link" },
   { local:"SAN MIGUEL", name:"PUCP SM",          reporte:"https://colab.research.google.com/drive/10k30iOTwt6jAH1zw1GUSJjl8GkqaSPgt" , carpeta:"https://drive.google.com/drive/folders/1NyH2Uk7dUDvb1Nea6_Rw1WMKcYAwCDed?usp=drive_link" },
   { local:"SAN MIGUEL", name:"U.LIMA SM 1",      reporte:"https://colab.research.google.com/drive/19s-VUMOqGhSaTpqDiAYQ890mf3ftyk4X" , carpeta:"https://drive.google.com/drive/folders/1vW8kb030RB9kAwpwKMI_wW3MRqt-DFP1?usp=drive_link" },
-  { local:"SAN MIGUEL", name:"ESC AGRARIA", reporte:"", carpeta:"" },
-  { local:"SAN MIGUEL", name:"ESC U.LIMA", reporte:"", carpeta:"" },
-  { local:"SAN MIGUEL", name:"ESC PUCP", reporte:"", carpeta:"" },
   //{ local:"SAN MIGUEL", name:"U.LIMA SM 2",      reporte:"https://colab.research.google.com/drive/1AKoWoQ4LzXg7DCJNF_Vaqw9kmUXxuuWu" , carpeta:"https://drive.google.com/drive/folders/1tx-fLVA6MXtqah0yQbXXPNfjUrxUE7Kd?usp=drive_link" },
  //{ local:"SAN MIGUEL", name:"ADELANTO SM",      reporte:"https://colab.research.google.com/drive/1K_LFFycdNc6KS_LMCb5-2groejZlvBXI" , carpeta:"https://drive.google.com/drive/folders/1D5j3HXKQW1vz5Ybz3Wh0yZsf_jz4XZ6x?usp=drive_link" },
 
@@ -11177,8 +11432,6 @@ const REPORTES = [
   { local:"SAN BORJA",  name:"AGRARIA SB",       reporte:"https://colab.research.google.com/drive/1AqLVAqCWepspc6rZ_LeH83Jhl7wVls7-" , carpeta:"https://drive.google.com/drive/folders/1HqI3RCFvou5nRZOK3xGl-qU0IKXYlIik?usp=drive_link" },
   { local:"SAN BORJA",  name:"PUCP SB",          reporte:"https://colab.research.google.com/drive/1RuA_pajmIPZkX993vCZhYUsihn3Y6mM4?usp=drive_link" , carpeta:"https://drive.google.com/drive/folders/1ESy4PUxeUPcNmaJb8E2i1P_90IgGtQvO?usp=drive_link" },
   { local:"SAN BORJA",  name:"U.LIMA SB 1",      reporte:"https://colab.research.google.com/drive/1ov_JylNXZTJyYhgw_9V3F_DI3ArQZSu1?usp=drive_link" , carpeta:"https://drive.google.com/drive/folders/1BcZpMa8dCEcabgopswRbP2UGSizPwnqs?usp=drive_link" },
-  { local:"SAN BORJA", name:"ESC U.LIMA", reporte:"", carpeta:"" },
-  { local:"SAN BORJA", name:"ESC PUCP", reporte:"", carpeta:"" },
  // { local:"SAN BORJA",  name:"U.LIMA SB 2",      reporte:"https://colab.research.google.com/drive/19KkIWlb1oNy4VoRCflfv6GWXPlQNO6-u" , carpeta:"https://drive.google.com/drive/folders/1gKBqvM2nxMPi8DQUqLis8nTl2LV25P0M?usp=drive_link" },
 
   // ================= VIRTUAL =================
@@ -11342,16 +11595,13 @@ function renderReportes(){
       const safeLocal = escapeHtml(it.local);
       const safeName = escapeHtml(it.name);
 
-      const rep = (it.reporte && String(it.reporte).trim()) ? String(it.reporte).trim() : "";
-      const car = (it.carpeta && String(it.carpeta).trim()) ? String(it.carpeta).trim() : "";
-
-      const repBtn = CURRENT_ROLE === "admin" && rep
+      const repBtn = rep
         ? `<a class="syBtn" href="${escapeHtml(rep)}" target="_blank" rel="noopener noreferrer">REPORTE</a>`
-        : (CURRENT_ROLE === "admin" ? `<span class="syBtn disabled">REPORTE</span>` : ``);
+        : `<span class="syBtn disabled">REPORTE</span>`;
 
       const carBtn = car
-        ? `<a class="syBtn" href="${escapeHtml(car)}" target="_blank" rel="noopener noreferrer">VER REPORTES</a>`
-        : `<span class="syBtn disabled">VER REPORTES</span>`;
+        ? `<a class="syBtn" href="${escapeHtml(car)}" target="_blank" rel="noopener noreferrer">CARPETA</a>`
+        : `<span class="syBtn disabled">CARPETA</span>`;
 
       return `
         <div class="syItem syDisplayCard${REPORTES_LINK_EDIT_MODE ? " syEditing" : ""}" style="--syAccent:${escapeHtml(meta.dot)};">
@@ -14520,7 +14770,6 @@ function startApp(){
   }catch(e){}
   ensureBoot();
   applyRoleUI();
-  startBackgroundSync();
 
   // si había una vista guardada, aplícala
   const sv = loadSavedView();
@@ -14532,6 +14781,29 @@ function startApp(){
   setInterval(loadAll, AUTO_REFRESH_MS);
 }
 
-</script>
+// ✅ Arranque: lo antes posible (para reducir flash)
+window.addEventListener("DOMContentLoaded", () => {
+  // 1) Auth primero
+  const hasSession = initAuth();
+
+  // 2) Si no hay sesión, esperar a que el usuario inicie (overlay)
+  //    (La app se inicia cuando el overlay se oculta tras login)
+  if (!hasSession){
+    // Al primer login exitoso se ejecutará esto automáticamente:
+    const observer = new MutationObserver(() => {
+      const o = document.getElementById("authOverlay");
+      if (o && o.style.display === "none"){
+        observer.disconnect();
+        startApp();
+      }
+    });
+    observer.observe(document.body, { attributes:true, childList:false, subtree:true });
+    return;
+  }
+
+  // 3) Sesión existente: iniciar app
+  startApp();
+});</script>
 </body>
 </html>
+
