@@ -1,4 +1,4 @@
-name: Generar dashboard mejorado
+name: Publicar dashboard mejorado
 
 on:
   push:
@@ -9,11 +9,10 @@ on:
       - main
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
-  generar:
-    if: github.actor != 'github-actions[bot]'
+  publicar:
     runs-on: ubuntu-latest
     steps:
       - name: Descargar rama de trabajo
@@ -21,56 +20,16 @@ jobs:
         with:
           ref: codex/escolares-reportes-notas-20260719
 
-      - name: Configurar Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-
-      - name: Aplicar mejoras y registrar diagnóstico
-        id: aplicar
-        shell: bash
+      - name: Verificar archivo final
         run: |
-          set +e
-          python tools/apply_escolares_reportes_notas.py > apply_dashboard.log 2>&1
-          status=$?
-          echo "exit_code=$status" >> apply_dashboard.log
-          echo "status=$status" >> "$GITHUB_OUTPUT"
-          exit 0
-
-      - name: Crear TXT final cuando la aplicación fue correcta
-        if: steps.aplicar.outputs.status == '0'
-        run: cp index.html dashboard_con_mejoras_escolares_reportes_notas.txt
-
-      - name: Guardar resultado y diagnóstico en la rama
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add apply_dashboard.log
-          if [ -f dashboard_con_mejoras_escolares_reportes_notas.txt ]; then
-            git add index.html dashboard_con_mejoras_escolares_reportes_notas.txt
-          fi
-          if git diff --cached --quiet; then
-            echo "No hay cambios para guardar"
-          else
-            git commit -m "Registrar resultado de generación del dashboard"
-            git push origin HEAD:codex/escolares-reportes-notas-20260719
-          fi
-
-      - name: Publicar diagnóstico
-        uses: actions/upload-artifact@v4
-        with:
-          name: diagnostico-dashboard
-          path: apply_dashboard.log
-          if-no-files-found: error
+          test -s dashboard_con_mejoras_escolares_reportes_notas.txt
+          grep -q 'VER REPORTES' dashboard_con_mejoras_escolares_reportes_notas.txt
+          grep -q 'ESCOLAR U.LIMA' dashboard_con_mejoras_escolares_reportes_notas.txt
+          grep -q 'NOTAS_LINK_EDIT_MODE' dashboard_con_mejoras_escolares_reportes_notas.txt
 
       - name: Publicar TXT final
-        if: steps.aplicar.outputs.status == '0'
         uses: actions/upload-artifact@v4
         with:
           name: dashboard-con-mejoras
           path: dashboard_con_mejoras_escolares_reportes_notas.txt
           if-no-files-found: error
-
-      - name: Marcar fallo si la aplicación no fue correcta
-        if: steps.aplicar.outputs.status != '0'
-        run: exit 1
