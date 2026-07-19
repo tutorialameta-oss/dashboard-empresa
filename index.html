@@ -4185,16 +4185,26 @@ function pgxProgramSpec(kind){
 }
 
 
-  // Pull periódico para ver cambios de otros (quasi-tiempo real)
-  pgxSyncPullOnce_();
-  setInterval(()=>{ pgxSyncPullOnce_(); }, 5000);
-  schSyncPullOnce_();
-  setInterval(()=>{ schSyncPullOnce_(); }, 7000);
-  mcSyncPullOnce_();
-  setInterval(()=>{ mcSyncPullOnce_(); }, 9000);
-  document.addEventListener("visibilitychange", ()=>{
-    if (!document.hidden) pgxSyncPullOnce_();
-  });
+  // La sincronización se inicia desde startApp(), cuando todos los módulos y
+  // estados (Horarios/Materiales/Programa) ya terminaron de inicializarse.
+  let LM_BACKGROUND_SYNC_STARTED = false;
+  function startBackgroundSync(){
+    if (LM_BACKGROUND_SYNC_STARTED) return;
+    LM_BACKGROUND_SYNC_STARTED = true;
+    pgxSyncPullOnce_();
+    setInterval(()=>{ pgxSyncPullOnce_(); }, 5000);
+    schSyncPullOnce_();
+    setInterval(()=>{ schSyncPullOnce_(); }, 7000);
+    mcSyncPullOnce_();
+    setInterval(()=>{ mcSyncPullOnce_(); }, 9000);
+    document.addEventListener("visibilitychange", ()=>{
+      if (!document.hidden){
+        pgxSyncPullOnce_();
+        schSyncPullOnce_();
+        mcSyncPullOnce_();
+      }
+    });
+  }
 
 function pgxEnsure(){
     const store = pgxLoadStore();
@@ -8594,18 +8604,6 @@ function renderNotasGenerales(){
 
     const url = String(overrides[x.id] ?? x.url ?? "").trim();
     if (editOn){
-      return `
-        <div class="iItem" style="align-items:flex-start; gap:12px;">
-          <div class="iLeft" style="flex:1; min-width:0;">
-            <div class="iSalon">${escapeHtml(x.label)}</div>
-            <div class="iMeta"><span class="dot" style="background:${dot};"></span><span>${escapeHtml(x.uni)}</span></div>
-            <input class="notasLinkInput" data-nota-id="${escapeHtml(x.id)}" value="${escapeHtml(url)}" placeholder="Pega el enlace de notas" style="width:100%; min-width:0; margin-top:8px;"/>
-          </div>
-          <button class="btn ghost notasLinkSave" data-nota-id="${escapeHtml(x.id)}" type="button">GUARDAR</button>
-        </div>
-      `;
-    }
-    if (url){
       return `
         <div class="iItem" style="align-items:flex-start; gap:12px;">
           <div class="iLeft" style="flex:1; min-width:0;">
@@ -14457,6 +14455,7 @@ function startApp(){
   }catch(e){}
   ensureBoot();
   applyRoleUI();
+  startBackgroundSync();
 
   // si había una vista guardada, aplícala
   const sv = loadSavedView();
