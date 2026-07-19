@@ -1307,6 +1307,107 @@
     }
 
 
+
+    .metaBullSvg{
+      width:100%;
+      height:auto;
+      display:block;
+      overflow:visible;
+      filter: drop-shadow(0 18px 28px rgba(15,23,42,.18));
+    }
+    .authMascotShowcase{
+      margin-top:24px;
+      padding:16px;
+      border-radius:22px;
+      border:1px solid rgba(255,255,255,.16);
+      background:linear-gradient(180deg, rgba(255,255,255,.12), rgba(255,255,255,.05));
+      backdrop-filter: blur(6px);
+    }
+    .authMascotTag{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding:7px 12px;
+      border-radius:999px;
+      background:rgba(255,255,255,.16);
+      color:#fff;
+      font-size:11px;
+      font-weight:900;
+      letter-spacing:.5px;
+      text-transform:uppercase;
+      margin-bottom:12px;
+    }
+    .authMascotTag::before{
+      content:"";
+      width:9px;
+      height:9px;
+      border-radius:999px;
+      background:#ffd166;
+      box-shadow:0 0 0 5px rgba(255,209,102,.18);
+    }
+    .authMascotText{
+      margin:10px 0 0;
+      color:rgba(255,255,255,.88);
+      font-size:12px;
+      font-weight:800;
+      line-height:1.5;
+    }
+    .appMascotLane{
+      position:fixed;
+      top:10px;
+      left:0;
+      right:0;
+      height:84px;
+      z-index:900;
+      display:none;
+      pointer-events:none;
+      overflow:hidden;
+      background:linear-gradient(180deg, rgba(255,255,255,.95), rgba(255,250,250,.88));
+      border-bottom:1px solid rgba(15,23,42,.08);
+      box-shadow:0 14px 25px rgba(15,23,42,.06);
+    }
+    .appMascotLane.show{ display:block; }
+    .appMascotTrack{
+      position:absolute;
+      inset:0;
+      overflow:hidden;
+    }
+    .appMascotHint{
+      position:absolute;
+      left:18px;
+      top:50%;
+      transform:translateY(-50%);
+      padding:7px 12px;
+      border-radius:999px;
+      background:rgba(255,255,255,.9);
+      border:1px solid rgba(15,23,42,.08);
+      color:#64748b;
+      font-size:11px;
+      font-weight:900;
+      letter-spacing:.4px;
+      text-transform:uppercase;
+      box-shadow:0 10px 20px rgba(15,23,42,.06);
+    }
+    .appMascotRunner{
+      position:absolute;
+      top:2px;
+      left:-180px;
+      width:150px;
+      height:78px;
+      animation:metaBullRun 18s linear infinite;
+      will-change:transform;
+      opacity:.96;
+    }
+    body.app-mascot-visible #appShell{
+      margin-top:84px;
+      min-height:calc(100vh - 94px);
+    }
+    @keyframes metaBullRun{
+      0%{ transform:translateX(0); }
+      100%{ transform:translateX(calc(100vw + 360px)); }
+    }
+
+
     /* ===================== AUTH (ADMIN / TUTOR) ===================== */
     .authOverlay{
       position:fixed;
@@ -1576,6 +1677,12 @@
       .authCard{ grid-template-columns:1fr; min-height:0; margin:auto 0; }
       .authBrandPanel{ padding:28px 26px; }
       .authBrandPanel > p,.authFeatureList{ display:none; }
+      .authMascotShowcase{ margin-top:18px; padding:14px; }
+      .authMascotText{ display:none; }
+      .appMascotLane{ height:70px; }
+      .appMascotHint{ display:none; }
+      .appMascotRunner{ width:118px; height:64px; top:3px; animation-duration:14s; }
+      body.app-mascot-visible #appShell{ margin-top:70px; min-height:calc(100vh - 80px); }
       .authBrandMark{ width:62px; height:62px; margin-bottom:17px; }
       .authBrandMark img{ width:50px; height:50px; }
       .authBrandPanel h1{ font-size:27px; }
@@ -3486,6 +3593,37 @@
           <div class="authFeature"><span class="authFeatureDot"></span>Accesos diferenciados por perfil</div>
           <div class="authFeature"><span class="authFeatureDot"></span>Actualización y consulta en un solo panel</div>
         </div>
+        <div class="authMascotShowcase" aria-label="Torito institucional de LA META">
+          <div class="authMascotTag">Mascota LA META</div>
+          <svg class="metaBullSvg" viewBox="0 0 240 170" aria-hidden="true">
+  <defs>
+    <linearGradient id="bullShirtGrad" x1="0" x2="1">
+      <stop offset="0%" stop-color="#d10b0b"/>
+      <stop offset="100%" stop-color="#a40000"/>
+    </linearGradient>
+  </defs>
+  <ellipse cx="124" cy="144" rx="72" ry="10" fill="rgba(15,23,42,.14)"/>
+  <path d="M70 48c-10-20-33-24-47-8c-5 6-8 15-7 23c11-11 25-13 43-8z" fill="#f5e2c9"/>
+  <path d="M170 48c10-20 33-24 47-8c5 6 8 15 7 23c-11-11-25-13-43-8z" fill="#f5e2c9"/>
+  <path d="M68 52c-16 0-30 13-30 30c0 20 14 37 33 37h98c19 0 33-17 33-37c0-17-14-30-30-30z" fill="#f4e1c8"/>
+  <ellipse cx="86" cy="82" rx="8" ry="10" fill="#ffffff"/>
+  <ellipse cx="154" cy="82" rx="8" ry="10" fill="#ffffff"/>
+  <circle cx="88" cy="84" r="4" fill="#0f172a"/>
+  <circle cx="152" cy="84" r="4" fill="#0f172a"/>
+  <ellipse cx="120" cy="96" rx="21" ry="16" fill="#f0ceb0"/>
+  <ellipse cx="111" cy="96" rx="3" ry="4" fill="#8b5e3c"/>
+  <ellipse cx="129" cy="96" rx="3" ry="4" fill="#8b5e3c"/>
+  <path d="M109 106c7 7 15 7 22 0" fill="none" stroke="#8b5e3c" stroke-width="3" stroke-linecap="round"/>
+  <path d="M85 123h70c15 0 28 11 31 26l2 11H52l2-11c3-15 16-26 31-26z" fill="url(#bullShirtGrad)"/>
+  <path d="M105 123h30v37h-30z" fill="rgba(255,255,255,.08)"/>
+  <text x="120" y="147" text-anchor="middle" font-size="20" font-weight="900" fill="#fff" font-family="Arial, sans-serif">LA META</text>
+  <path d="M71 126l-25 18l10 13l26-18z" fill="#f4e1c8"/>
+  <path d="M169 126l25 18l-10 13l-26-18z" fill="#f4e1c8"/>
+  <path d="M93 158l-14 8l7 4l19-7z" fill="#3f3f46"/>
+  <path d="M147 158l14 8l-7 4l-19-7z" fill="#3f3f46"/>
+</svg>
+          <p class="authMascotText">Nuestro torito te da la bienvenida al panel y acompaña la experiencia dentro del dashboard sin interferir con el contenido.</p>
+        </div>
       </section>
 
       <section class="authFormPanel">
@@ -3517,6 +3655,41 @@
           <span>Las credenciales se utilizan únicamente para validar el acceso al panel.</span>
         </div>
       </section>
+    </div>
+  </div>
+
+  <div id="appMascotLane" class="appMascotLane" aria-hidden="true">
+    <div class="appMascotTrack">
+      <div class="appMascotHint">Torito LA META en movimiento</div>
+      <div class="appMascotRunner">
+        <svg class="metaBullSvg" viewBox="0 0 240 170" aria-hidden="true">
+  <defs>
+    <linearGradient id="bullShirtGrad" x1="0" x2="1">
+      <stop offset="0%" stop-color="#d10b0b"/>
+      <stop offset="100%" stop-color="#a40000"/>
+    </linearGradient>
+  </defs>
+  <ellipse cx="124" cy="144" rx="72" ry="10" fill="rgba(15,23,42,.14)"/>
+  <path d="M70 48c-10-20-33-24-47-8c-5 6-8 15-7 23c11-11 25-13 43-8z" fill="#f5e2c9"/>
+  <path d="M170 48c10-20 33-24 47-8c5 6 8 15 7 23c-11-11-25-13-43-8z" fill="#f5e2c9"/>
+  <path d="M68 52c-16 0-30 13-30 30c0 20 14 37 33 37h98c19 0 33-17 33-37c0-17-14-30-30-30z" fill="#f4e1c8"/>
+  <ellipse cx="86" cy="82" rx="8" ry="10" fill="#ffffff"/>
+  <ellipse cx="154" cy="82" rx="8" ry="10" fill="#ffffff"/>
+  <circle cx="88" cy="84" r="4" fill="#0f172a"/>
+  <circle cx="152" cy="84" r="4" fill="#0f172a"/>
+  <ellipse cx="120" cy="96" rx="21" ry="16" fill="#f0ceb0"/>
+  <ellipse cx="111" cy="96" rx="3" ry="4" fill="#8b5e3c"/>
+  <ellipse cx="129" cy="96" rx="3" ry="4" fill="#8b5e3c"/>
+  <path d="M109 106c7 7 15 7 22 0" fill="none" stroke="#8b5e3c" stroke-width="3" stroke-linecap="round"/>
+  <path d="M85 123h70c15 0 28 11 31 26l2 11H52l2-11c3-15 16-26 31-26z" fill="url(#bullShirtGrad)"/>
+  <path d="M105 123h30v37h-30z" fill="rgba(255,255,255,.08)"/>
+  <text x="120" y="147" text-anchor="middle" font-size="20" font-weight="900" fill="#fff" font-family="Arial, sans-serif">LA META</text>
+  <path d="M71 126l-25 18l10 13l26-18z" fill="#f4e1c8"/>
+  <path d="M169 126l25 18l-10 13l-26-18z" fill="#f4e1c8"/>
+  <path d="M93 158l-14 8l7 4l19-7z" fill="#3f3f46"/>
+  <path d="M147 158l14 8l-7 4l-19-7z" fill="#3f3f46"/>
+</svg>
+      </div>
     </div>
   </div>
 
@@ -3825,8 +3998,11 @@ if (btnSil) btnSil.style.display = "";
   function showAuth(show){
     const o = document.getElementById("authOverlay");
     const app = document.getElementById("appShell");
+    const lane = document.getElementById("appMascotLane");
     if (o) o.style.display = show ? "flex" : "none";
     if (app) app.style.display = show ? "none" : "grid";
+    if (lane) lane.classList.toggle("show", !show);
+    document.body.classList.toggle("app-mascot-visible", !show);
 
     if (show){
       try{ setHorariosMatrixFullscreen(false); }catch(e){}
