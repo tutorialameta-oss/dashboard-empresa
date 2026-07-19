@@ -26,27 +26,51 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: Aplicar mejoras
-        run: python tools/apply_escolares_reportes_notas.py
+      - name: Aplicar mejoras y registrar diagnóstico
+        id: aplicar
+        shell: bash
+        run: |
+          set +e
+          python tools/apply_escolares_reportes_notas.py > apply_dashboard.log 2>&1
+          status=$?
+          echo "exit_code=$status" >> apply_dashboard.log
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+          exit 0
 
-      - name: Crear TXT final
+      - name: Crear TXT final cuando la aplicación fue correcta
+        if: steps.aplicar.outputs.status == '0'
         run: cp index.html dashboard_con_mejoras_escolares_reportes_notas.txt
 
-      - name: Guardar archivos generados en la rama
+      - name: Guardar resultado y diagnóstico en la rama
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add index.html dashboard_con_mejoras_escolares_reportes_notas.txt
+          git add apply_dashboard.log
+          if [ -f dashboard_con_mejoras_escolares_reportes_notas.txt ]; then
+            git add index.html dashboard_con_mejoras_escolares_reportes_notas.txt
+          fi
           if git diff --cached --quiet; then
             echo "No hay cambios para guardar"
           else
-            git commit -m "Generar dashboard con mejoras de escolares y reportes"
+            git commit -m "Registrar resultado de generación del dashboard"
             git push origin HEAD:codex/escolares-reportes-notas-20260719
           fi
 
-      - name: Publicar TXT como artefacto
+      - name: Publicar diagnóstico
+        uses: actions/upload-artifact@v4
+        with:
+          name: diagnostico-dashboard
+          path: apply_dashboard.log
+          if-no-files-found: error
+
+      - name: Publicar TXT final
+        if: steps.aplicar.outputs.status == '0'
         uses: actions/upload-artifact@v4
         with:
           name: dashboard-con-mejoras
           path: dashboard_con_mejoras_escolares_reportes_notas.txt
           if-no-files-found: error
+
+      - name: Marcar fallo si la aplicación no fue correcta
+        if: steps.aplicar.outputs.status != '0'
+        run: exit 1
