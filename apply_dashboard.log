@@ -1,13 +1,24 @@
-/home/runner/work/dashboard-empresa/dashboard-empresa/tools/apply_escolares_reportes_notas.py:91: SyntaxWarning: invalid escape sequence '\s'
-  const exists = base.some(r => String(r?.local||"").toUpperCase() === item.local && /PRE\s*U\.?LIMA/.test(String(r?.salon||"").toUpperCase()));
-/home/runner/work/dashboard-empresa/dashboard-empresa/tools/apply_escolares_reportes_notas.py:100: SyntaxWarning: invalid escape sequence '\s'
-  const exists = base.some(r => String(r?.local||"").toUpperCase() === item.local && /PRE\s*U\.?LIMA/.test(String(r?.salon||"").toUpperCase()));
-/home/runner/work/dashboard-empresa/dashboard-empresa/tools/apply_escolares_reportes_notas.py:386: SyntaxWarning: invalid escape sequence '\s'
-  const key = mcNormLabel(String(id || "")).replace(/\s+/g," ").trim();
-Traceback (most recent call last):
-  File "/home/runner/work/dashboard-empresa/dashboard-empresa/tools/apply_escolares_reportes_notas.py", line 235, in <module>
-    replace_once(
-  File "/home/runner/work/dashboard-empresa/dashboard-empresa/tools/apply_escolares_reportes_notas.py", line 15, in replace_once
-    raise RuntimeError(f"{label}: se esperaba 1 coincidencia exacta y se encontraron {count}")
-RuntimeError: contador de grupos en SÍLABOS: se esperaba 1 coincidencia exacta y se encontraron 0
-exit_code=1
+[OK] CSS de VER REPORTES
+[OK] tipo de programa ESCOLARES U.LIMA
+[OK] selector de programa ESCOLARES U.LIMA
+[OK] normalización de escolares en IMPRESIONES
+[OK] catálogo de SÍLABOS ESCOLAR U.LIMA
+[OK] color de SÍLABOS ESCOLAR U.LIMA
+[OK] normalización de SÍLABOS ESCOLAR U.LIMA
+[OK] vinculación Materiales-Sílabos ESCOLAR U.LIMA
+[OK] estado de edición de NOTAS GENERALES
+[OK] leyenda de SÍLABOS ESCOLAR U.LIMA
+[OK] carpeta raíz de MATERIALES ESCOLARES U.LIMA
+[OK] color de MATERIALES ESCOLARES U.LIMA
+[OK] cursos de MATERIALES ESCOLARES U.LIMA
+[OK] nombre visible de MATERIALES ESCOLARES U.LIMA
+[OK] selección de cursos de MATERIALES ESCOLARES U.LIMA
+[OK] LISTAS escolares de SAN BORJA
+[OK] LISTAS escolares de VIRTUAL
+[OK] catálogo de REPORTES relacionado con LISTAS
+[OK] botones de REPORTES por rol
+[OK] editor de enlaces de NOTAS GENERALES
+index.html actualizado: 556747 -> 563982 caracteres
+TXT generado: dashboard_con_mejoras_escolares_reportes_notas.txt
+Sintaxis JavaScript validada en 1 bloque(s) inline.
+exit_code=0
