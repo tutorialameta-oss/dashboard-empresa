@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - codex/escolares-reportes-notas-20260719
+  pull_request:
+    branches:
+      - main
 
 permissions:
   contents: write
@@ -13,7 +16,7 @@ jobs:
     if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
     steps:
-      - name: Descargar repositorio
+      - name: Descargar rama de trabajo
         uses: actions/checkout@v4
         with:
           ref: codex/escolares-reportes-notas-20260719
@@ -38,7 +41,7 @@ jobs:
             echo "No hay cambios para guardar"
           else
             git commit -m "Generar dashboard con mejoras de escolares y reportes"
-            git push
+            git push origin HEAD:codex/escolares-reportes-notas-20260719
           fi
 
       - name: Publicar TXT como artefacto
