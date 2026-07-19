@@ -1,38 +1,50 @@
 from pathlib import Path
 import re
+import shutil
 import subprocess
 import sys
 
-PATH = Path("index.html")
-text = PATH.read_text(encoding="utf-8")
+HTML_PATH = Path("index.html")
+TXT_PATH = Path("dashboard_con_mejoras_escolares_reportes_notas.txt")
+text = HTML_PATH.read_text(encoding="utf-8")
 original = text
 
 
-def replace_once(old: str, new: str, label: str) -> None:
+def replace_once(old: str, new: str, label: str, *, already: str | None = None) -> None:
     global text
+    if already and already in text:
+        print(f"[OK] {label}: ya estaba aplicado")
+        return
     count = text.count(old)
     if count != 1:
         raise RuntimeError(f"{label}: se esperaba 1 coincidencia exacta y se encontraron {count}")
     text = text.replace(old, new, 1)
+    print(f"[OK] {label}")
 
 
-def sub_once(pattern: str, replacement: str, label: str, flags: int = 0) -> None:
+def sub_once(pattern: str, replacement: str, label: str, *, flags: int = 0, already: str | None = None) -> None:
     global text
+    if already and already in text:
+        print(f"[OK] {label}: ya estaba aplicado")
+        return
     matches = list(re.finditer(pattern, text, flags))
     if len(matches) != 1:
         raise RuntimeError(f"{label}: se esperaba 1 coincidencia regex y se encontraron {len(matches)}")
     text = re.sub(pattern, lambda _: replacement, text, count=1, flags=flags)
+    print(f"[OK] {label}")
 
 
-# 1) Estética del botón principal de carpetas en REPORTES.
+# -----------------------------------------------------------------------------
+# 1. Estética del botón principal de REPORTES
+# -----------------------------------------------------------------------------
 replace_once(
-'''    .syBtn.disabled{
+    '''    .syBtn.disabled{
       opacity:.65;
       pointer-events:none;
       cursor:default;
     }
 ''',
-'''    .syBtn.disabled{
+    '''    .syBtn.disabled{
       opacity:.65;
       pointer-events:none;
       cursor:default;
@@ -58,46 +70,48 @@ replace_once(
       box-shadow:none;
     }
 ''',
-"CSS botón VER REPORTES",
+    "CSS de VER REPORTES",
+    already=".reportFolderPrimary{",
 )
 
-# 2) PROGRAMA: nueva opción ESCOLARES U.LIMA (solo se agrega porque no existía).
+
+# -----------------------------------------------------------------------------
+# 2. PROGRAMA: ESCOLARES U.LIMA
+# -----------------------------------------------------------------------------
 replace_once(
-'''  if (raw === "PUCP") return { kind:"PUCP", scope:"PUCP", theme:"PUCP" };
+    '''  if (raw === "PUCP") return { kind:"PUCP", scope:"PUCP", theme:"PUCP" };
   if (raw === "ESCOLARES" || raw === "ESCOLAR") return { kind:"ESCOLARES", scope:"ESCOLARES", theme:"ESCOLARES" };
 ''',
-'''  if (raw === "PUCP") return { kind:"PUCP", scope:"PUCP", theme:"PUCP" };
+    '''  if (raw === "PUCP") return { kind:"PUCP", scope:"PUCP", theme:"PUCP" };
   if (["ESCOLARES U.LIMA","ESCOLAR U.LIMA","ESCOLARES ULIMA","ESCOLAR ULIMA"].includes(raw)) return { kind:"ESCOLARES U.LIMA", scope:"ESCOLARES", theme:"ESCOLARES" };
   if (raw === "ESCOLARES" || raw === "ESCOLAR") return { kind:"ESCOLARES", scope:"ESCOLARES", theme:"ESCOLARES" };
 ''',
-"pgxProgramSpec ESCOLARES U.LIMA",
+    "tipo de programa ESCOLARES U.LIMA",
+    already='kind:"ESCOLARES U.LIMA"',
 )
+
 replace_once(
-'''            <option value="PUCP">CICLO: PUCP</option>
+    '''            <option value="PUCP">CICLO: PUCP</option>
             <option value="ESCOLARES">CICLO: ESCOLARES</option>
 ''',
-'''            <option value="PUCP">CICLO: PUCP</option>
+    '''            <option value="PUCP">CICLO: PUCP</option>
             <option value="ESCOLARES U.LIMA">CICLO: ESCOLARES U.LIMA</option>
             <option value="ESCOLARES">CICLO: ESCOLARES</option>
 ''',
-"selector crear programa ESCOLARES U.LIMA",
+    "selector de programa ESCOLARES U.LIMA",
+    already='<option value="ESCOLARES U.LIMA">',
 )
 
-# 3) IMPRESIONES: el ESCOLAR genérico pasa a U.LIMA y se completa ESCOLAR PUCP.
-replace_once(
-'''  function ensurePreUlimaImpresionesRows(rows){
+
+# -----------------------------------------------------------------------------
+# 3. IMPRESIONES: ESCOLAR U.LIMA y ESCOLAR PUCP
+# -----------------------------------------------------------------------------
+sub_once(
+    r'''  function ensurePreUlimaImpresionesRows\(rows\)\{.*?\n  \}\n''',
+    '''  function ensurePreUlimaImpresionesRows(rows){
     const base = Array.isArray(rows) ? rows.slice() : [];
     for (const item of MANDATORY_PRE_ULIMA_IMPRESIONES){
-      const exists = base.some(r => String(r?.local||"").toUpperCase() === item.local && /PRE\s*U\.?LIMA/.test(String(r?.salon||"").toUpperCase()));
-      if (!exists) base.push({...item});
-    }
-    return base;
-  }
-''',
-'''  function ensurePreUlimaImpresionesRows(rows){
-    const base = Array.isArray(rows) ? rows.slice() : [];
-    for (const item of MANDATORY_PRE_ULIMA_IMPRESIONES){
-      const exists = base.some(r => String(r?.local||"").toUpperCase() === item.local && /PRE\s*U\.?LIMA/.test(String(r?.salon||"").toUpperCase()));
+      const exists = base.some(r => String(r?.local||"").toUpperCase() === item.local && /PRE\\s*U\\.?LIMA/.test(String(r?.salon||"").toUpperCase()));
       if (!exists) base.push({...item});
     }
     return base;
@@ -105,7 +119,7 @@ replace_once(
 
   function ensureEscolaresImpresionesRows(rows){
     const normalized = (Array.isArray(rows) ? rows : []).map(r=>{
-      const salon = mcNormLabel(String(r?.salon || "")).replace(/\s+/g," ").trim();
+      const salon = mcNormLabel(String(r?.salon || "")).replace(/\\s+/g," ").trim();
       if (/^ESCOLAR(?:ES)?$/.test(salon)) return {...r, salon:"ESCOLAR U.LIMA"};
       return {...r};
     });
@@ -118,43 +132,43 @@ replace_once(
     const base = [...best.values()];
 
     const affectedLocals = uniq(base.filter(r=>{
-      const salon = mcNormLabel(String(r?.salon || "")).replace(/\s+/g," ").trim();
-      return /^ESCOLAR(?:ES)?\s+(?:U\.?LIMA|ULIMA|PUCP)$/.test(salon);
+      const salon = mcNormLabel(String(r?.salon || "")).replace(/\\s+/g," ").trim();
+      return /^ESCOLAR(?:ES)?\\s+(?:U\\.?LIMA|ULIMA|PUCP)$/.test(salon);
     }).map(r=>String(r.local||"").toUpperCase()).filter(Boolean));
 
     for (const local of affectedLocals){
-      const hasUlima = base.some(r=>String(r?.local||"").toUpperCase()===local && /^ESCOLAR(?:ES)?\s+(?:U\.?LIMA|ULIMA)$/.test(mcNormLabel(String(r?.salon||""))));
-      const hasPucp = base.some(r=>String(r?.local||"").toUpperCase()===local && /^ESCOLAR(?:ES)?\s+PUCP$/.test(mcNormLabel(String(r?.salon||""))));
+      const hasUlima = base.some(r=>String(r?.local||"").toUpperCase()===local && /^ESCOLAR(?:ES)?\\s+(?:U\\.?LIMA|ULIMA)$/.test(mcNormLabel(String(r?.salon||""))));
+      const hasPucp = base.some(r=>String(r?.local||"").toUpperCase()===local && /^ESCOLAR(?:ES)?\\s+PUCP$/.test(mcNormLabel(String(r?.salon||""))));
       if (!hasUlima) base.push({local, salon:"ESCOLAR U.LIMA", count:0});
       if (!hasPucp) base.push({local, salon:"ESCOLAR PUCP", count:0});
     }
     return base;
   }
 ''',
-"normalización de escolares en IMPRESIONES",
-)
-replace_once(
-'''      state.imprRows = ensurePreUlimaImpresionesRows(parseImpresionesCSV(text));
-''',
-'''      state.imprRows = ensureEscolaresImpresionesRows(ensurePreUlimaImpresionesRows(parseImpresionesCSV(text)));
-''',
-"carga de IMPRESIONES con escolares",
-)
-replace_once(
-'''      state.imprRows = ensurePreUlimaImpresionesRows(state.imprRows || []);
-''',
-'''      state.imprRows = ensureEscolaresImpresionesRows(ensurePreUlimaImpresionesRows(state.imprRows || []));
-''',
-"fallback de IMPRESIONES con escolares",
+    "normalización de escolares en IMPRESIONES",
+    flags=re.S,
+    already="function ensureEscolaresImpresionesRows(rows)",
 )
 
-# 4) SÍLABOS: categoría ESCOLAR U.LIMA y cinco cursos solicitados.
+text = text.replace(
+    'state.imprRows = ensurePreUlimaImpresionesRows(parseImpresionesCSV(text));',
+    'state.imprRows = ensureEscolaresImpresionesRows(ensurePreUlimaImpresionesRows(parseImpresionesCSV(text)));',
+)
+text = text.replace(
+    'state.imprRows = ensurePreUlimaImpresionesRows(state.imprRows || []);',
+    'state.imprRows = ensureEscolaresImpresionesRows(ensurePreUlimaImpresionesRows(state.imprRows || []));',
+)
+
+
+# -----------------------------------------------------------------------------
+# 4. SÍLABOS: ESCOLAR U.LIMA y cursos solicitados
+# -----------------------------------------------------------------------------
 replace_once(
-'''      { name:"HABILIDAD OPERATIVA", url:"https://docs.google.com/spreadsheets/d/1GrTdfQVKnTjor-e6sso2s1ydN9nh0DbF8uj1VY9ZbVQ/edit?gid=11988891#gid=11988891" },
+    '''      { name:"HABILIDAD OPERATIVA", url:"https://docs.google.com/spreadsheets/d/1GrTdfQVKnTjor-e6sso2s1ydN9nh0DbF8uj1VY9ZbVQ/edit?gid=11988891#gid=11988891" },
     ],
     "ESCOLARES INTEGRAL": [
 ''',
-'''      { name:"HABILIDAD OPERATIVA", url:"https://docs.google.com/spreadsheets/d/1GrTdfQVKnTjor-e6sso2s1ydN9nh0DbF8uj1VY9ZbVQ/edit?gid=11988891#gid=11988891" },
+    '''      { name:"HABILIDAD OPERATIVA", url:"https://docs.google.com/spreadsheets/d/1GrTdfQVKnTjor-e6sso2s1ydN9nh0DbF8uj1VY9ZbVQ/edit?gid=11988891#gid=11988891" },
     ],
     "ESCOLAR U.LIMA": [
       { name:"TEXTOS", url:"" },
@@ -165,121 +179,125 @@ replace_once(
     ],
     "ESCOLARES INTEGRAL": [
 ''',
-"catálogo SÍLABOS ESCOLAR U.LIMA",
+    "catálogo de SÍLABOS ESCOLAR U.LIMA",
+    already='"ESCOLAR U.LIMA": [',
 )
+
 replace_once(
-'''    if (uni==="PUCP") return getCss("--pucp");
+    '''    if (uni==="PUCP") return getCss("--pucp");
     if (uni==="ESCOLARES ARS") return getCss("--pucp");
-    if (uni==="ESCOLARES" || uni==="ESCOLARES INTEGRAL") return getCss("--schHead_ESC");
 ''',
-'''    if (uni==="PUCP") return getCss("--pucp");
+    '''    if (uni==="PUCP") return getCss("--pucp");
     if (uni==="ESCOLAR U.LIMA") return getCss("--schHead_ESC");
     if (uni==="ESCOLARES ARS") return getCss("--pucp");
-    if (uni==="ESCOLARES" || uni==="ESCOLARES INTEGRAL") return getCss("--schHead_ESC");
 ''',
-"color SÍLABOS ESCOLAR U.LIMA",
+    "color de SÍLABOS ESCOLAR U.LIMA",
+    already='if (uni==="ESCOLAR U.LIMA")',
 )
+
 replace_once(
-'''  function silaboUniKey(uniRaw){
+    '''  function silaboUniKey(uniRaw){
     const u = String(uniRaw || "").toUpperCase().trim();
     if (u === "ESCOLARES") return "ESCOLARES INTEGRAL";
 ''',
-'''  function silaboUniKey(uniRaw){
+    '''  function silaboUniKey(uniRaw){
     const u = String(uniRaw || "").toUpperCase().trim();
     if ((u.includes("ESCOLAR") || u.includes("ESCOLARES")) && (u.includes("U.LIMA") || u.includes("ULIMA") || u.includes("U LIMA"))) return "ESCOLAR U.LIMA";
     if (u === "ESCOLARES") return "ESCOLARES INTEGRAL";
 ''',
-"normalización SÍLABOS ESCOLAR U.LIMA",
+    "normalización de SÍLABOS ESCOLAR U.LIMA",
+    already='return "ESCOLAR U.LIMA";',
 )
+
 replace_once(
-'''  function syProgramToRepoUni(value){
+    '''  function syProgramToRepoUni(value){
     const v = mcNormLabel(value || "");
     if (v.includes("ARS") || v.includes("POP")) return "ESCOLARES ARS";
 ''',
-'''  function syProgramToRepoUni(value){
+    '''  function syProgramToRepoUni(value){
     const v = mcNormLabel(value || "");
     if (v.includes("ESCOLAR") && (v.includes("U.LIMA") || v.includes("ULIMA") || v.includes("U LIMA"))) return "ESCOLAR U.LIMA";
     if (v.includes("ARS") || v.includes("POP")) return "ESCOLARES ARS";
 ''',
-"Materiales hacia repo de SÍLABOS U.LIMA escolar",
+    "vinculación Materiales-Sílabos ESCOLAR U.LIMA",
+    already='v.includes("ESCOLAR") && (v.includes("U.LIMA")',
 )
-replace_once(
-'''    if (["AGRARIA","U.LIMA","PUCP","ESCOLARES INTEGRAL","ESCOLARES ARS"].includes(v)) return v;
-''',
-'''    if (["AGRARIA","U.LIMA","PUCP","ESCOLAR U.LIMA","ESCOLARES INTEGRAL","ESCOLARES ARS"].includes(v)) return v;
-''',
-"lista de claves válidas de SÍLABOS",
+
+text = text.replace(
+    '["AGRARIA","U.LIMA","PUCP","ESCOLARES INTEGRAL","ESCOLARES ARS"].includes(v)',
+    '["AGRARIA","U.LIMA","PUCP","ESCOLAR U.LIMA","ESCOLARES INTEGRAL","ESCOLARES ARS"].includes(v)',
 )
+
 replace_once(
-'''  let SY_LINK_EDIT_MODE = false;
+    '''  let SY_LINK_EDIT_MODE = false;
   let LISTAS_LINK_EDIT_MODE = false;
   let REPORTES_LINK_EDIT_MODE = false;
 ''',
-'''  let SY_LINK_EDIT_MODE = false;
+    '''  let SY_LINK_EDIT_MODE = false;
   let LISTAS_LINK_EDIT_MODE = false;
   let REPORTES_LINK_EDIT_MODE = false;
   let NOTAS_LINK_EDIT_MODE = false;
 ''',
-"estado de edición NOTAS GENERALES",
+    "estado de edición de NOTAS GENERALES",
+    already="let NOTAS_LINK_EDIT_MODE = false;",
 )
+
 replace_once(
-'''          <span class="pill"><span class="dot pucp"></span>PUCP</span>
+    '''          <span class="pill"><span class="dot pucp"></span>PUCP</span>
           <span class="pill"><span class="dot escolares"></span>ESCOLARES INTEGRAL</span>
 ''',
-'''          <span class="pill"><span class="dot pucp"></span>PUCP</span>
+    '''          <span class="pill"><span class="dot pucp"></span>PUCP</span>
           <span class="pill"><span class="dot escolares"></span>ESCOLAR U.LIMA</span>
           <span class="pill"><span class="dot escolares"></span>ESCOLARES INTEGRAL</span>
 ''',
-"leyenda SÍLABOS ESCOLAR U.LIMA",
-)
-replace_once(
-'''              <span class="syKpiPill">UNIVERSIDADES: <b id="sUnis">5</b></span>
-''',
-'''              <span class="syKpiPill">UNIVERSIDADES: <b id="sUnis">6</b></span>
-''',
-"contador de grupos en SÍLABOS",
+    "leyenda de SÍLABOS ESCOLAR U.LIMA",
+    already='<span class="dot escolares"></span>ESCOLAR U.LIMA',
 )
 
-# 5) MATERIALES: carpeta y cursos para ESCOLARES U.LIMA.
+text = re.sub(r'id="sUnis">\d+</b>', 'id="sUnis">6</b>', text, count=1)
+text = text.replace(
+    'fillSelectKeep("sUni", ["AGRARIA","U.LIMA","PUCP","ESCOLARES INTEGRAL","ESCOLARES ARS"], "UNIVERSIDAD: TODAS");',
+    'fillSelectKeep("sUni", ["AGRARIA","U.LIMA","PUCP","ESCOLAR U.LIMA","ESCOLARES INTEGRAL","ESCOLARES ARS"], "UNIVERSIDAD: TODAS");',
+)
+
+
+# -----------------------------------------------------------------------------
+# 5. MATERIALES: ESCOLARES U.LIMA
+# -----------------------------------------------------------------------------
 replace_once(
-'''  { uni:"PUCP",      url:"https://drive.google.com/drive/folders/1FfUL4GEiHALYEOhBHTJA3SzHVotRGv0k?usp=sharing" },
+    '''  { uni:"PUCP",      url:"https://drive.google.com/drive/folders/1FfUL4GEiHALYEOhBHTJA3SzHVotRGv0k?usp=sharing" },
   { uni:"ESCOLARES INTEGRAL", url:"https://drive.google.com/drive/folders/1nUdMaZU2n6b-FZlfR9WI2041e_aoOPYy" },
 ''',
-'''  { uni:"PUCP",      url:"https://drive.google.com/drive/folders/1FfUL4GEiHALYEOhBHTJA3SzHVotRGv0k?usp=sharing" },
+    '''  { uni:"PUCP",      url:"https://drive.google.com/drive/folders/1FfUL4GEiHALYEOhBHTJA3SzHVotRGv0k?usp=sharing" },
   { uni:"ESCOLARES U.LIMA", url:"" },
   { uni:"ESCOLARES INTEGRAL", url:"https://drive.google.com/drive/folders/1nUdMaZU2n6b-FZlfR9WI2041e_aoOPYy" },
 ''',
-"carpeta raíz MATERIALES ESCOLARES U.LIMA",
+    "carpeta raíz de MATERIALES ESCOLARES U.LIMA",
+    already='uni:"ESCOLARES U.LIMA"',
+)
+
+text = text.replace('<span class="syKpiPill">CARPETAS: <b>5</b></span>', '<span class="syKpiPill">CARPETAS: <b>${MATERIALES.length}</b></span>')
+text = text.replace(
+    'const MAT_UNI_ORDER = ["AGRARIA","U.LIMA","PUCP","ESCOLARES INTEGRAL","ESCOLARES ARS"];',
+    'const MAT_UNI_ORDER = ["AGRARIA","U.LIMA","PUCP","ESCOLARES U.LIMA","ESCOLARES INTEGRAL","ESCOLARES ARS"];',
 )
 replace_once(
-'''          <span class="syKpiPill">CARPETAS: <b>5</b></span>
-''',
-'''          <span class="syKpiPill">CARPETAS: <b>${MATERIALES.length}</b></span>
-''',
-"contador dinámico MATERIALES",
-)
-replace_once(
-'''    const MAT_UNI_ORDER = ["AGRARIA","U.LIMA","PUCP","ESCOLARES INTEGRAL","ESCOLARES ARS"];
-''',
-'''    const MAT_UNI_ORDER = ["AGRARIA","U.LIMA","PUCP","ESCOLARES U.LIMA","ESCOLARES INTEGRAL","ESCOLARES ARS"];
-''',
-"orden MATERIALES ESCOLARES U.LIMA",
-)
-replace_once(
-'''      "PUCP": getCss("--pucp"),
+    '''      "PUCP": getCss("--pucp"),
       "ESCOLARES INTEGRAL": getCss("--schHead_ESC"),
 ''',
-'''      "PUCP": getCss("--pucp"),
+    '''      "PUCP": getCss("--pucp"),
       "ESCOLARES U.LIMA": getCss("--schHead_ESC"),
       "ESCOLARES INTEGRAL": getCss("--schHead_ESC"),
 ''',
-"color MATERIALES ESCOLARES U.LIMA",
+    "color de MATERIALES ESCOLARES U.LIMA",
+    already='"ESCOLARES U.LIMA": getCss("--schHead_ESC")',
 )
+
 replace_once(
-'''  const ESCOLARES_INTEGRAL_COURSES = COURSES["ESCOLARES"];
+    '''  const ESCOLARES_INTEGRAL_COURSES = COURSES["ESCOLARES"];
   const ESCOLARES_ARS_COURSES = [
 ''',
-'''  const ESCOLARES_INTEGRAL_COURSES = COURSES["ESCOLARES"];
+    '''  const ESCOLARES_INTEGRAL_COURSES = COURSES["ESCOLARES"];
   const ESCOLARES_ULIMA_COURSES = [
     "Textos",
     "Razonamiento Matemático",
@@ -289,62 +307,71 @@ replace_once(
   ];
   const ESCOLARES_ARS_COURSES = [
 ''',
-"cursos MATERIALES ESCOLARES U.LIMA",
+    "cursos de MATERIALES ESCOLARES U.LIMA",
+    already="const ESCOLARES_ULIMA_COURSES = [",
 )
+
 replace_once(
-'''    if (normalized === "ESCOLARES AGRARIA" || normalized === "ESCOLARES AGRARAI") return "ESCOLARES INTEGRAL";
+    '''    if (normalized === "ESCOLARES AGRARIA" || normalized === "ESCOLARES AGRARAI") return "ESCOLARES INTEGRAL";
     if (normalized.includes("ARS") || normalized.includes("POP")) return "ESCOLARES ARS";
 ''',
-'''    if (normalized === "ESCOLARES AGRARIA" || normalized === "ESCOLARES AGRARAI") return "ESCOLARES INTEGRAL";
+    '''    if (normalized === "ESCOLARES AGRARIA" || normalized === "ESCOLARES AGRARAI") return "ESCOLARES INTEGRAL";
     if (normalized.includes("ESCOLAR") && (normalized.includes("U.LIMA") || normalized.includes("ULIMA") || normalized.includes("U LIMA"))) return "ESCOLARES U.LIMA";
     if (normalized.includes("ARS") || normalized.includes("POP")) return "ESCOLARES ARS";
 ''',
-"nombre visible MATERIALES ESCOLARES U.LIMA",
+    "nombre visible de MATERIALES ESCOLARES U.LIMA",
+    already='return "ESCOLARES U.LIMA";',
 )
+
 replace_once(
-'''    const name = mcMaterialProgramNameRaw(program).toUpperCase();
+    '''    const name = mcMaterialProgramNameRaw(program).toUpperCase();
     if (name.includes("ARS")) return ESCOLARES_ARS_COURSES;
     return ESCOLARES_INTEGRAL_COURSES;
 ''',
-'''    const name = mcMaterialProgramNameRaw(program).toUpperCase();
+    '''    const name = mcMaterialProgramNameRaw(program).toUpperCase();
     if (name.includes("U.LIMA") || name.includes("ULIMA") || name.includes("U LIMA")) return ESCOLARES_ULIMA_COURSES;
     if (name.includes("ARS")) return ESCOLARES_ARS_COURSES;
     return ESCOLARES_INTEGRAL_COURSES;
 ''',
-"selección de cursos MATERIALES ESCOLARES U.LIMA",
+    "selección de cursos de MATERIALES ESCOLARES U.LIMA",
+    already="return ESCOLARES_ULIMA_COURSES;",
 )
 
-# 6) LISTAS: retirar ESCOLAR genérico; crear ESC U.LIMA y ESC PUCP.
-replace_once(
-'''  { local:"SAN BORJA", name:"ESCOLAR",  url:"https://docs.google.com/spreadsheets/d/1hKYufMBq_ObOjmP4BpDVgTRq-aqOwQET-TZIsz36iC8/edit?usp=drive_link"},
-''',
-'''  { local:"SAN BORJA", name:"ESC U.LIMA", url:"https://docs.google.com/spreadsheets/d/1hKYufMBq_ObOjmP4BpDVgTRq-aqOwQET-TZIsz36iC8/edit?usp=drive_link" },
-  { local:"SAN BORJA", name:"ESC PUCP", url:"" },
-''',
-"LISTAS SAN BORJA escolares separados",
+
+# -----------------------------------------------------------------------------
+# 6. LISTAS: eliminar ESCOLAR genérico y separar U.LIMA / PUCP
+# -----------------------------------------------------------------------------
+sub_once(
+    r'''\s*\{ local:"SAN BORJA", name:"ESCOLAR",\s*url:"([^"]*)"\s*\},''',
+    '''
+  { local:"SAN BORJA", name:"ESC U.LIMA", url:"\\1" },
+  { local:"SAN BORJA", name:"ESC PUCP", url:"" },''',
+    "LISTAS escolares de SAN BORJA",
+    already='{ local:"SAN BORJA", name:"ESC U.LIMA"',
 )
+
 replace_once(
-'''    { local:"VIRTUAL", name:"U.LIMA 1",  url:"https://docs.google.com/spreadsheets/d/1RleTyLMWqwMstCBRvG1UvTcR1XyqeTlY7TkWkaajmqs/edit?usp=drive_link" },
+    '''    { local:"VIRTUAL", name:"U.LIMA 1",  url:"https://docs.google.com/spreadsheets/d/1RleTyLMWqwMstCBRvG1UvTcR1XyqeTlY7TkWkaajmqs/edit?usp=drive_link" },
 ''',
-'''    { local:"VIRTUAL", name:"U.LIMA 1",  url:"https://docs.google.com/spreadsheets/d/1RleTyLMWqwMstCBRvG1UvTcR1XyqeTlY7TkWkaajmqs/edit?usp=drive_link" },
+    '''    { local:"VIRTUAL", name:"U.LIMA 1",  url:"https://docs.google.com/spreadsheets/d/1RleTyLMWqwMstCBRvG1UvTcR1XyqeTlY7TkWkaajmqs/edit?usp=drive_link" },
   { local:"VIRTUAL", name:"ESC U.LIMA", url:"" },
   { local:"VIRTUAL", name:"ESC PUCP", url:"" },
 ''',
-"LISTAS VIRTUAL escolares",
+    "LISTAS escolares de VIRTUAL",
+    already='{ local:"VIRTUAL", name:"ESC U.LIMA"',
 )
 
-# 7) REPORTES: catálogo escolar derivado de LISTAS, botón REPORTE solo admin y CARPETA renombrada.
-replace_once(
-'''function getReportesCatalog(){
-  // En REPORTES solo se muestra el catálogo manual definido arriba.
-  return REPORTES.slice();
-}
-''',
-'''function getReportesCatalog(){
+
+# -----------------------------------------------------------------------------
+# 7. REPORTES: relación con LISTAS y visibilidad por rol
+# -----------------------------------------------------------------------------
+sub_once(
+    r'''function getReportesCatalog\(\)\{.*?\n\}\n''',
+    '''function getReportesCatalog(){
   const catalog = REPORTES.map(x=>({...x}));
   const seen = new Set(catalog.map(x=>repoSafeKey(x.local, x.name)));
 
-  // Toda LISTA escolar debe tener su tarjeta homóloga en REPORTES.
+  // Cada LISTA escolar debe contar con su tarjeta correspondiente en REPORTES.
   for (const item of LISTAS.filter(x=>isEscolaresSalonLabel(x.name))){
     const key = repoSafeKey(item.local, item.name);
     if (seen.has(key)) continue;
@@ -354,18 +381,14 @@ replace_once(
   return catalog;
 }
 ''',
-"relación LISTAS-REPORTES para escolares",
+    "catálogo de REPORTES relacionado con LISTAS",
+    flags=re.S,
+    already="Cada LISTA escolar debe contar",
 )
-replace_once(
-'''      const repBtn = rep
-        ? `<a class="syBtn" href="${escapeHtml(rep)}" target="_blank" rel="noopener noreferrer">REPORTE</a>`
-        : `<span class="syBtn disabled">REPORTE</span>`;
 
-      const carBtn = car
-        ? `<a class="syBtn" href="${escapeHtml(car)}" target="_blank" rel="noopener noreferrer">CARPETA</a>`
-        : `<span class="syBtn disabled">CARPETA</span>`;
-''',
-'''      const isAdminReportView = String(CURRENT_ROLE || "").toLowerCase() === "admin";
+sub_once(
+    r'''      const repBtn = rep\n        \? `<a class="syBtn" href="\$\{escapeHtml\(rep\)\}" target="_blank" rel="noopener noreferrer">REPORTE</a>`\n        : `<span class="syBtn disabled">REPORTE</span>`;\n\n      const carBtn = car\n        \? `<a class="syBtn" href="\$\{escapeHtml\(car\)\}" target="_blank" rel="noopener noreferrer">CARPETA</a>`\n        : `<span class="syBtn disabled">CARPETA</span>`;''',
+    '''      const isAdminReportView = String(CURRENT_ROLE || "").toLowerCase() === "admin";
       const repBtn = isAdminReportView
         ? (rep
           ? `<a class="syBtn" href="${escapeHtml(rep)}" target="_blank" rel="noopener noreferrer">REPORTE</a>`
@@ -374,23 +397,26 @@ replace_once(
 
       const carBtn = car
         ? `<a class="syBtn reportFolderPrimary" href="${escapeHtml(car)}" target="_blank" rel="noopener noreferrer">VER REPORTES</a>`
-        : `<span class="syBtn reportFolderPrimary disabled">VER REPORTES</span>`;
-''',
-"visibilidad y nombre de botones REPORTES",
+        : `<span class="syBtn reportFolderPrimary disabled">VER REPORTES</span>`;''',
+    "botones de REPORTES por rol",
+    already="const isAdminReportView",
 )
 
-# 8) NOTAS GENERALES: edición inline persistente, equivalente a LISTAS/SÍLABOS.
+
+# -----------------------------------------------------------------------------
+# 8. NOTAS GENERALES: edición directa de enlaces
+# -----------------------------------------------------------------------------
 sub_once(
-    r'''function ensureNotasLayout\(\)\{.*?\n\}\n\nfunction renderNotasGenerales\(\)\{.*?\n\}\n\n\n\n\nfunction ensureMaterialesLayout\(\)\{''',
-'''function notasRepoGetLink(st, id, fallback){
-  const key = mcNormLabel(String(id || "")).replace(/\s+/g," ").trim();
+    r'''function ensureNotasLayout\(\)\{.*?\n\}\n\nfunction renderNotasGenerales\(\)\{.*?\n\}\n(?=\n+function ensureMaterialesLayout\(\)\{)''',
+    '''function notasRepoGetLink(st, id, fallback){
+  const key = mcNormLabel(String(id || "")).replace(/\\s+/g," ").trim();
   const repo = st?.notasRepo || {};
   if (Object.prototype.hasOwnProperty.call(repo, key)) return String(repo[key] || "").trim();
   return String(fallback || "").trim();
 }
 
 function notasRepoSetLink(st, id, url){
-  const key = mcNormLabel(String(id || "")).replace(/\s+/g," ").trim();
+  const key = mcNormLabel(String(id || "")).replace(/\\s+/g," ").trim();
   if (!st.notasRepo) st.notasRepo = {};
   st.notasRepo[key] = String(url || "").trim();
   return st;
@@ -431,9 +457,7 @@ function ensureNotasLayout(){
       <div class="syLocalHead" style="margin-bottom:10px;">
         <div>
           <div class="cardtitle" style="margin:0;">NOTAS GENERALES</div>
-          <div style="color:var(--muted); font-weight:900; margin-top:6px;">
-            Acceso directo a las hojas de notas por categoría.
-          </div>
+          <div style="color:var(--muted); font-weight:900; margin-top:6px;">Acceso directo a las hojas de notas por categoría.</div>
         </div>
         ${syCanEditLinks() ? `<button id="nEditToggle" class="syEditToggle" type="button">EDITAR ENLACES</button>` : ``}
       </div>
@@ -453,7 +477,6 @@ function ensureNotasLayout(){
 
 function renderNotasGenerales(){
   ensureNotasLayout();
-
   const grid = document.getElementById("notasGrid");
   if (!grid) return;
 
@@ -486,12 +509,10 @@ function renderNotasGenerales(){
   });
 
   grid.classList.toggle("syEditGrid", NOTAS_LINK_EDIT_MODE);
-  grid.innerHTML = notasOrdered.map(x => {
-    const dot =
-      x.uni === "AGRARIA" ? getCss("--agraria") :
+  grid.innerHTML = notasOrdered.map(x=>{
+    const dot = x.uni === "AGRARIA" ? getCss("--agraria") :
       x.uni === "ESCOLARES" ? getCss("--schHead_ESC") :
-      x.uni === "PUCP" ? getCss("--pucp") :
-      getCss("--ulima");
+      x.uni === "PUCP" ? getCss("--pucp") : getCss("--ulima");
     const url = notasRepoGetLink(st, x.id, x.url);
     const hasUrl = !!url;
     const editing = syCanEditLinks() && NOTAS_LINK_EDIT_MODE;
@@ -521,14 +542,16 @@ function renderNotasGenerales(){
   }).join("");
   bindNotasEditors();
 }
-
-
-function ensureMaterialesLayout(){''',
-    "reemplazo completo NOTAS GENERALES editable",
+''',
+    "editor de enlaces de NOTAS GENERALES",
     flags=re.S,
+    already="function notasRepoGetLink(st, id, fallback)",
 )
 
-# Validaciones de contenido solicitadas.
+
+# -----------------------------------------------------------------------------
+# Validaciones finales
+# -----------------------------------------------------------------------------
 required = [
     'name:"ESC U.LIMA"',
     'name:"ESC PUCP"',
@@ -537,6 +560,7 @@ required = [
     'uni:"ESCOLARES U.LIMA"',
     'VER REPORTES',
     'NOTAS_LINK_EDIT_MODE',
+    'function notasRepoGetLink',
     'LIMPIAR2026',
 ]
 for needle in required:
@@ -549,14 +573,16 @@ if re.search(r'\{\s*local:"SAN BORJA",\s*name:"ESCOLAR"', text):
 if text == original:
     raise RuntimeError("No se aplicó ningún cambio")
 
-PATH.write_text(text, encoding="utf-8")
+HTML_PATH.write_text(text, encoding="utf-8")
+shutil.copyfile(HTML_PATH, TXT_PATH)
 print(f"index.html actualizado: {len(original)} -> {len(text)} caracteres")
+print(f"TXT generado: {TXT_PATH}")
 
-# Validación de sintaxis JavaScript de todos los bloques inline.
+# Validación de sintaxis JavaScript de los bloques inline.
 blocks = re.findall(r'<script(?:\s[^>]*)?>(.*?)</script>', text, flags=re.I | re.S)
 checked = 0
 for idx, block in enumerate(blocks, start=1):
-    if not block.strip() or re.search(r'\bsrc\s*=', re.search(r'<script(?:\s[^>]*)?>', text, flags=re.I).group(0) if False else ""):
+    if not block.strip():
         continue
     tmp = Path(f"/tmp/dashboard-inline-{idx}.js")
     tmp.write_text(block, encoding="utf-8")
