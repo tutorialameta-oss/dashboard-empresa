@@ -1238,26 +1238,6 @@
       pointer-events:none;
       cursor:default;
     }
-    .reportFolderPrimary{
-      min-width:132px;
-      padding:9px 14px;
-      border-color:rgba(164,0,0,.42);
-      background:linear-gradient(180deg,var(--accent),var(--accent2));
-      color:#fff;
-      box-shadow:0 8px 20px rgba(164,0,0,.18);
-    }
-    .reportFolderPrimary:hover{
-      border-color:rgba(164,0,0,.62);
-      background:linear-gradient(180deg,#e01616,var(--accent2));
-      color:#fff;
-      transform:translateY(-1px);
-    }
-    .reportFolderPrimary.disabled{
-      color:#fff;
-      background:linear-gradient(180deg,#b8b8b8,#8f8f8f);
-      border-color:rgba(15,23,42,.16);
-      box-shadow:none;
-    }
     .syLocalHead{
       display:flex;
       align-items:center;
@@ -1334,54 +1314,276 @@
       display:flex;
       align-items:center;
       justify-content:center;
-      padding:22px;
-      background: rgba(15,23,42,0.55);
-      backdrop-filter: blur(6px);
-      z-index: 20000;
+      padding:32px;
+      background:
+        radial-gradient(circle at 15% 15%, rgba(209,11,11,.18), transparent 34%),
+        radial-gradient(circle at 88% 82%, rgba(164,0,0,.14), transparent 30%),
+        linear-gradient(135deg, rgba(15,23,42,.90), rgba(30,41,59,.78));
+      backdrop-filter: blur(10px);
+      z-index:20000;
       pointer-events:auto;
     }
     .authCard{
-      width:min(520px, 96vw);
-      background:#fff;
-      border:1px solid var(--border);
-      border-radius: var(--radius);
-      box-shadow: var(--shadow);
-      padding:18px;
+      width:min(900px, 96vw);
+      min-height:510px;
+      display:grid;
+      grid-template-columns:minmax(290px,.92fr) minmax(390px,1.08fr);
+      overflow:hidden;
+      background:rgba(255,255,255,.98);
+      border:1px solid rgba(255,255,255,.55);
+      border-radius:28px;
+      box-shadow:0 32px 90px rgba(2,6,23,.36);
       pointer-events:auto;
     }
-    .authTitle{ font-weight:950; font-size:16px; margin:0 0 8px 0; text-transform:uppercase; }
-    .authSub{ color:var(--muted); font-weight:800; margin:0 0 14px 0; font-size:12px; }
-    .roleRow{ display:flex; gap:10px; flex-wrap:wrap; margin-bottom:12px; }
-    .roleBtn{
-      flex:1;
-      min-width: 160px;
-      padding:10px 12px;
-      border-radius: 14px;
-      border:1px solid var(--border);
+    .authBrandPanel{
+      position:relative;
+      display:flex;
+      flex-direction:column;
+      justify-content:center;
+      padding:48px 42px;
+      color:#fff;
+      background:linear-gradient(160deg, rgba(164,0,0,.98), rgba(209,11,11,.92));
+      isolation:isolate;
+    }
+    .authBrandPanel::before,.authBrandPanel::after{
+      content:"";
+      position:absolute;
+      border-radius:999px;
+      background:rgba(255,255,255,.10);
+      z-index:-1;
+    }
+    .authBrandPanel::before{ width:260px; height:260px; right:-120px; top:-85px; }
+    .authBrandPanel::after{ width:190px; height:190px; left:-90px; bottom:-75px; }
+    .authBrandMark{
+      width:78px;
+      height:78px;
+      display:grid;
+      place-items:center;
+      margin-bottom:24px;
+      border-radius:22px;
       background:#fff;
+      box-shadow:0 18px 38px rgba(67,0,0,.25);
+    }
+    .authBrandMark img{
+      width:62px;
+      height:62px;
+      object-fit:contain;
+      border-radius:15px;
+    }
+    .authEyebrow{
+      margin-bottom:10px;
+      font-size:11px;
+      font-weight:950;
+      letter-spacing:1.6px;
+      text-transform:uppercase;
+      opacity:.78;
+    }
+    .authBrandPanel h1{
+      margin:0;
+      font-size:34px;
+      line-height:1;
+      font-weight:1000;
+      letter-spacing:.4px;
+    }
+    .authBrandPanel > p{
+      margin:16px 0 26px;
+      max-width:330px;
+      color:rgba(255,255,255,.82);
+      font-size:13px;
+      line-height:1.6;
+      font-weight:750;
+    }
+    .authFeatureList{ display:grid; gap:12px; }
+    .authFeature{
+      display:flex;
+      align-items:center;
+      gap:11px;
+      font-size:12px;
+      font-weight:900;
+    }
+    .authFeatureDot{
+      width:9px;
+      height:9px;
+      flex:0 0 auto;
+      border-radius:999px;
+      background:#fff;
+      box-shadow:0 0 0 5px rgba(255,255,255,.13);
+    }
+    .authFormPanel{
+      display:flex;
+      flex-direction:column;
+      justify-content:center;
+      padding:48px 52px;
+      background:
+        radial-gradient(circle at 100% 0%, rgba(209,11,11,.06), transparent 34%),
+        #fff;
+    }
+    .authStatus{
+      display:inline-flex;
+      align-items:center;
+      align-self:flex-start;
+      gap:8px;
+      margin-bottom:16px;
+      padding:7px 10px;
+      border:1px solid rgba(22,163,74,.18);
+      border-radius:999px;
+      background:rgba(22,163,74,.07);
+      color:#15803d;
+      font-size:10px;
+      font-weight:950;
+      letter-spacing:.6px;
+      text-transform:uppercase;
+    }
+    .authStatus::before{
+      content:"";
+      width:8px;
+      height:8px;
+      border-radius:999px;
+      background:#22c55e;
+      box-shadow:0 0 0 4px rgba(34,197,94,.12);
+    }
+    .authTitle{
+      margin:0 0 8px;
+      color:var(--text);
+      font-size:27px;
+      line-height:1.12;
+      font-weight:1000;
+      letter-spacing:-.35px;
+    }
+    .authSub{
+      margin:0 0 25px;
+      color:var(--muted);
+      font-size:13px;
+      line-height:1.55;
+      font-weight:750;
+    }
+    .authRoleLabel{
+      margin-bottom:9px;
+      color:#475569;
+      font-size:11px;
+      font-weight:950;
+      letter-spacing:.55px;
+      text-transform:uppercase;
+    }
+    .roleRow{
+      display:grid;
+      grid-template-columns:repeat(3,1fr);
+      gap:9px;
+      margin-bottom:18px;
+    }
+    .roleBtn{
+      min-width:0;
+      padding:12px 9px;
+      border:1px solid rgba(15,23,42,.11);
+      border-radius:13px;
+      background:#fff;
+      color:#334155;
+      font-size:11px;
       font-weight:950;
       cursor:pointer;
+      transition:.18s ease;
     }
-    .roleBtn.active{ border-color: var(--accent); box-shadow: 0 0 0 3px rgba(209,11,11,0.15); }
-    .authRow{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+    .roleBtn:hover{
+      border-color:rgba(209,11,11,.28);
+      background:rgba(209,11,11,.045);
+      color:var(--accent2);
+      transform:translateY(-1px);
+    }
+    .roleBtn.active{
+      border-color:rgba(209,11,11,.58);
+      background:linear-gradient(180deg,#fff,rgba(209,11,11,.07));
+      color:var(--accent2);
+      box-shadow:0 0 0 3px rgba(209,11,11,.10);
+    }
+    .authFields{ display:grid; gap:11px; }
+    .authRow{
+      display:flex;
+      gap:10px;
+      align-items:stretch;
+      flex-wrap:nowrap;
+    }
     .authRow input{
+      width:100%;
+      min-width:0;
       flex:1;
-      padding:10px 12px;
-      border-radius: 14px;
-      border:1px solid var(--border);
+      padding:13px 14px;
+      border:1px solid rgba(15,23,42,.12);
+      border-radius:13px;
+      background:#fff;
+      color:var(--text);
+      font-size:12px;
       font-weight:850;
       outline:none;
+      transition:.18s ease;
+    }
+    .authRow input:focus{
+      border-color:rgba(209,11,11,.48);
+      box-shadow:0 0 0 4px rgba(209,11,11,.08);
     }
     .authRow button{
-      padding:10px 12px;
-      border-radius: 14px;
-      border:1px solid var(--border);
-      background: linear-gradient(90deg,var(--accent2),var(--accent));
+      min-width:112px;
+      padding:13px 18px;
+      border:1px solid rgba(164,0,0,.35);
+      border-radius:13px;
+      background:linear-gradient(135deg,var(--accent2),var(--accent));
       color:#fff;
-      font-weight:950;
+      font-size:11px;
+      font-weight:1000;
+      letter-spacing:.35px;
       cursor:pointer;
+      box-shadow:0 12px 24px rgba(164,0,0,.18);
+      transition:.18s ease;
     }
-    .authErr{ margin-top:10px; color: var(--bad); font-weight:900; font-size:12px; display:none; }
+    .authRow button:hover{
+      filter:brightness(1.04);
+      transform:translateY(-1px);
+      box-shadow:0 15px 28px rgba(164,0,0,.24);
+    }
+    .authSecure{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      margin-top:16px;
+      color:#64748b;
+      font-size:10px;
+      line-height:1.45;
+      font-weight:800;
+    }
+    .authSecureIcon{
+      width:23px;
+      height:23px;
+      display:grid;
+      place-items:center;
+      flex:0 0 auto;
+      border-radius:8px;
+      background:rgba(15,23,42,.055);
+      color:#475569;
+      font-size:12px;
+    }
+    .authErr{
+      margin-top:11px;
+      padding:10px 12px;
+      border:1px solid rgba(220,38,38,.18);
+      border-radius:11px;
+      background:rgba(220,38,38,.06);
+      color:var(--bad);
+      font-size:11px;
+      font-weight:900;
+      display:none;
+    }
+    @media (max-width:760px){
+      .authOverlay{ padding:16px; align-items:flex-start; overflow:auto; }
+      .authCard{ grid-template-columns:1fr; min-height:0; margin:auto 0; }
+      .authBrandPanel{ padding:28px 26px; }
+      .authBrandPanel > p,.authFeatureList{ display:none; }
+      .authBrandMark{ width:62px; height:62px; margin-bottom:17px; }
+      .authBrandMark img{ width:50px; height:50px; }
+      .authBrandPanel h1{ font-size:27px; }
+      .authFormPanel{ padding:30px 25px; }
+      .roleRow{ grid-template-columns:1fr; }
+      .authRow{ flex-direction:column; }
+      .authRow button{ width:100%; }
+    }
 
     .userBox{
       margin-top:14px;
@@ -3272,25 +3474,49 @@
   <!-- ===================== ACCESO (ADMIN / TUTOR) ===================== -->
   <div id="authOverlay" class="authOverlay">
     <div class="authCard">
-      <p class="authTitle">ACCESO AL PANEL</p>
-      <p class="authSub">Seleccione su tipo de acceso. Si es alumno, use su USUARIO y CONTRASEÑA de matrícula.</p>
+      <section class="authBrandPanel" aria-label="Presentación institucional">
+        <div class="authBrandMark">
+          <img src="logo.png" alt="LA META" onerror="this.style.display='none'"/>
+        </div>
+        <div class="authEyebrow">PLATAFORMA DE GESTIÓN ACADÉMICA</div>
+        <h1>LA META</h1>
+        <p>Control centralizado de alumnos, sedes, horarios, materiales y reportes académicos.</p>
+        <div class="authFeatureList">
+          <div class="authFeature"><span class="authFeatureDot"></span>Información organizada por sede y programa</div>
+          <div class="authFeature"><span class="authFeatureDot"></span>Accesos diferenciados por perfil</div>
+          <div class="authFeature"><span class="authFeatureDot"></span>Actualización y consulta en un solo panel</div>
+        </div>
+      </section>
 
-      <div class="roleRow">
-        <button id="roleAdmin" class="roleBtn" type="button">ADMIN</button>
-        <button id="roleTutor" class="roleBtn" type="button">TUTOR</button>
-        <button id="roleAlumno" class="roleBtn" type="button">ALUMNO</button>
-      </div>
+      <section class="authFormPanel">
+        <div class="authStatus">ACCESO SEGURO</div>
+        <p class="authTitle">Bienvenido al panel</p>
+        <p class="authSub">Selecciona tu perfil e ingresa las credenciales correspondientes.</p>
 
-      <div class="authRow" id="authUserRow" style="display:none;">
-        <input id="authUser" type="text" placeholder="Usuario" autocomplete="username" />
-      </div>
+        <div class="authRoleLabel">Tipo de acceso</div>
+        <div class="roleRow">
+          <button id="roleAdmin" class="roleBtn" type="button">ADMIN</button>
+          <button id="roleTutor" class="roleBtn" type="button">TUTOR</button>
+          <button id="roleAlumno" class="roleBtn" type="button">ALUMNO</button>
+        </div>
 
-      <div class="authRow">
-        <input id="authPass" type="password" placeholder="Clave" autocomplete="current-password" />
-        <button id="btnLogin" type="button">ENTRAR</button>
-      </div>
+        <div class="authFields">
+          <div class="authRow" id="authUserRow" style="display:none;">
+            <input id="authUser" type="text" placeholder="Usuario de matrícula" autocomplete="username" />
+          </div>
 
-      <div id="authErr" class="authErr">Datos incorrectos o rol no seleccionado.</div>
+          <div class="authRow">
+            <input id="authPass" type="password" placeholder="Contraseña" autocomplete="current-password" />
+            <button id="btnLogin" type="button">INGRESAR</button>
+          </div>
+        </div>
+
+        <div id="authErr" class="authErr">Datos incorrectos o rol no seleccionado.</div>
+        <div class="authSecure">
+          <span class="authSecureIcon">✓</span>
+          <span>Las credenciales se utilizan únicamente para validar el acceso al panel.</span>
+        </div>
+      </section>
     </div>
   </div>
 
@@ -3320,7 +3546,7 @@
         <button id="nav_listas">LISTAS</button>
         <button id="nav_reportes">REPORTES</button>
 
-              <button id="nav_notas">NOTAS GENERALES</button>
+              <button id="nav_notas">NOTAS</button>
 
 </div>
 
@@ -3783,7 +4009,8 @@ const SALONES = [
     { local:"SAN MIGUEL", ciclo:"ESCOLAR",  salon:"ESC AGRARIA SM", gid:925828148 },
     { local:"SAN MIGUEL", ciclo:"ESCOLAR",  salon:"ESC U.LIMA SM", gid:1232911274 },
     { local:"SAN MIGUEL", ciclo:"ESCOLAR",  salon:"ESC PUCP SM", gid:908838578 },
-    { local:"SAN BORJA", ciclo:"ESCOLAR",  salon:"ESCOLAR SB", gid:313159348 },
+    { local:"SAN BORJA", ciclo:"ESCOLAR",  salon:"ESCOLAR UL SB", gid:313159348 },
+    { local:"SAN BORJA", ciclo:"ESCOLAR",  salon:"ESCOLAR AG SB", gid:null },
 
   ];
 
@@ -6428,7 +6655,7 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
       materiales: ["MATERIALES", "Accesos a carpetas de materiales por universidad."],
       listas: ["LISTAS", "Listas por salón."],
       reportes: ["REPORTES", "Envío y acceso a carpeta de acumulación de reportes por salón."],
-      notas: ["NOTAS GENERALES", "Accesos rápidos a notas generales por universidad."]
+      notas: ["NOTAS", "Accesos rápidos a hojas de notas por universidad y programa escolar."]
     };
     const title = document.getElementById("viewTitle");
     const desc = document.getElementById("viewDesc");
@@ -7397,12 +7624,27 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
       { name:"LENGUAJE", url:"https://docs.google.com/spreadsheets/d/1-CucKZAZHYKPu3Z2FxZc6iz0hiWpptb2xJh_UwjTi2o/edit?gid=11988891#gid=11988891" },
       { name:"HABILIDAD OPERATIVA", url:"https://docs.google.com/spreadsheets/d/1GrTdfQVKnTjor-e6sso2s1ydN9nh0DbF8uj1VY9ZbVQ/edit?gid=11988891#gid=11988891" },
     ],
-    "ESCOLAR U.LIMA": [
+    "ESCOLARES U.LIMA": [
       { name:"TEXTOS", url:"" },
       { name:"RAZONAMIENTO MATEMÁTICO", url:"" },
       { name:"ÁLGEBRA", url:"" },
       { name:"ARITMÉTICA", url:"" },
       { name:"GEOMETRÍA Y TRIGONOMETRÍA", url:"" },
+    ],
+    "ESCOLARES AGRARIA": [
+      { name:"RAZ. MATEMÁTICO", url:"https://docs.google.com/spreadsheets/d/18p6FOxX2w4DxgG1eVXdAUt9q-56EIfTyYDbEC4J0G9Y/edit?gid=11988891#gid=11988891" },
+      { name:"RAZ. VERBAL", url:"https://docs.google.com/spreadsheets/d/1hSp4h3q_p0lWWYIBD_Zlr08e_JSM57SDi3Ih6Kl790Q/edit" },
+      { name:"TEXTOS", url:"" },
+      { name:"ARITMÉTICA", url:"https://docs.google.com/spreadsheets/d/1QsTH-iYZe7fTl_5KpDVbsvYUrfx_k1EI2NZyhS-jrMc/edit?usp=drive_link" },
+      { name:"ÁLGEBRA", url:"https://docs.google.com/spreadsheets/d/1OvggaurE7NZ0bWwom7zdyFWZNz8d4RC6Rb89fVRBkpw/edit?usp=drive_link" },
+      { name:"GEOMETRÍA", url:"https://docs.google.com/spreadsheets/d/1jAhW0n4DCqK44Kfir4pG5O7XQOuR0UyxoSOjcSdL-I8/edit?usp=drive_link" },
+      { name:"TRIGONOMETRÍA", url:"https://docs.google.com/spreadsheets/d/196t9OpyGDiYFiNqTNmGfH0GAoPzSUxILmM0Yzwp1WOY/edit?usp=drive_link" },
+      { name:"FÍSICA", url:"https://docs.google.com/spreadsheets/d/1SZix5q-IYn1jzGuuY-AXhmNkSInXAVDXXK4_iKF2hg4/edit?usp=drive_link" },
+      { name:"QUÍMICA", url:"https://docs.google.com/spreadsheets/d/168lg1yWf8mlHmXHn6XBlf98s6M5VWeAUDynZM1UjaEg/edit?usp=drive_link" },
+      { name:"BIOLOGÍA", url:"https://docs.google.com/spreadsheets/d/1BamXi4aUPrpt0dk7s0azz1MUGq6rNIphUuklsR7a9DA/edit?usp=drive_link" },
+      { name:"ECONOMÍA", url:"https://docs.google.com/spreadsheets/d/1HO6fhyzqK9nwkCFgzAmVD47IVtYxlv-DxMicuQpL2b0/edit?usp=drive_link" },
+      { name:"HISTORIA", url:"https://docs.google.com/spreadsheets/d/1lMvIMdCwRk0RxQGfopKtcCSGIotVseGLx-_s826LNIs/edit?usp=drive_link" },
+      { name:"GEOGRAFÍA", url:"https://docs.google.com/spreadsheets/d/1UZnm5r-6wGFZv6XmdxjhunIDWnqoKInrz2_9X62p_Fs/edit?usp=drive_link" },
     ],
     "ESCOLARES INTEGRAL": [
       { name:"RAZONAMIENTO VERBAL", url:"https://docs.google.com/spreadsheets/d/1tJA_wAwD74EvMe0z5PM7CVtHnBQHZ6Rcu7OzeTht90I/edit?gid=2060340658#gid=2060340658" },
@@ -7427,7 +7669,7 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
     if (uni==="AGRARIA") return getCss("--agraria");
     if (uni==="U.LIMA") return getCss("--ulima");
     if (uni==="PUCP") return getCss("--pucp");
-    if (uni==="ESCOLAR U.LIMA") return getCss("--schHead_ESC");
+    if (uni==="ESCOLARES U.LIMA" || uni==="ESCOLARES AGRARIA") return getCss("--schHead_ESC");
     if (uni==="ESCOLARES ARS") return getCss("--pucp");
     if (uni==="ESCOLARES" || uni==="ESCOLARES INTEGRAL") return getCss("--schHead_ESC");
     return getCss("--ulima");
@@ -7435,7 +7677,8 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
 
   function silaboUniKey(uniRaw){
     const u = String(uniRaw || "").toUpperCase().trim();
-    if ((u.includes("ESCOLAR") || u.includes("ESCOLARES")) && (u.includes("U.LIMA") || u.includes("ULIMA") || u.includes("U LIMA"))) return "ESCOLAR U.LIMA";
+    if ((u.includes("ESCOLAR") || u.includes("ESCOLARES")) && u.includes("AGRARIA")) return "ESCOLARES AGRARIA";
+    if ((u.includes("ESCOLAR") || u.includes("ESCOLARES")) && (u.includes("U.LIMA") || u.includes("ULIMA") || u.includes("U LIMA"))) return "ESCOLARES U.LIMA";
     if (u === "ESCOLARES") return "ESCOLARES INTEGRAL";
     if (u.includes("ESCOLARES ARS") || u.includes("ARS") || u.includes("POP")) return "ESCOLARES ARS";
     if (u.includes("INTEGRAL")) return "ESCOLARES INTEGRAL";
@@ -7453,11 +7696,12 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
 
   function syProgramToRepoUni(value){
     const v = mcNormLabel(value || "");
-    if (v.includes("ESCOLAR") && (v.includes("U.LIMA") || v.includes("ULIMA") || v.includes("U LIMA"))) return "ESCOLAR U.LIMA";
+    if (v.includes("ESCOLAR") && v.includes("AGRARIA")) return "ESCOLARES AGRARIA";
+    if (v.includes("ESCOLAR") && (v.includes("U.LIMA") || v.includes("ULIMA") || v.includes("U LIMA"))) return "ESCOLARES U.LIMA";
     if (v.includes("ARS") || v.includes("POP")) return "ESCOLARES ARS";
     if (v.includes("ESCOLARES") && v.includes("INTEGRAL")) return "ESCOLARES INTEGRAL";
     if (v === "ESCOLARES") return "ESCOLARES INTEGRAL";
-    if (["AGRARIA","U.LIMA","PUCP","ESCOLAR U.LIMA","ESCOLARES INTEGRAL","ESCOLARES ARS"].includes(v)) return v;
+    if (["AGRARIA","U.LIMA","PUCP","ESCOLARES U.LIMA","ESCOLARES AGRARIA","ESCOLARES INTEGRAL","ESCOLARES ARS"].includes(v)) return v;
     return "";
   }
 
@@ -7642,7 +7886,8 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
           <span class="pill"><span class="dot agraria"></span>AGRARIA</span>
           <span class="pill"><span class="dot ulima"></span>U.LIMA</span>
           <span class="pill"><span class="dot pucp"></span>PUCP</span>
-          <span class="pill"><span class="dot escolares"></span>ESCOLAR U.LIMA</span>
+          <span class="pill"><span class="dot escolares"></span>ESCOLARES U.LIMA</span>
+          <span class="pill"><span class="dot escolares"></span>ESCOLARES AGRARIA</span>
           <span class="pill"><span class="dot escolares"></span>ESCOLARES INTEGRAL</span>
           <span class="pill"><span class="dot pucp"></span>ESCOLARES ARS</span>
         </div>
@@ -7656,7 +7901,7 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
           <div class="cardtitle" style="margin:0;">RESUMEN GENERAL</div>
           <div class="syKpis">
             <span class="syKpiPill">CURSOS: <b id="sTotal">0</b></span>
-            <span class="syKpiPill">UNIVERSIDADES: <b id="sUnis">6</b></span>
+            <span class="syKpiPill">CATEGORÍAS: <b id="sUnis">7</b></span>
           </div>
         </div>
       </div>
@@ -7664,7 +7909,7 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
       <div class="panel12" id="sBlocks"></div>
     `;
 
-    fillSelectKeep("sUni", ["AGRARIA","U.LIMA","PUCP","ESCOLAR U.LIMA","ESCOLARES INTEGRAL","ESCOLARES ARS"], "UNIVERSIDAD: TODAS");
+    fillSelectKeep("sUni", ["AGRARIA","U.LIMA","PUCP","ESCOLARES U.LIMA","ESCOLARES AGRARIA","ESCOLARES INTEGRAL","ESCOLARES ARS"], "CATEGORÍA: TODAS");
 
     document.getElementById("sReset").addEventListener("click", ()=>{
       document.getElementById("sUni").value="__ALL__";
@@ -8555,17 +8800,12 @@ function materialesRootSetLink(st, uni, url){
 
 // ===================== NOTAS GENERALES (NUEVO) =====================
 const NOTAS_GENERALES = [
-  // ✅ PUCP
-  { id:"PUCP",   uni:"PUCP",   label:"NOTAS GENERALES PUCP",   url:"https://docs.google.com/spreadsheets/d/1ocBp2agEOpgkmveUJkFDmDjMvf6Zp4kPlXtfMlPmgY0/edit?usp=drive_link" },
-
-  // ✅ U.LIMA
-  { id:"ULIMA",  uni:"U.LIMA", label:"NOTAS GENERALES U.LIMA", url:"https://docs.google.com/spreadsheets/d/1jHx33yKbl9LFVbX9fB7pacnvhF7UmTbd9Z5t8qyPfWM/edit?usp=drive_link" },
-
-  // ⏳ AGRARIA (pendiente: cuando exista, pega aquí el enlace)
-  { id:"AGRARIA", uni:"AGRARIA", label:"NOTAS GENERALES AGRARIA", url:"https://docs.google.com/spreadsheets/d/1q5PWgltXQBVcwQpwFqvkxtjGKP8HDlfWzZFs8zByFCo/edit?usp=drive_link" },
-
-  // ✅ ESCOLARES
-  { id:"ESCOLARES", uni:"ESCOLARES", label:"NOTAS GENERALES ESCOLARES", url:"https://docs.google.com/spreadsheets/d/1Aa5MiVY85fDbU2M_OYynooBHwgf0fqXelAiVvf4N2DY/edit?usp=drive_link" },
+  { id:"AGRARIA", uni:"AGRARIA", label:"NOTAS AGRARIA", url:"https://docs.google.com/spreadsheets/d/1q5PWgltXQBVcwQpwFqvkxtjGKP8HDlfWzZFs8zByFCo/edit?usp=drive_link" },
+  { id:"ULIMA", uni:"U.LIMA", label:"NOTAS U.LIMA", url:"https://docs.google.com/spreadsheets/d/1jHx33yKbl9LFVbX9fB7pacnvhF7UmTbd9Z5t8qyPfWM/edit?usp=drive_link" },
+  { id:"PUCP", uni:"PUCP", label:"NOTAS PUCP", url:"https://docs.google.com/spreadsheets/d/1ocBp2agEOpgkmveUJkFDmDjMvf6Zp4kPlXtfMlPmgY0/edit?usp=drive_link" },
+  { id:"ESCOLARES", uni:"ESCOLARES", label:"NOTAS ESCOLARES", url:"https://docs.google.com/spreadsheets/d/1Aa5MiVY85fDbU2M_OYynooBHwgf0fqXelAiVvf4N2DY/edit?usp=drive_link" },
+  { id:"ESCOLARES_ULIMA", uni:"ESCOLARES U.LIMA", label:"NOTAS ESCOLARES U.LIMA", url:"" },
+  { id:"ESCOLARES_PUCP", uni:"ESCOLARES PUCP", label:"NOTAS ESCOLARES PUCP", url:"" },
 ];
 
 function notasRepoGetLink(st, id, fallback){
@@ -8616,8 +8856,8 @@ function ensureNotasLayout(){
     <div class="card panel12">
       <div class="syLocalHead" style="margin-bottom:10px;">
         <div>
-          <div class="cardtitle" style="margin:0;">NOTAS GENERALES</div>
-          <div style="color:var(--muted); font-weight:900; margin-top:6px;">Acceso directo a las hojas de notas por categoría.</div>
+          <div class="cardtitle" style="margin:0;">NOTAS</div>
+          <div style="color:var(--muted); font-weight:900; margin-top:6px;">Acceso directo a las hojas de notas por universidad y programa escolar.</div>
         </div>
         ${syCanEditLinks() ? `<button id="nEditToggle" class="syEditToggle" type="button">EDITAR ENLACES</button>` : ``}
       </div>
@@ -8655,11 +8895,13 @@ function renderNotasGenerales(){
   const st = mcLoadStore();
   const notasOrdered = NOTAS_GENERALES.slice().sort((a,b)=>{
     const rank = (u)=>{
-      const t = String(u||"").toUpperCase();
-      if (t.includes("AGRARIA")) return 0;
-      if (t.includes("U.LIMA") || t.includes("ULIMA")) return 1;
-      if (t.includes("PUCP")) return 2;
-      if (t.includes("ESCOLAR")) return 3;
+      const t = String(u||"").toUpperCase().replace(/\s+/g," ").trim();
+      if (t === "AGRARIA") return 0;
+      if (t === "U.LIMA" || t === "ULIMA") return 1;
+      if (t === "PUCP") return 2;
+      if (t === "ESCOLARES") return 3;
+      if (t.includes("ESCOLAR") && (t.includes("U.LIMA") || t.includes("ULIMA"))) return 4;
+      if (t.includes("ESCOLAR") && t.includes("PUCP")) return 5;
       return 9;
     };
     const ra = rank(a.uni);
@@ -8671,7 +8913,7 @@ function renderNotasGenerales(){
   grid.classList.toggle("syEditGrid", NOTAS_LINK_EDIT_MODE);
   grid.innerHTML = notasOrdered.map(x=>{
     const dot = x.uni === "AGRARIA" ? getCss("--agraria") :
-      x.uni === "ESCOLARES" ? getCss("--schHead_ESC") :
+      String(x.uni || "").toUpperCase().includes("ESCOLAR") ? getCss("--schHead_ESC") :
       x.uni === "PUCP" ? getCss("--pucp") : getCss("--ulima");
     const url = notasRepoGetLink(st, x.id, x.url);
     const hasUrl = !!url;
@@ -11749,8 +11991,8 @@ function renderReportes(){
         : "";
 
       const carBtn = car
-        ? `<a class="syBtn reportFolderPrimary" href="${escapeHtml(car)}" target="_blank" rel="noopener noreferrer">VER REPORTES</a>`
-        : `<span class="syBtn reportFolderPrimary disabled">VER REPORTES</span>`;
+        ? `<a class="syBtn" href="${escapeHtml(car)}" target="_blank" rel="noopener noreferrer">VER REPORTES</a>`
+        : `<span class="syBtn disabled">VER REPORTES</span>`;
 
       return `
         <div class="syItem syDisplayCard${REPORTES_LINK_EDIT_MODE ? " syEditing" : ""}" style="--syAccent:${escapeHtml(meta.dot)};">
@@ -14492,6 +14734,10 @@ if (state.view==="impresiones") renderImpresiones();
 
   // ===================== LOAD DATA MATRÍCULA =====================
     async function loadOneSalon(salon){
+    // Permite registrar una sede pendiente aunque todavía no tenga una hoja/GID propio.
+    if (salon?.gid === null || salon?.gid === undefined || salon?.gid === ""){
+      return { salon, rows:[] };
+    }
     const url = csvUrl(salon.gid) + "&v=" + Date.now();
     const res = await fetch(url, { cache:"no-store" });
     if (!res.ok) throw new Error(`HTTP ${res.status} (${salon.local} / ${salon.ciclo} / ${salon.salon})`);
