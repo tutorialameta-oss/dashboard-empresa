@@ -3595,6 +3595,12 @@ if (btnSil) btnSil.style.display = "";
   }
 
   function initAuth(){
+    const overlay = document.getElementById("authOverlay");
+    if (overlay?.dataset.authInitialized === "1"){
+      return !!loadRole();
+    }
+    if (overlay) overlay.dataset.authInitialized = "1";
+
     const saved = loadRole();
     if (saved){
       CURRENT_ROLE = saved;
@@ -3711,7 +3717,6 @@ if (btnSil) btnSil.style.display = "";
     if (pass) pass.addEventListener("keydown", (e)=>{ if (e.key === "Enter") doLogin(); });
     if (user) user.addEventListener("keydown", (e)=>{ if (e.key === "Enter") doLogin(); });
 
-    const overlay = document.getElementById("authOverlay");
     if (overlay && !overlay.dataset.authDelegated){
       overlay.dataset.authDelegated = "1";
       overlay.addEventListener("click", (ev)=>{
@@ -3728,6 +3733,30 @@ if (btnSil) btnSil.style.display = "";
     pick("admin");
     return false;
   }
+
+  // Registrar el acceso inmediatamente, antes de inicializar los módulos del
+  // dashboard. Así un error posterior de Programa, Horarios o Materiales no
+  // puede dejar los botones de rol sin eventos.
+  function bootstrapDashboard(){
+    const overlay = document.getElementById("authOverlay");
+    if (overlay?.dataset.dashboardBootstrapped === "1") return;
+    if (overlay) overlay.dataset.dashboardBootstrapped = "1";
+
+    const hasSession = initAuth();
+    if (!hasSession){
+      const observer = new MutationObserver(() => {
+        if (overlay && overlay.style.display === "none"){
+          observer.disconnect();
+          startApp();
+        }
+      });
+      observer.observe(overlay || document.body, { attributes:true, attributeFilter:["style"] });
+      return;
+    }
+    startApp();
+  }
+
+  window.addEventListener("DOMContentLoaded", bootstrapDashboard);
 
 const SALONES = [
     { local:"LA MOLINA", ciclo:"AGRARIA",  salon:"AGRARIA LM 1", gid:818929525 },
@@ -14467,28 +14496,6 @@ function startApp(){
   setInterval(loadAll, AUTO_REFRESH_MS);
 }
 
-// ✅ Arranque: lo antes posible (para reducir flash)
-window.addEventListener("DOMContentLoaded", () => {
-  // 1) Auth primero
-  const hasSession = initAuth();
-
-  // 2) Si no hay sesión, esperar a que el usuario inicie (overlay)
-  //    (La app se inicia cuando el overlay se oculta tras login)
-  if (!hasSession){
-    // Al primer login exitoso se ejecutará esto automáticamente:
-    const observer = new MutationObserver(() => {
-      const o = document.getElementById("authOverlay");
-      if (o && o.style.display === "none"){
-        observer.disconnect();
-        startApp();
-      }
-    });
-    observer.observe(document.body, { attributes:true, childList:false, subtree:true });
-    return;
-  }
-
-  // 3) Sesión existente: iniciar app
-  startApp();
-});</script>
+</script>
 </body>
 </html>
