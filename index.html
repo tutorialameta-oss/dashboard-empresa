@@ -8518,16 +8518,21 @@ function materialesRootSetLink(st, uni, url){
 // ===================== NOTAS GENERALES (NUEVO) =====================
 const NOTAS_GENERALES = [
   // ✅ PUCP
-  { id:"PUCP",   uni:"PUCP",   label:"NOTAS GENERALES PUCP",   url:"https://docs.google.com/spreadsheets/d/1ocBp2agEOpgkmveUJkFDmDjMvf6Zp4kPlXtfMlPmgY0/edit?usp=drive_link" },
+  { id:"PUCP",   uni:"PUCP",   label:"NOTAS PUCP",   url:"https://docs.google.com/spreadsheets/d/1ocBp2agEOpgkmveUJkFDmDjMvf6Zp4kPlXtfMlPmgY0/edit?usp=drive_link" },
 
   // ✅ U.LIMA
-  { id:"ULIMA",  uni:"U.LIMA", label:"NOTAS GENERALES U.LIMA", url:"https://docs.google.com/spreadsheets/d/1jHx33yKbl9LFVbX9fB7pacnvhF7UmTbd9Z5t8qyPfWM/edit?usp=drive_link" },
+  { id:"ULIMA",  uni:"U.LIMA", label:"NOTAS U.LIMA", url:"https://docs.google.com/spreadsheets/d/1jHx33yKbl9LFVbX9fB7pacnvhF7UmTbd9Z5t8qyPfWM/edit?usp=drive_link" },
 
   // ⏳ AGRARIA (pendiente: cuando exista, pega aquí el enlace)
-  { id:"AGRARIA", uni:"AGRARIA", label:"NOTAS GENERALES AGRARIA", url:"https://docs.google.com/spreadsheets/d/1q5PWgltXQBVcwQpwFqvkxtjGKP8HDlfWzZFs8zByFCo/edit?usp=drive_link" },
+  { id:"AGRARIA", uni:"AGRARIA", label:"NOTAS AGRARIA", url:"https://docs.google.com/spreadsheets/d/1q5PWgltXQBVcwQpwFqvkxtjGKP8HDlfWzZFs8zByFCo/edit?usp=drive_link" },
 
-  // ✅ ESCOLARES
-  { id:"ESCOLARES", uni:"ESCOLARES", label:"NOTAS GENERALES ESCOLARES", url:"https://docs.google.com/spreadsheets/d/1Aa5MiVY85fDbU2M_OYynooBHwgf0fqXelAiVvf4N2DY/edit?usp=drive_link" },
+  // ⏳ ESCOLARES POR CICLO (enlaces configurables desde EDITAR ENLACES)
+  { id:"ESCOLARES_AGRARIA", uni:"ESCOLARES AGRARIA", label:"NOTAS ESCOLARES AGRARIA", url:"" },
+  { id:"ESCOLARES_ULIMA", uni:"ESCOLARES U.LIMA", label:"NOTAS ESCOLARES U.LIMA", url:"" },
+  { id:"ESCOLARES_PUCP", uni:"ESCOLARES PUCP", label:"NOTAS ESCOLARES PUCP", url:"" },
+
+  // ✅ ESCOLARES GENERAL: se mantiene después de los tres ciclos escolares
+  { id:"ESCOLARES", uni:"ESCOLARES", label:"NOTAS ESCOLARES", url:"https://docs.google.com/spreadsheets/d/1Aa5MiVY85fDbU2M_OYynooBHwgf0fqXelAiVvf4N2DY/edit?usp=drive_link" },
 ];
 const NOTAS_LINKS_KEY = "LM_NOTAS_GENERALES_LINKS_V1";
 const NOTAS_EDIT_KEY = "LM_NOTAS_GENERALES_EDIT_V1";
@@ -8572,17 +8577,10 @@ function renderNotasGenerales(){
   const editBtn = document.getElementById("notasEdit");
   if (editBtn) editBtn.textContent = editOn ? "SALIR DE EDICIÓN" : "EDITAR ENLACES";
 
+  const notasOrder = ["AGRARIA","ULIMA","PUCP","ESCOLARES_AGRARIA","ESCOLARES_ULIMA","ESCOLARES_PUCP","ESCOLARES"];
   const notasOrdered = NOTAS_GENERALES.slice().sort((a,b)=>{
-    const rank = (u)=>{
-      const t = String(u||"").toUpperCase();
-      if (t.includes("AGRARIA")) return 0;
-      if (t.includes("U.LIMA") || t.includes("ULIMA")) return 1;
-      if (t.includes("PUCP")) return 2;
-      if (t.includes("ESCOLAR")) return 3;
-      return 9;
-    };
-    const ra = rank(a.uni);
-    const rb = rank(b.uni);
+    const ra = notasOrder.indexOf(a.id);
+    const rb = notasOrder.indexOf(b.id);
     if (ra !== rb) return ra - rb;
     return String(a.label||"").localeCompare(String(b.label||""), "es");
   });
@@ -8590,12 +8588,24 @@ function renderNotasGenerales(){
   grid.innerHTML = notasOrdered.map(x => {
     const dot =
       x.uni === "AGRARIA" ? getCss("--agraria") :
-      x.uni === "ESCOLARES" ? getCss("--schHead_ESC") :
+      x.uni.includes("ESCOLARES") ? getCss("--schHead_ESC") :
       x.uni === "PUCP"    ? getCss("--pucp") :
                             getCss("--ulima");
 
     const url = String(overrides[x.id] ?? x.url ?? "").trim();
     if (editOn){
+      return `
+        <div class="iItem" style="align-items:flex-start; gap:12px;">
+          <div class="iLeft" style="flex:1; min-width:0;">
+            <div class="iSalon">${escapeHtml(x.label)}</div>
+            <div class="iMeta"><span class="dot" style="background:${dot};"></span><span>${escapeHtml(x.uni)}</span></div>
+            <input class="notasLinkInput" data-nota-id="${escapeHtml(x.id)}" value="${escapeHtml(url)}" placeholder="Pega el enlace de notas" style="width:100%; min-width:0; margin-top:8px;"/>
+          </div>
+          <button class="btn ghost notasLinkSave" data-nota-id="${escapeHtml(x.id)}" type="button">GUARDAR</button>
+        </div>
+      `;
+    }
+    if (url){
       return `
         <div class="iItem" style="align-items:flex-start; gap:12px;">
           <div class="iLeft" style="flex:1; min-width:0;">
@@ -11268,6 +11278,9 @@ function renderReportes(){
       const car = reporteRepoGet(st, it.local, it.name, "carpeta", it.carpeta);
       const safeLocal = escapeHtml(it.local);
       const safeName = escapeHtml(it.name);
+
+      const rep = (it.reporte && String(it.reporte).trim()) ? String(it.reporte).trim() : "";
+      const car = (it.carpeta && String(it.carpeta).trim()) ? String(it.carpeta).trim() : "";
 
       const repBtn = CURRENT_ROLE === "admin" && rep
         ? `<a class="syBtn" href="${escapeHtml(rep)}" target="_blank" rel="noopener noreferrer">REPORTE</a>`
