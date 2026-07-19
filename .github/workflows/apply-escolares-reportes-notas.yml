@@ -1,0 +1,42 @@
+name: Aplicar mejoras escolares reportes y notas
+
+on:
+  push:
+    branches:
+      - codex/escolares-reportes-notas-20260719
+    paths:
+      - tools/apply_escolares_reportes_notas.py
+      - .github/workflows/apply-escolares-reportes-notas.yml
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Descargar repositorio
+        uses: actions/checkout@v4
+        with:
+          ref: codex/escolares-reportes-notas-20260719
+          fetch-depth: 0
+
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Aplicar cambios y validar
+        run: python tools/apply_escolares_reportes_notas.py
+
+      - name: Confirmar cambios
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html
+          if git diff --cached --quiet; then
+            echo "No hubo cambios para confirmar."
+            exit 0
+          fi
+          git commit -m "Mejorar escolares, reportes y notas generales"
+          git push origin HEAD:codex/escolares-reportes-notas-20260719

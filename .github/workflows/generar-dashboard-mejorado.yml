@@ -1,0 +1,35 @@
+name: Publicar dashboard mejorado
+
+on:
+  push:
+    branches:
+      - codex/escolares-reportes-notas-20260719
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  publicar:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Descargar rama de trabajo
+        uses: actions/checkout@v4
+        with:
+          ref: codex/escolares-reportes-notas-20260719
+
+      - name: Verificar archivo final
+        run: |
+          test -s dashboard_con_mejoras_escolares_reportes_notas.txt
+          grep -q 'VER REPORTES' dashboard_con_mejoras_escolares_reportes_notas.txt
+          grep -q 'ESCOLAR U.LIMA' dashboard_con_mejoras_escolares_reportes_notas.txt
+          grep -q 'NOTAS_LINK_EDIT_MODE' dashboard_con_mejoras_escolares_reportes_notas.txt
+
+      - name: Publicar TXT final
+        uses: actions/upload-artifact@v4
+        with:
+          name: dashboard-con-mejoras
+          path: dashboard_con_mejoras_escolares_reportes_notas.txt
+          if-no-files-found: error
