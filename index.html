@@ -3256,9 +3256,9 @@
       <p class="authSub">Seleccione su tipo de acceso. Si es alumno, use su USUARIO y CONTRASEÑA de matrícula.</p>
 
       <div class="roleRow">
-        <button id="roleAdmin" class="roleBtn" type="button">ADMIN</button>
-        <button id="roleTutor" class="roleBtn" type="button">TUTOR</button>
-        <button id="roleAlumno" class="roleBtn" type="button">ALUMNO</button>
+        <button id="roleAdmin" class="roleBtn active" type="button" onclick="authRoleFallback('admin')">ADMIN</button>
+        <button id="roleTutor" class="roleBtn" type="button" onclick="authRoleFallback('tutor')">TUTOR</button>
+        <button id="roleAlumno" class="roleBtn" type="button" onclick="authRoleFallback('alumno')">ALUMNO</button>
       </div>
 
       <div class="authRow" id="authUserRow" style="display:none;">
@@ -3267,12 +3267,48 @@
 
       <div class="authRow">
         <input id="authPass" type="password" placeholder="Clave" autocomplete="current-password" />
-        <button id="btnLogin" type="button">ENTRAR</button>
+        <button id="btnLogin" type="button" onclick="authLoginFallback()">ENTRAR</button>
       </div>
 
       <div id="authErr" class="authErr">Datos incorrectos o rol no seleccionado.</div>
     </div>
   </div>
+
+  <!-- Acceso mínimo independiente del script principal. Los onclick permiten
+       seleccionar e ingresar incluso si otro módulo falla al inicializarse. -->
+  <script>
+    var AUTH_FALLBACK_ROLE = "admin";
+    function authRoleFallback(role){
+      AUTH_FALLBACK_ROLE = role;
+      var admin = document.getElementById("roleAdmin");
+      var tutor = document.getElementById("roleTutor");
+      var alumno = document.getElementById("roleAlumno");
+      var userRow = document.getElementById("authUserRow");
+      var pass = document.getElementById("authPass");
+      if (admin) admin.classList.toggle("active", role === "admin");
+      if (tutor) tutor.classList.toggle("active", role === "tutor");
+      if (alumno) alumno.classList.toggle("active", role === "alumno");
+      if (userRow) userRow.style.display = role === "alumno" ? "" : "none";
+      if (pass) pass.placeholder = role === "alumno" ? "Contraseña" : "Clave";
+    }
+    function authLoginFallback(){
+      if (AUTH_FALLBACK_ROLE === "alumno") return;
+      var pass = document.getElementById("authPass");
+      var err = document.getElementById("authErr");
+      var value = pass ? String(pass.value || "") : "";
+      var valid = (AUTH_FALLBACK_ROLE === "admin" && value === "202619") ||
+                  (AUTH_FALLBACK_ROLE === "tutor" && value === "MBMLaMeta");
+      if (!valid){
+        if (err){ err.textContent = "Clave incorrecta."; err.style.display = "block"; }
+        return;
+      }
+      try { localStorage.setItem("lameta_role", AUTH_FALLBACK_ROLE); } catch(e){}
+      var overlay = document.getElementById("authOverlay");
+      var app = document.getElementById("appShell");
+      if (overlay) overlay.style.display = "none";
+      if (app) app.style.display = "grid";
+    }
+  </script>
 
   <div id="appShell" class="app" style="display:none;">
     <aside class="sidebar">
