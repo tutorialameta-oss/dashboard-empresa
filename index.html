@@ -3648,7 +3648,7 @@
   // ⚠️ CAMBIA ESTAS CLAVES AQUÍ
   const AUTH_ADMIN_PASS = "202619";
   const AUTH_TUTOR_PASS = "MBMLaMeta";
-  const APP_BUILD = "2026-06-14-escolares-ars-san-miguel-columna-b-formato-restaurado-v6";
+  const APP_BUILD = "2026-07-20-listas-fuente-unica-impresiones-sin-duplicados-v1";
 
   const ROLE_KEY = "lameta_role";
   const STUDENT_USER_KEY = "lameta_student_user";
@@ -3738,7 +3738,8 @@
     const p = norm(pass);
     if (!u || !p) return null;
 
-    const results = await Promise.allSettled(SALONES.map(loadOneSalon));
+    const fuentesLista = syncSalonesFromListas();
+    const results = await Promise.allSettled(fuentesLista.map(loadOneSalon));
     for (const r of results){
       if (r.status !== "fulfilled") continue;
       const rows = r.value?.rows || [];
@@ -4006,44 +4007,7 @@ if (btnSil) btnSil.style.display = "";
     return false;
   }
 
-const SALONES = [
-    { local:"LA MOLINA", ciclo:"AGRARIA",  salon:"AGRARIA LM 1", gid:818929525 },
-    { local:"LA MOLINA", ciclo:"AGRARIA",  salon:"AGRARIA LM 2", gid:1323349050 },
-    { local:"LA MOLINA", ciclo:"PUCP",     salon:"PUCP LM",     gid:876641694 },
-    { local:"LA MOLINA", ciclo:"U.LIMA",   salon:"U.LIMA LM",   gid:479676259 },
-    { local:"LA MOLINA", ciclo:"U.LIMA",   salon:"PRE U.LIMA LM", gid:916203735 },
-   // { local:"LA MOLINA", ciclo:"ADELANTO", salon:"ADELANTO LM", gid:1271606284 },
-  //  { local:"LA MOLINA", ciclo:"PARALELO", salon:"PARALELO LM", gid:1863430245 },
-
-    { local:"SAN BORJA", ciclo:"AGRARIA", salon:"AGRARIA SB",  gid:1870866968 },
-    { local:"SAN BORJA", ciclo:"PUCP",    salon:"PUCP SB",     gid:96974048 },
-    { local:"SAN BORJA", ciclo:"U.LIMA",  salon:"U.LIMA SB 1", gid:626603572 },
-    { local:"SAN BORJA", ciclo:"U.LIMA",  salon:"PRE U.LIMA SB", gid:1823590015 },
-   //{ local:"SAN BORJA", ciclo:"U.LIMA",  salon:"U.LIMA SB 2", gid:1856014712 },
-
-    { local:"SAN MIGUEL", ciclo:"AGRARIA",  salon:"AGRARIA SM",  gid:511460041 },
-    { local:"SAN MIGUEL", ciclo:"PUCP",     salon:"PUCP SM",     gid:213782657 },
-    { local:"SAN MIGUEL", ciclo:"U.LIMA",   salon:"U.LIMA SM 1", gid:1004521782 },
-    { local:"SAN MIGUEL", ciclo:"U.LIMA",   salon:"PRE U.LIMA SM", gid:108211310 },
-    //{ local:"SAN MIGUEL", ciclo:"U.LIMA",   salon:"U.LIMA SM 2", gid:679583464 },
-  //  { local:"SAN MIGUEL", ciclo:"ADELANTO", salon:"ADELANTO SM", gid:2120250792 },
-   // { local:"SAN MIGUEL", ciclo:"PARALELO", salon:"PARALELO SM", gid:721468852 },
-
-    { local:"VIRTUAL", ciclo:"AGRARIA",     salon:"AGRARIA VIRTUAL", gid:1850115978 },
-    //{ local:"VIRTUAL", ciclo:"ESC. U.LIMA", salon:"U.LIMA ESCOLAR",  gid:315999969 },
-    { local:"VIRTUAL", ciclo:"U.LIMA",      salon:"U.LIMA VIRTUAL 1",  gid:410241457 },
-    //{ local:"VIRTUAL", ciclo:"U.LIMA",      salon:"U.LIMA VIRTUAL 2",  gid:951960453 },
-
-    { local:"LA MOLINA", ciclo:"ESCOLAR",  salon:"ESC AGRARIA LM", gid:671896523 },
-    { local:"LA MOLINA", ciclo:"ESCOLAR",  salon:"ESC U.LIMA LM", gid:296505417 },
-    { local:"LA MOLINA", ciclo:"ESCOLAR",  salon:"ESC PUCP LM", gid:834587672 },
-    { local:"SAN MIGUEL", ciclo:"ESCOLAR",  salon:"ESC AGRARIA SM", gid:925828148 },
-    { local:"SAN MIGUEL", ciclo:"ESCOLAR",  salon:"ESC U.LIMA SM", gid:1232911274 },
-    { local:"SAN MIGUEL", ciclo:"ESCOLAR",  salon:"ESC PUCP SM", gid:908838578 },
-    { local:"SAN BORJA", ciclo:"ESCOLAR",  salon:"ESCOLAR UL SB", gid:313159348 },
-    { local:"SAN BORJA", ciclo:"ESCOLAR",  salon:"ESCOLAR AG SB", gid:null },
-
-  ];
+let SALONES = []; // Se genera automáticamente desde los enlaces vigentes de la sección LISTAS.
 
   const AUTO_REFRESH_MS = 30000;
 
@@ -7382,6 +7346,28 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
     return { group: 4, label: "OTRO", dot: red, num: red };
   }
 
+  function canonicalImpresionesSalon(rawSalon){
+    const original = norm(rawSalon);
+    const key = original
+      .toUpperCase()
+      .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+      .replace(/[._-]/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+
+    // Etiquetas ambiguas sin universidad no deben crear tarjetas artificiales.
+    if (/^ESCOLAR(?:ES)?$/.test(key)) return "";
+
+    if (/^ESC(?:OLAR|OLARES)?\s+/.test(key)){
+      if (/AGRARIA/.test(key)) return "ESC AGRARIA";
+      if (/PUCP/.test(key)) return "ESC PUCP";
+      if (/U\s*LIMA|ULIMA/.test(key)) return "ESC U.LIMA";
+      return "";
+    }
+
+    return original;
+  }
+
   function parseImpresionesCSV(csvText){
     const lines = csvText.split(/\r?\n/).filter(l=>l.trim().length>0);
     const grid = lines.map(parseCSVLine).map(r=>r.map(norm));
@@ -7419,8 +7405,14 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
         if (up.includes("IMPRESION")) continue; // evita encabezados del estilo "# IMPRESIONES"
         if (up.includes("ADELANTO") || up.includes("PARALELO")) continue; // ya no se usan en IMPRESIONES
 
-        const count = toInt(grid[r][cc.colCount] || "0");
-        out.push({ local: cc.local, salon, count });
+        const rawCount = norm(grid[r][cc.colCount] || "");
+        if (rawCount === "") continue; // No convertir celdas vacías en tarjetas con cero.
+
+        const canonicalSalon = canonicalImpresionesSalon(salon);
+        if (!canonicalSalon) continue;
+
+        const count = toInt(rawCount);
+        out.push({ local: cc.local, salon: canonicalSalon, count });
       }
     }
 
@@ -7432,48 +7424,19 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
     }
     return [...best.values()];
   }
-
-  const MANDATORY_PRE_ULIMA_IMPRESIONES = [
-    { local:"LA MOLINA", salon:"PRE U.LIMA LM", count:0 },
-    { local:"SAN MIGUEL", salon:"PRE U.LIMA SM", count:0 },
-    { local:"SAN BORJA", salon:"PRE U.LIMA SB", count:0 },
-  ];
-
-  function ensurePreUlimaImpresionesRows(rows){
-    const base = Array.isArray(rows) ? rows.slice() : [];
-    for (const item of MANDATORY_PRE_ULIMA_IMPRESIONES){
-      const exists = base.some(r => String(r?.local||"").toUpperCase() === item.local && /PRE\s*U\.?LIMA/.test(String(r?.salon||"").toUpperCase()));
-      if (!exists) base.push({...item});
-    }
-    return base;
-  }
-
-  function ensureEscolaresImpresionesRows(rows){
-    const normalized = (Array.isArray(rows) ? rows : []).map(r=>{
-      const salon = mcNormLabel(String(r?.salon || "")).replace(/\s+/g," ").trim();
-      if (/^ESCOLAR(?:ES)?$/.test(salon)) return {...r, salon:"ESCOLAR U.LIMA"};
-      return {...r};
-    });
-
+  function cleanImpresionesRows(rows){
     const best = new Map();
-    for (const item of normalized){
-      const key = `${String(item?.local||"").toUpperCase()}||${mcNormLabel(String(item?.salon||""))}`;
-      best.set(key, item);
-    }
-    const base = [...best.values()];
 
-    const affectedLocals = uniq(base.filter(r=>{
-      const salon = mcNormLabel(String(r?.salon || "")).replace(/\s+/g," ").trim();
-      return /^ESCOLAR(?:ES)?\s+(?:U\.?LIMA|ULIMA|PUCP)$/.test(salon);
-    }).map(r=>String(r.local||"").toUpperCase()).filter(Boolean));
+    for (const row of (Array.isArray(rows) ? rows : [])){
+      const local = String(row?.local || "").toUpperCase().trim();
+      const salon = canonicalImpresionesSalon(row?.salon || "");
+      if (!local || !salon) continue;
 
-    for (const local of affectedLocals){
-      const hasUlima = base.some(r=>String(r?.local||"").toUpperCase()===local && /^ESCOLAR(?:ES)?\s+(?:U\.?LIMA|ULIMA)$/.test(mcNormLabel(String(r?.salon||""))));
-      const hasPucp = base.some(r=>String(r?.local||"").toUpperCase()===local && /^ESCOLAR(?:ES)?\s+PUCP$/.test(mcNormLabel(String(r?.salon||""))));
-      if (!hasUlima) base.push({local, salon:"ESCOLAR U.LIMA", count:0});
-      if (!hasPucp) base.push({local, salon:"ESCOLAR PUCP", count:0});
+      const key = `${local}||${listaNormKey(salon)}`;
+      best.set(key, { local, salon, count:toInt(row?.count ?? 0) });
     }
-    return base;
+
+    return [...best.values()];
   }
 
   function ensureImpresionesLayout(){
@@ -7612,11 +7575,11 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
       if (!res.ok) throw new Error("HTTP "+res.status);
       const text = await res.text();
 
-      state.imprRows = ensureEscolaresImpresionesRows(ensurePreUlimaImpresionesRows(parseImpresionesCSV(text)));
+      state.imprRows = cleanImpresionesRows(parseImpresionesCSV(text));
       state.imprUpdatedAt = Date.now(); // se conserva, pero ya no se muestra en pantalla
     } catch(e){
       console.error("IMPRESIONES:", e);
-      state.imprRows = ensureEscolaresImpresionesRows(ensurePreUlimaImpresionesRows(state.imprRows || []));
+      state.imprRows = cleanImpresionesRows(state.imprRows || []);
     }
   }
   // ===================== FIN IMPRESIONES =====================
@@ -11573,6 +11536,154 @@ const LISTAS = [
 ];
 const LISTAS_LOCAL_ORDER = ["LA MOLINA","SAN MIGUEL","SAN BORJA","VIRTUAL"];
 
+/*
+  FUENTE ÚNICA DE MATRÍCULA
+  -------------------------
+  CONTROL DE SEDES, RESUMEN GENERAL, ALUMNOS y el acceso de estudiantes
+  se alimentan exclusivamente de los enlaces vigentes de LISTAS.
+
+  Al editar un enlace desde LISTAS no es necesario cambiar SPREADSHEET_ID,
+  GID ni la constante SALONES. El código extrae el ID del Google Sheet y:
+  1) usa el GID incluido en el enlace, cuando exista;
+  2) prueba la pestaña estándar "I" (inscripciones);
+  3) como último respaldo, prueba la primera pestaña del archivo.
+*/
+function listaNormKey(value){
+  return String(value || "")
+    .toUpperCase()
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .replace(/[._-]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function parseGoogleSheetLink(url){
+  const raw = String(url || "").trim();
+  const idMatch = raw.match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/);
+  if (!idMatch) return null;
+
+  let gid = "";
+  try{
+    const u = new URL(raw);
+    gid = String(u.searchParams.get("gid") || "").trim();
+    if (!gid && u.hash){
+      const hp = new URLSearchParams(u.hash.replace(/^#/, ""));
+      gid = String(hp.get("gid") || "").trim();
+    }
+  }catch(_){
+    const gm = raw.match(/[?#&]gid=(\d+)/i);
+    gid = gm ? gm[1] : "";
+  }
+
+  return { spreadsheetId:idMatch[1], gid };
+}
+
+function listaCsvCandidateUrls(link){
+  const info = parseGoogleSheetLink(link);
+  if (!info) return [];
+
+  const id = encodeURIComponent(info.spreadsheetId);
+  const urls = [];
+
+  // Si el enlace tiene GID, se respeta primero.
+  if (info.gid){
+    urls.push(`https://docs.google.com/spreadsheets/d/${id}/export?format=csv&gid=${encodeURIComponent(info.gid)}`);
+  }
+
+  // Pestaña estándar de inscripciones de las listas LA META.
+  urls.push(`https://docs.google.com/spreadsheets/d/${id}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent("I")}`);
+
+  // Respaldo para archivos cuya matrícula esté en la primera pestaña.
+  urls.push(`https://docs.google.com/spreadsheets/d/${id}/export?format=csv`);
+
+  return [...new Set(urls)];
+}
+
+function listaCanonicalSource(item, effectiveUrl){
+  const local = listaNormKey(item?.local);
+  const name = listaNormKey(item?.name);
+  if (!local || !name || !parseGoogleSheetLink(effectiveUrl)) return null;
+
+  const suffix = ({
+    "LA MOLINA":"LM",
+    "SAN MIGUEL":"SM",
+    "SAN BORJA":"SB",
+    "VIRTUAL":"VIRTUAL"
+  })[local] || local;
+
+  const isEsc = /\bESC(?:OLAR|OLARES)?\b/.test(name);
+  const isPre = /\bPRE\b/.test(name) && /U\s*LIMA/.test(name);
+  const isAgraria = /AGRARIA/.test(name);
+  const isPucp = /PUCP/.test(name);
+  const isUlima = /U\s*LIMA|ULIMA/.test(name);
+  const numberMatch = name.match(/\b([12])\b/);
+  const number = numberMatch ? numberMatch[1] : "";
+
+  let ciclo = "";
+  let salon = "";
+
+  if (isEsc){
+    ciclo = "ESCOLAR";
+    if (isAgraria) salon = `ESC AGRARIA ${suffix}`;
+    else if (isPucp) salon = `ESC PUCP ${suffix}`;
+    else if (isUlima) salon = `ESC U.LIMA ${suffix}`;
+    else salon = `ESCOLAR ${suffix}`;
+  } else if (isPre){
+    ciclo = "U.LIMA";
+    salon = `PRE U.LIMA ${suffix}`;
+  } else if (isAgraria){
+    ciclo = "AGRARIA";
+    if (suffix === "LM") salon = `AGRARIA LM${number ? " " + number : ""}`;
+    else if (suffix === "VIRTUAL") salon = "AGRARIA VIRTUAL";
+    else salon = `AGRARIA ${suffix}${number && number !== "1" ? " " + number : ""}`;
+  } else if (isPucp){
+    ciclo = "PUCP";
+    salon = `PUCP ${suffix}`;
+  } else if (isUlima){
+    ciclo = "U.LIMA";
+    if (suffix === "LM") salon = `U.LIMA LM${number === "2" ? " 2" : ""}`;
+    else salon = `U.LIMA ${suffix}${number ? " " + number : ""}`;
+  } else if (/ADELANTO/.test(name)){
+    ciclo = "ADELANTO";
+    salon = `ADELANTO ${suffix}`;
+  } else if (/PARALELO/.test(name)){
+    ciclo = "PARALELO";
+    salon = `PARALELO ${suffix}`;
+  } else {
+    ciclo = name;
+    salon = `${name} ${suffix}`;
+  }
+
+  return {
+    local,
+    ciclo,
+    salon: salon.replace(/\s+/g, " ").trim(),
+    listaName: String(item?.name || "").trim(),
+    url: String(effectiveUrl || "").trim()
+  };
+}
+
+function getEffectiveListaSources(){
+  const store = mcLoadStore();
+  const best = new Map();
+
+  for (const item of LISTAS){
+    const effectiveUrl = listaRepoGetLink(store, item.local, item.name, item.url);
+    const source = listaCanonicalSource(item, effectiveUrl);
+    if (!source) continue; // Solo se consideran listas que tengan un enlace válido.
+
+    const key = `${source.local}||${source.salon}`;
+    best.set(key, source);
+  }
+
+  return [...best.values()];
+}
+
+function syncSalonesFromListas(){
+  SALONES = getEffectiveListaSources();
+  return SALONES;
+}
+
 function sortListasByLocalOrder(values){
   return values.slice().sort((a,b)=>{
     const ia = LISTAS_LOCAL_ORDER.indexOf(a);
@@ -11608,8 +11719,9 @@ function bindListaEditors(){
       const st = mcLoadStore();
       listaRepoSetLink(st, local, name, url);
       mcSaveStore(st);
-      toast(url ? "Lista guardada." : "Lista marcada como pendiente.");
+      toast(url ? "Lista guardada. Actualizando panel..." : "Lista marcada como pendiente.");
       renderListas();
+      loadAll();
     });
   });
   document.querySelectorAll('[data-lista-clear="1"]').forEach(btn=>{
@@ -11617,8 +11729,9 @@ function bindListaEditors(){
       const st = mcLoadStore();
       listaRepoSetLink(st, btn.getAttribute("data-local") || "", btn.getAttribute("data-name") || "", "");
       mcSaveStore(st);
-      toast("Lista limpiada.");
+      toast("Lista limpiada. Actualizando panel...");
       renderListas();
+      loadAll();
     });
   });
 }
@@ -14764,16 +14877,63 @@ if (state.view==="impresiones") renderImpresiones();
 }
 
   // ===================== LOAD DATA MATRÍCULA =====================
-    async function loadOneSalon(salon){
-    // Permite registrar una sede pendiente aunque todavía no tenga una hoja/GID propio.
-    if (salon?.gid === null || salon?.gid === undefined || salon?.gid === ""){
-      return { salon, rows:[] };
-    }
-    const url = csvUrl(salon.gid) + "&v=" + Date.now();
-    const res = await fetch(url, { cache:"no-store" });
-    if (!res.ok) throw new Error(`HTTP ${res.status} (${salon.local} / ${salon.ciclo} / ${salon.salon})`);
+  function cacheBustUrl(url){
+    return `${url}${String(url).includes("?") ? "&" : "?"}v=${Date.now()}`;
+  }
 
-    const raw = await res.text();
+  function rawLooksLikeMatriculaCsv(raw){
+    const lines = String(raw || "").split(/\r?\n/).filter(l=>l.trim().length>0);
+    const headKey = (s)=> String(s||"")
+      .toUpperCase()
+      .normalize("NFD").replace(/[\u0300-\u036f]/g,"")
+      .replace(/[¿?]/g,"")
+      .replace(/[\._-]/g," ")
+      .replace(/\s+/g," ")
+      .trim();
+
+    const nameKeys = new Set(["NOMBRES COMPLETOS","NOMBRE COMPLETO","NOMBRES","APELLIDOS"]);
+    const scanMax = Math.min(lines.length, 260);
+
+    for (let i=0; i<scanMax; i++){
+      const keys = parseCSVLine(lines[i]).map(headKey).filter(Boolean);
+      const hasName = keys.some(k=>nameKeys.has(k));
+      if (hasName && keys.includes("ESTADO")) return true;
+    }
+    return false;
+  }
+
+  async function loadOneSalon(salon){
+    const candidates = listaCsvCandidateUrls(salon?.url || "");
+    if (!candidates.length){
+      return { salon, rows:[], error:"La lista no tiene un enlace válido de Google Sheets." };
+    }
+
+    let raw = "";
+    let lastError = "";
+
+    for (const candidate of candidates){
+      try{
+        const res = await fetch(cacheBustUrl(candidate), { cache:"no-store" });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+        const candidateRaw = await res.text();
+        if (!rawLooksLikeMatriculaCsv(candidateRaw)){
+          lastError = "La pestaña consultada no contiene encabezados NOMBRES/ESTADO.";
+          continue;
+        }
+
+        raw = candidateRaw;
+        break;
+      }catch(e){
+        lastError = String(e?.message || e || "Error de lectura");
+      }
+    }
+
+    if (!raw){
+      console.warn("LISTA SIN DATOS VÁLIDOS:", salon?.local, salon?.salon, lastError);
+      return { salon, rows:[], error:lastError || "No se pudo leer la lista." };
+    }
+
     const lines = raw.split(/\r?\n/).filter(l=>l.trim().length>0);
 
     // Normalización fuerte de encabezados (tildes/espacios/signos)
@@ -15149,7 +15309,8 @@ async function loadAll(){
     }
 
     // ✅ 2) Descargar matrícula
-    const results = await Promise.allSettled(SALONES.map(loadOneSalon));
+    const fuentesLista = syncSalonesFromListas();
+    const results = await Promise.allSettled(fuentesLista.map(loadOneSalon));
     let rows = [];
     for (const r of results){
       if (r.status === "fulfilled") rows = rows.concat(r.value.rows);
