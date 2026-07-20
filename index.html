@@ -3739,7 +3739,7 @@
     if (!u || !p) return null;
 
     const fuentesLista = syncSalonesFromListas();
-    const results = await Promise.allSettled(fuentesLista.map(loadOneSalon));
+    const results = await allSettledLimited(fuentesLista, 5, loadOneSalon);
     for (const r of results){
       if (r.status !== "fulfilled") continue;
       const rows = r.value?.rows || [];
@@ -9064,9 +9064,11 @@ async function mcSyncPullOnce_(){
     }
   }catch(_){}
 
-  // si está abierta la vista materiales, repinta solo si cambió
-  if (changed && typeof state !== "undefined" && state && state.view === "materiales" && typeof renderMateriales === "function"){
-    renderMateriales();
+  // Si cambió el repositorio compartido, repintar y volver a leer las LISTAS.
+  if (changed && typeof state !== "undefined" && state){
+    if (state.view === "materiales" && typeof renderMateriales === "function") renderMateriales();
+    if (state.view === "listas" && typeof renderListas === "function") renderListas();
+    if (typeof loadAll === "function") setTimeout(()=>loadAll(), 0);
   }
 }
 async function mcSyncPush_(st){
@@ -11523,7 +11525,7 @@ const LISTAS = [
   { local:"SAN BORJA", name:"U.LIMA 1",  url:"https://docs.google.com/spreadsheets/d/1-NMJf7AV7xUDEr8azb8UUCiqFjNSsqwc25ifUrCwfX0/edit?usp=drive_link" },
   { local:"SAN BORJA", name:"PRE U.LIMA", url:"https://docs.google.com/spreadsheets/d/1xMCd6Xhe5rvs_eCmu7dWj0gX9gAGMu8Uo13akNTcr80/edit?gid=412178933#gid=412178933" },
 //  { local:"SAN BORJA", name:"U.LIMA 2",  url:"https://docs.google.com/spreadsheets/d/1BJSLmUr2ECAfanxuI2py0R2Yi_eqovmkHuLcUNgMFSw/edit?usp=drive_web&ouid=109996193497961946614" },
-  { local:"SAN BORJA", name:"ESC U.LIMA", url:"\1" },
+  { local:"SAN BORJA", name:"ESC U.LIMA", url:"" },
   { local:"SAN BORJA", name:"ESC PUCP", url:"" },
 
   // ================= VIRTUAL =================
@@ -11597,6 +11599,114 @@ function listaCsvCandidateUrls(link){
   urls.push(`https://docs.google.com/spreadsheets/d/${id}/export?format=csv`);
 
   return [...new Set(urls)];
+}
+
+
+function listaGvizCandidateUrls(link){
+  const info = parseGoogleSheetLink(link);
+  if (!info) return [];
+
+  const id = encodeURIComponent(info.spreadsheetId);
+  const base = `https://docs.google.com/spreadsheets/d/${id}/gviz/tq`;
+  const urls = [];
+
+  // Respeta el GID cuando el enlace lo incluye.
+  if (info.gid){
+    urls.push(`${base}?gid=${encodeURIComponent(info.gid)}&headers=0`);
+  }
+
+  // Nombres usados habitualmente en las listas LA META.
+  for (const sheetName of ["I", "Info", "INSCRIPCIONES", "MATRICULA", "MATRÍCULA"]){
+    urls.push(`${base}?sheet=${encodeURIComponent(sheetName)}&headers=0`);
+  }
+
+  // Último respaldo: primera pestaña del archivo.
+  urls.push(`${base}?headers=0`);
+  return [...new Set(urls)];
+}
+
+function gvizCellText(cell){
+  if (!cell) return "";
+  if (cell.f !== undefined && cell.f !== null) return String(cell.f);
+  if (cell.v === undefined || cell.v === null) return "";
+  if (cell.v instanceof Date){
+    const y = cell.v.getFullYear();
+    const m = String(cell.v.getMonth()+1).padStart(2,"0");
+    const d = String(cell.v.getDate()).padStart(2,"0");
+    return `${d}/${m}/${y}`;
+  }
+  return String(cell.v);
+}
+
+function csvEncodeCell(value){
+  const text = String(value ?? "");
+  return `"${text.replace(/"/g, '""')}"`;
+}
+
+function gvizTableToCsv(table){
+  const rows = Array.isArray(table?.rows) ? table.rows : [];
+  if (!rows.length) return "";
+
+  let colCount = Array.isArray(table?.cols) ? table.cols.length : 0;
+  for (const row of rows){
+    colCount = Math.max(colCount, Array.isArray(row?.c) ? row.c.length : 0);
+  }
+
+  return rows.map(row=>{
+    const cells = Array.isArray(row?.c) ? row.c : [];
+    const out = [];
+    for (let i=0; i<colCount; i++) out.push(csvEncodeCell(gvizCellText(cells[i])));
+    return out.join(",");
+  }).join("\n");
+}
+
+function loadGvizJsonp(url, timeoutMs=20000){
+  return new Promise((resolve, reject)=>{
+    const callbackName = `__lmGviz_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+    const script = document.createElement("script");
+    let timer = null;
+    let finished = false;
+
+    const cleanup = ()=>{
+      if (finished) return;
+      finished = true;
+      if (timer) clearTimeout(timer);
+      try{ delete window[callbackName]; }catch(_){ window[callbackName] = undefined; }
+      try{ script.remove(); }catch(_){}
+    };
+
+    window[callbackName] = (payload)=>{
+      try{
+        if (!payload || payload.status === "error"){
+          const detail = payload?.errors?.map(e=>e?.detailed_message || e?.message).filter(Boolean).join(" | ");
+          throw new Error(detail || "Google Sheets no devolvió datos.");
+        }
+        const csv = gvizTableToCsv(payload.table);
+        cleanup();
+        resolve(csv);
+      }catch(e){
+        cleanup();
+        reject(e);
+      }
+    };
+
+    script.async = true;
+    script.onerror = ()=>{
+      cleanup();
+      reject(new Error("No se pudo cargar la lista mediante Google Visualization."));
+    };
+
+    const sep = String(url).includes("?") ? "&" : "?";
+    const tqx = encodeURIComponent(`out:json;responseHandler:${callbackName}`);
+    script.src = `${url}${sep}tqx=${tqx}&_=${Date.now()}`;
+
+    timer = setTimeout(()=>{
+      cleanup();
+      reject(new Error("Tiempo de espera agotado al consultar la lista."));
+    }, timeoutMs);
+
+    document.head.appendChild(script);
+  });
 }
 
 function listaCanonicalSource(item, effectiveUrl){
@@ -14903,29 +15013,48 @@ if (state.view==="impresiones") renderImpresiones();
   }
 
   async function loadOneSalon(salon){
-    const candidates = listaCsvCandidateUrls(salon?.url || "");
-    if (!candidates.length){
+    const directCandidates = listaCsvCandidateUrls(salon?.url || "");
+    const jsonpCandidates = listaGvizCandidateUrls(salon?.url || "");
+    if (!directCandidates.length && !jsonpCandidates.length){
       return { salon, rows:[], error:"La lista no tiene un enlace válido de Google Sheets." };
     }
 
     let raw = "";
     let lastError = "";
 
-    for (const candidate of candidates){
+    // 1) JSONP evita el bloqueo CORS de Google Sheets desde GitHub Pages.
+    for (const candidate of jsonpCandidates){
       try{
-        const res = await fetch(cacheBustUrl(candidate), { cache:"no-store" });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-
-        const candidateRaw = await res.text();
+        const candidateRaw = await loadGvizJsonp(candidate);
         if (!rawLooksLikeMatriculaCsv(candidateRaw)){
           lastError = "La pestaña consultada no contiene encabezados NOMBRES/ESTADO.";
           continue;
         }
-
         raw = candidateRaw;
         break;
       }catch(e){
-        lastError = String(e?.message || e || "Error de lectura");
+        lastError = String(e?.message || e || "Error JSONP");
+      }
+    }
+
+    // 2) Respaldo directo para hojas publicadas que sí permiten fetch/CORS.
+    if (!raw){
+      for (const candidate of directCandidates){
+        try{
+          const res = await fetch(cacheBustUrl(candidate), { cache:"no-store" });
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+          const candidateRaw = await res.text();
+          if (!rawLooksLikeMatriculaCsv(candidateRaw)){
+            lastError = "La pestaña consultada no contiene encabezados NOMBRES/ESTADO.";
+            continue;
+          }
+
+          raw = candidateRaw;
+          break;
+        }catch(e){
+          lastError = String(e?.message || e || "Error de lectura");
+        }
       }
     }
 
@@ -15291,6 +15420,29 @@ bind("nav_impresiones", ()=>setView("impresiones"));
   if (btn) btn.addEventListener("click", loadAll);
 
   state.booted = true;
+}
+
+
+async function allSettledLimited(items, limit, worker){
+  const list = Array.isArray(items) ? items : [];
+  const results = new Array(list.length);
+  let cursor = 0;
+
+  async function runner(){
+    while (true){
+      const index = cursor++;
+      if (index >= list.length) return;
+      try{
+        results[index] = { status:"fulfilled", value:await worker(list[index], index) };
+      }catch(reason){
+        results[index] = { status:"rejected", reason };
+      }
+    }
+  }
+
+  const count = Math.max(1, Math.min(Number(limit)||1, list.length || 1));
+  await Promise.all(Array.from({length:count}, runner));
+  return results;
 }
 
 async function loadAll(){
