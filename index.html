@@ -11049,7 +11049,10 @@ function renderMateriales(){
     const normalized = raw.toUpperCase().replace(/\s+/g, " ").trim();
     if (normalized === "ESCOLARES AGRARIA" || normalized === "ESCOLARES AGRARAI") return "ESCOLARES INTEGRAL";
     if (normalized.includes("ESCOLAR") && (normalized.includes("U.LIMA") || normalized.includes("ULIMA") || normalized.includes("U LIMA"))) return "ESCOLARES U.LIMA";
-    if (normalized.includes("ARS") || normalized.includes("POP")) return "ESCOLARES ARS";
+    if (normalized.includes("ARS") || normalized.includes("POP")){
+      const isSanMiguel = /\bSM\b/.test(normalized) || normalized.includes("SAN MIGUEL");
+      return isSanMiguel ? "ESCOLARES ARS SM" : "ESCOLARES ARS";
+    }
     return normalized || "(SIN PROGRAMAS)";
   }
   function mcMaterialCoursesFor(uniLabel, program){
@@ -11456,7 +11459,7 @@ Esto afecta RECIBIDO, DIAGRAMADO e IMPRESO para todos los cursos y espacios de e
 
   body.innerHTML = `
     <div class="mrTop" style="margin:0;">
-      <div class="mrKpi">${escapeHtml(String(prog.meta?.name||"PROGRAMA").toUpperCase())} · <b>${escapeHtml(String(cid||"CURSO").toUpperCase())}</b> · Inicio: <b>${escapeHtml(fmtDM(pgxAddDays(pStart,(range.first-1)*7)))}</b> · Fin: <b>${escapeHtml(fmtDM(pgxAddDays(pStart,(range.last-1)*7)))}</b></div>
+      <div class="mrKpi">${escapeHtml(mcMaterialDisplayProgramName(prog))} · <b>${escapeHtml(String(cid||"CURSO").toUpperCase())}</b> · Inicio: <b>${escapeHtml(fmtDM(pgxAddDays(pStart,(range.first-1)*7)))}</b> · Fin: <b>${escapeHtml(fmtDM(pgxAddDays(pStart,(range.last-1)*7)))}</b></div>
 
     </div>
 
