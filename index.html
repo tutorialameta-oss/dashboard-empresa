@@ -10793,16 +10793,6 @@ async function mcHydrateMaterialesSyllabus({pid,cid,codes,first,last,pStart,spac
     cells.forEach((td,index)=>{
       const item = MC_ACTIVE_SYLLABUS_ITEMS[index];
       td.innerHTML = mcSyllabusCellHtml(item, index);
-
-      // Para ciclos con sílabo institucional, cuando el código existe en el sílabo,
-      // la fecha visible de Materiales debe respetar la fecha de la hoja del sílabo.
-      const absoluteWeek = first - 1 + index;
-      const dateCell = document.querySelector(`[data-material-date-week="${absoluteWeek}"]`);
-      const sheetDate = mcParseSheetDate(item?.dateRaw, pStart.getFullYear());
-      if (dateCell && sheetDate && (item?.matchedByDate || item?.matchedBySyllabus)){
-        dateCell.textContent = mcFmtDM(sheetDate);
-        dateCell.title = "Fecha tomada del sílabo";
-      }
     });
     mcBindSyllabusButtons(document.getElementById("mcBody2") || document);
     if (status) status.textContent = weeksLabel;
