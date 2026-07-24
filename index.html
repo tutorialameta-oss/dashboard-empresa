@@ -7473,7 +7473,14 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
       if (!hasUlima) base.push({local, salon:"ESCOLAR U.LIMA", count:0});
       if (!hasPucp) base.push({local, salon:"ESCOLAR PUCP", count:0});
     }
-    return base;
+    return base.filter(item=>{
+      const local = String(item?.local || "").toUpperCase();
+      const salon = mcNormLabel(String(item?.salon || "")).replace(/\s+/g," ").trim();
+      const isEmptyDuplicate = local === "SAN BORJA"
+        && (+item?.count || 0) === 0
+        && /^ESCOLAR\s+(?:U\.?LIMA|PUCP)$/.test(salon);
+      return !isEmptyDuplicate;
+    });
   }
 
   function ensureImpresionesLayout(){
@@ -11076,9 +11083,14 @@ function renderMateriales(){
   // SÍLABO visible de forma estándar para todos los ciclos/cursos, excepto Simulacros.
   const showSyllabusCol = !isSimulacroCourse;
 
-  // ESCOLARES ARS solo se dicta en SAN MIGUEL.
-  // Por eso, en Materiales no se muestran LA MOLINA, SAN BORJA ni VIRTUAL para este ciclo.
+  // Los espacios de ESCOLARES ARS dependen de la variante del programa:
+  // ARS usa LA MOLINA y SAN BORJA; ARS SM conserva SAN MIGUEL.
   const ARS_SPACES = [
+    {id:"EDITOR", label:"EDITOR"},
+    {id:"LA_MOLINA", label:"LA MOLINA"},
+    {id:"SAN_BORJA", label:"SAN BORJA"}
+  ];
+  const ARS_SM_SPACES = [
     {id:"EDITOR", label:"EDITOR"},
     {id:"SAN_MIGUEL", label:"SAN MIGUEL"}
   ];
@@ -11088,14 +11100,15 @@ function renderMateriales(){
     {id:"SAN_MIGUEL", label:"SAN MIGUEL"},
     {id:"SAN_BORJA", label:"SAN BORJA"}
   ];
+  const isArsSanMiguelProgram = mcMaterialDisplayProgramName(prog) === "ESCOLARES ARS SM";
   const materialSpaces = isArsProgram
-    ? ARS_SPACES
+    ? (isArsSanMiguelProgram ? ARS_SM_SPACES : ARS_SPACES)
     : (isIntegralProgram ? INTEGRAL_SPACES : MC_SPACES);
   const availableSpaces = (roleLower === "admin")
     ? materialSpaces
     : materialSpaces.filter(x=>x.id !== "EDITOR");
   const defaultSpace = isArsProgram
-    ? ((roleLower === "admin") ? "EDITOR" : "SAN_MIGUEL")
+    ? ((roleLower === "admin") ? "EDITOR" : (isArsSanMiguelProgram ? "SAN_MIGUEL" : "LA_MOLINA"))
     : ((roleLower === "admin") ? "EDITOR" : "LA_MOLINA");
   const savedSpace = String(localStorage.getItem(SPACE_KEY) || defaultSpace).toUpperCase();
   const space = availableSpaces.find(x=>x.id===savedSpace)
