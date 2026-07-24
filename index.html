@@ -7695,11 +7695,17 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
       { name:"QUÍMICA", url:"https://docs.google.com/spreadsheets/d/1nTf434yk7tqTQuK8fbK-lzVTdJYbb7YR5z3EdijjkpI/edit?gid=2060340658#gid=2060340658" },
       { name:"BIOLOGÍA", url:"https://docs.google.com/spreadsheets/d/1nCoTiW4C7hj_vW_gjGkcmNCjX80CHM3GMWdyPIENrd8/edit?gid=2060340658#gid=2060340658" },
     ],
-    "ESCOLARES ARS": [
+    "ESCOLARES ARS SM": [
       { name:"NÚMEROS Y OPERACIONES", url:"https://docs.google.com/spreadsheets/d/1WTYo_zUtlxu7fKY2Br4W63hwN26xr6yMxj2pHQD9ImI/edit?gid=466907362#gid=466907362/edit?usp=drive_link" },
       { name:"TEXTOS", url:"https://docs.google.com/spreadsheets/d/1RJXP4gXi_gSLJEVE7m86Bw58H9o_bHtenBipZMKiaQs/edit?gid=1869413083#gid=1869413083/edit?usp=drive_link" },
       { name:"ÁLGEBRA", url:"https://docs.google.com/spreadsheets/d/1M6D8eN3HsMUuIdEjIk7ODyaxK-teeDNLvG1FL2uHrlo/edit?gid=1542781761#gid=1542781761/edit?usp=drive_link" },
       { name:"GEOMETRÍA Y MEDIDA", url:"https://docs.google.com/spreadsheets/d/1GIerJ44sNfslbXQgVw7M5dvjJUe5Z_Sl74n1nYAwAgM/edit?gid=1560070772#gid=1560070772/edit?usp=drive_link" },
+    ],
+    "ESCOLARES ARS": [
+      { name:"NÚMEROS Y OPERACIONES", url:"" },
+      { name:"TEXTOS", url:"" },
+      { name:"ÁLGEBRA", url:"" },
+      { name:"GEOMETRÍA Y MEDIDA", url:"" },
     ]
   };
 
@@ -7708,7 +7714,7 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
     if (uni==="U.LIMA") return getCss("--ulima");
     if (uni==="PUCP") return getCss("--pucp");
     if (uni==="ESCOLARES U.LIMA" || uni==="ESCOLARES AGRARIA") return getCss("--schHead_ESC");
-    if (uni==="ESCOLARES ARS") return getCss("--pucp");
+    if (uni==="ESCOLARES ARS" || uni==="ESCOLARES ARS SM") return getCss("--pucp");
     if (uni==="ESCOLARES" || uni==="ESCOLARES INTEGRAL") return getCss("--schHead_ESC");
     return getCss("--ulima");
   }
@@ -7718,6 +7724,7 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
     if ((u.includes("ESCOLAR") || u.includes("ESCOLARES")) && u.includes("AGRARIA")) return "ESCOLARES AGRARIA";
     if ((u.includes("ESCOLAR") || u.includes("ESCOLARES")) && (u.includes("U.LIMA") || u.includes("ULIMA") || u.includes("U LIMA"))) return "ESCOLARES U.LIMA";
     if (u === "ESCOLARES") return "ESCOLARES INTEGRAL";
+    if ((u.includes("ARS") || u.includes("POP")) && (/\bSM\b/.test(u) || u.includes("SAN MIGUEL"))) return "ESCOLARES ARS SM";
     if (u.includes("ESCOLARES ARS") || u.includes("ARS") || u.includes("POP")) return "ESCOLARES ARS";
     if (u.includes("INTEGRAL")) return "ESCOLARES INTEGRAL";
     return uniRaw;
@@ -7736,10 +7743,11 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
     const v = mcNormLabel(value || "");
     if (v.includes("ESCOLAR") && v.includes("AGRARIA")) return "ESCOLARES AGRARIA";
     if (v.includes("ESCOLAR") && (v.includes("U.LIMA") || v.includes("ULIMA") || v.includes("U LIMA"))) return "ESCOLARES U.LIMA";
+    if ((v.includes("ARS") || v.includes("POP")) && (/\bSM\b/.test(v) || v.includes("SAN MIGUEL"))) return "ESCOLARES ARS SM";
     if (v.includes("ARS") || v.includes("POP")) return "ESCOLARES ARS";
     if (v.includes("ESCOLARES") && v.includes("INTEGRAL")) return "ESCOLARES INTEGRAL";
     if (v === "ESCOLARES") return "ESCOLARES INTEGRAL";
-    if (["AGRARIA","U.LIMA","PUCP","ESCOLARES U.LIMA","ESCOLARES AGRARIA","ESCOLARES INTEGRAL","ESCOLARES ARS"].includes(v)) return v;
+    if (["AGRARIA","U.LIMA","PUCP","ESCOLARES U.LIMA","ESCOLARES AGRARIA","ESCOLARES INTEGRAL","ESCOLARES ARS SM","ESCOLARES ARS"].includes(v)) return v;
     return "";
   }
 
@@ -7927,6 +7935,7 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
           <span class="pill"><span class="dot escolares"></span>ESCOLARES U.LIMA</span>
           <span class="pill"><span class="dot escolares"></span>ESCOLARES AGRARIA</span>
           <span class="pill"><span class="dot escolares"></span>ESCOLARES INTEGRAL</span>
+          <span class="pill"><span class="dot pucp"></span>ESCOLARES ARS SM</span>
           <span class="pill"><span class="dot pucp"></span>ESCOLARES ARS</span>
         </div>
         <div class="panelHint" style="margin-top:8px; color:var(--muted);" id="sEditHint">
@@ -7939,7 +7948,7 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
           <div class="cardtitle" style="margin:0;">RESUMEN GENERAL</div>
           <div class="syKpis">
             <span class="syKpiPill">CURSOS: <b id="sTotal">0</b></span>
-            <span class="syKpiPill">CATEGORÍAS: <b id="sUnis">7</b></span>
+            <span class="syKpiPill">CATEGORÍAS: <b id="sUnis">8</b></span>
           </div>
         </div>
       </div>
@@ -7947,7 +7956,7 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
       <div class="panel12" id="sBlocks"></div>
     `;
 
-    fillSelectKeep("sUni", ["AGRARIA","U.LIMA","PUCP","ESCOLARES U.LIMA","ESCOLARES AGRARIA","ESCOLARES INTEGRAL","ESCOLARES ARS"], "CATEGORÍA: TODAS");
+    fillSelectKeep("sUni", ["AGRARIA","U.LIMA","PUCP","ESCOLARES U.LIMA","ESCOLARES AGRARIA","ESCOLARES INTEGRAL","ESCOLARES ARS SM","ESCOLARES ARS"], "CATEGORÍA: TODAS");
 
     document.getElementById("sReset").addEventListener("click", ()=>{
       document.getElementById("sUni").value="__ALL__";
@@ -8038,7 +8047,7 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
     const fUni = document.getElementById("sUni").value;
     const q = low(document.getElementById("sQ").value);
 
-    const uniOrder = ["AGRARIA","U.LIMA","PUCP","ESCOLARES U.LIMA","ESCOLARES AGRARIA","ESCOLARES INTEGRAL","ESCOLARES ARS"];
+    const uniOrder = ["AGRARIA","U.LIMA","PUCP","ESCOLARES U.LIMA","ESCOLARES AGRARIA","ESCOLARES INTEGRAL","ESCOLARES ARS SM","ESCOLARES ARS"];
     let unis = uniOrder.slice();
     if (fUni !== "__ALL__") unis = unis.filter(u=>u===fUni);
 
@@ -8815,7 +8824,8 @@ const MATERIALES = [
   { uni:"PUCP",      url:"https://drive.google.com/drive/folders/1FfUL4GEiHALYEOhBHTJA3SzHVotRGv0k?usp=sharing" },
   { uni:"ESCOLARES U.LIMA", url:"" },
   { uni:"ESCOLARES INTEGRAL", url:"https://drive.google.com/drive/folders/1nUdMaZU2n6b-FZlfR9WI2041e_aoOPYy" },
-  { uni:"ESCOLARES ARS", url:"https://drive.google.com/drive/folders/1ZSH_nGZty0AildhLikEZ_BQ1h-waj_5p" },
+  { uni:"ESCOLARES ARS SM", url:"https://drive.google.com/drive/folders/1ZSH_nGZty0AildhLikEZ_BQ1h-waj_5p" },
+  { uni:"ESCOLARES ARS", url:"" },
 ];
 
 let MATERIALES_LINK_EDIT_MODE = false;
@@ -10595,6 +10605,11 @@ function mcAlignSyllabusTopics({weeks,codes,first,last,pStart,local,course,progr
 }
 
 function mcManualSyllabusAligned({cid,codes,first,last,pStart,local,programType}){
+  const type = mcNormLabel(programType || "");
+  const isArs = type.includes("ARS") || type.includes("POP");
+  const isArsSm = /\bSM\b/.test(type) || type.includes("SAN MIGUEL");
+  if (isArs && !isArsSm) return null;
+
   const manual = MC_ARS_MANUAL_SYLLABUS[mcNormLabel(cid)];
   if (!manual || !manual.length) return null;
   const aligned = mcAlignSyllabusTopics({weeks:manual,codes,first,last,pStart,local,course:cid,programType});
@@ -10870,13 +10885,14 @@ function renderMateriales(){
   // ===== tarjetas de carpetas (accesos directos) =====
   const grid = document.getElementById("matGrid");
   if (grid){
-    const MAT_UNI_ORDER = ["AGRARIA","U.LIMA","PUCP","ESCOLARES U.LIMA","ESCOLARES INTEGRAL","ESCOLARES ARS"];
+    const MAT_UNI_ORDER = ["AGRARIA","U.LIMA","PUCP","ESCOLARES U.LIMA","ESCOLARES INTEGRAL","ESCOLARES ARS SM","ESCOLARES ARS"];
     const MAT_UNI_COLOR = {
       "AGRARIA": getCss("--agraria"),
       "U.LIMA": getCss("--ulima"),
       "PUCP": getCss("--pucp"),
       "ESCOLARES U.LIMA": getCss("--schHead_ESC"),
       "ESCOLARES INTEGRAL": getCss("--schHead_ESC"),
+      "ESCOLARES ARS SM": getCss("--pucp"),
       "ESCOLARES ARS": getCss("--pucp")
     };
 
@@ -11272,7 +11288,7 @@ ${(canEditRole && matEditOn) ? `<button id="mcClearCycleBtn" class="btn ghost" t
   const openBtn = card.querySelector("#mcOpen2");
   const linkInp = card.querySelector("#mcLink2");
   const saveBtn = card.querySelector("#mcSaveLink2");
-  const syllabusRepoUni = isArsProgram ? "ESCOLARES ARS" : (isIntegralProgram ? "ESCOLARES INTEGRAL" : uni);
+  const syllabusRepoUni = isArsProgram ? mcMaterialDisplayProgramName(prog) : (isIntegralProgram ? "ESCOLARES INTEGRAL" : uni);
   const syllabusUrl = mcSyllabusLink(st0,pid0,cid0,syllabusRepoUni);
   const syllabusOpenBtn = card.querySelector("#mcOpenSyllabus2");
 
@@ -11507,7 +11523,7 @@ Esto afecta RECIBIDO, DIAGRAMADO e IMPRESO para todos los cursos y espacios de e
       pStart,
       space,
       url:syllabusUrl,
-      programType: isArsProgram ? "ESCOLARES ARS" : (isIntegralProgram ? "ESCOLARES INTEGRAL" : uni)
+      programType: isArsProgram ? mcMaterialDisplayProgramName(prog) : (isIntegralProgram ? "ESCOLARES INTEGRAL" : uni)
     });
   }
 
