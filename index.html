@@ -39,6 +39,7 @@
       --pucp:#6ea8da;     /* Azul */
       --ulima:#ff9900;    /* Naranja */
       --agraria:#4caf50;  /* Verde */
+      --integral:#D43364; /* Morado rosado */
 
       /* Modalidad */
       --pres:#2bb673;
@@ -8822,8 +8823,9 @@ const MATERIALES = [
   { uni:"AGRARIA",   url:"https://drive.google.com/drive/folders/1pDEZ0rG3l27snsgp4UGo0qaS5irT2f2d?usp=sharing" },
   { uni:"U.LIMA",    url:"https://drive.google.com/drive/folders/1LBTg5hU3Qhbxi6LNt8NgIkJD73QGQUmw?usp=drive_link" },
   { uni:"PUCP",      url:"https://drive.google.com/drive/folders/1FfUL4GEiHALYEOhBHTJA3SzHVotRGv0k?usp=sharing" },
+  { uni:"INTEGRAL", url:"https://drive.google.com/drive/folders/1nUdMaZU2n6b-FZlfR9WI2041e_aoOPYy" },
   { uni:"ESCOLARES U.LIMA", url:"" },
-  { uni:"ESCOLARES INTEGRAL", url:"https://drive.google.com/drive/folders/1nUdMaZU2n6b-FZlfR9WI2041e_aoOPYy" },
+  { uni:"ESCOLARES AGRARIA", url:"" },
   { uni:"ESCOLARES ARS SM", url:"https://drive.google.com/drive/folders/1ZSH_nGZty0AildhLikEZ_BQ1h-waj_5p" },
   { uni:"ESCOLARES ARS", url:"" },
 ];
@@ -8837,6 +8839,11 @@ function materialesRootGetLink(st, uni, fallback){
   const key = materialesRootKey(uni);
   const repo = st?.materialesRootLinks || {};
   if (Object.prototype.hasOwnProperty.call(repo, key)) return String(repo[key] || "").trim();
+  // Compatibilidad: la carpeta ahora se muestra como INTEGRAL, pero conserva
+  // cualquier enlace ya guardado con el nombre anterior ESCOLARES INTEGRAL.
+  if (key === "INTEGRAL" && Object.prototype.hasOwnProperty.call(repo, "ESCOLARES INTEGRAL")){
+    return String(repo["ESCOLARES INTEGRAL"] || "").trim();
+  }
   return String(fallback || "").trim();
 }
 function materialesRootSetLink(st, uni, url){
@@ -9010,7 +9017,7 @@ function ensureMaterialesLayout(){
           </div>
         </div>
         <div class="syKpis">
-          <span class="syKpiPill">CARPETAS: <b>${MATERIALES.length}</b></span>
+          <span class="syKpiPill">CARPETAS: <b id="mRootCount">${MATERIALES.length}</b></span>
           ${syCanEditLinks() ? `<button id="mRootEditToggle" class="syEditToggle" type="button">EDITAR ENLACES</button>` : ``}
         </div>
       </div>
@@ -10885,13 +10892,14 @@ function renderMateriales(){
   // ===== tarjetas de carpetas (accesos directos) =====
   const grid = document.getElementById("matGrid");
   if (grid){
-    const MAT_UNI_ORDER = ["AGRARIA","U.LIMA","PUCP","ESCOLARES U.LIMA","ESCOLARES INTEGRAL","ESCOLARES ARS SM","ESCOLARES ARS"];
+    const MAT_UNI_ORDER = ["AGRARIA","U.LIMA","PUCP","INTEGRAL","ESCOLARES U.LIMA","ESCOLARES AGRARIA","ESCOLARES ARS SM","ESCOLARES ARS"];
     const MAT_UNI_COLOR = {
       "AGRARIA": getCss("--agraria"),
       "U.LIMA": getCss("--ulima"),
       "PUCP": getCss("--pucp"),
+      "INTEGRAL": getCss("--integral"),
       "ESCOLARES U.LIMA": getCss("--schHead_ESC"),
-      "ESCOLARES INTEGRAL": getCss("--schHead_ESC"),
+      "ESCOLARES AGRARIA": getCss("--schHead_ESC"),
       "ESCOLARES ARS SM": getCss("--pucp"),
       "ESCOLARES ARS": getCss("--pucp")
     };
@@ -10914,8 +10922,16 @@ function renderMateriales(){
     }
 
     const stRoot = mcLoadStore();
+    const canShowPendingRoots = MATERIALES_LINK_EDIT_MODE && syCanEditLinks();
+    const visibleMaterials = orderedMaterials.filter(x=>{
+      const u = String(x.uni||"").toUpperCase();
+      const href = materialesRootGetLink(stRoot, u, x.url);
+      return !!href || canShowPendingRoots;
+    });
+    const rootCount = document.getElementById("mRootCount");
+    if (rootCount) rootCount.textContent = String(visibleMaterials.length);
 
-    grid.innerHTML = orderedMaterials.map(x=>{
+    grid.innerHTML = visibleMaterials.map(x=>{
       const u = String(x.uni||"").toUpperCase();
       const dot = MAT_UNI_COLOR[u] || getCss("--accent");
       const href = materialesRootGetLink(stRoot, u, x.url);
@@ -10989,7 +11005,7 @@ function renderMateriales(){
   const card = document.getElementById("matCursoCard");
   if (!card) return;
 
-  const allowedUni = ["AGRARIA","U.LIMA","PUCP","ESCOLARES"];
+  const allowedUni = ["AGRARIA","U.LIMA","PUCP","INTEGRAL","ESCOLARES"];
   const roleLower = String(CURRENT_ROLE||"").toLowerCase();
   const canEditRole = (roleLower === "admin"); // links: solo Admin en espacio Editor
   const canWork = (roleLower === "admin" || roleLower === "tutor"); // marcar estados (Tutor/Admin)
@@ -11005,6 +11021,11 @@ function renderMateriales(){
     return programsAll.filter(p=>{
       const scope = mcNormLabel(p?.meta?.scope || "");
       const theme = mcNormLabel(p?.meta?.theme || "");
+      const name = mcNormLabel(p?.meta?.name || "");
+      if (target === "INTEGRAL") return name.includes("INTEGRAL");
+      if (target === "ESCOLARES"){
+        return (scope === target || theme === target) && !name.includes("INTEGRAL");
+      }
       return scope === target || theme === target;
     });
   };
@@ -11024,6 +11045,11 @@ function renderMateriales(){
   "Textos",
   "Álgebra",
   "Simulacros"],
+    "INTEGRAL":[
+      "Aritmética",
+      "Razonamiento Matemático",
+      "Álgebra"
+    ],
     "ESCOLARES":[
       "Razonamiento Verbal",
       "Razonamiento Matemático",
@@ -11089,8 +11115,8 @@ function renderMateriales(){
   const progIdSaved = localStorage.getItem(PROG_KEY) || "";
   const prog = uniPrograms.find(p=>p.id===progIdSaved) || uniPrograms[0] || null;
   const isArsProgram = (uni === "ESCOLARES" && mcIsArsProgram(prog));
-  const isEscolaresProgram = (uni === "ESCOLARES");
-  const isIntegralProgram = isEscolaresProgram && !isArsProgram;
+  const isEscolaresProgram = (uni === "ESCOLARES" || uni === "INTEGRAL");
+  const isIntegralProgram = (uni === "INTEGRAL") || mcNormLabel(prog?.meta?.name || "").includes("INTEGRAL");
 
   const courses = mcMaterialCoursesFor(uni, prog);
   const savedCourse = localStorage.getItem(COURSE_KEY) || "";
@@ -11196,6 +11222,7 @@ function renderMateriales(){
     if (uc === "AGRARIA") return getCss("--agraria");
     if (uc === "U.LIMA") return getCss("--ulima");
     if (uc === "PUCP") return getCss("--pucp");
+    if (uc === "INTEGRAL") return getCss("--integral");
     return getCss("--schHead_ESC");
   };
   const uniButtonsHtml = allowedUni.map(u=>{
