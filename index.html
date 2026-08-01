@@ -7697,6 +7697,8 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
     "ESCOLARES INTEGRAL": [
       { name:"RAZONAMIENTO VERBAL", url:"https://docs.google.com/spreadsheets/d/1tJA_wAwD74EvMe0z5PM7CVtHnBQHZ6Rcu7OzeTht90I/edit?gid=2060340658#gid=2060340658" },
       { name:"RAZONAMIENTO MATEMÁTICO", url:"https://docs.google.com/spreadsheets/d/1-k2K2pvM7qCmKR-MwVUCjjUWlkr0I4ulaIgB2Ax8F9g/edit?gid=2060340658#gid=2060340658" },
+      { name:"LENGUAJE", url:"" },
+      { name:"TEXTOS", url:"" },
       { name:"ARITMÉTICA", url:"https://docs.google.com/spreadsheets/d/1oomoHD-7neoHcB3_RPfoaFfkg2eT6m-STg30FXOcseQ/edit?gid=2060340658#gid=2060340658" },
       { name:"ÁLGEBRA", url:"https://docs.google.com/spreadsheets/d/1xyYxO7j5F-FQ8kUDjZtQnZE-uM6kT7RqIPxiqnt5hCQ/edit?gid=2060340658#gid=2060340658" },
       { name:"GEOMETRÍA", url:"https://docs.google.com/spreadsheets/d/1qpz8je57nJNxY1TS7cBSCBUjWl2xDrjnookmguZCb0I/edit?gid=2060340658#gid=2060340658" },
@@ -11078,7 +11080,20 @@ function renderMateriales(){
     ]
   };
 
-  const ESCOLARES_INTEGRAL_COURSES = COURSES["ESCOLARES"];
+  const ESCOLARES_INTEGRAL_COURSES = [
+    "Razonamiento Verbal",
+    "Razonamiento Matemático",
+    "Lenguaje",
+    "Textos",
+    "Aritmética",
+    "Álgebra",
+    "Geometría",
+    "Trigonometría",
+    "Física",
+    "Química",
+    "Biología",
+    "Simulacros"
+  ];
   const ESCOLARES_ULIMA_COURSES = [
     "Textos",
     "Razonamiento Matemático",
