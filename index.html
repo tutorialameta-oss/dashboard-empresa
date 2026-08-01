@@ -11035,9 +11035,9 @@ function renderMateriales(){
       const scope = mcNormLabel(p?.meta?.scope || "");
       const theme = mcNormLabel(p?.meta?.theme || "");
       const name = mcNormLabel(p?.meta?.name || "");
-      if (target === "INTEGRAL") return name.includes("INTEGRAL");
+      if (target === "INTEGRAL") return name === "INTEGRAL" || theme === "INTEGRAL";
       if (target === "ESCOLARES"){
-        return (scope === target || theme === target) && !name.includes("INTEGRAL");
+        return scope === target || theme === target;
       }
       return scope === target || theme === target;
     });
@@ -11101,7 +11101,7 @@ function renderMateriales(){
   function mcMaterialDisplayProgramName(program){
     const raw = mcMaterialProgramNameRaw(program);
     const normalized = raw.toUpperCase().replace(/\s+/g, " ").trim();
-    if (normalized === "ESCOLARES INTEGRAL") return "INTEGRAL";
+    if (normalized === "ESCOLARES INTEGRAL") return "ESCOLARES INTEGRAL";
     if (normalized === "ESCOLARES AGRARIA" || normalized === "ESCOLARES AGRARAI") return "ESCOLARES INTEGRAL";
     if (normalized.includes("ESCOLAR") && (normalized.includes("U.LIMA") || normalized.includes("ULIMA") || normalized.includes("U LIMA"))) return "ESCOLARES U.LIMA";
     if (normalized.includes("ARS") || normalized.includes("POP")){
@@ -11132,7 +11132,8 @@ function renderMateriales(){
   const prog = uniPrograms.find(p=>p.id===progIdSaved) || uniPrograms[0] || null;
   const isArsProgram = (uni === "ESCOLARES" && mcIsArsProgram(prog));
   const isEscolaresProgram = (uni === "ESCOLARES" || uni === "INTEGRAL");
-  const isIntegralProgram = (uni === "INTEGRAL") || mcNormLabel(prog?.meta?.name || "").includes("INTEGRAL");
+  const isIntegralProgram = (uni === "INTEGRAL");
+  const isEscolaresIntegralProgram = (uni === "ESCOLARES" && mcNormLabel(prog?.meta?.name || "") === "ESCOLARES INTEGRAL");
 
   const courses = mcMaterialCoursesFor(uni, prog);
   const savedCourse = localStorage.getItem(COURSE_KEY) || "";
@@ -11331,7 +11332,7 @@ ${(canEditRole && matEditOn) ? `<button id="mcClearCycleBtn" class="btn ghost" t
   const openBtn = card.querySelector("#mcOpen2");
   const linkInp = card.querySelector("#mcLink2");
   const saveBtn = card.querySelector("#mcSaveLink2");
-  const syllabusRepoUni = isArsProgram ? mcMaterialDisplayProgramName(prog) : (isIntegralProgram ? "INTEGRAL" : uni);
+  const syllabusRepoUni = (isArsProgram || isEscolaresIntegralProgram) ? mcMaterialDisplayProgramName(prog) : (isIntegralProgram ? "INTEGRAL" : uni);
   const syllabusUrl = mcSyllabusLink(st0,pid0,cid0,syllabusRepoUni);
   const syllabusOpenBtn = card.querySelector("#mcOpenSyllabus2");
 
@@ -11566,7 +11567,7 @@ Esto afecta RECIBIDO, DIAGRAMADO e IMPRESO para todos los cursos y espacios de e
       pStart,
       space,
       url:syllabusUrl,
-      programType: isArsProgram ? mcMaterialDisplayProgramName(prog) : (isIntegralProgram ? "INTEGRAL" : uni)
+      programType: (isArsProgram || isEscolaresIntegralProgram) ? mcMaterialDisplayProgramName(prog) : (isIntegralProgram ? "INTEGRAL" : uni)
     });
   }
 
