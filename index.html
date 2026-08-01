@@ -11088,6 +11088,7 @@ function renderMateriales(){
   function mcMaterialDisplayProgramName(program){
     const raw = mcMaterialProgramNameRaw(program);
     const normalized = raw.toUpperCase().replace(/\s+/g, " ").trim();
+    if (normalized === "ESCOLARES INTEGRAL") return "INTEGRAL";
     if (normalized === "ESCOLARES AGRARIA" || normalized === "ESCOLARES AGRARAI") return "ESCOLARES INTEGRAL";
     if (normalized.includes("ESCOLAR") && (normalized.includes("U.LIMA") || normalized.includes("ULIMA") || normalized.includes("U LIMA"))) return "ESCOLARES U.LIMA";
     if (normalized.includes("ARS") || normalized.includes("POP")){
