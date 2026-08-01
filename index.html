@@ -4152,6 +4152,7 @@ const PGX_STORE_KEY   = "LM_PROGRAMA_SHEET_V1_STORE";
     if (t === "AGRARIA") return {bar:getCss("--schHead_AGR"), cell:getCss("--schCell_AGR")};
     if (t === "PUCP")    return {bar:getCss("--schHead_PUCP"), cell:getCss("--schCell_PUCP")};
     if (t === "U.LIMA" || t === "ULIMA" || t === "PRE U.LIMA" || t === "PRE ULIMA") return {bar:getCss("--schHead_UL"), cell:getCss("--schCell_UL")};
+    if (t === "INTEGRAL") return {bar:getCss("--integral"), cell:"#F7DDE8"};
     if (t === "ESCOLARES") return {bar:getCss("--schHead_ESC"), cell:getCss("--schCell_ESC")};
     // default
     return {bar:"#64748b", cell:"#f1f5f9"};
@@ -4178,6 +4179,7 @@ function pgxThemeRank(theme){
   if (t==="U.LIMA" || t==="ULIMA" || t==="UL") return 2;
   if (t==="PRE U.LIMA" || t==="PRE ULIMA") return 2.5;
   if (t==="PUCP") return 3;
+  if (t==="INTEGRAL") return 3.5;
   if (t==="ESCOLARES" || t==="ESCOLAR") return 4;
   return 99;
 }
@@ -4213,6 +4215,7 @@ function pgxProgramSpec(kind){
   if (raw === "PRE U.LIMA" || raw === "PRE ULIMA") return { kind:"PRE U.LIMA", scope:"U.LIMA", theme:"PRE U.LIMA" };
   if (raw === "U.LIMA" || raw === "ULIMA" || raw === "UL") return { kind:"U.LIMA", scope:"U.LIMA", theme:"U.LIMA" };
   if (raw === "PUCP") return { kind:"PUCP", scope:"PUCP", theme:"PUCP" };
+  if (raw === "INTEGRAL") return { kind:"INTEGRAL", scope:"INTEGRAL", theme:"INTEGRAL" };
   if (["ESCOLARES U.LIMA","ESCOLAR U.LIMA","ESCOLARES ULIMA","ESCOLAR ULIMA"].includes(raw)) return { kind:"ESCOLARES U.LIMA", scope:"ESCOLARES", theme:"ESCOLARES" };
   if (raw === "ESCOLARES" || raw === "ESCOLAR") return { kind:"ESCOLARES", scope:"ESCOLARES", theme:"ESCOLARES" };
   return { kind:"AGRARIA", scope:"AGRARIA", theme:"AGRARIA" };
@@ -5178,13 +5181,13 @@ if (zoom) zoom.value = pgxZoomOption(pgxGetZoom());
 
         <label>SCOPE
           <select id="pgsScope">
-            ${["ALL","AGRARIA","PUCP","U.LIMA"].map(x=>`<option value="${x}"${String(p.meta?.scope||"ALL").toUpperCase()===x?" selected":""}>${x}</option>`).join("")}
+            ${["ALL","AGRARIA","PUCP","U.LIMA","INTEGRAL"].map(x=>`<option value="${x}"${String(p.meta?.scope||"ALL").toUpperCase()===x?" selected":""}>${x}</option>`).join("")}
           </select>
         </label>
 
         <label>TEMA
           <select id="pgsTheme">
-            ${["AGRARIA","U.LIMA","PRE U.LIMA","PUCP","ESCOLARES"].map(x=>`<option value="${x}"${String(p.meta?.theme||"AGRARIA").toUpperCase()===x?" selected":""}>${x}</option>`).join("")}
+            ${["AGRARIA","U.LIMA","PRE U.LIMA","PUCP","INTEGRAL","ESCOLARES"].map(x=>`<option value="${x}"${String(p.meta?.theme||"AGRARIA").toUpperCase()===x?" selected":""}>${x}</option>`).join("")}
           </select>
         </label>
 
@@ -5481,6 +5484,7 @@ const tw = pgxTotalWeeks();
             <option value="U.LIMA">CICLO: U.LIMA</option>
             <option value="PRE U.LIMA">CICLO: PRE U.LIMA</option>
             <option value="PUCP">CICLO: PUCP</option>
+            <option value="INTEGRAL">CICLO: INTEGRAL</option>
             <option value="ESCOLARES U.LIMA">CICLO: ESCOLARES U.LIMA</option>
             <option value="ESCOLARES">CICLO: ESCOLARES</option>
           </select>
@@ -5611,7 +5615,7 @@ const tw = pgxTotalWeeks();
       });
     }
 
-    if (btnNew){ btnNew.addEventListener("click", ()=>{ if (!pgxCanEdit()||!pgxGetEditOn()) return; const name = prompt("Nombre del nuevo programa:", "NUEVO PROGRAMA"); if(!name) return; const spec=pgxProgramSpec(prompt("Tipo (AGRARIA / U.LIMA / PRE U.LIMA / PUCP / ESCOLARES):", "AGRARIA")||"AGRARIA"); const store=pgxLoadStore(); const baseWeeks=pgxTotalWeeks(); const p=pgxDefaultProgram(name,spec.scope,spec.theme); const w=baseWeeks; p.config.lanes.forEach(l=>{ if(l.type==="cells") l.values=Array.from({length:w},(_,i)=>String(l.values?.[i]||"")); }); store.programs[p.id]=p; pgxInsertProgramId(store,p); pgxSaveStore(store); pgxSetActiveId(p.id); pgxSetMode("ONE"); renderPrograma(); toast("Programa creado."); pgxScheduleRelayout(); }); }
+    if (btnNew){ btnNew.addEventListener("click", ()=>{ if (!pgxCanEdit()||!pgxGetEditOn()) return; const name = prompt("Nombre del nuevo programa:", "NUEVO PROGRAMA"); if(!name) return; const spec=pgxProgramSpec(prompt("Tipo (AGRARIA / U.LIMA / PRE U.LIMA / PUCP / INTEGRAL / ESCOLARES):", "AGRARIA")||"AGRARIA"); const store=pgxLoadStore(); const baseWeeks=pgxTotalWeeks(); const p=pgxDefaultProgram(name,spec.scope,spec.theme); const w=baseWeeks; p.config.lanes.forEach(l=>{ if(l.type==="cells") l.values=Array.from({length:w},(_,i)=>String(l.values?.[i]||"")); }); store.programs[p.id]=p; pgxInsertProgramId(store,p); pgxSaveStore(store); pgxSetActiveId(p.id); pgxSetMode("ONE"); renderPrograma(); toast("Programa creado."); pgxScheduleRelayout(); }); }
     if (btnDel){ btnDel.addEventListener("click", ()=>{ if(!pgxCanEdit()||!pgxGetEditOn()) return; const id=pgxGetActiveId(); if(!id) return; if(!confirm("¿Eliminar este programa?")) return; const store=pgxLoadStore(); delete store.programs[id]; store.order=store.order.filter(x=>x!==id); pgxSaveStore(store); pgxSetActiveId(store.order[0]||""); renderPrograma(); toast("Programa eliminado."); pgxScheduleRelayout(); }); }
     if (btnJson){ btnJson.addEventListener("click", ()=>{ if(!pgxCanEdit()||!pgxGetEditOn()) return; const id=pgxGetActiveId(); const store=pgxLoadStore(); const baseWeeks=pgxTotalWeeks(); let p=store.programs[id]; if(p) p=pgxUpgradeProgram(p,baseWeeks); if(!p) return; const raw=prompt("Editor JSON (pega JSON válido). Sugerencia: copia primero para respaldo.", JSON.stringify(p,null,2)); if(!raw) return; try{ const obj=JSON.parse(raw); if(!obj||!obj.id) throw new Error(); obj.meta=obj.meta||{}; obj.meta.updatedAt=pgxNowISO(); store.programs[obj.id]=obj; if(!store.order.includes(obj.id)) store.order.push(obj.id); pgxSaveStore(store); pgxSetActiveId(obj.id); renderPrograma(); toast("JSON guardado."); pgxScheduleRelayout(); }catch(e){ alert("JSON inválido. No se guardó."); } }); }
     if (btnSet){ btnSet.addEventListener("click", ()=>{ if(!pgxCanEdit()||!pgxGetEditOn()) return; pgxSetSettingsOpen(!pgxGetSettingsOpen()); renderPrograma(); pgxScheduleRelayout(); }); }
@@ -7663,6 +7667,11 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
       { name:"LENGUAJE", url:"https://docs.google.com/spreadsheets/d/1-CucKZAZHYKPu3Z2FxZc6iz0hiWpptb2xJh_UwjTi2o/edit?gid=11988891#gid=11988891" },
       { name:"HABILIDAD OPERATIVA", url:"https://docs.google.com/spreadsheets/d/1GrTdfQVKnTjor-e6sso2s1ydN9nh0DbF8uj1VY9ZbVQ/edit?gid=11988891#gid=11988891" },
     ],
+    "INTEGRAL": [
+      { name:"ARITMÉTICA", url:"" },
+      { name:"RAZONAMIENTO MATEMÁTICO", url:"" },
+      { name:"ÁLGEBRA", url:"" },
+    ],
     "ESCOLARES U.LIMA": [
       { name:"TEXTOS", url:"" },
       { name:"RAZONAMIENTO MATEMÁTICO", url:"" },
@@ -7714,6 +7723,7 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
     if (uni==="AGRARIA") return getCss("--agraria");
     if (uni==="U.LIMA") return getCss("--ulima");
     if (uni==="PUCP") return getCss("--pucp");
+    if (uni==="INTEGRAL") return getCss("--integral");
     if (uni==="ESCOLARES U.LIMA" || uni==="ESCOLARES AGRARIA") return getCss("--schHead_ESC");
     if (uni==="ESCOLARES ARS" || uni==="ESCOLARES ARS SM") return getCss("--pucp");
     if (uni==="ESCOLARES" || uni==="ESCOLARES INTEGRAL") return getCss("--schHead_ESC");
@@ -7724,6 +7734,7 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
     const u = String(uniRaw || "").toUpperCase().trim();
     if ((u.includes("ESCOLAR") || u.includes("ESCOLARES")) && u.includes("AGRARIA")) return "ESCOLARES AGRARIA";
     if ((u.includes("ESCOLAR") || u.includes("ESCOLARES")) && (u.includes("U.LIMA") || u.includes("ULIMA") || u.includes("U LIMA"))) return "ESCOLARES U.LIMA";
+    if (u === "INTEGRAL") return "INTEGRAL";
     if (u === "ESCOLARES") return "ESCOLARES INTEGRAL";
     if ((u.includes("ARS") || u.includes("POP")) && (/\bSM\b/.test(u) || u.includes("SAN MIGUEL"))) return "ESCOLARES ARS SM";
     if (u.includes("ESCOLARES ARS") || u.includes("ARS") || u.includes("POP")) return "ESCOLARES ARS";
@@ -7744,11 +7755,12 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
     const v = mcNormLabel(value || "");
     if (v.includes("ESCOLAR") && v.includes("AGRARIA")) return "ESCOLARES AGRARIA";
     if (v.includes("ESCOLAR") && (v.includes("U.LIMA") || v.includes("ULIMA") || v.includes("U LIMA"))) return "ESCOLARES U.LIMA";
+    if (v === "INTEGRAL") return "INTEGRAL";
     if ((v.includes("ARS") || v.includes("POP")) && (/\bSM\b/.test(v) || v.includes("SAN MIGUEL"))) return "ESCOLARES ARS SM";
     if (v.includes("ARS") || v.includes("POP")) return "ESCOLARES ARS";
     if (v.includes("ESCOLARES") && v.includes("INTEGRAL")) return "ESCOLARES INTEGRAL";
     if (v === "ESCOLARES") return "ESCOLARES INTEGRAL";
-    if (["AGRARIA","U.LIMA","PUCP","ESCOLARES U.LIMA","ESCOLARES AGRARIA","ESCOLARES INTEGRAL","ESCOLARES ARS SM","ESCOLARES ARS"].includes(v)) return v;
+    if (["AGRARIA","U.LIMA","PUCP","INTEGRAL","ESCOLARES U.LIMA","ESCOLARES AGRARIA","ESCOLARES INTEGRAL","ESCOLARES ARS SM","ESCOLARES ARS"].includes(v)) return v;
     return "";
   }
 
@@ -7933,6 +7945,7 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
           <span class="pill"><span class="dot agraria"></span>AGRARIA</span>
           <span class="pill"><span class="dot ulima"></span>U.LIMA</span>
           <span class="pill"><span class="dot pucp"></span>PUCP</span>
+          <span class="pill"><span class="dot" style="background:var(--integral);"></span>INTEGRAL</span>
           <span class="pill"><span class="dot escolares"></span>ESCOLARES U.LIMA</span>
           <span class="pill"><span class="dot escolares"></span>ESCOLARES AGRARIA</span>
           <span class="pill"><span class="dot escolares"></span>ESCOLARES INTEGRAL</span>
@@ -7949,7 +7962,7 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
           <div class="cardtitle" style="margin:0;">RESUMEN GENERAL</div>
           <div class="syKpis">
             <span class="syKpiPill">CURSOS: <b id="sTotal">0</b></span>
-            <span class="syKpiPill">CATEGORÍAS: <b id="sUnis">8</b></span>
+            <span class="syKpiPill">CATEGORÍAS: <b id="sUnis">9</b></span>
           </div>
         </div>
       </div>
@@ -7957,7 +7970,7 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
       <div class="panel12" id="sBlocks"></div>
     `;
 
-    fillSelectKeep("sUni", ["AGRARIA","U.LIMA","PUCP","ESCOLARES U.LIMA","ESCOLARES AGRARIA","ESCOLARES INTEGRAL","ESCOLARES ARS SM","ESCOLARES ARS"], "CATEGORÍA: TODAS");
+    fillSelectKeep("sUni", ["AGRARIA","U.LIMA","PUCP","INTEGRAL","ESCOLARES U.LIMA","ESCOLARES AGRARIA","ESCOLARES INTEGRAL","ESCOLARES ARS SM","ESCOLARES ARS"], "CATEGORÍA: TODAS");
 
     document.getElementById("sReset").addEventListener("click", ()=>{
       document.getElementById("sUni").value="__ALL__";
@@ -8048,7 +8061,7 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
     const fUni = document.getElementById("sUni").value;
     const q = low(document.getElementById("sQ").value);
 
-    const uniOrder = ["AGRARIA","U.LIMA","PUCP","ESCOLARES U.LIMA","ESCOLARES AGRARIA","ESCOLARES INTEGRAL","ESCOLARES ARS SM","ESCOLARES ARS"];
+    const uniOrder = ["AGRARIA","U.LIMA","PUCP","INTEGRAL","ESCOLARES U.LIMA","ESCOLARES AGRARIA","ESCOLARES INTEGRAL","ESCOLARES ARS SM","ESCOLARES ARS"];
     let unis = uniOrder.slice();
     if (fUni !== "__ALL__") unis = unis.filter(u=>u===fUni);
 
@@ -11318,7 +11331,7 @@ ${(canEditRole && matEditOn) ? `<button id="mcClearCycleBtn" class="btn ghost" t
   const openBtn = card.querySelector("#mcOpen2");
   const linkInp = card.querySelector("#mcLink2");
   const saveBtn = card.querySelector("#mcSaveLink2");
-  const syllabusRepoUni = isArsProgram ? mcMaterialDisplayProgramName(prog) : (isIntegralProgram ? "ESCOLARES INTEGRAL" : uni);
+  const syllabusRepoUni = isArsProgram ? mcMaterialDisplayProgramName(prog) : (isIntegralProgram ? "INTEGRAL" : uni);
   const syllabusUrl = mcSyllabusLink(st0,pid0,cid0,syllabusRepoUni);
   const syllabusOpenBtn = card.querySelector("#mcOpenSyllabus2");
 
@@ -11553,7 +11566,7 @@ Esto afecta RECIBIDO, DIAGRAMADO e IMPRESO para todos los cursos y espacios de e
       pStart,
       space,
       url:syllabusUrl,
-      programType: isArsProgram ? mcMaterialDisplayProgramName(prog) : (isIntegralProgram ? "ESCOLARES INTEGRAL" : uni)
+      programType: isArsProgram ? mcMaterialDisplayProgramName(prog) : (isIntegralProgram ? "INTEGRAL" : uni)
     });
   }
 
