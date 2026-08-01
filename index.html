@@ -11106,6 +11106,22 @@ function renderMateriales(){
     "Lenguaje",
     "Simulacros"
   ];
+  const ESCOLARES_AGRARIA_COURSES = [
+    "Razonamiento Matemático",
+    "Razonamiento Verbal",
+    "Textos",
+    "Aritmética",
+    "Álgebra",
+    "Geometría",
+    "Trigonometría",
+    "Física",
+    "Química",
+    "Biología",
+    "Economía",
+    "Historia",
+    "Geografía",
+    "Simulacros"
+  ];
   const ESCOLARES_ARS_COURSES = [
     "Números y Operaciones",
     "Geometría y Medida",
@@ -11121,7 +11137,7 @@ function renderMateriales(){
     const raw = mcMaterialProgramNameRaw(program);
     const normalized = raw.toUpperCase().replace(/\s+/g, " ").trim();
     if (normalized === "ESCOLARES INTEGRAL") return "ESCOLARES INTEGRAL";
-    if (normalized === "ESCOLARES AGRARIA" || normalized === "ESCOLARES AGRARAI") return "ESCOLARES INTEGRAL";
+    if (["ESCOLARES AG","ESCOLARES AGRARIA","ESCOLARES AGRARAI"].includes(normalized)) return "ESCOLARES AGRARIA";
     if (normalized.includes("ESCOLAR") && (normalized.includes("U.LIMA") || normalized.includes("ULIMA") || normalized.includes("U LIMA"))) return "ESCOLARES U.LIMA";
     if (normalized.includes("ARS") || normalized.includes("POP")){
       const isSanMiguel = /\bSM\b/.test(normalized) || normalized.includes("SAN MIGUEL");
@@ -11134,6 +11150,7 @@ function renderMateriales(){
     if (uniNorm !== "ESCOLARES") return COURSES[uniNorm] || [];
     const name = mcMaterialProgramNameRaw(program).toUpperCase();
     if (name.includes("U.LIMA") || name.includes("ULIMA") || name.includes("U LIMA")) return ESCOLARES_ULIMA_COURSES;
+    if (name === "ESCOLARES AG" || name.includes("AGRARIA") || name.includes("AGRARAI")) return ESCOLARES_AGRARIA_COURSES;
     if (name.includes("ARS")) return ESCOLARES_ARS_COURSES;
     return ESCOLARES_INTEGRAL_COURSES;
   }
@@ -11351,7 +11368,7 @@ ${(canEditRole && matEditOn) ? `<button id="mcClearCycleBtn" class="btn ghost" t
   const openBtn = card.querySelector("#mcOpen2");
   const linkInp = card.querySelector("#mcLink2");
   const saveBtn = card.querySelector("#mcSaveLink2");
-  const syllabusRepoUni = (isArsProgram || isEscolaresIntegralProgram) ? mcMaterialDisplayProgramName(prog) : (isIntegralProgram ? "INTEGRAL" : uni);
+  const syllabusRepoUni = (uni === "ESCOLARES") ? mcMaterialDisplayProgramName(prog) : (isIntegralProgram ? "INTEGRAL" : uni);
   const syllabusUrl = mcSyllabusLink(st0,pid0,cid0,syllabusRepoUni);
   const syllabusOpenBtn = card.querySelector("#mcOpenSyllabus2");
 
@@ -11586,7 +11603,7 @@ Esto afecta RECIBIDO, DIAGRAMADO e IMPRESO para todos los cursos y espacios de e
       pStart,
       space,
       url:syllabusUrl,
-      programType: (isArsProgram || isEscolaresIntegralProgram) ? mcMaterialDisplayProgramName(prog) : (isIntegralProgram ? "INTEGRAL" : uni)
+      programType: (uni === "ESCOLARES") ? mcMaterialDisplayProgramName(prog) : (isIntegralProgram ? "INTEGRAL" : uni)
     });
   }
 
