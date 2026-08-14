@@ -7,7 +7,7 @@
   <meta http-equiv="Pragma" content="no-cache"/>
   <meta http-equiv="Expires" content="0"/>
   <title>LA META | DASHBOARD</title>
-  <!-- revisión: materiales y sílabos v2026-08-14d · avisos de feriado visibles sin reprogramar si no coinciden con el día real -->
+  <!-- revisión: materiales y sílabos v2026-08-14e · avisos de feriado visibles sin reprogramar si no coinciden con el día real -->
 
   <!-- Charts -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
@@ -7662,10 +7662,9 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
       { name:"ÁLGEBRA", url:"https://docs.google.com/spreadsheets/d/18_38udXwAgCbA3ysr1R9cpWVY0Z_nIaOdXzYVPV8_D8/edit?gid=11988891#gid=11988891" },
       { name:"ARITMÉTICA", url:"https://docs.google.com/spreadsheets/d/1VvgKuQHSuU1j-HVWCojynMw6N3b5LwBBgymTq_K_6Ck/edit?gid=11988891#gid=11988891" },
       { name:"GEOMETRÍA", url:"https://docs.google.com/spreadsheets/d/1-aWi7hmJcCkrZAIy8E5riX6jFFTvEn5qnuwqC5cGF2o/edit?gid=11988891#gid=11988891" },
-      { name:"REF. MATEMÁTICAS", url:"" },
+      { name:"REF. MATEMÁTICAS", url:"", showWithoutLink:true },
       { name:"LENGUAJE", url:"https://docs.google.com/spreadsheets/d/1-CucKZAZHYKPu3Z2FxZc6iz0hiWpptb2xJh_UwjTi2o/edit?gid=11988891#gid=11988891" },
       { name:"TEXTOS", url:"https://docs.google.com/spreadsheets/d/1ILTmyKaVYUDhTv3KOit67iOh3MlgsCVtSi0ri2ejPgU/edit?gid=11988891#gid=11988891" },
-      { name:"SIMULACROS", url:"" },
     ],
     "INTEGRAL": [
       { name:"ARITMÉTICA", url:"" },
@@ -8021,7 +8020,7 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
       const uni = silaboUniKey(uniKey(prof.uni || prof.uni_sheet || prof.ciclo || "") || (prof.uni || "-"));
       const st = mcLoadStore();
       let list = (SILABOS[uni] || []).slice();
-      list = list.filter(it => !!syRepoGetLink(st, uni, it.name, true));
+      list = list.filter(it => !!syRepoGetLink(st, uni, it.name, true) || it.showWithoutLink === true);
       if (q) list = list.filter(x => low(x.name).includes(q));
 
       if (uniOnlyEl) uniOnlyEl.textContent = uni;
@@ -8069,7 +8068,7 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
     const showPending = canEdit && SY_LINK_EDIT_MODE;
     const visibleUniOrder = showPending
       ? uniOrder.slice()
-      : uniOrder.filter(uni => (SILABOS[uni] || []).some(it => !!syRepoGetLink(st, uni, it.name, true)));
+      : uniOrder.filter(uni => (SILABOS[uni] || []).some(it => !!syRepoGetLink(st, uni, it.name, true) || it.showWithoutLink === true));
 
     fillSelectKeep("sUni", visibleUniOrder, "CATEGORÍA: TODAS");
     document.querySelectorAll("[data-sy-category]").forEach(pill=>{
@@ -8085,7 +8084,7 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
 
     const blocks = unis.map(uni=>{
       let list = (SILABOS[uni] || []).slice();
-      if (!showPending) list = list.filter(it => !!syRepoGetLink(st, uni, it.name, true));
+      if (!showPending) list = list.filter(it => !!syRepoGetLink(st, uni, it.name, true) || it.showWithoutLink === true);
       if (q) list = list.filter(x => low(x.name).includes(q));
       if (!list.length) return "";
       totalCourses += list.length;
@@ -11075,7 +11074,7 @@ function renderMateriales(){
       "Física","Química","Biología","Economía","Historia","Geografía","Simulacros"
     ],
     "U.LIMA":[
-      "Razonamiento Matemático","Álgebra","Geometría y Trigonometría","Aritmética","Textos","Lenguaje","Habilidad operativa","Simulacros"
+      "Álgebra","Aritmética","Geometría","Ref. Matemáticas","Lenguaje","Textos"
     ],
     "PUCP":[  "Habilidad Operativa",
   "Estadística",
