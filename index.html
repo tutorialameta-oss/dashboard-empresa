@@ -7,7 +7,7 @@
   <meta http-equiv="Pragma" content="no-cache"/>
   <meta http-equiv="Expires" content="0"/>
   <title>LA META | DASHBOARD</title>
-  <!-- revisión: materiales y sílabos v2026-08-14k · avisos de feriado visibles sin reprogramar si no coinciden con el día real -->
+  <!-- revisión: listas y reportes v2026-08-17a · ESC AGRARIA trasladado de SAN MIGUEL a VIRTUAL -->
 
   <!-- Charts -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
@@ -11668,7 +11668,6 @@ const LISTAS = [
   //{ local:"SAN MIGUEL", name:"U.LIMA 2",  url:"https://docs.google.com/spreadsheets/d/1--AqnIDhIdZvbeIUjYC_BPwdHHHOAhSIqOnmIODNUkU/edit?usp=drive_web&ouid=109996193497961946614" },
 //  { local:"SAN MIGUEL", name:"PARALELO",  url:"https://docs.google.com/spreadsheets/d/1KlFuLnC99juHJoI7VT9Ez6cVN3c-X76eZzcZS17IXqM/edit?gid=1104164959#gid=1104164959" },
 //  { local:"SAN MIGUEL", name:"ADELANTO",  url:"https://docs.google.com/spreadsheets/d/1SrjJdlBjeNf12I0XFZ0FuripltmSNNmPOa_bTD0pZa8/edit?usp=drive_web&ouid=109996193497961946614" },
-  { local:"SAN MIGUEL", name:"ESC AGRARIA",  url:"https://docs.google.com/spreadsheets/d/1w2A6j_mwX5xN88rMZ6__k-rx7uvq9TWoHqLcl2mSBBY/edit?usp=drive_link" },
   { local:"SAN MIGUEL", name:"ESC U.LIMA",  url:"https://docs.google.com/spreadsheets/d/1pyNYrBOSbjZY5W6oqzNgszpmipWBVO9FLxfCeQCBn8A/edit?usp=drive_link" },  
   { local:"SAN MIGUEL", name:"ESC PUCP",  url:"https://docs.google.com/spreadsheets/d/1rGDx2nDfLM0vaQe_gYSV7YaHCDTFPCmQ9R8BzPsEBZA/edit?usp=drive_link"},
 
@@ -11684,6 +11683,7 @@ const LISTAS = [
 
   // ================= VIRTUAL =================
   { local:"VIRTUAL", name:"AGRARIA",   url:"https://docs.google.com/spreadsheets/d/1A06U7wDDHBmRrxnlai4hm5shaNJcF9qjWRa8xcusZVg/edit?usp=drive_link" },
+  { local:"VIRTUAL", name:"ESC AGRARIA",  url:"https://docs.google.com/spreadsheets/d/1w2A6j_mwX5xN88rMZ6__k-rx7uvq9TWoHqLcl2mSBBY/edit?usp=drive_link" },
     { local:"VIRTUAL", name:"U.LIMA 1",  url:"https://docs.google.com/spreadsheets/d/1RleTyLMWqwMstCBRvG1UvTcR1XyqeTlY7TkWkaajmqs/edit?usp=drive_link" },
   { local:"VIRTUAL", name:"ESC U.LIMA", url:"" },
   { local:"VIRTUAL", name:"ESC PUCP", url:"" },
@@ -11708,6 +11708,10 @@ function listaRepoGetLink(st, local, name, fallback){
   const key = repoSafeKey(local, name);
   const repo = st?.listasRepo || {};
   if (Object.prototype.hasOwnProperty.call(repo, key)) return String(repo[key] || "").trim();
+  if (repoSafeKey(local, name) === repoSafeKey("VIRTUAL", "ESC AGRARIA")){
+    const legacyKey = repoSafeKey("SAN MIGUEL", "ESC AGRARIA");
+    if (Object.prototype.hasOwnProperty.call(repo, legacyKey)) return String(repo[legacyKey] || "").trim();
+  }
   return String(fallback || "").trim();
 }
 function listaRepoSetLink(st, local, name, url){
@@ -11988,7 +11992,11 @@ function getReportesCatalog(){
 function reporteRepoGet(st, local, name, field, fallback){
   const key = repoSafeKey(local, name);
   const repo = st?.reportesRepo || {};
-  const rec = repo[key] || {};
+  let rec = repo[key] || null;
+  if (!rec && key === repoSafeKey("VIRTUAL", "ESC AGRARIA")){
+    rec = repo[repoSafeKey("SAN MIGUEL", "ESC AGRARIA")] || null;
+  }
+  rec = rec || {};
   if (Object.prototype.hasOwnProperty.call(rec, field)) return String(rec[field] || "").trim();
   return String(fallback || "").trim();
 }
