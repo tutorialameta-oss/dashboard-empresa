@@ -7,7 +7,7 @@
   <meta http-equiv="Pragma" content="no-cache"/>
   <meta http-equiv="Expires" content="0"/>
   <title>LA META | DASHBOARD</title>
-  <!-- revisión: listas y reportes v2026-08-17a · ESC AGRARIA trasladado de SAN MIGUEL a VIRTUAL -->
+  <!-- revisión: materiales v2026-08-19a · estructura profesional de simulacros -->
 
   <!-- Charts -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
@@ -2859,6 +2859,176 @@
     color:var(--muted);
     font-weight:900;
     background:#f8fafc;
+  }
+
+  .mcStructureBtn{
+    --sim-accent:#1f4e79;
+    --sim-soft:#edf4fb;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap:8px;
+    min-height:40px;
+    padding:8px 16px;
+    border:1px solid color-mix(in srgb,var(--sim-accent) 58%,white);
+    border-radius:12px;
+    background:linear-gradient(180deg,#fff,var(--sim-soft));
+    color:var(--sim-accent);
+    box-shadow:0 8px 22px color-mix(in srgb,var(--sim-accent) 15%,transparent);
+    cursor:pointer;
+    font:inherit;
+    font-weight:1000;
+    letter-spacing:.02em;
+    transition:transform .14s ease,box-shadow .14s ease,background .14s ease;
+  }
+  .mcStructureBtn::before{
+    content:"";
+    width:8px;
+    height:8px;
+    border-radius:999px;
+    background:var(--sim-accent);
+    box-shadow:0 0 0 4px color-mix(in srgb,var(--sim-accent) 15%,transparent);
+  }
+  .mcStructureBtn:hover{
+    transform:translateY(-1px);
+    box-shadow:0 12px 28px color-mix(in srgb,var(--sim-accent) 22%,transparent);
+  }
+  .mcStructureOverlay{
+    position:fixed;
+    inset:0;
+    z-index:26000;
+    display:none;
+    place-items:center;
+    padding:22px;
+    background:rgba(7,18,35,.62);
+    backdrop-filter:blur(7px);
+  }
+  .mcStructureOverlay.on{ display:grid; }
+  .mcStructureModal{
+    --sim-accent:#1f4e79;
+    --sim-deep:#17385d;
+    --sim-soft:#edf4fb;
+    width:min(940px,calc(100vw - 32px));
+    max-height:calc(100vh - 44px);
+    overflow:hidden;
+    border:1px solid rgba(255,255,255,.7);
+    border-radius:24px;
+    background:#fff;
+    box-shadow:0 34px 100px rgba(2,10,24,.34);
+  }
+  .mcStructureHead{
+    position:relative;
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap:18px;
+    padding:24px 26px 22px;
+    overflow:hidden;
+    color:#fff;
+    background:
+      radial-gradient(circle at 82% 15%,rgba(255,255,255,.22),transparent 30%),
+      linear-gradient(135deg,var(--sim-accent),var(--sim-deep));
+  }
+  .mcStructureEyebrow{
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    margin-bottom:9px;
+    font-size:11px;
+    font-weight:1000;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    opacity:.88;
+  }
+  .mcStructureEyebrow::before{ content:""; width:24px; height:2px; background:currentColor; border-radius:99px; }
+  .mcStructureTitle{ margin:0; font-size:clamp(24px,3vw,34px); font-weight:1100; line-height:1.05; letter-spacing:-.025em; }
+  .mcStructureSub{ margin:8px 0 0; font-size:13px; font-weight:850; opacity:.88; }
+  .mcStructureClose{
+    flex:0 0 auto;
+    width:42px;
+    height:42px;
+    border:1px solid rgba(255,255,255,.38);
+    border-radius:13px;
+    background:rgba(255,255,255,.14);
+    color:#fff;
+    cursor:pointer;
+    font-size:24px;
+    font-weight:700;
+    line-height:1;
+  }
+  .mcStructureClose:hover{ background:rgba(255,255,255,.24); }
+  .mcStructureBody{
+    max-height:calc(100vh - 190px);
+    overflow:auto;
+    padding:20px 24px 24px;
+    background:linear-gradient(180deg,var(--sim-soft),#fff 130px);
+  }
+  .mcStructureMeta{
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px;
+    margin-bottom:14px;
+  }
+  .mcStructurePill{
+    display:inline-flex;
+    align-items:center;
+    min-height:30px;
+    padding:6px 11px;
+    border:1px solid color-mix(in srgb,var(--sim-accent) 22%,white);
+    border-radius:999px;
+    background:#fff;
+    color:var(--sim-deep);
+    font-size:11px;
+    font-weight:1000;
+    letter-spacing:.035em;
+    text-transform:uppercase;
+  }
+  .mcStructureTableWrap{
+    overflow:auto;
+    border:1px solid color-mix(in srgb,var(--sim-accent) 18%,#d8dee8);
+    border-radius:17px;
+    background:#fff;
+    box-shadow:0 16px 40px rgba(15,23,42,.07);
+  }
+  .mcStructureTable{ width:100%; min-width:650px; border-collapse:collapse; }
+  .mcStructureTable th{
+    padding:14px 16px;
+    background:color-mix(in srgb,var(--sim-accent) 12%,white);
+    color:var(--sim-deep);
+    border-bottom:1px solid color-mix(in srgb,var(--sim-accent) 18%,#d8dee8);
+    font-size:11px;
+    font-weight:1100;
+    letter-spacing:.055em;
+    text-align:left;
+    text-transform:uppercase;
+  }
+  .mcStructureTable th:nth-child(1),.mcStructureTable td:nth-child(1){ width:20%; text-align:center; }
+  .mcStructureTable th:nth-child(2),.mcStructureTable td:nth-child(2){ width:36%; text-align:center; }
+  .mcStructureTable td{
+    padding:12px 16px;
+    border-bottom:1px solid rgba(15,23,42,.09);
+    color:#182235;
+    font-size:14px;
+    font-weight:850;
+  }
+  .mcStructureTable td:first-child{ color:var(--sim-deep); font-size:15px; font-weight:1100; }
+  .mcStructureTable tbody tr:last-child td{ border-bottom:0; }
+  .mcStructureTable tbody tr:hover td{ background:color-mix(in srgb,var(--sim-accent) 5%,white); }
+  .mcStructureEmpty{
+    padding:34px 24px;
+    border:1px dashed color-mix(in srgb,var(--sim-accent) 35%,#d8dee8);
+    border-radius:17px;
+    background:#fff;
+    color:var(--sim-deep);
+    text-align:center;
+    font-weight:950;
+  }
+  @media(max-width:700px){
+    .mcStructureOverlay{ padding:10px; }
+    .mcStructureModal{ width:calc(100vw - 20px); max-height:calc(100vh - 20px); border-radius:18px; }
+    .mcStructureHead{ padding:19px 18px 17px; }
+    .mcStructureBody{ max-height:calc(100vh - 155px); padding:14px; }
+    .mcStructureTitle{ font-size:23px; }
   }
 
   .mcBarsCompact{
@@ -10774,6 +10944,171 @@ function mcOpenSyllabusModal(idx){
   overlay.classList.add("on");
 }
 
+const MC_SIMULACRO_STRUCTURES = {
+  AGRARIA: {
+    title:"AGRARIA",
+    accent:"#55a94d", deep:"#2f7433", soft:"#eef8ed",
+    rows:[
+      ["RV","14 (1-14)","Táber(10)/Zavala(4)"],
+      ["RM","14 (15-28)","Obando"],
+      ["ARI","6 (29-34)","Díaz P."],
+      ["ÁLG","9 (35-43)","Ucancial"],
+      ["GEO","5 (44-48)","Torres"],
+      ["TRI","5 (49-53)","Torres"],
+      ["FÍS","8 (54-61)","Ruben"],
+      ["QUÍ","9 (62-70)","Costa"],
+      ["BIO","10 (71-80)","Luyo"],
+      ["ECO","6 (81-86)","Soto"],
+      ["HIS","7 (87-93)","Rioja"],
+      ["GGF","7 (94-100)","Rioja"]
+    ]
+  },
+  ESCOLAR_AGRARIA: {
+    title:"ESCOLAR AGRARIA",
+    accent:"#55a94d", deep:"#2f7433", soft:"#eef8ed",
+    rows:[
+      ["RV","14 (1-14)","Valdivia"],
+      ["RM","14 (15-28)","Obando"],
+      ["ARI","6 (29-34)","Díaz P."],
+      ["ÁLG","9 (35-43)","Ucancial"],
+      ["GEO","5 (44-48)","Torres"],
+      ["TRI","5 (49-53)","Torres"],
+      ["FÍS","8 (54-61)","Góngora"],
+      ["QUÍ","9 (62-70)","Elvis (Pendiente)"],
+      ["BIO","10 (71-80)","Luyo"],
+      ["ECO","6 (81-86)","Rioja"],
+      ["HIS","7 (87-93)","Rioja"],
+      ["GGF","7 (94-100)","Rioja"]
+    ]
+  },
+  ESCOLAR_ULIMA: {
+    title:"ESCOLAR U.LIMA",
+    accent:"#f39a2b", deep:"#a75408", soft:"#fff5e7",
+    rows:[
+      ["RM","10 (1-10)","Chambi R."],
+      ["ÁLG","5 (11-15)","Ucancial"],
+      ["G&T","5 (16-20)","Torres"],
+      ["ARI","5 (21-25)","Obando"],
+      ["TXT","20 (36-40)","Taber"],
+      ["LEN","5 (41-45)","Gino"]
+    ]
+  },
+  ULIMA: {
+    title:"U.LIMA",
+    accent:"#f39a2b", deep:"#a75408", soft:"#fff5e7",
+    rows:[
+      ["ÁLG","10 (11-15)","Ucancial"],
+      ["G&T","5 (16-20)","Emerson"],
+      ["ARI","10 (21-25)","Obando"],
+      ["TXT","25 (36-40)","Zavala(2b)/Taber(1b)"]
+    ]
+  },
+  TALENTO: {
+    title:"TALENTO · PUCP",
+    accent:"#244b78", deep:"#17385d", soft:"#edf4fb",
+    rows:[
+      ["LEC/TXT","28 (01-28/49-76)","Zavala"],
+      ["N&O","10 (29-38/01-10)","Chambi J."],
+      ["ÁLG","18 (39-48/11-28)","Ucancial"],
+      ["G&M","20 (49-58/29-48)","Alejandro"],
+      ["EST","10 (59-68)","Chambi R."]
+    ]
+  },
+  ARS: {
+    title:"ARS · POP",
+    accent:"#244b78", deep:"#17385d", soft:"#edf4fb",
+    rows:[
+      ["LEC/TXT","28 (01-28/49-76)","Gino(6S)"],
+      ["N&O","10 (29-38/01-10)","Torero"],
+      ["ÁLG","18 (39-48/11-28)","Ucancial"],
+      ["G&M","20 (49-58/29-48)","Emerson/Alejandro (6S)"]
+    ]
+  }
+};
+
+function mcResolveSimulacroStructure(uniLabel, programLabel){
+  const uni = mcNormLabel(uniLabel);
+  const program = mcNormLabel(programLabel);
+  const isEscolar = uni === "ESCOLARES" || program.includes("ESCOLAR");
+  if (program.includes("ARS") || program.includes("POP")) return MC_SIMULACRO_STRUCTURES.ARS;
+  if (isEscolar && program.includes("AGRARIA")) return MC_SIMULACRO_STRUCTURES.ESCOLAR_AGRARIA;
+  if (isEscolar && (program.includes("U.LIMA") || program.includes("ULIMA") || program.includes("U LIMA"))) return MC_SIMULACRO_STRUCTURES.ESCOLAR_ULIMA;
+  if (uni === "PUCP" || program.includes("TALENTO")) return MC_SIMULACRO_STRUCTURES.TALENTO;
+  if (uni === "U.LIMA" || uni === "ULIMA" || uni === "U LIMA") return MC_SIMULACRO_STRUCTURES.ULIMA;
+  if (uni === "AGRARIA") return MC_SIMULACRO_STRUCTURES.AGRARIA;
+  return {
+    title:programLabel || uniLabel || "SIMULACRO",
+    accent:"#244b78", deep:"#17385d", soft:"#edf4fb", rows:[]
+  };
+}
+
+function mcCloseSimulacroStructure(){
+  const overlay = document.getElementById("mcStructureOverlay");
+  if (!overlay) return;
+  overlay.classList.remove("on");
+  document.body.style.overflow = overlay.dataset.previousOverflow || "";
+}
+
+function mcEnsureSimulacroStructureModal(){
+  let overlay = document.getElementById("mcStructureOverlay");
+  if (overlay) return overlay;
+  overlay = document.createElement("div");
+  overlay.id = "mcStructureOverlay";
+  overlay.className = "mcStructureOverlay";
+  overlay.innerHTML = `
+    <section class="mcStructureModal" role="dialog" aria-modal="true" aria-labelledby="mcStructureTitle">
+      <header class="mcStructureHead">
+        <div>
+          <div class="mcStructureEyebrow">Estructura de simulacro</div>
+          <h3 id="mcStructureTitle" class="mcStructureTitle">SIMULACRO</h3>
+          <p class="mcStructureSub">Distribución de preguntas y responsables.</p>
+        </div>
+        <button type="button" class="mcStructureClose" data-structure-close="1" aria-label="Cerrar">×</button>
+      </header>
+      <div id="mcStructureBody" class="mcStructureBody"></div>
+    </section>
+  `;
+  overlay.addEventListener("click",(ev)=>{
+    if (ev.target === overlay || ev.target.closest("[data-structure-close]")) mcCloseSimulacroStructure();
+  });
+  document.addEventListener("keydown",(ev)=>{
+    if (ev.key === "Escape" && overlay.classList.contains("on")) mcCloseSimulacroStructure();
+  });
+  document.body.appendChild(overlay);
+  return overlay;
+}
+
+function mcOpenSimulacroStructure(structure){
+  if (!structure) return;
+  const overlay = mcEnsureSimulacroStructureModal();
+  const modal = overlay.querySelector(".mcStructureModal");
+  const title = overlay.querySelector("#mcStructureTitle");
+  const body = overlay.querySelector("#mcStructureBody");
+  modal?.style.setProperty("--sim-accent",structure.accent || "#244b78");
+  modal?.style.setProperty("--sim-deep",structure.deep || "#17385d");
+  modal?.style.setProperty("--sim-soft",structure.soft || "#edf4fb");
+  if (title) title.textContent = structure.title || "SIMULACRO";
+  const rows = Array.isArray(structure.rows) ? structure.rows : [];
+  if (body){
+    body.innerHTML = rows.length ? `
+      <div class="mcStructureMeta">
+        <span class="mcStructurePill">Cursos considerados: ${rows.length}</span>
+        <span class="mcStructurePill">Solo asignaturas activas</span>
+      </div>
+      <div class="mcStructureTableWrap">
+        <table class="mcStructureTable">
+          <thead><tr><th>Curso</th><th>Preguntas de simulacro</th><th>Responsable</th></tr></thead>
+          <tbody>${rows.map(row=>`<tr><td>${escapeHtml(row[0])}</td><td>${escapeHtml(row[1])}</td><td>${escapeHtml(row[2])}</td></tr>`).join("")}</tbody>
+        </table>
+      </div>
+    ` : `<div class="mcStructureEmpty">La estructura de este programa está pendiente de configurar.</div>`;
+  }
+  overlay.dataset.previousOverflow = document.body.style.overflow || "";
+  document.body.style.overflow = "hidden";
+  overlay.classList.add("on");
+  overlay.querySelector("[data-structure-close]")?.focus();
+}
+
 
 function mcBindSyllabusButtons(scope){
   (scope || document).querySelectorAll("[data-syllabus-open]").forEach(btn=>{
@@ -11192,6 +11527,9 @@ function renderMateriales(){
   const savedCourse = localStorage.getItem(COURSE_KEY) || "";
   const course = courses.includes(savedCourse) ? savedCourse : (courses[0]||"");
   const isSimulacroCourse = mcNormLabel(course).includes("SIMULACRO");
+  const simulacroStructure = isSimulacroCourse
+    ? mcResolveSimulacroStructure(uni, mcMaterialDisplayProgramName(prog))
+    : null;
   // SÍLABO visible de forma estándar para todos los ciclos/cursos, excepto Simulacros.
   const showSyllabusCol = !isSimulacroCourse;
 
@@ -11338,6 +11676,7 @@ function renderMateriales(){
         </label>
 
         <a id="mcOpen2" class="btn folder" target="_blank" rel="noopener" style="margin-left:6px; text-decoration:none;">CARPETA</a>
+        ${isSimulacroCourse ? `<button id="mcStructureBtn" class="mcStructureBtn" type="button" aria-haspopup="dialog" style="--sim-accent:${simulacroStructure.accent}; --sim-soft:${simulacroStructure.soft};">ESTRUCTURA</button>` : ""}
         ${(canEdit && matEditOn) ? '<input id="mcLink2" type="text" placeholder="Link de carpeta Drive" style="min-width:320px; padding:8px 10px; border-radius:12px; border:1px solid var(--border); font-weight:900;"/><button id="mcSaveLink2" class="btn ghost" type="button">GUARDAR CARPETA</button>' : ""}
         ${showSyllabusCol ? `
           <span class="mcSyllabusTools" title="Sílabo tomado desde la sección SÍLABOS. En Materiales solo se abre, no se edita.">
@@ -11383,6 +11722,7 @@ ${(canEditRole && matEditOn) ? `<button id="mcClearCycleBtn" class="btn ghost" t
   const cid0 = String(selC?.value||"");
   const curUrl = String((st0.links && st0.links[pid0] && st0.links[pid0][cid0]) ? st0.links[pid0][cid0] : "").trim();
   const openBtn = card.querySelector("#mcOpen2");
+  const structureBtn = card.querySelector("#mcStructureBtn");
   const linkInp = card.querySelector("#mcLink2");
   const saveBtn = card.querySelector("#mcSaveLink2");
   const syllabusRepoUni = (uni === "ESCOLARES") ? mcMaterialDisplayProgramName(prog) : (isIntegralProgram ? "INTEGRAL" : uni);
@@ -11403,6 +11743,7 @@ ${(canEditRole && matEditOn) ? `<button id="mcClearCycleBtn" class="btn ghost" t
     }
   }
   if (linkInp) linkInp.value = curUrl;
+  structureBtn?.addEventListener("click",()=>mcOpenSimulacroStructure(simulacroStructure));
   if (syllabusOpenBtn){
     if (syllabusUrl){
       syllabusOpenBtn.setAttribute("href",syllabusUrl);
