@@ -7,7 +7,7 @@
   <meta http-equiv="Pragma" content="no-cache"/>
   <meta http-equiv="Expires" content="0"/>
   <title>LA META | DASHBOARD</title>
-  <!-- revisión: materiales v2026-08-19a · estructura profesional de simulacros -->
+  <!-- revisión: simulacros v2026-08-19b · sección independiente de estructuras -->
 
   <!-- Charts -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
@@ -3031,6 +3031,185 @@
     .mcStructureTitle{ font-size:23px; }
   }
 
+  /* ===================== SIMULACROS · VISTA GENERAL ===================== */
+  .simWorkspace{
+    grid-column:1/-1;
+    display:flex;
+    flex-direction:column;
+    gap:20px;
+    min-width:0;
+  }
+  .simHero{
+    position:relative;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:24px;
+    padding:27px 30px;
+    overflow:hidden;
+    border:1px solid rgba(37,69,112,.20);
+    border-radius:24px;
+    color:#fff;
+    background:
+      radial-gradient(circle at 86% 18%,rgba(255,255,255,.18),transparent 24%),
+      radial-gradient(circle at 68% 120%,rgba(85,169,77,.28),transparent 31%),
+      linear-gradient(135deg,#172f50 0%,#244b78 58%,#2d5d88 100%);
+    box-shadow:0 24px 65px rgba(15,35,64,.18);
+  }
+  .simHero::after{
+    content:"";
+    position:absolute;
+    right:-38px;
+    bottom:-72px;
+    width:230px;
+    height:230px;
+    border:32px solid rgba(255,255,255,.055);
+    border-radius:999px;
+  }
+  .simHeroMain{ position:relative; z-index:1; display:flex; align-items:center; gap:18px; }
+  .simHeroIcon{
+    flex:0 0 auto;
+    display:grid;
+    place-items:center;
+    width:62px;
+    height:62px;
+    border:1px solid rgba(255,255,255,.35);
+    border-radius:19px;
+    background:rgba(255,255,255,.12);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.22);
+    font-size:29px;
+    font-weight:1000;
+  }
+  .simHeroEyebrow{ margin-bottom:5px; font-size:11px; font-weight:1000; letter-spacing:.15em; text-transform:uppercase; opacity:.74; }
+  .simHeroTitle{ margin:0; font-size:clamp(24px,3vw,36px); font-weight:1100; line-height:1.05; letter-spacing:-.03em; }
+  .simHeroText{ margin:9px 0 0; max-width:680px; font-size:13px; font-weight:780; line-height:1.45; opacity:.86; }
+  .simHeroStats{ position:relative; z-index:1; display:flex; flex-wrap:wrap; justify-content:flex-end; gap:8px; }
+  .simHeroStat{
+    min-width:116px;
+    padding:10px 13px;
+    border:1px solid rgba(255,255,255,.24);
+    border-radius:14px;
+    background:rgba(255,255,255,.10);
+    backdrop-filter:blur(5px);
+  }
+  .simHeroStat b{ display:block; font-size:21px; font-weight:1100; line-height:1; }
+  .simHeroStat span{ display:block; margin-top:5px; font-size:9px; font-weight:1000; letter-spacing:.085em; text-transform:uppercase; opacity:.75; }
+  .simLegend{
+    display:flex;
+    flex-wrap:wrap;
+    align-items:center;
+    gap:9px;
+    padding:12px 15px;
+    border:1px solid var(--border);
+    border-radius:16px;
+    background:#fff;
+    box-shadow:0 10px 27px rgba(15,23,42,.045);
+  }
+  .simLegendTitle{ margin-right:3px; color:var(--muted); font-size:10px; font-weight:1100; letter-spacing:.09em; text-transform:uppercase; }
+  .simLegendItem{ display:inline-flex; align-items:center; gap:7px; padding:6px 10px; border-radius:999px; background:#f8fafc; color:#334155; font-size:10px; font-weight:1000; }
+  .simLegendDot{ width:9px; height:9px; border-radius:999px; background:var(--sim-accent); box-shadow:0 0 0 3px color-mix(in srgb,var(--sim-accent) 14%,transparent); }
+  .simGroup{ display:flex; flex-direction:column; gap:12px; min-width:0; }
+  .simGroupHead{ display:flex; align-items:center; gap:11px; padding:0 4px; }
+  .simGroupLine{ width:31px; height:4px; border-radius:99px; background:linear-gradient(90deg,#244b78,#55a94d); }
+  .simGroupTitle{ margin:0; color:#1e293b; font-size:14px; font-weight:1100; letter-spacing:.06em; text-transform:uppercase; }
+  .simGroupSub{ color:var(--muted); font-size:11px; font-weight:850; }
+  .simCardGrid{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); align-items:start; gap:15px; min-width:0; }
+  .simCard{
+    --sim-accent:#244b78;
+    --sim-deep:#17385d;
+    --sim-soft:#edf4fb;
+    min-width:0;
+    overflow:hidden;
+    border:1px solid color-mix(in srgb,var(--sim-accent) 25%,#d6dde7);
+    border-radius:20px;
+    background:#fff;
+    box-shadow:0 15px 38px color-mix(in srgb,var(--sim-accent) 10%,transparent);
+    transition:transform .16s ease,box-shadow .16s ease;
+  }
+  .simCard:hover{ transform:translateY(-2px); box-shadow:0 20px 48px color-mix(in srgb,var(--sim-accent) 15%,transparent); }
+  .simCardHead{
+    position:relative;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:12px;
+    min-height:76px;
+    padding:16px 18px;
+    overflow:hidden;
+    color:#fff;
+    background:
+      radial-gradient(circle at 92% 0%,rgba(255,255,255,.22),transparent 37%),
+      linear-gradient(135deg,var(--sim-accent),var(--sim-deep));
+  }
+  .simCardHead::after{ content:""; position:absolute; right:-31px; bottom:-46px; width:112px; height:112px; border:17px solid rgba(255,255,255,.07); border-radius:999px; }
+  .simCardTitleWrap{ position:relative; z-index:1; min-width:0; }
+  .simCardKicker{ margin-bottom:5px; font-size:9px; font-weight:1000; letter-spacing:.14em; text-transform:uppercase; opacity:.75; }
+  .simCardTitle{ margin:0; font-size:20px; font-weight:1100; line-height:1.08; letter-spacing:-.015em; }
+  .simCardCount{ position:relative; z-index:1; flex:0 0 auto; display:grid; place-items:center; min-width:47px; height:43px; padding:0 9px; border:1px solid rgba(255,255,255,.30); border-radius:13px; background:rgba(255,255,255,.13); font-size:17px; font-weight:1100; }
+  .simTableWrap{ overflow-x:auto; }
+  .simTable{ width:100%; min-width:0; table-layout:fixed; border-collapse:collapse; }
+  .simTable th{
+    padding:10px 10px;
+    border-bottom:1px solid color-mix(in srgb,var(--sim-accent) 20%,#d6dde7);
+    background:var(--sim-soft);
+    color:var(--sim-deep);
+    font-size:9px;
+    font-weight:1100;
+    letter-spacing:.055em;
+    text-align:left;
+    text-transform:uppercase;
+  }
+  .simTable th:first-child,.simTable td:first-child{ width:12%; text-align:center; }
+  .simTable th:nth-child(2),.simTable td:nth-child(2){ width:19%; text-align:center; }
+  .simTable th:nth-child(3),.simTable td:nth-child(3){ width:29%; text-align:center; }
+  .simTable td{
+    padding:9px 10px;
+    border-bottom:1px solid rgba(15,23,42,.085);
+    color:#1e293b;
+    font-size:11px;
+    font-weight:800;
+    line-height:1.25;
+    overflow-wrap:anywhere;
+  }
+  .simTable tbody tr:last-child td{ border-bottom:0; }
+  .simTable tbody tr:hover td:not(:first-child){ background:color-mix(in srgb,var(--sim-accent) 5%,white); }
+  .simCode{
+    display:inline-grid;
+    place-items:center;
+    min-width:31px;
+    height:27px;
+    padding:0 5px;
+    border-radius:8px;
+    background:#0a0d12;
+    color:#fff;
+    box-shadow:0 4px 10px rgba(2,6,23,.18);
+    font-size:11px;
+    font-weight:1000;
+  }
+  .simCourse{ color:var(--sim-deep); font-size:12px; font-weight:1100; }
+  .simFooterNote{
+    display:flex;
+    align-items:flex-start;
+    gap:10px;
+    padding:13px 15px;
+    border:1px solid rgba(36,75,120,.13);
+    border-radius:15px;
+    background:#f8fafc;
+    color:#475569;
+    font-size:11px;
+    font-weight:800;
+    line-height:1.4;
+  }
+  .simFooterNote b{ color:#1e3a5f; }
+  @media(min-width:1700px){ .simCardGrid{ grid-template-columns:repeat(3,minmax(0,1fr)); } }
+  @media(max-width:760px){
+    .simHero{ align-items:flex-start; flex-direction:column; padding:22px 20px; }
+    .simHeroIcon{ width:54px; height:54px; border-radius:16px; }
+    .simHeroStats{ justify-content:flex-start; }
+    .simCardGrid{ grid-template-columns:1fr; }
+    .simGroupHead{ align-items:flex-start; flex-wrap:wrap; }
+  }
+
   .mcBarsCompact{
     display:grid;
     grid-template-columns: repeat(3, minmax(96px, 1fr));
@@ -3745,6 +3924,7 @@
         <button id="nav_silabos">SÍLABOS</button>
         <button id="nav_evaluaciones">EVALUACIONES</button>
         <button id="nav_materiales">MATERIALES</button>
+        <button id="nav_simulacros">SIMULACROS</button>
         <button id="nav_listas">LISTAS</button>
         <button id="nav_reportes">REPORTES</button>
 
@@ -3792,6 +3972,7 @@
       <div id="view_silabos" class="grid" style="display:none;"></div>
       <div id="view_evaluaciones" class="grid" style="display:none;"></div>
       <div id="view_materiales" class="grid" style="display:none;"></div>
+      <div id="view_simulacros" class="grid" style="display:none;"></div>
       <div id="view_listas" class="grid" style="display:none;"></div>
       <div id="view_reportes" class="grid" style="display:none;"></div>
 
@@ -3990,6 +4171,7 @@ const btnImpr = document.getElementById("nav_impresiones");
     const btnSil = document.getElementById("nav_silabos");
     const btnEval = document.getElementById("nav_evaluaciones");
     const btnMat = document.getElementById("nav_materiales");
+    const btnSim = document.getElementById("nav_simulacros");
     const btnList = document.getElementById("nav_listas");
     const btnRep = document.getElementById("nav_reportes");
 
@@ -4017,6 +4199,7 @@ if (btnSil) btnSil.style.display = "";
 
     // Materiales: oculto para alumnos (se habilitará cuando esté listo)
     if (btnMat) btnMat.style.display = isAlumno ? "none" : "";
+    if (btnSim) btnSim.style.display = isAlumno ? "none" : "";
 
     // Si la vista actual no está permitida, enviar a fallback
     if (state && state.view && !canAccessView(state.view)){
@@ -6535,7 +6718,7 @@ const tw = pgxTotalWeeks();
   };
 // ===================== PERSISTENCIA DE VISTA (FIX) =====================
 const VIEW_STORAGE_KEY = "LA_META_CURRENT_VIEW";
-const ALLOWED_VIEWS = ["inicio_alumno","perfil_alumno","overview","local","table","horarios","programa","impresiones","silabos","evaluaciones","materiales","listas","reportes"];
+const ALLOWED_VIEWS = ["inicio_alumno","perfil_alumno","overview","local","table","horarios","programa","impresiones","silabos","evaluaciones","materiales","simulacros","listas","reportes"];
 
 function saveView(v){
   try { localStorage.setItem(VIEW_STORAGE_KEY, v); } catch(e){}
@@ -6810,6 +6993,7 @@ t("nav_impresiones", v==="impresiones");
     t("nav_silabos", v==="silabos");
     t("nav_evaluaciones", v==="evaluaciones");
     t("nav_materiales", v==="materiales");
+    t("nav_simulacros", v==="simulacros");
     t("nav_listas", v==="listas");
     t("nav_reportes", v==="reportes");
 
@@ -6830,6 +7014,7 @@ s("view_impresiones", v==="impresiones");
     s("view_silabos", v==="silabos");
     s("view_evaluaciones", v==="evaluaciones");
     s("view_materiales", v==="materiales");
+    s("view_simulacros", v==="simulacros");
     s("view_listas", v==="listas");
     s("view_reportes", v==="reportes");
 
@@ -6838,7 +7023,7 @@ s("view_impresiones", v==="impresiones");
     const cm = document.getElementById("controlsMatricula");
     if (cm){
       cm.style.display =
-        (v==="inicio_alumno" || v==="horarios" || v==="programa" || v==="impresiones" || v==="silabos" || v==="evaluaciones" || v==="materiales" || v==="listas" || v==="reportes" || v==="notas") ? "none" : "";
+        (v==="inicio_alumno" || v==="horarios" || v==="programa" || v==="impresiones" || v==="silabos" || v==="evaluaciones" || v==="materiales" || v==="simulacros" || v==="listas" || v==="reportes" || v==="notas") ? "none" : "";
     }
 
     // estado solo visible en ALUMNOS (tabla) y no para rol alumno
@@ -6859,6 +7044,7 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
       silabos: ["SÍLABOS", "Repositorio de sílabos por universidad y curso."],
       evaluaciones: ["EVALUACIONES", "Evaluaciones por curso (5 preguntas). Envío automático y nota 0–20."],
       materiales: ["MATERIALES", "Accesos a carpetas de materiales por universidad."],
+      simulacros: ["SIMULACROS", "Estructuras oficiales de preguntas y responsables por programa."],
       listas: ["LISTAS", "Listas por salón."],
       reportes: ["REPORTES", "Envío y acceso a carpeta de acumulación de reportes por salón."],
       notas: ["NOTAS", "Accesos rápidos a hojas de notas por universidad y programa escolar."]
@@ -10948,6 +11134,7 @@ const MC_SIMULACRO_STRUCTURES = {
   AGRARIA: {
     title:"AGRARIA",
     accent:"#55a94d", deep:"#2f7433", soft:"#eef8ed",
+    codes:[1,2,3,4,5,6,7,8,9,10,11,12],
     rows:[
       ["RV","14 (1-14)","Táber(10)/Zavala(4)"],
       ["RM","14 (15-28)","Obando"],
@@ -10966,6 +11153,7 @@ const MC_SIMULACRO_STRUCTURES = {
   ESCOLAR_AGRARIA: {
     title:"ESCOLAR AGRARIA",
     accent:"#55a94d", deep:"#2f7433", soft:"#eef8ed",
+    codes:[13,14,15,16,17,18,19,20,21,22,23,24],
     rows:[
       ["RV","14 (1-14)","Valdivia"],
       ["RM","14 (15-28)","Obando"],
@@ -10984,6 +11172,7 @@ const MC_SIMULACRO_STRUCTURES = {
   ESCOLAR_ULIMA: {
     title:"ESCOLAR U.LIMA",
     accent:"#f39a2b", deep:"#a75408", soft:"#fff5e7",
+    codes:[25,26,27,28,30,31],
     rows:[
       ["RM","10 (1-10)","Chambi R."],
       ["ÁLG","5 (11-15)","Ucancial"],
@@ -10996,6 +11185,7 @@ const MC_SIMULACRO_STRUCTURES = {
   ULIMA: {
     title:"U.LIMA",
     accent:"#f39a2b", deep:"#a75408", soft:"#fff5e7",
+    codes:[34,35,36,38],
     rows:[
       ["ÁLG","10 (11-15)","Ucancial"],
       ["G&T","5 (16-20)","Emerson"],
@@ -11006,6 +11196,7 @@ const MC_SIMULACRO_STRUCTURES = {
   TALENTO: {
     title:"TALENTO · PUCP",
     accent:"#244b78", deep:"#17385d", soft:"#edf4fb",
+    codes:[41,42,43,44,45],
     rows:[
       ["LEC/TXT","28 (01-28/49-76)","Zavala"],
       ["N&O","10 (29-38/01-10)","Chambi J."],
@@ -11017,6 +11208,7 @@ const MC_SIMULACRO_STRUCTURES = {
   ARS: {
     title:"ARS · POP",
     accent:"#244b78", deep:"#17385d", soft:"#edf4fb",
+    codes:[46,47,48,49],
     rows:[
       ["LEC/TXT","28 (01-28/49-76)","Gino(6S)"],
       ["N&O","10 (29-38/01-10)","Torero"],
@@ -11025,6 +11217,105 @@ const MC_SIMULACRO_STRUCTURES = {
     ]
   }
 };
+
+function simStructureCardHtml(key, kicker){
+  const cfg = MC_SIMULACRO_STRUCTURES[key];
+  if (!cfg) return "";
+  const rows = Array.isArray(cfg.rows) ? cfg.rows : [];
+  const codes = Array.isArray(cfg.codes) ? cfg.codes : [];
+  return `
+    <article class="simCard" role="region" aria-label="${escapeHtml(cfg.title)}" style="--sim-accent:${cfg.accent}; --sim-deep:${cfg.deep}; --sim-soft:${cfg.soft};">
+      <header class="simCardHead">
+        <div class="simCardTitleWrap">
+          <div class="simCardKicker">${escapeHtml(kicker)}</div>
+          <h3 class="simCardTitle">${escapeHtml(cfg.title)}</h3>
+        </div>
+        <div class="simCardCount" title="Cursos activos">${rows.length}</div>
+      </header>
+      <div class="simTableWrap">
+        <table class="simTable">
+          <thead>
+            <tr><th>Código</th><th>Curso</th><th>Preguntas</th><th>Responsable</th></tr>
+          </thead>
+          <tbody>
+            ${rows.map((row,idx)=>`
+              <tr>
+                <td><span class="simCode">${escapeHtml(String(codes[idx] ?? idx+1))}</span></td>
+                <td><span class="simCourse">${escapeHtml(row[0])}</span></td>
+                <td>${escapeHtml(row[1])}</td>
+                <td>${escapeHtml(row[2])}</td>
+              </tr>
+            `).join("")}
+          </tbody>
+        </table>
+      </div>
+    </article>
+  `;
+}
+
+function renderSimulacros(){
+  const el = document.getElementById("view_simulacros");
+  if (!el) return;
+  const totalAssignments = Object.values(MC_SIMULACRO_STRUCTURES)
+    .reduce((sum,cfg)=>sum + (Array.isArray(cfg.rows) ? cfg.rows.length : 0),0);
+  el.innerHTML = `
+    <div class="simWorkspace">
+      <section class="simHero">
+        <div class="simHeroMain">
+          <div class="simHeroIcon" aria-hidden="true">S</div>
+          <div>
+            <div class="simHeroEyebrow">Guía central de elaboración</div>
+            <h3 class="simHeroTitle">ESTRUCTURAS DE SIMULACROS</h3>
+            <p class="simHeroText">Consulta en una sola vista la distribución de preguntas, los códigos y los responsables asignados a cada programa.</p>
+          </div>
+        </div>
+        <div class="simHeroStats">
+          <div class="simHeroStat"><b>6</b><span>Programas</span></div>
+          <div class="simHeroStat"><b>${totalAssignments}</b><span>Asignaciones activas</span></div>
+          <div class="simHeroStat"><b>AGO</b><span>Vigencia 2026</span></div>
+        </div>
+      </section>
+
+      <div class="simLegend" aria-label="Colores por programa">
+        <span class="simLegendTitle">Identidad visual</span>
+        <span class="simLegendItem" style="--sim-accent:#55a94d;"><i class="simLegendDot"></i>AGRARIA</span>
+        <span class="simLegendItem" style="--sim-accent:#f39a2b;"><i class="simLegendDot"></i>U.LIMA</span>
+        <span class="simLegendItem" style="--sim-accent:#244b78;"><i class="simLegendDot"></i>PUCP · ARS / POP</span>
+      </div>
+
+      <section class="simGroup">
+        <div class="simGroupHead">
+          <span class="simGroupLine"></span>
+          <h3 class="simGroupTitle">Admisión y escolares</h3>
+          <span class="simGroupSub">Estructuras Agraria y escolares</span>
+        </div>
+        <div class="simCardGrid">
+          ${simStructureCardHtml("AGRARIA","Admisión")}
+          ${simStructureCardHtml("ESCOLAR_AGRARIA","Escolar")}
+          ${simStructureCardHtml("ESCOLAR_ULIMA","Escolar")}
+        </div>
+      </section>
+
+      <section class="simGroup">
+        <div class="simGroupHead">
+          <span class="simGroupLine"></span>
+          <h3 class="simGroupTitle">Integral</h3>
+          <span class="simGroupSub">U.Lima, Talento y ARS / POP</span>
+        </div>
+        <div class="simCardGrid">
+          ${simStructureCardHtml("ULIMA","Integral")}
+          ${simStructureCardHtml("TALENTO","Integral")}
+          ${simStructureCardHtml("ARS","Integral")}
+        </div>
+      </section>
+
+      <div class="simFooterNote">
+        <span aria-hidden="true">●</span>
+        <span><b>Criterio de visualización:</b> se muestran únicamente las asignaturas activas. Las filas grises del documento de referencia se omiten y POP se presenta junto con ARS.</span>
+      </div>
+    </div>
+  `;
+}
 
 function mcResolveSimulacroStructure(uniLabel, programLabel){
   const uni = mcNormLabel(uniLabel);
@@ -11527,9 +11818,6 @@ function renderMateriales(){
   const savedCourse = localStorage.getItem(COURSE_KEY) || "";
   const course = courses.includes(savedCourse) ? savedCourse : (courses[0]||"");
   const isSimulacroCourse = mcNormLabel(course).includes("SIMULACRO");
-  const simulacroStructure = isSimulacroCourse
-    ? mcResolveSimulacroStructure(uni, mcMaterialDisplayProgramName(prog))
-    : null;
   // SÍLABO visible de forma estándar para todos los ciclos/cursos, excepto Simulacros.
   const showSyllabusCol = !isSimulacroCourse;
 
@@ -11676,7 +11964,6 @@ function renderMateriales(){
         </label>
 
         <a id="mcOpen2" class="btn folder" target="_blank" rel="noopener" style="margin-left:6px; text-decoration:none;">CARPETA</a>
-        ${isSimulacroCourse ? `<button id="mcStructureBtn" class="mcStructureBtn" type="button" aria-haspopup="dialog" style="--sim-accent:${simulacroStructure.accent}; --sim-soft:${simulacroStructure.soft};">ESTRUCTURA</button>` : ""}
         ${(canEdit && matEditOn) ? '<input id="mcLink2" type="text" placeholder="Link de carpeta Drive" style="min-width:320px; padding:8px 10px; border-radius:12px; border:1px solid var(--border); font-weight:900;"/><button id="mcSaveLink2" class="btn ghost" type="button">GUARDAR CARPETA</button>' : ""}
         ${showSyllabusCol ? `
           <span class="mcSyllabusTools" title="Sílabo tomado desde la sección SÍLABOS. En Materiales solo se abre, no se edita.">
@@ -11722,7 +12009,6 @@ ${(canEditRole && matEditOn) ? `<button id="mcClearCycleBtn" class="btn ghost" t
   const cid0 = String(selC?.value||"");
   const curUrl = String((st0.links && st0.links[pid0] && st0.links[pid0][cid0]) ? st0.links[pid0][cid0] : "").trim();
   const openBtn = card.querySelector("#mcOpen2");
-  const structureBtn = card.querySelector("#mcStructureBtn");
   const linkInp = card.querySelector("#mcLink2");
   const saveBtn = card.querySelector("#mcSaveLink2");
   const syllabusRepoUni = (uni === "ESCOLARES") ? mcMaterialDisplayProgramName(prog) : (isIntegralProgram ? "INTEGRAL" : uni);
@@ -11743,7 +12029,6 @@ ${(canEditRole && matEditOn) ? `<button id="mcClearCycleBtn" class="btn ghost" t
     }
   }
   if (linkInp) linkInp.value = curUrl;
-  structureBtn?.addEventListener("click",()=>mcOpenSimulacroStructure(simulacroStructure));
   if (syllabusOpenBtn){
     if (syllabusUrl){
       syllabusOpenBtn.setAttribute("href",syllabusUrl);
@@ -15226,6 +15511,7 @@ if (state.view==="impresiones") renderImpresiones();
       renderEvaluaciones(false, soft);
     }
     if (state.view==="materiales") renderMateriales();
+    if (state.view==="simulacros") renderSimulacros();
     if (state.view==="listas") renderListas();
     if (state.view==="reportes") renderReportes();
       if (state.view==="notas") renderNotasGenerales();
@@ -15571,6 +15857,7 @@ bind("nav_impresiones", ()=>setView("impresiones"));
   bind("nav_silabos", ()=>setView("silabos"));
   bind("nav_evaluaciones", ()=>setView("evaluaciones"));
   bind("nav_materiales", ()=>setView("materiales"));
+  bind("nav_simulacros", ()=>setView("simulacros"));
   bind("nav_listas", ()=>setView("listas"));
   bind("nav_reportes", ()=>setView("reportes"));
 
