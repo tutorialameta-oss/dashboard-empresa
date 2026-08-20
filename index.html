@@ -7,7 +7,7 @@
   <meta http-equiv="Pragma" content="no-cache"/>
   <meta http-equiv="Expires" content="0"/>
   <title>LA META | DASHBOARD</title>
-  <!-- revisión: simulacros v2026-08-20a · vista directa, clara y sin elementos adicionales -->
+  <!-- revisión: simulacros v2026-08-20b · edición de estructuras exclusiva para Admin -->
 
   <!-- Charts -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
@@ -3114,6 +3114,7 @@
   .simGroupTitle{ margin:0; color:#1e293b; font-size:14px; font-weight:1100; letter-spacing:.06em; text-transform:uppercase; }
   .simGroupSub{ color:var(--muted); font-size:11px; font-weight:850; }
   .simCardGrid{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); align-items:start; gap:15px; min-width:0; }
+  .simCardGrid.simEditingGrid{ grid-template-columns:1fr; }
   .simCard{
     --sim-accent:#244b78;
     --sim-deep:#17385d;
@@ -3208,6 +3209,84 @@
     .simHeroStats{ justify-content:flex-start; }
     .simCardGrid{ grid-template-columns:1fr; }
     .simGroupHead{ align-items:flex-start; flex-wrap:wrap; }
+  }
+
+  .simAdminToolbar{
+    display:flex;
+    justify-content:flex-end;
+    align-items:center;
+    gap:8px;
+    min-height:36px;
+  }
+  .simAdminBtn{
+    min-height:36px;
+    padding:8px 13px;
+    border:1px solid rgba(143,29,29,.28);
+    border-radius:11px;
+    background:#fff;
+    color:#8f1d1d;
+    cursor:pointer;
+    font:inherit;
+    font-size:10px;
+    font-weight:1000;
+    letter-spacing:.035em;
+  }
+  .simAdminBtn.primary{ border-color:#8f1d1d; background:#8f1d1d; color:#fff; }
+  .simAdminBtn:hover{ box-shadow:0 6px 16px rgba(143,29,29,.13); }
+  .simCard.simEditing{ border-style:dashed; box-shadow:0 8px 24px rgba(15,23,42,.075); }
+  .simEditTitle{
+    width:min(330px,100%);
+    padding:8px 10px;
+    border:1px solid color-mix(in srgb,var(--sim-accent) 45%,#d6dde7);
+    border-radius:9px;
+    background:#fff;
+    color:var(--sim-deep);
+    font:inherit;
+    font-size:15px;
+    font-weight:1000;
+  }
+  .simEditInput{
+    width:100%;
+    min-height:34px;
+    padding:7px 8px;
+    border:1px solid rgba(15,23,42,.15);
+    border-radius:8px;
+    background:#fff;
+    color:#1e293b;
+    font:inherit;
+    font-size:10px;
+    font-weight:800;
+  }
+  .simEditInput:focus,.simEditTitle:focus{ outline:2px solid color-mix(in srgb,var(--sim-accent) 28%,transparent); border-color:var(--sim-accent); }
+  .simTable.simEditing{ table-layout:auto; min-width:580px; }
+  .simTable.simEditing th:first-child,.simTable.simEditing td:first-child{ width:20%; }
+  .simTable.simEditing th:nth-child(2),.simTable.simEditing td:nth-child(2){ width:31%; }
+  .simTable.simEditing th:nth-child(3),.simTable.simEditing td:nth-child(3){ width:39%; }
+  .simTable.simEditing th:last-child,.simTable.simEditing td:last-child{ width:10%; text-align:center; }
+  .simRowRemove{
+    width:30px;
+    height:30px;
+    border:1px solid rgba(220,38,38,.24);
+    border-radius:8px;
+    background:#fff5f5;
+    color:#b91c1c;
+    cursor:pointer;
+    font-size:17px;
+    font-weight:1000;
+    line-height:1;
+  }
+  .simAddRowWrap{ padding:10px 12px 12px; border-top:1px solid rgba(15,23,42,.07); background:#fafafa; }
+  .simAddRow{
+    width:100%;
+    min-height:35px;
+    border:1px dashed color-mix(in srgb,var(--sim-accent) 45%,#d6dde7);
+    border-radius:9px;
+    background:#fff;
+    color:var(--sim-deep);
+    cursor:pointer;
+    font:inherit;
+    font-size:10px;
+    font-weight:1000;
   }
 
   .mcBarsCompact{
@@ -4711,6 +4790,7 @@ function pgxProgramSpec(kind){
   const LM_MODULE_PROGRAMA   = "LM_SHARED_PROGRAMA_STORE_V1";
   const LM_MODULE_HORARIOS   = "LM_SHARED_HORARIOS_STORE_V1";
   const LM_MODULE_MATERIALES = "LM_SHARED_MATERIALES_STORE_V1";
+  const LM_MODULE_SIMULACROS = "LM_SHARED_SIMULACROS_STORE_V1";
 
   async function lmRemoteGet_(module){
     if (!LM_SYNC_URL) return null;
@@ -11212,50 +11292,227 @@ const MC_SIMULACRO_STRUCTURES = {
   }
 };
 
-function simStructureCardHtml(key){
-  const cfg = MC_SIMULACRO_STRUCTURES[key];
+const SIM_STRUCTURE_KEYS = ["AGRARIA","ESCOLAR_AGRARIA","ESCOLAR_ULIMA","ULIMA","TALENTO","ARS"];
+const SIM_STRUCTURE_STORE_KEY = "LM_SIMULACRO_STRUCTURES_V1";
+let SIM_EDIT_MODE = false;
+let SIM_DRAFT = null;
+let SIM_SYNC_STARTED = false;
+let SIM_LAST_LOCAL_WRITE = 0;
+let SIM_SAVE_IN_FLIGHT = false;
+
+function simCanEdit(){
+  return String(CURRENT_ROLE || "").toLowerCase() === "admin";
+}
+
+function simLoadStore_(){
+  try{
+    const parsed = JSON.parse(localStorage.getItem(SIM_STRUCTURE_STORE_KEY) || "null");
+    return (parsed && parsed.structures && typeof parsed.structures === "object") ? parsed : null;
+  }catch(_){
+    return null;
+  }
+}
+
+function simEffectiveStructures_(){
+  const saved = simLoadStore_()?.structures || {};
+  const result = {};
+  SIM_STRUCTURE_KEYS.forEach(key=>{
+    const base = MC_SIMULACRO_STRUCTURES[key];
+    const custom = saved[key] || {};
+    const customTitle = (typeof custom.title === "string") ? custom.title.trim() : "";
+    const customRows = Array.isArray(custom.rows)
+      ? custom.rows.map(row=>[
+          String(row?.[0] ?? ""),
+          String(row?.[1] ?? ""),
+          String(row?.[2] ?? "")
+        ])
+      : base.rows.map(row=>row.slice());
+    result[key] = {
+      ...base,
+      title:customTitle || base.title,
+      rows:customRows
+    };
+  });
+  return result;
+}
+
+function simCloneStructures_(structures){
+  const copy = {};
+  SIM_STRUCTURE_KEYS.forEach(key=>{
+    const cfg = structures[key] || MC_SIMULACRO_STRUCTURES[key];
+    copy[key] = {
+      ...cfg,
+      title:String(cfg.title || ""),
+      rows:(cfg.rows || []).map(row=>row.map(value=>String(value ?? "")))
+    };
+  });
+  return copy;
+}
+
+async function simSyncPullOnce_(){
+  if (SIM_EDIT_MODE || (Date.now() - SIM_LAST_LOCAL_WRITE) < 3500) return;
+  const remote = await lmRemoteGet_(LM_MODULE_SIMULACROS);
+  if (SIM_EDIT_MODE || (Date.now() - SIM_LAST_LOCAL_WRITE) < 3500) return;
+  if (!remote || !remote.structures || typeof remote.structures !== "object") return;
+  const local = simLoadStore_();
+  const remoteRev = +remote._rev || 0;
+  const localRev = +(local?._rev) || 0;
+  let shouldApply = !local || remoteRev > localRev;
+  if (!shouldApply && remoteRev === localRev){
+    try{ shouldApply = JSON.stringify(remote) !== JSON.stringify(local); }catch(_){ shouldApply = true; }
+  }
+  if (!shouldApply) return;
+  try{ localStorage.setItem(SIM_STRUCTURE_STORE_KEY,JSON.stringify(remote)); }catch(_){ return; }
+  if (state?.view === "simulacros") renderSimulacros();
+}
+
+function simStartSync_(){
+  if (SIM_SYNC_STARTED) return;
+  SIM_SYNC_STARTED = true;
+  simSyncPullOnce_();
+  setInterval(()=>simSyncPullOnce_(),12000);
+  document.addEventListener("visibilitychange",()=>{
+    if (!document.hidden) simSyncPullOnce_();
+  });
+}
+
+async function simSaveDraft_(){
+  if (!simCanEdit() || !SIM_DRAFT || SIM_SAVE_IN_FLIGHT) return;
+  SIM_SAVE_IN_FLIGHT = true;
+  const structures = {};
+  SIM_STRUCTURE_KEYS.forEach(key=>{
+    const base = MC_SIMULACRO_STRUCTURES[key];
+    const draft = SIM_DRAFT[key] || base;
+    const rows = (draft.rows || [])
+      .map(row=>row.map(value=>String(value ?? "").trim()))
+      .filter(row=>row.some(Boolean));
+    structures[key] = {
+      title:String(draft.title || "").trim() || base.title,
+      rows
+    };
+  });
+  const store = {_rev:Date.now(),structures};
+  try{ localStorage.setItem(SIM_STRUCTURE_STORE_KEY,JSON.stringify(store)); }catch(_){}
+  SIM_LAST_LOCAL_WRITE = Date.now();
+  SIM_EDIT_MODE = false;
+  SIM_DRAFT = null;
+  renderSimulacros();
+  const synced = await lmRemoteSet_(LM_MODULE_SIMULACROS,store);
+  SIM_SAVE_IN_FLIGHT = false;
+  toast(synced ? "Estructuras de simulacros guardadas." : "Cambios guardados en este dispositivo. Sincronización pendiente.");
+}
+
+function simStructureCardHtml(key,cfg,editing){
   if (!cfg) return "";
   const rows = Array.isArray(cfg.rows) ? cfg.rows : [];
   return `
-    <article class="simCard" role="region" aria-label="${escapeHtml(cfg.title)}" style="--sim-accent:${cfg.accent}; --sim-deep:${cfg.deep}; --sim-soft:${cfg.soft};">
+    <article class="simCard${editing ? " simEditing" : ""}" role="region" aria-label="${escapeHtml(cfg.title)}" style="--sim-accent:${cfg.accent}; --sim-deep:${cfg.deep}; --sim-soft:${cfg.soft};">
       <header class="simCardHead">
-        <h3 class="simCardTitle">${escapeHtml(cfg.title)}</h3>
+        ${editing
+          ? `<input class="simEditTitle" data-sim-title="${escapeHtml(key)}" value="${escapeHtml(cfg.title)}" aria-label="Nombre del cuadro ${escapeHtml(cfg.title)}" />`
+          : `<h3 class="simCardTitle">${escapeHtml(cfg.title)}</h3>`}
       </header>
       <div class="simTableWrap">
-        <table class="simTable">
+        <table class="simTable${editing ? " simEditing" : ""}">
           <thead>
-            <tr><th>Curso</th><th>Preguntas de simulacro</th><th>Responsable</th></tr>
+            <tr><th>Curso</th><th>Preguntas de simulacro</th><th>Responsable</th>${editing ? "<th></th>" : ""}</tr>
           </thead>
           <tbody>
-            ${rows.map(row=>`
+            ${rows.length ? rows.map((row,rowIndex)=>editing ? `
+              <tr>
+                <td><input class="simEditInput" data-sim-field="course" data-sim-key="${escapeHtml(key)}" data-sim-row="${rowIndex}" value="${escapeHtml(row[0])}" aria-label="Curso" /></td>
+                <td><input class="simEditInput" data-sim-field="questions" data-sim-key="${escapeHtml(key)}" data-sim-row="${rowIndex}" value="${escapeHtml(row[1])}" aria-label="Preguntas de simulacro" /></td>
+                <td><input class="simEditInput" data-sim-field="owner" data-sim-key="${escapeHtml(key)}" data-sim-row="${rowIndex}" value="${escapeHtml(row[2])}" aria-label="Responsable" /></td>
+                <td><button class="simRowRemove" type="button" data-sim-remove="1" data-sim-key="${escapeHtml(key)}" data-sim-row="${rowIndex}" aria-label="Quitar fila">×</button></td>
+              </tr>
+            ` : `
               <tr>
                 <td><span class="simCourse">${escapeHtml(row[0])}</span></td>
                 <td>${escapeHtml(row[1])}</td>
                 <td>${escapeHtml(row[2])}</td>
               </tr>
-            `).join("")}
+            `).join("") : `<tr><td colspan="${editing ? 4 : 3}" style="text-align:center; color:var(--muted);">Sin filas</td></tr>`}
           </tbody>
         </table>
       </div>
+      ${editing ? `<div class="simAddRowWrap"><button class="simAddRow" type="button" data-sim-add="${escapeHtml(key)}">+ AGREGAR FILA</button></div>` : ""}
     </article>
   `;
+}
+
+function simBindEditor_(){
+  const el = document.getElementById("view_simulacros");
+  if (!el || !SIM_EDIT_MODE || !SIM_DRAFT) return;
+  el.querySelectorAll("[data-sim-title]").forEach(input=>{
+    input.addEventListener("input",()=>{
+      const key = input.getAttribute("data-sim-title");
+      if (SIM_DRAFT[key]) SIM_DRAFT[key].title = input.value;
+    });
+  });
+  el.querySelectorAll("[data-sim-field]").forEach(input=>{
+    input.addEventListener("input",()=>{
+      const key = input.getAttribute("data-sim-key");
+      const rowIndex = +input.getAttribute("data-sim-row");
+      const field = input.getAttribute("data-sim-field");
+      const fieldIndex = field === "course" ? 0 : (field === "questions" ? 1 : 2);
+      if (SIM_DRAFT[key]?.rows?.[rowIndex]) SIM_DRAFT[key].rows[rowIndex][fieldIndex] = input.value;
+    });
+  });
+  el.querySelectorAll("[data-sim-add]").forEach(button=>{
+    button.addEventListener("click",()=>{
+      if (!simCanEdit()) return;
+      const key = button.getAttribute("data-sim-add");
+      if (SIM_DRAFT[key]) SIM_DRAFT[key].rows.push(["","",""]);
+      renderSimulacros();
+    });
+  });
+  el.querySelectorAll("[data-sim-remove]").forEach(button=>{
+    button.addEventListener("click",()=>{
+      if (!simCanEdit()) return;
+      const key = button.getAttribute("data-sim-key");
+      const rowIndex = +button.getAttribute("data-sim-row");
+      if (SIM_DRAFT[key]?.rows) SIM_DRAFT[key].rows.splice(rowIndex,1);
+      renderSimulacros();
+    });
+  });
 }
 
 function renderSimulacros(){
   const el = document.getElementById("view_simulacros");
   if (!el) return;
+  simStartSync_();
+  if (SIM_EDIT_MODE && !simCanEdit()){
+    SIM_EDIT_MODE = false;
+    SIM_DRAFT = null;
+  }
+  const structures = SIM_EDIT_MODE && SIM_DRAFT ? SIM_DRAFT : simEffectiveStructures_();
   el.innerHTML = `
     <div class="simWorkspace">
-      <div class="simCardGrid">
-        ${simStructureCardHtml("AGRARIA")}
-        ${simStructureCardHtml("ESCOLAR_AGRARIA")}
-        ${simStructureCardHtml("ESCOLAR_ULIMA")}
-        ${simStructureCardHtml("ULIMA")}
-        ${simStructureCardHtml("TALENTO")}
-        ${simStructureCardHtml("ARS")}
+      ${simCanEdit() ? `
+        <div class="simAdminToolbar">
+          ${SIM_EDIT_MODE
+            ? `<button id="simCancelEdit" class="simAdminBtn" type="button">CANCELAR</button><button id="simSaveEdit" class="simAdminBtn primary" type="button">GUARDAR CAMBIOS</button>`
+            : `<button id="simStartEdit" class="simAdminBtn" type="button">EDITAR ESTRUCTURAS</button>`}
+        </div>
+      ` : ""}
+      <div class="simCardGrid${SIM_EDIT_MODE ? " simEditingGrid" : ""}">
+        ${SIM_STRUCTURE_KEYS.map(key=>simStructureCardHtml(key,structures[key],SIM_EDIT_MODE)).join("")}
       </div>
     </div>
   `;
+  el.querySelector("#simStartEdit")?.addEventListener("click",()=>{
+    if (!simCanEdit()) return;
+    SIM_DRAFT = simCloneStructures_(simEffectiveStructures_());
+    SIM_EDIT_MODE = true;
+    renderSimulacros();
+  });
+  el.querySelector("#simCancelEdit")?.addEventListener("click",()=>{
+    SIM_EDIT_MODE = false;
+    SIM_DRAFT = null;
+    renderSimulacros();
+  });
+  el.querySelector("#simSaveEdit")?.addEventListener("click",()=>simSaveDraft_());
+  simBindEditor_();
 }
 
 function mcResolveSimulacroStructure(uniLabel, programLabel){
