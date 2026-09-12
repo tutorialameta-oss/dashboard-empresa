@@ -7,7 +7,7 @@
   <meta http-equiv="Pragma" content="no-cache"/>
   <meta http-equiv="Expires" content="0"/>
   <title>LA META | DASHBOARD</title>
-  <!-- revisión: escolares Agraria v2026-08-29a · Sociales reemplaza Economía, Geografía e Historia -->
+  <!-- revisión: Escolares POP v2026-09-12a · nombres dinámicos y limpieza persistente de sílabos -->
 
   <!-- Charts -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
@@ -8141,7 +8141,7 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
       { name:"QUÍMICA", url:"https://docs.google.com/spreadsheets/d/1nTf434yk7tqTQuK8fbK-lzVTdJYbb7YR5z3EdijjkpI/edit?gid=2060340658#gid=2060340658" },
       { name:"BIOLOGÍA", url:"https://docs.google.com/spreadsheets/d/1nCoTiW4C7hj_vW_gjGkcmNCjX80CHM3GMWdyPIENrd8/edit?gid=2060340658#gid=2060340658" },
     ],
-    "ESCOLARES ARS SM": [
+    "ESCOLARES POP": [
       { name:"NÚMEROS Y OPERACIONES", url:"https://docs.google.com/spreadsheets/d/1WTYo_zUtlxu7fKY2Br4W63hwN26xr6yMxj2pHQD9ImI/edit?gid=466907362#gid=466907362/edit?usp=drive_link" },
       { name:"TEXTOS", url:"https://docs.google.com/spreadsheets/d/1RJXP4gXi_gSLJEVE7m86Bw58H9o_bHtenBipZMKiaQs/edit?gid=1869413083#gid=1869413083/edit?usp=drive_link" },
       { name:"ÁLGEBRA", url:"https://docs.google.com/spreadsheets/d/1M6D8eN3HsMUuIdEjIk7ODyaxK-teeDNLvG1FL2uHrlo/edit?gid=1542781761#gid=1542781761/edit?usp=drive_link" },
@@ -8161,7 +8161,7 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
     if (uni==="PUCP") return getCss("--pucp");
     if (uni==="INTEGRAL") return getCss("--integral");
     if (uni==="ESCOLARES U.LIMA" || uni==="ESCOLARES AGRARIA") return getCss("--schHead_ESC");
-    if (uni==="ESCOLARES ARS" || uni==="ESCOLARES ARS SM") return getCss("--pucp");
+    if (uni==="ESCOLARES ARS" || uni==="ESCOLARES POP") return getCss("--pucp");
     if (uni==="ESCOLARES" || uni==="ESCOLARES INTEGRAL") return getCss("--schHead_ESC");
     return getCss("--ulima");
   }
@@ -8172,8 +8172,9 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
     if ((u.includes("ESCOLAR") || u.includes("ESCOLARES")) && (u.includes("U.LIMA") || u.includes("ULIMA") || u.includes("U LIMA"))) return "ESCOLARES U.LIMA";
     if (u === "INTEGRAL") return "INTEGRAL";
     if (u === "ESCOLARES") return "ESCOLARES INTEGRAL";
-    if ((u.includes("ARS") || u.includes("POP")) && (/\bSM\b/.test(u) || u.includes("SAN MIGUEL"))) return "ESCOLARES ARS SM";
-    if (u.includes("ESCOLARES ARS") || u.includes("ARS") || u.includes("POP")) return "ESCOLARES ARS";
+    if (u.includes("POP")) return "ESCOLARES POP";
+    if (u.includes("ARS") && (/\bSM\b/.test(u) || u.includes("SAN MIGUEL"))) return "ESCOLARES POP";
+    if (u.includes("ESCOLARES ARS") || u.includes("ARS")) return "ESCOLARES ARS";
     if (u.includes("INTEGRAL")) return "ESCOLARES INTEGRAL";
     return uniRaw;
   }
@@ -8192,11 +8193,12 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
     if (v.includes("ESCOLAR") && v.includes("AGRARIA")) return "ESCOLARES AGRARIA";
     if (v.includes("ESCOLAR") && (v.includes("U.LIMA") || v.includes("ULIMA") || v.includes("U LIMA"))) return "ESCOLARES U.LIMA";
     if (v === "INTEGRAL") return "INTEGRAL";
-    if ((v.includes("ARS") || v.includes("POP")) && (/\bSM\b/.test(v) || v.includes("SAN MIGUEL"))) return "ESCOLARES ARS SM";
-    if (v.includes("ARS") || v.includes("POP")) return "ESCOLARES ARS";
+    if (v.includes("POP")) return "ESCOLARES POP";
+    if (v.includes("ARS") && (/\bSM\b/.test(v) || v.includes("SAN MIGUEL"))) return "ESCOLARES POP";
+    if (v.includes("ARS")) return "ESCOLARES ARS";
     if (v.includes("ESCOLARES") && v.includes("INTEGRAL")) return "ESCOLARES INTEGRAL";
     if (v === "ESCOLARES") return "ESCOLARES INTEGRAL";
-    if (["AGRARIA","U.LIMA","PUCP","INTEGRAL","ESCOLARES U.LIMA","ESCOLARES AGRARIA","ESCOLARES INTEGRAL","ESCOLARES ARS SM","ESCOLARES ARS"].includes(v)) return v;
+    if (["AGRARIA","U.LIMA","PUCP","INTEGRAL","ESCOLARES U.LIMA","ESCOLARES AGRARIA","ESCOLARES INTEGRAL","ESCOLARES POP","ESCOLARES ARS"].includes(v)) return v;
     return "";
   }
 
@@ -8217,21 +8219,30 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
   function syRepoGetManual(st, uni, course){
     const u = silaboUniKey(uni);
     const repo = st?.silabosRepo || {};
-    const group = repo[u] || {};
     const target = syCourseKey(course);
-    if (Object.prototype.hasOwnProperty.call(group, target)) return String(group[target] || "").trim();
-
     const aliases = (typeof mcCourseAliases === "function" ? mcCourseAliases(course) : [course]).map(syCourseKey);
-    for (const [k,v] of Object.entries(group)){
-      const kk = syCourseKey(k);
-      if (kk === target || aliases.includes(kk)) return String(v || "").trim();
+    const groups = [repo[u]];
+    // Compatibilidad con enlaces guardados antes del cambio de nombre.
+    if (u === "ESCOLARES POP") groups.push(repo["ESCOLARES ARS SM"]);
+
+    for (const group of groups){
+      if (!group || typeof group !== "object") continue;
+      if (Object.prototype.hasOwnProperty.call(group, target)){
+        return { found:true, url:String(group[target] || "").trim() };
+      }
+      for (const [k,v] of Object.entries(group)){
+        const kk = syCourseKey(k);
+        if (kk === target || aliases.includes(kk)){
+          return { found:true, url:String(v || "").trim() };
+        }
+      }
     }
-    return "";
+    return { found:false, url:"" };
   }
 
   function syRepoGetLink(st, uni, course, includeDefault=true){
     const manual = syRepoGetManual(st, uni, course);
-    if (manual) return manual;
+    if (manual.found) return manual.url;
     return includeDefault ? syDefaultLink(uni, course) : "";
   }
 
@@ -8314,7 +8325,7 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
         syRepoSetLink(st, uni, course, "");
         MC_ARS_SYLLABUS_CACHE?.clear?.();
         mcSaveStore(st);
-        toast("Sílabo limpiado. Se usará el enlace base si existe.");
+        toast("Sílabo limpiado y marcado como pendiente.");
         renderSilabos();
       });
     });
@@ -8385,7 +8396,7 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
           <span class="pill" data-sy-category="ESCOLARES U.LIMA"><span class="dot escolares"></span>ESCOLARES U.LIMA</span>
           <span class="pill" data-sy-category="ESCOLARES AGRARIA"><span class="dot escolares"></span>ESCOLARES AGRARIA</span>
           <span class="pill" data-sy-category="ESCOLARES INTEGRAL"><span class="dot escolares"></span>ESCOLARES INTEGRAL</span>
-          <span class="pill" data-sy-category="ESCOLARES ARS SM"><span class="dot pucp"></span>ESCOLARES ARS SM</span>
+          <span class="pill" data-sy-category="ESCOLARES POP"><span class="dot pucp"></span>ESCOLARES POP</span>
           <span class="pill" data-sy-category="ESCOLARES ARS"><span class="dot pucp"></span>ESCOLARES ARS</span>
         </div>
         <div class="panelHint" style="margin-top:8px; color:var(--muted);" id="sEditHint">
@@ -8406,7 +8417,7 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
       <div class="panel12" id="sBlocks"></div>
     `;
 
-    fillSelectKeep("sUni", ["AGRARIA","U.LIMA","PUCP","INTEGRAL","ESCOLARES U.LIMA","ESCOLARES AGRARIA","ESCOLARES INTEGRAL","ESCOLARES ARS SM","ESCOLARES ARS"], "CATEGORÍA: TODAS");
+    fillSelectKeep("sUni", ["AGRARIA","U.LIMA","PUCP","INTEGRAL","ESCOLARES U.LIMA","ESCOLARES AGRARIA","ESCOLARES INTEGRAL","ESCOLARES POP","ESCOLARES ARS"], "CATEGORÍA: TODAS");
 
     document.getElementById("sReset").addEventListener("click", ()=>{
       document.getElementById("sUni").value="__ALL__";
@@ -8496,7 +8507,7 @@ impresiones: ["IMPRESIONES", "Registros y control de impresiones de cada salón.
         : "Vista limpia activa. Usa EDITAR ENLACES solo cuando necesites actualizar el repositorio.";
     }
 
-    const uniOrder = ["AGRARIA","U.LIMA","PUCP","INTEGRAL","ESCOLARES U.LIMA","ESCOLARES AGRARIA","ESCOLARES INTEGRAL","ESCOLARES ARS SM","ESCOLARES ARS"];
+    const uniOrder = ["AGRARIA","U.LIMA","PUCP","INTEGRAL","ESCOLARES U.LIMA","ESCOLARES AGRARIA","ESCOLARES INTEGRAL","ESCOLARES POP","ESCOLARES ARS"];
     const st = mcLoadStore();
     const showPending = canEdit && SY_LINK_EDIT_MODE;
     const visibleUniOrder = showPending
@@ -9292,7 +9303,7 @@ const MATERIALES = [
   { uni:"INTEGRAL", url:"https://drive.google.com/drive/folders/1nUdMaZU2n6b-FZlfR9WI2041e_aoOPYy" },
   { uni:"ESCOLARES U.LIMA", url:"" },
   { uni:"ESCOLARES AGRARIA", url:"" },
-  { uni:"ESCOLARES ARS SM", url:"https://drive.google.com/drive/folders/1ZSH_nGZty0AildhLikEZ_BQ1h-waj_5p" },
+  { uni:"ESCOLARES POP", url:"https://drive.google.com/drive/folders/1ZSH_nGZty0AildhLikEZ_BQ1h-waj_5p" },
   { uni:"ESCOLARES ARS", url:"" },
 ];
 
@@ -9309,6 +9320,9 @@ function materialesRootGetLink(st, uni, fallback){
   // cualquier enlace ya guardado con el nombre anterior ESCOLARES INTEGRAL.
   if (key === "INTEGRAL" && Object.prototype.hasOwnProperty.call(repo, "ESCOLARES INTEGRAL")){
     return String(repo["ESCOLARES INTEGRAL"] || "").trim();
+  }
+  if (key === "ESCOLARES POP" && Object.prototype.hasOwnProperty.call(repo, "ESCOLARES ARS SM")){
+    return String(repo["ESCOLARES ARS SM"] || "").trim();
   }
   return String(fallback || "").trim();
 }
@@ -11752,7 +11766,7 @@ function renderMateriales(){
   // ===== tarjetas de carpetas (accesos directos) =====
   const grid = document.getElementById("matGrid");
   if (grid){
-    const MAT_UNI_ORDER = ["AGRARIA","U.LIMA","PUCP",...(hasIntegralProgram ? ["INTEGRAL"] : []),"ESCOLARES U.LIMA","ESCOLARES AGRARIA","ESCOLARES ARS SM","ESCOLARES ARS"];
+    const MAT_UNI_ORDER = ["AGRARIA","U.LIMA","PUCP",...(hasIntegralProgram ? ["INTEGRAL"] : []),"ESCOLARES U.LIMA","ESCOLARES AGRARIA","ESCOLARES POP","ESCOLARES ARS"];
     const MAT_UNI_COLOR = {
       "AGRARIA": getCss("--agraria"),
       "U.LIMA": getCss("--ulima"),
@@ -11760,7 +11774,7 @@ function renderMateriales(){
       "INTEGRAL": getCss("--integral"),
       "ESCOLARES U.LIMA": getCss("--schHead_ESC"),
       "ESCOLARES AGRARIA": getCss("--schHead_ESC"),
-      "ESCOLARES ARS SM": getCss("--pucp"),
+      "ESCOLARES POP": getCss("--pucp"),
       "ESCOLARES ARS": getCss("--pucp")
     };
 
@@ -11974,10 +11988,7 @@ function renderMateriales(){
     if (normalized === "ESCOLARES INTEGRAL") return "ESCOLARES INTEGRAL";
     if (["ESCOLARES AG","ESCOLARES AGRARIA","ESCOLARES AGRARAI"].includes(normalized)) return "ESCOLARES AGRARIA";
     if (normalized.includes("ESCOLAR") && (normalized.includes("U.LIMA") || normalized.includes("ULIMA") || normalized.includes("U LIMA"))) return "ESCOLARES U.LIMA";
-    if (normalized.includes("ARS") || normalized.includes("POP")){
-      const isSanMiguel = /\bSM\b/.test(normalized) || normalized.includes("SAN MIGUEL");
-      return isSanMiguel ? "ESCOLARES ARS SM" : "ESCOLARES ARS";
-    }
+    if (normalized.includes("ARS") || normalized.includes("POP")) return raw;
     return normalized || "(SIN PROGRAMAS)";
   }
   function mcMaterialCoursesFor(uniLabel, program){
@@ -11986,7 +11997,7 @@ function renderMateriales(){
     const name = mcMaterialProgramNameRaw(program).toUpperCase();
     if (name.includes("U.LIMA") || name.includes("ULIMA") || name.includes("U LIMA")) return ESCOLARES_ULIMA_COURSES;
     if (name === "ESCOLARES AG" || name.includes("AGRARIA") || name.includes("AGRARAI")) return ESCOLARES_AGRARIA_COURSES;
-    if (name.includes("ARS")) return ESCOLARES_ARS_COURSES;
+    if (name.includes("ARS") || name.includes("POP")) return ESCOLARES_ARS_COURSES;
     return ESCOLARES_INTEGRAL_COURSES;
   }
 
