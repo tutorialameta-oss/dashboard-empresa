@@ -7,7 +7,7 @@
   <meta http-equiv="Pragma" content="no-cache"/>
   <meta http-equiv="Expires" content="0"/>
   <title>LA META | DASHBOARD</title>
-  <!-- revisión: Escolares POP y U.Lima v2026-09-12b · Ref. Mates y espacio San Miguel -->
+  <!-- revisión: Horarios v2026-09-12c · columnas escolares separadas y visibilidad configurable -->
 
   <!-- Charts -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
@@ -464,6 +464,46 @@
     .horariosFiltersCard .controls{ gap:6px; }
     .horariosFiltersCard select,
     .horariosFiltersCard button{ padding: 7px 9px; font-size:12px; }
+    .hColumnsPanel{
+      display:none;
+      margin-top:8px;
+      padding:10px;
+      border:1px solid rgba(15,23,42,.10);
+      border-radius:14px;
+      background:#f8fafc;
+    }
+    .hColumnsPanel.isOpen{ display:block; }
+    .hColumnsPanelHead{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      flex-wrap:wrap;
+      margin-bottom:8px;
+    }
+    .hColumnsPanelTitle{ font-size:11px; font-weight:950; color:var(--muted); text-transform:uppercase; }
+    .hColumnsActions{ display:flex; gap:6px; flex-wrap:wrap; }
+    .hColumnsList{ display:flex; gap:7px; flex-wrap:wrap; }
+    .hColumnChoice{
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      padding:7px 10px;
+      border:1px solid rgba(15,23,42,.12);
+      border-radius:999px;
+      background:#fff;
+      color:#334155;
+      font-size:11px;
+      font-weight:900;
+      cursor:pointer;
+      user-select:none;
+    }
+    .hColumnChoice:has(input:checked){
+      color:#7f1d1d;
+      border-color:rgba(185,28,28,.28);
+      background:#fff7f7;
+    }
+    .hColumnChoice input{ min-width:0; margin:0; accent-color:var(--accent); }
     .schMatrix{
       display:grid;
       /* Columna de locales más angosta (porque el texto va vertical) */
@@ -1017,6 +1057,14 @@
       --schCell: var(--schCell_AGR);
     }
     .schCard[data-cycle="ESCOLARES_SM"]{
+      --schHead: var(--schHead_PUCP);
+      --schCell: var(--schCell_PUCP);
+    }
+    .schCard[data-cycle^="ESCOLARES_ULIMA_"]{
+      --schHead: var(--schHead_UL);
+      --schCell: var(--schCell_UL);
+    }
+    .schCard[data-cycle^="ESCOLARES_ARS_"]{
       --schHead: var(--schHead_PUCP);
       --schCell: var(--schCell_PUCP);
     }
@@ -10600,7 +10648,7 @@ function mcScheduleAliasesForProgram(course, programType=""){
   const c = mcNormLabel(course);
   const type = mcNormLabel(programType || "");
   const wantPucp = type === "PUCP" || type.includes("PUCP");
-  const wantUlima = type === "U.LIMA" || type === "ULIMA" || type.includes("U LIMA") || type.includes("ULIMA");
+  const wantUlima = type === "U.LIMA" || type === "ULIMA" || type.includes("U.LIMA") || type.includes("U LIMA") || type.includes("ULIMA");
   const wantAgraria = type === "AGRARIA" || type.includes("AGRARIA");
 
   if (wantPucp){
@@ -10792,6 +10840,20 @@ function mcIsMaterialUlimaSchedule(s, loc){
   return sUni === "U.LIMA" || sUni === "ULIMA" || raw.includes("U LIMA") || raw.includes("ULIMA");
 }
 
+function mcIsMaterialEscolaresAgrariaSchedule(s, loc){
+  const sLoc = mcMaterialLocalKey(s?.local);
+  if (sLoc !== loc) return false;
+  if (!["LA MOLINA","SAN MIGUEL","SAN BORJA","VIRTUAL"].includes(loc)) return false;
+  return isEscolaresAgrariaSchedule(s);
+}
+
+function mcIsMaterialEscolaresUlimaSchedule(s, loc){
+  const sLoc = mcMaterialLocalKey(s?.local);
+  if (sLoc !== loc) return false;
+  if (!["LA MOLINA","SAN MIGUEL","SAN BORJA","VIRTUAL"].includes(loc)) return false;
+  return isEscolaresUlimaSchedule(s);
+}
+
 function mcIsMaterialPucpSchedule(s, loc){
   const raw = mcScheduleMaterialRawKey(s);
   const sLoc = mcMaterialLocalKey(s?.local);
@@ -10805,17 +10867,23 @@ function mcIsMaterialPucpSchedule(s, loc){
 function mcScheduleDaysForEscolaresMateriales(local, course, programType){
   let loc = mcMaterialLocalKey(local);
   const type = mcNormLabel(programType || "");
-  const wantAgraria = type === "AGRARIA" || type.includes("AGRARIA");
-  const wantUlima = type === "U.LIMA" || type === "ULIMA" || type.includes("U LIMA") || type.includes("ULIMA");
+  const escolaresType = type.includes("ESCOLAR");
+  const wantEscolaresAgraria = escolaresType && type.includes("AGRARIA");
+  const wantEscolaresUlima = escolaresType && (type.includes("U.LIMA") || type.includes("U LIMA") || type.includes("ULIMA"));
+  const wantAgraria = !wantEscolaresAgraria && (type === "AGRARIA" || type.includes("AGRARIA"));
+  const wantUlima = !wantEscolaresUlima && (type === "U.LIMA" || type === "ULIMA" || type.includes("U LIMA") || type.includes("ULIMA"));
   const wantPucp = type === "PUCP" || type.includes("PUCP");
   const wantArs = type.includes("ARS") || type.includes("POP");
-  const wantIntegral = !wantAgraria && !wantUlima && !wantPucp && (type.includes("INTEGRAL") || (!wantArs && type.includes("ESCOLARES")));
+  const wantIntegral = !wantEscolaresAgraria && !wantEscolaresUlima && !wantAgraria && !wantUlima && !wantPucp && (type.includes("INTEGRAL") || (!wantArs && type.includes("ESCOLARES")));
 
   if (wantArs && (!loc || loc === "EDITOR")) loc = "SAN MIGUEL";
   else if (!loc) return [];
 
   let targetLocs = [loc];
-  if ((wantAgraria || wantUlima || wantPucp) && loc === "EDITOR"){
+  if ((wantEscolaresAgraria || wantEscolaresUlima) && loc === "EDITOR"){
+    // Los ciclos escolares también pueden dictarse en el espacio virtual.
+    targetLocs = ["LA MOLINA","SAN MIGUEL","SAN BORJA","VIRTUAL"];
+  }else if ((wantAgraria || wantUlima || wantPucp) && loc === "EDITOR"){
     // En espacio Editor se usa una vista consolidada para revisar el ciclo.
     // Si el usuario selecciona un local, el cálculo vuelve a ser local-específico.
     targetLocs = ["LA MOLINA","SAN MIGUEL","SAN BORJA"];
@@ -10823,7 +10891,10 @@ function mcScheduleDaysForEscolaresMateriales(local, course, programType){
     return [];
   }
 
-  if ((wantAgraria || wantUlima || wantPucp || wantIntegral) && !targetLocs.every(x=>["LA MOLINA","SAN MIGUEL","SAN BORJA"].includes(x))) return [];
+  const allowedScheduleLocs = (wantEscolaresAgraria || wantEscolaresUlima)
+    ? ["LA MOLINA","SAN MIGUEL","SAN BORJA","VIRTUAL"]
+    : ["LA MOLINA","SAN MIGUEL","SAN BORJA"];
+  if ((wantEscolaresAgraria || wantEscolaresUlima || wantAgraria || wantUlima || wantPucp || wantIntegral) && !targetLocs.every(x=>allowedScheduleLocs.includes(x))) return [];
   if (typeof SCHEDULES === "undefined") return [];
 
   const dayMap = {LUNES:1,MARTES:2,MIERCOLES:3,"MIÉRCOLES":3,JUEVES:4,VIERNES:5,SABADO:6,"SÁBADO":6,DOMINGO:0};
@@ -10831,6 +10902,8 @@ function mcScheduleDaysForEscolaresMateriales(local, course, programType){
   const schedules = (SCHEDULES||[]).filter(s=>{
     const sLoc = mcMaterialLocalKey(s?.local);
     if (!targetLocs.includes(sLoc)) return false;
+    if (wantEscolaresAgraria) return mcIsMaterialEscolaresAgrariaSchedule(s, sLoc);
+    if (wantEscolaresUlima) return mcIsMaterialEscolaresUlimaSchedule(s, sLoc);
     if (wantAgraria) return mcIsMaterialAgrariaSchedule(s, sLoc);
     if (wantUlima) return mcIsMaterialUlimaSchedule(s, sLoc);
     if (wantPucp) return mcIsMaterialPucpSchedule(s, sLoc);
@@ -14207,12 +14280,27 @@ function ensureHorariosLayout(){
           <select id="hUni"></select>
           <select id="hSalon"></select>
 
+          <button id="hColumnsToggle" class="hEditBtnGhost" type="button">COLUMNAS</button>
+
           ${(CURRENT_ROLE==="admin") ? `<button id="hEditToggle" class="hEditBtn">EDITAR</button><button id="hNewSch" class="hEditBtnGhost" style="display:none;">+ NUEVO</button>` : ``}
 
           <button id="hFsToggle" class="hFsBtn">PANTALLA COMPLETA</button>
         </div>
 
         ${(CURRENT_ROLE==="admin") ? `<div id="hEditBar" class="hEditBar" style="display:none;">Modo edición activo: usa <b>EDITAR</b> en una tarjeta para modificar bloques.</div>` : ``}
+
+        <div id="hColumnsPanel" class="hColumnsPanel">
+          <div class="hColumnsPanelHead">
+            <span class="hColumnsPanelTitle">Columnas visibles · ocultar una columna no elimina sus horarios</span>
+            <div class="hColumnsActions">
+              <button id="hColumnsAll" class="hEditBtnGhost" type="button">MOSTRAR TODAS</button>
+              <button id="hColumnsEmpty" class="hEditBtnGhost" type="button">OCULTAR VACÍAS</button>
+            </div>
+          </div>
+          <div class="hColumnsList">
+            ${HORARIOS_MATRIX_COLUMNS.map(c=>`<label class="hColumnChoice"><input type="checkbox" data-h-column="${escapeHtml(c.key)}">${escapeHtml(c.label)}</label>`).join("")}
+          </div>
+        </div>
 
         <div class="panelHint hUniBadges" id="hUniBadges">
           <span class="pill hUniBadge" data-uni="AGRARIA"><span class="dot agraria"></span>AGRARIA</span>
@@ -14258,6 +14346,42 @@ function ensureHorariosLayout(){
     document.getElementById("hSalon").value = "__ALL__";
 
     const rer = ()=>renderHorarios();
+
+    const syncColumnChecks = ()=>{
+      const visible = new Set(horariosLoadVisibleColumns());
+      document.querySelectorAll("[data-h-column]").forEach(inp=>{
+        inp.checked = visible.has(inp.getAttribute("data-h-column") || "");
+      });
+    };
+    syncColumnChecks();
+
+    document.getElementById("hColumnsToggle")?.addEventListener("click", ()=>{
+      const panel = document.getElementById("hColumnsPanel");
+      panel?.classList.toggle("isOpen");
+    });
+    document.querySelectorAll("[data-h-column]").forEach(inp=>{
+      inp.addEventListener("change", ()=>{
+        const selected = Array.from(document.querySelectorAll("[data-h-column]:checked"))
+          .map(x=>x.getAttribute("data-h-column") || "")
+          .filter(Boolean);
+        if (!horariosSaveVisibleColumns(selected)){
+          inp.checked = true;
+          return toast("Debe quedar al menos una columna visible.");
+        }
+        rer();
+      });
+    });
+    document.getElementById("hColumnsAll")?.addEventListener("click", ()=>{
+      horariosSaveVisibleColumns(HORARIOS_MATRIX_COLUMNS.map(x=>x.key));
+      syncColumnChecks();
+      rer();
+    });
+    document.getElementById("hColumnsEmpty")?.addEventListener("click", ()=>{
+      const withContent = HORARIOS_MATRIX_COLUMNS.filter(x=>horariosColumnHasContent(x.key)).map(x=>x.key);
+      horariosSaveVisibleColumns(withContent.length ? withContent : horariosDefaultVisibleColumns());
+      syncColumnChecks();
+      rer();
+    });
 
     document.getElementById("hViewMode").addEventListener("change", ()=>{
       try{ localStorage.setItem(VM_KEY, document.getElementById("hViewMode").value); }catch(e){}
@@ -14347,6 +14471,49 @@ el.dataset.ready = "1";
     fillSelectKeep("hSalon", salones, "SALÓN: TODOS");
   }
   let HORARIOS_MATRIX_FULLSCREEN = false;
+  const HORARIOS_COLUMNS_KEY = "LM_HORARIOS_VISIBLE_COLUMNS_v2";
+  const HORARIOS_MATRIX_COLUMNS = [
+    { key:"AGRARIA_1", label:"AGRARIA 1" },
+    { key:"AGRARIA_2", label:"AGRARIA 2" },
+    { key:"ULIMA_1", label:"U.LIMA 1" },
+    { key:"ULIMA_2", label:"U.LIMA 2" },
+    { key:"PUCP", label:"PUCP" },
+    { key:"PRE_ULIMA", label:"PRE U.LIMA" },
+    { key:"ESCOLARES_AGRARIA", label:"ESCOLARES AGRARIA" },
+    { key:"ESCOLARES_ULIMA", label:"ESCOLARES U.LIMA" },
+    { key:"ESCOLARES_ARS", label:"ESCOLARES ARS - POP" },
+    { key:"ESCOLARES_INTEGRALES", label:"ESCOLARES INTEGRALES" },
+  ];
+
+  function horariosDefaultVisibleColumns(){
+    return HORARIOS_MATRIX_COLUMNS
+      .map(x=>x.key)
+      .filter(key=>key !== "AGRARIA_2" && key !== "ULIMA_2");
+  }
+
+  function horariosLoadVisibleColumns(){
+    const valid = new Set(HORARIOS_MATRIX_COLUMNS.map(x=>x.key));
+    try{
+      const saved = JSON.parse(localStorage.getItem(HORARIOS_COLUMNS_KEY) || "null");
+      if (Array.isArray(saved)){
+        const clean = saved.filter(key=>valid.has(key));
+        if (clean.length) return clean;
+      }
+    }catch(e){}
+    return horariosDefaultVisibleColumns();
+  }
+
+  function horariosSaveVisibleColumns(keys){
+    const valid = new Set(HORARIOS_MATRIX_COLUMNS.map(x=>x.key));
+    const clean = Array.from(new Set((keys||[]).filter(key=>valid.has(key))));
+    if (!clean.length) return false;
+    try{ localStorage.setItem(HORARIOS_COLUMNS_KEY, JSON.stringify(clean)); }catch(e){}
+    return true;
+  }
+
+  function horariosColumnHasContent(baseKey){
+    return (SCHEDULES||[]).some(s=>baseColumnKeyForSchedule(s) === baseKey && Array.isArray(s.blocks) && s.blocks.length > 0);
+  }
 
   function setHorariosMatrixFullscreen(force){
     const host = document.getElementById("hMatrixHost");
@@ -14368,6 +14535,31 @@ el.dataset.ready = "1";
     if (local === "SAN MIGUEL") return "SM";
     if (local === "SAN BORJA") return "SB";
     return "VIRT";
+  }
+
+  function escolaresScheduleRaw(sch){
+    return mcNormLabel([
+      sch?.id,
+      sch?.salon,
+      sch?.uni,
+      sch?.cycle,
+      sch?.dataCycle,
+      sch?.__colKey,
+      sch?.__cardKey
+    ].join(" ")).replace(/[._-]/g," ").replace(/\s+/g," ").trim();
+  }
+
+  function isEscolaresAgrariaSchedule(sch){
+    const raw = escolaresScheduleRaw(sch);
+    const escolar = raw.includes("ESCOLAR") || raw.includes("AGR ESC") || raw.includes("ESC AGRARIA");
+    return escolar && (raw.includes("AGRARIA") || raw.includes("AGR ESC"));
+  }
+
+  function isEscolaresUlimaSchedule(sch){
+    const raw = escolaresScheduleRaw(sch);
+    const escolar = raw.includes("ESCOLAR") || raw.includes("UL ESC") || raw.includes("ESC U LIMA") || raw.includes("ESC ULIMA");
+    const ulima = raw.includes("U LIMA") || raw.includes("ULIMA") || raw.includes("UL ESC");
+    return escolar && ulima;
   }
 
   function isEscolaresArsSchedule(sch){
@@ -14397,13 +14589,13 @@ el.dataset.ready = "1";
       String(sch?.salon || ""),
       String(sch?.uni || "")
     ].join(" ").toUpperCase();
-    if (isEscolaresArsSchedule(sch)) return false;
+    if (isEscolaresAgrariaSchedule(sch) || isEscolaresUlimaSchedule(sch) || isEscolaresArsSchedule(sch)) return false;
     return raw.includes("INTEGRAL") || raw.includes("ESCOLAR") || raw.includes("ESCOLARES") || /(^|\s)ESC(\s|$)/.test(raw);
   }
 
   function baseColumnKeyForSchedule(sch){
     if (sch.uni === "AGRARIA"){
-      if (String(sch.salon||"").toUpperCase().includes("ESCOLAR")) return "ESCOLARES_INTEGRALES";
+      if (isEscolaresAgrariaSchedule(sch)) return "ESCOLARES_AGRARIA";
       if (sch.id === "AGR_LM_2" || String(sch.salon||"").includes(" 2") || String(sch.salon||"").includes("LM 2")) return "AGRARIA_2";
       return "AGRARIA_1";
     }
@@ -14412,13 +14604,16 @@ el.dataset.ready = "1";
       const sal = String(sch.salon||"");
       const salUp = sal.toUpperCase();
       if (salUp.includes("PRE U.LIMA") || salUp.includes("PRE ULIMA") || id.includes("PRE_UL")) return "PRE_ULIMA";
-      if (salUp.includes("ESC") || id.includes("UL_ESC")) return "ESCOLARES_INTEGRALES";
+      if (isEscolaresUlimaSchedule(sch)) return "ESCOLARES_ULIMA";
       if (id.endsWith("_2") || sal.includes(" 2") || id.includes("_SM_2") || id.includes("_SB_2") || id.includes("_VIRT_2")) return "ULIMA_2";
       return "ULIMA_1";
     }
     if (sch.uni === "PUCP") return "PUCP";
-    if (sch.uni === "ESCOLARES") return isEscolaresArsSchedule(sch) ? "ESCOLARES" : "ESCOLARES_INTEGRALES";
-    return isEscolaresArsSchedule(sch) ? "ESCOLARES" : (isEscolaresIntegralesSchedule(sch) ? "ESCOLARES_INTEGRALES" : "ESCOLARES");
+    if (isEscolaresAgrariaSchedule(sch)) return "ESCOLARES_AGRARIA";
+    if (isEscolaresUlimaSchedule(sch)) return "ESCOLARES_ULIMA";
+    if (isEscolaresArsSchedule(sch)) return "ESCOLARES_ARS";
+    if (sch.uni === "ESCOLARES" || isEscolaresIntegralesSchedule(sch)) return "ESCOLARES_INTEGRALES";
+    return "ESCOLARES_ARS";
   }
 
   function expandColKeyForLocal(local, baseKey){
@@ -14429,7 +14624,9 @@ el.dataset.ready = "1";
     if (baseKey === "ULIMA_2") return `ULIMA_${lc}_2`;
     if (baseKey === "PRE_ULIMA") return `PRE_ULIMA_${lc}`;
     if (baseKey === "PUCP") return `PUCP_${lc}`;
-    if (baseKey === "ESCOLARES") return `ESCOLARES_${lc}`;
+    if (baseKey === "ESCOLARES_AGRARIA") return `ESCOLARES_AGRARIA_${lc}`;
+    if (baseKey === "ESCOLARES_ULIMA") return `ESCOLARES_ULIMA_${lc}`;
+    if (baseKey === "ESCOLARES_ARS" || baseKey === "ESCOLARES") return `ESCOLARES_ARS_${lc}`;
     if (baseKey === "ESCOLARES_INTEGRALES") return `ESCOLARES_INTEGRALES_${lc}`;
     return `${baseKey}_${lc}`;
   }
@@ -14462,8 +14659,11 @@ el.dataset.ready = "1";
     if (t === "PUCP") return `PUCP ${lc}`;
     if (t === "ESCOLARES"){
       const c = String(colKey||"").toUpperCase();
+      if (c.startsWith("ESCOLARES_AGRARIA_")) return "ESCOLARES AGRARIA";
+      if (c.startsWith("ESCOLARES_ULIMA_")) return "ESCOLARES U.LIMA";
+      if (c.startsWith("ESCOLARES_ARS_")) return "ESCOLARES ARS - POP";
       if (c.startsWith("ESCOLARES_INTEGRALES_")) return "ESCOLARES";
-      if (c.startsWith("ESCOLARES_")) return "ESCOLARES ARS";
+      if (c.startsWith("ESCOLARES_")) return "ESCOLARES ARS - POP";
       return "ESCOLARES";
     }
     return fallback || `${t} ${lc}`;
@@ -14595,16 +14795,8 @@ el.dataset.ready = "1";
     }
 
     const LOCS = ["LA MOLINA","SAN MIGUEL","SAN BORJA","VIRTUAL"];
-    const COLS = [
-      { key:"AGRARIA_1", label:"AGRARIA 1" },
-      { key:"AGRARIA_2", label:"AGRARIA 2" },
-      { key:"ULIMA_1",   label:"U.LIMA 1" },
-      { key:"ULIMA_2",   label:"U.LIMA 2" },
-      { key:"PUCP",      label:"PUCP" },
-      { key:"ESCOLARES", label:"ESCOLARES ARS" },
-      { key:"ESCOLARES_INTEGRALES", label:"ESCOLARES INTEGRALES" },
-      { key:"PRE_ULIMA", label:"PRE U.LIMA" },
-    ];
+    const visibleColumnKeys = new Set(horariosLoadVisibleColumns());
+    const COLS = HORARIOS_MATRIX_COLUMNS.filter(c=>visibleColumnKeys.has(c.key));
 
     // index
     const by = new Map();
