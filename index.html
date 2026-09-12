@@ -7,7 +7,7 @@
   <meta http-equiv="Pragma" content="no-cache"/>
   <meta http-equiv="Expires" content="0"/>
   <title>LA META | DASHBOARD</title>
-  <!-- revisión: Horarios v2026-09-12c · columnas escolares separadas y visibilidad configurable -->
+  <!-- revisión: Horarios v2026-09-12d · identidad de tarjetas escolares corregida -->
 
   <!-- Charts -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
@@ -14558,7 +14558,7 @@ el.dataset.ready = "1";
   function isEscolaresUlimaSchedule(sch){
     const raw = escolaresScheduleRaw(sch);
     const escolar = raw.includes("ESCOLAR") || raw.includes("UL ESC") || raw.includes("ESC U LIMA") || raw.includes("ESC ULIMA");
-    const ulima = raw.includes("U LIMA") || raw.includes("ULIMA") || raw.includes("UL ESC");
+    const ulima = raw.includes("U LIMA") || raw.includes("ULIMA") || raw.includes("UL ESC") || raw.includes("ESCOLARES UL");
     return escolar && ulima;
   }
 
@@ -14660,9 +14660,9 @@ el.dataset.ready = "1";
     if (t === "ESCOLARES"){
       const c = String(colKey||"").toUpperCase();
       if (c.startsWith("ESCOLARES_AGRARIA_")) return "ESCOLARES AGRARIA";
-      if (c.startsWith("ESCOLARES_ULIMA_")) return "ESCOLARES U.LIMA";
+      if (c.startsWith("ESCOLARES_ULIMA_")) return "ESCOLARES UL";
       if (c.startsWith("ESCOLARES_ARS_")) return "ESCOLARES ARS - POP";
-      if (c.startsWith("ESCOLARES_INTEGRALES_")) return "ESCOLARES";
+      if (c.startsWith("ESCOLARES_INTEGRALES_")) return "ESCOLARES INTEGRALES";
       if (c.startsWith("ESCOLARES_")) return "ESCOLARES ARS - POP";
       return "ESCOLARES";
     }
@@ -14814,7 +14814,10 @@ el.dataset.ready = "1";
 
         const list = sortSchedules((by.get(key) || []).slice());
         const inner = list.length
-          ? list.map(scheduleCardHtmlWithMeta).join("")
+          ? list.map(s=>scheduleCardHtmlWithMeta(Object.assign({}, s, {
+              __colKey: key,
+              __cardKey: scheduleCardKey(loc, key)
+            }))).join("")
           : scheduleCardHtmlWithMeta(buildPlaceholderSchedule(loc, c.key, c.label));
         return `<div class="mxCell">${inner}</div>`;
       }).join("");
