@@ -7,7 +7,7 @@
   <meta http-equiv="Pragma" content="no-cache"/>
   <meta http-equiv="Expires" content="0"/>
   <title>LA META | DASHBOARD</title>
-  <!-- revisión: Escolares POP v2026-09-12a · nombres dinámicos y limpieza persistente de sílabos -->
+  <!-- revisión: Escolares POP y U.Lima v2026-09-12b · Ref. Mates y espacio San Miguel -->
 
   <!-- Charts -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
@@ -11955,6 +11955,7 @@ function renderMateriales(){
     "Aritmética",
     "Geometría y Trigonometría",
     "Lenguaje",
+    "Ref. Mates",
     "Simulacros"
   ];
   const ESCOLARES_AGRARIA_COURSES = [
@@ -11976,6 +11977,7 @@ function renderMateriales(){
     "Geometría y Medida",
     "Álgebra",
     "Textos",
+    "Ref. Mates",
     "Simulacros"
   ];
 
@@ -12035,15 +12037,22 @@ function renderMateriales(){
     {id:"EDITOR", label:"EDITOR"},
     {id:"SAN_MIGUEL", label:"SAN MIGUEL"}
   ];
+  const POP_SPACES = [
+    {id:"EDITOR", label:"EDITOR"},
+    {id:"LA_MOLINA", label:"LA MOLINA"},
+    {id:"SAN_MIGUEL", label:"SAN MIGUEL"},
+    {id:"SAN_BORJA", label:"SAN BORJA"}
+  ];
   const INTEGRAL_SPACES = [
     {id:"EDITOR", label:"EDITOR"},
     {id:"LA_MOLINA", label:"LA MOLINA"},
     {id:"SAN_MIGUEL", label:"SAN MIGUEL"},
     {id:"SAN_BORJA", label:"SAN BORJA"}
   ];
+  const isPopProgram = mcNormLabel(mcMaterialProgramNameRaw(prog)).includes("POP");
   const isArsSanMiguelProgram = mcMaterialDisplayProgramName(prog) === "ESCOLARES ARS SM";
   const materialSpaces = isArsProgram
-    ? (isArsSanMiguelProgram ? ARS_SM_SPACES : ARS_SPACES)
+    ? (isPopProgram ? POP_SPACES : (isArsSanMiguelProgram ? ARS_SM_SPACES : ARS_SPACES))
     : (isIntegralProgram ? INTEGRAL_SPACES : MC_SPACES);
   const availableSpaces = (roleLower === "admin")
     ? materialSpaces
