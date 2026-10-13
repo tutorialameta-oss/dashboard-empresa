@@ -7,7 +7,7 @@
   <meta http-equiv="Pragma" content="no-cache"/>
   <meta http-equiv="Expires" content="0"/>
   <title>LA META | DASHBOARD</title>
-  <!-- revisión: Notas v2026-09-12b · rótulo escolar de Agraria actualizado -->
+  <!-- revisión: Sílabos v2026-10-13a · lectura completa de bloques y actualización automática -->
 
   <!-- Charts -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
@@ -9985,6 +9985,10 @@ function mcProgress(stOrPid, pidOrCid, cidOrNull, codesOrNull){
 }
 
 const MC_ARS_SYLLABUS_CACHE = new Map();
+const MC_SYLLABUS_CACHE_MS = 60000;
+let MC_SYLLABUS_REQUEST_ID = 0;
+let MC_ACTIVE_SYLLABUS_CONTEXT = null;
+let MC_SYLLABUS_REFRESHING = false;
 let MC_ACTIVE_SYLLABUS_ITEMS = [];
 const MC_ARS_MANUAL_SYLLABUS = {
   "NUMEROS Y OPERACIONES": [
@@ -10025,7 +10029,7 @@ function mcSyllabusSheetInfo(rawUrl){
   if (!idMatch && csvDirect) return { raw, id:"", gid:"0", directCsv:true };
   if (!idMatch) return null;
   const gidMatch = raw.match(/[?#&]gid=(\d+)/);
-  const gid = gidMatch ? gidMatch[1] : "0";
+  const gid = gidMatch ? gidMatch[1] : "";
   return { raw, id:idMatch[1], gid, directCsv:csvDirect };
 }
 
@@ -10033,17 +10037,18 @@ function mcSyllabusCsvUrl(rawUrl){
   const info = mcSyllabusSheetInfo(rawUrl);
   if (!info) return "";
   if (info.directCsv) return info.raw;
-  return `https://docs.google.com/spreadsheets/d/${info.id}/export?format=csv&gid=${info.gid}`;
+  return `https://docs.google.com/spreadsheets/d/${info.id}/export?format=csv${info.gid ? "&gid=" + info.gid : ""}`;
 }
 
 function mcSyllabusCandidateCsvUrls(rawUrl){
   const info = mcSyllabusSheetInfo(rawUrl);
   if (!info) return [];
   if (info.directCsv) return [info.raw];
+  const gidQuery = info.gid ? "&gid=" + info.gid : "";
   return [
-    `https://docs.google.com/spreadsheets/d/${info.id}/export?format=csv&gid=${info.gid}`,
-    `https://docs.google.com/spreadsheets/d/${info.id}/gviz/tq?tqx=out:csv&gid=${info.gid}`,
-    `https://docs.google.com/spreadsheets/d/${info.id}/pub?output=csv&gid=${info.gid}`
+    `https://docs.google.com/spreadsheets/d/${info.id}/export?format=csv${gidQuery}`,
+    `https://docs.google.com/spreadsheets/d/${info.id}/gviz/tq?tqx=out:csv${gidQuery}`,
+    `https://docs.google.com/spreadsheets/d/${info.id}/pub?output=csv${gidQuery}`
   ];
 }
 
@@ -10082,7 +10087,7 @@ function mcLoadSyllabusGvizRows(rawUrl){
     const script = document.createElement("script");
     script.async = true;
     script.onerror = ()=>{ clearTimeout(timer); cleanup(); reject(new Error("No se pudo leer la hoja. Verifique que el enlace sea público o que la hoja esté publicada.")); };
-    script.src = `https://docs.google.com/spreadsheets/d/${info.id}/gviz/tq?gid=${encodeURIComponent(info.gid)}&tqx=responseHandler:${cb}&_ts=${Date.now()}`;
+    script.src = `https://docs.google.com/spreadsheets/d/${info.id}/gviz/tq?tqx=responseHandler:${cb}${info.gid ? "&gid=" + encodeURIComponent(info.gid) : ""}&_ts=${Date.now()}`;
     document.head.appendChild(script);
   });
 }
@@ -10172,11 +10177,13 @@ function mcSyllabusHeaderMatchesCourse(headerValue, courseName){
 }
 
 function mcSyllabusSplitTopics(value){
-  const raw = String(value||"").replace(/\r/g,"\n").trim();
+  const raw = String(value||"").replace(/\r\n?/g,"\n").trim();
   if (!raw) return [];
+  // Una celda representa un bloque académico. Su título y descripción deben
+  // permanecer juntos: los saltos de línea y los ; no son bloques nuevos.
   const parts = raw
-    .split(/\n|(?:\s*[•▪▫●]\s*)|(?:\s*;\s*)|(?:\s+\/\s+)/g)
-    .map(x=>String(x||"").replace(/^[-–—\d\.\)\s]+/,"").replace(/\s+/g," ").trim())
+    .split(/\n\s*(?=[•▪▫●])/g)
+    .map(x=>String(x||"").replace(/^[-–—•▪▫●\d\.\)\s]+/,"").replace(/\s+/g," ").trim())
     .filter(Boolean);
   return parts.filter(x=>!mcSyllabusIsCourseOnly(x));
 }
@@ -10267,7 +10274,7 @@ function mcParseSyllabusByWeekRows(rows, courseName=""){
       const keys = (normalizeRows[r]||[]).map(mcSyllabusHeaderKey);
       const codeIdx = keys.findIndex(x=>x === "CODIGO" || x === "COD" || x === "SEM" || x === "CODIGO DE SEMANA" || x === "CODIGO SEMANA");
       const dateIdx = keys.findIndex(x=>x === "FECHA" || x === "FECHAS" || x.includes("FECHA"));
-      const blockIdx = keys.findIndex(x=>x === "BLOQUE" || x === "BLOQUES" || x === "BLOQUE POR SEMANA" || x === "BLOQUES POR SEMANA");
+      const blockIdx = keys.findIndex(x=>x === "BLOQUE" || x === "BLOQUES" || x === "BLOQUE SEMANAL" || x === "BLOQUE POR SEMANA" || x === "BLOQUES POR SEMANA");
       const notesIdx = keys.findIndex(x=>x.includes("OBSERV") || x === "NOTAS" || x === "NOTA" || x.includes("FERIADO"));
       if (codeIdx >= 0 || dateIdx >= 0 || blockIdx >= 0 || notesIdx >= 0){
         best = {row:r, codeIdx, dateIdx, blockIdx, notesIdx};
@@ -10307,7 +10314,7 @@ function mcParseSyllabusByWeekRows(rows, courseName=""){
         const rawTopic = cell(r, idx);
         if (!rawTopic) continue;
         for (const topic of mcSyllabusSplitTopics(rawTopic)){
-          if (!current.topics.includes(topic) && current.topics.length < 3) current.topics.push(topic);
+          if (!current.topics.includes(topic)) current.topics.push(topic);
         }
       }
 
@@ -10386,7 +10393,7 @@ function mcParseSyllabusRows(rows, courseName=""){
     const keys = rows[r].map(mcSyllabusHeaderKey);
     const c = keys.findIndex(x=>x === "CODIGO" || x === "COD" || x === "SEM" || x === "CODIGO DE SEMANA" || x === "CODIGO SEMANA");
     const d = keys.findIndex(x=>x === "SEMANA" || x === "FECHA" || x === "FECHAS" || x.includes("FECHA"));
-    const b = keys.findIndex(x=>x === "BLOQUE" || x === "BLOQUES" || x === "BLOQUE POR SEMANA" || x === "BLOQUES POR SEMANA" || x === "CLASE" || x === "SESION");
+    const b = keys.findIndex(x=>x === "BLOQUE" || x === "BLOQUES" || x === "BLOQUE SEMANAL" || x === "BLOQUE POR SEMANA" || x === "BLOQUES POR SEMANA" || x === "CLASE" || x === "SESION");
     const n = keys.findIndex(x=>x.includes("OBSERV") || x === "NOTAS" || x === "NOTA" || x.includes("FERIADO"));
     const courseTopicIdxs = keys
       .map((x,i)=>({x,i}))
@@ -10443,7 +10450,7 @@ function mcParseSyllabusRows(rows, courseName=""){
     for (const idx of topicIdxs){
       if (idx === notesIdx) continue;
       for (const topic of mcSyllabusSplitTopics(cells[idx])){
-        if (!current.topics.includes(topic) && current.topics.length < 3) current.topics.push(topic);
+        if (!current.topics.includes(topic)) current.topics.push(topic);
       }
     }
     if (notes && !current.notes.includes(notes)) current.notes.push(notes);
@@ -11108,7 +11115,7 @@ function mcAlignSyllabusTopics({weeks,codes,first,last,pStart,local,course,progr
       continue;
     }
 
-    const sourceTopics = (srcWeek.topics||[]).slice(0,3);
+    const sourceTopics = (srcWeek.topics||[]).slice();
     const sheetBaseDate = mcParseSheetDate(srcWeek?.dateRaw, year);
     const classDates = (!schedulePending && sheetBaseDate)
       ? mcClassDatesFromBaseWeek({baseDate: sheetBaseDate, classDays})
@@ -11129,7 +11136,7 @@ function mcAlignSyllabusTopics({weeks,codes,first,last,pStart,local,course,progr
       // Solo cuando existe horario se evalúa capacidad/reprogramación.
       carry.push(...sourceTopics.map(topic=>({topic, sourceWeek:srcWeek})));
       const capacity = mcSyllabusWeekCapacity(sourceTopics, classDates, holidayHits);
-      const selected = carry.splice(0, Math.min(3, capacity));
+      const selected = carry.splice(0, capacity);
       topicSourceWeek = selected[0]?.sourceWeek || srcWeek;
       topics = selected.map(x=>x.topic);
     }
@@ -11253,6 +11260,7 @@ function mcOpenSyllabusModal(idx){
   const item = (MC_ACTIVE_SYLLABUS_ITEMS || [])[idx];
   if (!item) return;
   const overlay = mcEnsureSyllabusModal();
+  overlay.dataset.syllabusIndex = String(idx);
   const title = overlay.querySelector("#mcSyllabusModalTitle");
   const sub = overlay.querySelector("#mcSyllabusModalSub");
   const body = overlay.querySelector("#mcSyllabusModalBody");
@@ -11268,7 +11276,7 @@ function mcOpenSyllabusModal(idx){
   }
   if (sub) sub.textContent = subParts.join(" · ") || "Contenido semanal";
 
-  const topics = (item.topics||[]).slice(0,3);
+  const topics = (item.topics||[]).slice();
   const notes = (item.notes||[]).slice();
   const holidays = (item.holidayHits||[]).slice();
   const hasAvisos = notes.length || holidays.length;
@@ -11696,7 +11704,8 @@ async function mcLoadSyllabusData(url, courseName=""){
   const key = String(url||"").trim();
   const cacheKey = `${key}::${mcNormLabel(courseName)}`;
   if (!key) throw new Error("Enlace de sílabo pendiente.");
-  if (MC_ARS_SYLLABUS_CACHE.has(cacheKey)) return await MC_ARS_SYLLABUS_CACHE.get(cacheKey);
+  const cached = MC_ARS_SYLLABUS_CACHE.get(cacheKey);
+  if (cached && (cached.pending || Date.now() - cached.loadedAt < MC_SYLLABUS_CACHE_MS)) return await cached.promise;
   const promise = (async ()=>{
     if (!mcSyllabusSheetInfo(key)) throw new Error("El enlace debe ser de Google Sheets o CSV publicado.");
     const errors = [];
@@ -11723,15 +11732,26 @@ async function mcLoadSyllabusData(url, courseName=""){
 
     throw new Error("No se pudo leer la hoja. Debe estar compartida como 'Cualquier usuario con el enlace' o publicada como CSV. " + errors.slice(0,2).join(" | "));
   })();
-  MC_ARS_SYLLABUS_CACHE.set(cacheKey,promise);
-  try{ return await promise; }
-  catch(err){ MC_ARS_SYLLABUS_CACHE.delete(cacheKey); throw err; }
+  const entry = {promise, pending:true, loadedAt:0};
+  MC_ARS_SYLLABUS_CACHE.set(cacheKey,entry);
+  try{
+    const weeks = await promise;
+    entry.pending = false;
+    entry.loadedAt = Date.now();
+    return weeks;
+  }catch(err){
+    if (MC_ARS_SYLLABUS_CACHE.get(cacheKey) === entry) MC_ARS_SYLLABUS_CACHE.delete(cacheKey);
+    throw err;
+  }
 }
 
 async function mcHydrateMaterialesSyllabus({pid,cid,codes,first,last,pStart,space,url,programType}){
   const status = document.getElementById("mcSyllabusStatus");
   const cells = Array.from(document.querySelectorAll('[data-syllabus-week]'));
   if (!cells.length) return;
+  const requestId = ++MC_SYLLABUS_REQUEST_ID;
+  MC_ACTIVE_SYLLABUS_CONTEXT = {params:{pid,cid,codes,first,last,pStart,space,url,programType}, cells};
+  const isCurrent = ()=>requestId === MC_SYLLABUS_REQUEST_ID && cells.every(td=>td.isConnected);
 
   // Regla estándar para ARS e INTEGRAL:
   // primero se valida si el curso existe en Horarios para el local/espacio elegido.
@@ -11755,6 +11775,7 @@ async function mcHydrateMaterialesSyllabus({pid,cid,codes,first,last,pStart,spac
   }
 
   const applyAligned = (aligned, weeksLabel)=>{
+    if (!isCurrent()) return;
     MC_ACTIVE_SYLLABUS_ITEMS = aligned.map((item, index)=>({
       ...item,
       code: String(codes[first-1+index] || item?.code || `SEM${first+index}`)
@@ -11765,6 +11786,8 @@ async function mcHydrateMaterialesSyllabus({pid,cid,codes,first,last,pStart,spac
     });
     mcBindSyllabusButtons(document.getElementById("mcBody2") || document);
     if (status) status.textContent = weeksLabel;
+    const overlay = document.getElementById("mcSyllabusOverlay");
+    if (overlay?.classList.contains("on")) mcOpenSyllabusModal(Number(overlay.dataset.syllabusIndex));
   };
 
   const manualAligned = mcManualSyllabusAligned({cid,codes,first,last,pStart,local:space,programType});
@@ -11773,10 +11796,12 @@ async function mcHydrateMaterialesSyllabus({pid,cid,codes,first,last,pStart,spac
     try{
       if (status) status.textContent = "CARGANDO SÍLABO…";
       const weeks = await mcLoadSyllabusData(url, cid);
+      if (!isCurrent()) return;
       const aligned = mcAlignSyllabusTopics({weeks,codes,first,last,pStart,local:space,course:cid,programType});
       applyAligned(aligned, `SÍLABO ACTIVO · ${weeks.length} SEMANAS`);
       return;
     }catch(err){
+      if (!isCurrent()) return;
       if (manualAligned){
         applyAligned(manualAligned, `SÍLABO TEMPORAL · ${manualAligned.length} SEMANAS · REVISAR LINK`);
         return;
@@ -11797,6 +11822,23 @@ async function mcHydrateMaterialesSyllabus({pid,cid,codes,first,last,pStart,spac
   cells.forEach(td=>td.innerHTML='<div class="mcSyllabusCell"><span class="mcSyllabusPending">PENDIENTE</span></div>');
   if (status) status.textContent = "SÍLABO PENDIENTE";
 }
+
+async function mcRefreshActiveSyllabus(force=false){
+  const ctx = MC_ACTIVE_SYLLABUS_CONTEXT;
+  if (MC_SYLLABUS_REFRESHING || document.hidden || state?.view !== "materiales" || !ctx?.params.url || !ctx.cells.every(td=>td.isConnected)) return;
+  MC_SYLLABUS_REFRESHING = true;
+  try{
+    const cacheKey = `${ctx.params.url.trim()}::${mcNormLabel(ctx.params.cid)}`;
+    const cached = MC_ARS_SYLLABUS_CACHE.get(cacheKey);
+    if (force && cached && !cached.pending) MC_ARS_SYLLABUS_CACHE.delete(cacheKey);
+    await mcHydrateMaterialesSyllabus(ctx.params);
+  }finally{ MC_SYLLABUS_REFRESHING = false; }
+}
+setInterval(()=>mcRefreshActiveSyllabus(), MC_SYLLABUS_CACHE_MS);
+window.addEventListener("focus", ()=>mcRefreshActiveSyllabus(true));
+document.addEventListener("visibilitychange", ()=>{
+  if (!document.hidden) mcRefreshActiveSyllabus(true);
+});
 
 function mcSelected(){
   const pid = document.getElementById("mcProgram")?.value || "__ALL__";
